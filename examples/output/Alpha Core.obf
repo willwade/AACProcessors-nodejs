@@ -1,0 +1,303 @@
+{
+  "format": "open-board-0.1",
+  "id": "Topics - News and Current Topics",
+  "name": "Topics - News and Current Topics",
+  "locale": "en_US",
+  "grid": {
+    "rows": 7,
+    "columns": 12,
+    "order": [
+      [
+        "Topics - News and Current Topics_button_0_0",
+        "Topics - News and Current Topics_button_0_1",
+        "Topics - News and Current Topics_button_0_2",
+        "Topics - News and Current Topics_button_0_3",
+        "Topics - News and Current Topics_button_0_4",
+        "Topics - News and Current Topics_button_0_5",
+        "Topics - News and Current Topics_button_0_6",
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        "Topics - News and Current Topics_button_1_0",
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        "Topics - News and Current Topics_button_2_0",
+        null,
+        "Topics - News and Current Topics_button_2_2",
+        "Topics - News and Current Topics_button_2_3",
+        "Topics - News and Current Topics_button_2_4",
+        "Topics - News and Current Topics_button_2_5",
+        "Topics - News and Current Topics_button_2_6",
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        "Topics - News and Current Topics_button_4_2",
+        "Topics - News and Current Topics_button_4_3",
+        "Topics - News and Current Topics_button_4_4",
+        "Topics - News and Current Topics_button_4_5",
+        "Topics - News and Current Topics_button_4_6",
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        "Topics - News and Current Topics_button_6_2",
+        "Topics - News and Current Topics_button_6_3",
+        "Topics - News and Current Topics_button_6_4",
+        "Topics - News and Current Topics_button_6_5",
+        "Topics - News and Current Topics_button_6_6",
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    ]
+  },
+  "buttons": [
+    {
+      "id": "Topics - News and Current Topics_button_10_6",
+      "label": "Yes/No\nPlease/Thanks",
+      "load_board": {
+        "id": "Topics - Yes No Please Thanks",
+        "path": "boards/Topics - Yes No Please Thanks.obf"
+      }
+    },
+    {
+      "id": "Topics - News and Current Topics_button_6_6",
+      "label": "Communication Tips",
+      "load_board": {
+        "id": "Topics - Communication Tips",
+        "path": "boards/Topics - Communication Tips.obf"
+      }
+    },
+    {
+      "id": "Topics - News and Current Topics_button_0_1",
+      "label": "NEWS AND CURRENT TOPICS"
+    },
+    {
+      "id": "Topics - News and Current Topics_button_0_2",
+      "label": ""
+    },
+    {
+      "id": "Topics - News and Current Topics_button_2_2",
+      "label": ""
+    },
+    {
+      "id": "Topics - News and Current Topics_button_4_2",
+      "label": ""
+    },
+    {
+      "id": "Topics - News and Current Topics_button_6_2",
+      "label": ""
+    },
+    {
+      "id": "Topics - News and Current Topics_button_8_2",
+      "label": ""
+    },
+    {
+      "id": "Topics - News and Current Topics_button_0_3",
+      "label": ""
+    },
+    {
+      "id": "Topics - News and Current Topics_button_2_3",
+      "label": ""
+    },
+    {
+      "id": "Topics - News and Current Topics_button_4_3",
+      "label": ""
+    },
+    {
+      "id": "Topics - News and Current Topics_button_6_3",
+      "label": ""
+    },
+    {
+      "id": "Topics - News and Current Topics_button_8_3",
+      "label": ""
+    },
+    {
+      "id": "Topics - News and Current Topics_button_0_4",
+      "label": ""
+    },
+    {
+      "id": "Topics - News and Current Topics_button_2_4",
+      "label": ""
+    },
+    {
+      "id": "Topics - News and Current Topics_button_4_4",
+      "label": ""
+    },
+    {
+      "id": "Topics - News and Current Topics_button_6_4",
+      "label": ""
+    },
+    {
+      "id": "Topics - News and Current Topics_button_8_4",
+      "label": ""
+    },
+    {
+      "id": "Topics - News and Current Topics_button_10_4",
+      "label": ""
+    },
+    {
+      "id": "Topics - News and Current Topics_button_10_3",
+      "label": "Remove Message"
+    },
+    {
+      "id": "Topics - News and Current Topics_button_10_2",
+      "label": "Add Message"
+    },
+    {
+      "id": "Topics - News and Current Topics_button_0_5",
+      "label": "Well, that's (Describing)",
+      "image_id": "img_0",
+      "load_board": {
+        "id": "Topics - Describing",
+        "path": "boards/Topics - Describing.obf"
+      }
+    },
+    {
+      "id": "Topics - News and Current Topics_button_2_5",
+      "label": "Today I spoke with (People)",
+      "image_id": "img_1",
+      "load_board": {
+        "id": "Topics - My People",
+        "path": "boards/Topics - My People.obf"
+      }
+    },
+    {
+      "id": "Topics - News and Current Topics_button_4_5",
+      "label": ""
+    },
+    {
+      "id": "Topics - News and Current Topics_button_6_5",
+      "label": ""
+    },
+    {
+      "id": "Topics - News and Current Topics_button_8_5",
+      "label": ""
+    },
+    {
+      "id": "Topics - News and Current Topics_button_10_5",
+      "label": "(Wh - Words)",
+      "load_board": {
+        "id": "Topics - Wh",
+        "path": "boards/Topics - Wh.obf"
+      }
+    },
+    {
+      "id": "Topics - News and Current Topics_button_0_6",
+      "label": "Keyboard"
+    },
+    {
+      "id": "Topics - News and Current Topics_button_2_6",
+      "label": "Back"
+    },
+    {
+      "id": "Topics - News and Current Topics_button_4_6",
+      "label": "Topics",
+      "load_board": {
+        "id": "Topics - Main Page",
+        "path": "boards/Topics - Main Page.obf"
+      }
+    },
+    {
+      "id": "Topics - News and Current Topics_button_8_6",
+      "label": "Questions & Continuers",
+      "load_board": {
+        "id": "Topics - Questions and Continuers",
+        "path": "boards/Topics - Questions and Continuers.obf"
+      }
+    },
+    {
+      "id": "Topics - News and Current Topics_button_2_0",
+      "label": ""
+    },
+    {
+      "id": "Topics - News and Current Topics_button_10_0",
+      "label": ""
+    },
+    {
+      "id": "Topics - News and Current Topics_button_1_0",
+      "label": ""
+    },
+    {
+      "id": "Topics - News and Current Topics_button_8_0",
+      "label": ""
+    },
+    {
+      "id": "Topics - News and Current Topics_button_0_0",
+      "label": "",
+      "load_board": {
+        "id": "Topics - Expanded",
+        "path": "boards/Topics - Expanded.obf"
+      }
+    }
+  ],
+  "images": [
+    {
+      "symbol_set": "[grid3x]symbol categories",
+      "symbol_key": "gridpictures_categories.png",
+      "id": "img_0"
+    },
+    {
+      "symbol_set": "[grid3x]symbol categories",
+      "symbol_key": "sport_teamsports.png",
+      "id": "img_1"
+    }
+  ],
+  "sounds": []
+}

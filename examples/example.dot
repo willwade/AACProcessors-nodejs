@@ -1,0 +1,14 @@
+digraph G {
+    node1 [label="Home Page"];
+    node2 [label="About"];
+    node3 [label="Contact"];
+    node4 [label="Products"];
+
+    node1 -> node2 [label="Go to About"];
+    node1 -> node3 [label="Go to Contact"];
+    node1 -> node4 [label="View Products"];
+
+    node2 -> node1 [label="Back to Home"];
+    node3 -> node1 [label="Back to Home"];
+    node4 -> node1 [label="Back to Home"];
+}
