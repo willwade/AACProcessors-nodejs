@@ -61,72 +61,119 @@ class TouchChatProcessor extends BaseProcessor {
       // Step 3: Open SQLite DB and extract pages/buttons
       db = new Database(dbPath, { readonly: true });
       const tree = new AACTree();
-    // Debug: print schema and sample rows from buttons table
-    try {
-      const schemaRows = db.prepare("PRAGMA table_info(buttons)").all();
-      console.log('TouchChatProcessor: buttons table schema:', schemaRows);
-      const sampleRows = db.prepare("SELECT * FROM buttons LIMIT 5").all();
-      console.log('TouchChatProcessor: first 5 button rows:', sampleRows);
-    } catch (e) {
-      console.warn('TouchChatProcessor: Could not print buttons schema/sample:', e);
-    }
-    // Pages
-    const pages = db.prepare('SELECT * FROM pages').all();
-    pages.forEach(pageRow => {
-      const page = new AACPage({
-        id: String(pageRow.id),
-        name: pageRow.name,
-        grid: [],
-        buttons: [],
-        parentId: null // Could be filled if parent info available
+      
+      // First, load all pages and get their names from resources
+      const pageQuery = `
+        SELECT p.*, r.name
+        FROM pages p
+        JOIN resources r ON r.id = p.resource_id
+      `;
+      const pages = db.prepare(pageQuery).all();
+      pages.forEach(pageRow => {
+        const page = new AACPage({
+          id: String(pageRow.id),
+          name: pageRow.name || '',
+          grid: [],
+          buttons: [],
+          parentId: null
+        });
+        tree.addPage(page);
       });
-      tree.addPage(page);
-    });
-    // Buttons
-    const buttons = db.prepare('SELECT * FROM buttons').all();
-    if (buttons.length > 0) {
-      console.log('TouchChatProcessor: button row keys:', Object.keys(buttons[0]));
-    }
-    let pageIdField = null;
-    if (buttons.length > 0) {
-      // Try to detect a page id field
-      const possibleFields = ['page_id', 'resource_id'];
-      for (const field of possibleFields) {
-        if (buttons[0].hasOwnProperty(field)) {
-          pageIdField = field;
-          break;
-        }
+
+      // Load button boxes and their cells
+      const buttonBoxQuery = `
+        SELECT bbc.*, b.*, bb.id as box_id 
+        FROM button_box_cells bbc
+        JOIN buttons b ON b.resource_id = bbc.resource_id
+        JOIN button_boxes bb ON bb.id = bbc.button_box_id
+      `;
+      try {
+        const buttonBoxCells = db.prepare(buttonBoxQuery).all();
+        const buttonBoxes = new Map(); // Map of box id to array of buttons
+        buttonBoxCells.forEach(cell => {
+          if (!buttonBoxes.has(cell.box_id)) {
+            buttonBoxes.set(cell.box_id, []);
+          }
+          const button = new AACButton({
+            id: String(cell.id),
+            label: cell.label || '',
+            message: cell.message || '',
+            type: 'SPEAK',
+            action: null
+          });
+          buttonBoxes.get(cell.box_id).push({
+            button,
+            location: cell.location,
+            spanX: cell.span_x,
+            spanY: cell.span_y
+          });
+        });
+
+        // Map button boxes to pages
+        const boxInstances = db.prepare('SELECT * FROM button_box_instances').all();
+        boxInstances.forEach(instance => {
+          const page = tree.getPage(String(instance.page_id));
+          const buttons = buttonBoxes.get(instance.button_box_id);
+          if (page && buttons) {
+            buttons.forEach(({button}) => {
+              page.addButton(button);
+            });
+          }
+        });
+      } catch (e) {
+        console.log('No button box cells found:', e.message);
       }
-    }
-    if (pageIdField) {
-      buttons.forEach(btnRow => {
-        const button = new AACButton({
-          id: String(btnRow.id),
-          label: btnRow.label || btnRow.message || '',
-          message: btnRow.message || '',
-          type: btnRow.action === 'navigate' ? 'NAVIGATE' : 'SPEAK',
-          targetPageId: btnRow.target_page_id ? String(btnRow.target_page_id) : null,
-          action: btnRow.action
+
+      // Load buttons directly linked to pages via resources
+      const pageButtonsQuery = `
+        SELECT b.*, r.*
+        FROM buttons b
+        JOIN resources r ON r.id = b.resource_id
+        WHERE r.type = 7
+      `;
+      try {
+        const pageButtons = db.prepare(pageButtonsQuery).all();
+        pageButtons.forEach(btnRow => {
+          const button = new AACButton({
+            id: String(btnRow.id),
+            label: btnRow.label || '',
+            message: btnRow.message || '',
+            type: 'SPEAK',
+            action: null
+          });
+          // Find the page that references this resource
+          const page = Object.values(tree.pages).find(p => p.id === String(btnRow.id));
+          if (page) page.addButton(button);
         });
-        const page = tree.getPage(String(btnRow[pageIdField]));
-        if (page) page.addButton(button);
-      });
-    } else {
-      // Fallback: add all buttons to a dummy page
-      const fallbackPage = new AACPage({ id: 'all', name: 'All Buttons', grid: [], buttons: [], parentId: null });
-      buttons.forEach(btnRow => {
-        const button = new AACButton({
-          id: String(btnRow.id),
-          label: btnRow.label || btnRow.message || '',
-          message: btnRow.message || '',
-          type: btnRow.action === 'navigate' ? 'NAVIGATE' : 'SPEAK',
-          targetPageId: btnRow.target_page_id ? String(btnRow.target_page_id) : null,
-          action: btnRow.action
+      } catch (e) {
+        console.log('No direct page buttons found:', e.message);
+      }
+
+      // Load navigation actions
+      const navActionsQuery = `
+        SELECT b.id as button_id, ad.value as target_page_id
+        FROM buttons b
+        JOIN actions a ON a.resource_id = b.resource_id
+        JOIN action_data ad ON ad.action_id = a.id
+        WHERE a.code = 1
+      `;
+      try {
+        const navActions = db.prepare(navActionsQuery).all();
+        navActions.forEach(nav => {
+          // Find button in any page
+          for (const pageId in tree.pages) {
+            const page = tree.pages[pageId];
+            const button = page.buttons.find(b => b.id === String(nav.button_id));
+            if (button) {
+              button.type = 'NAVIGATE';
+              button.targetPageId = String(nav.target_page_id);
+              break;
+            }
+          }
         });
-        fallbackPage.addButton(button);
-      });
-      tree.addPage(fallbackPage);
-    }
+      } catch (e) {
+        console.log('No navigation actions found:', e.message);
+      }
     return tree;
   } finally {
     // Clean up
