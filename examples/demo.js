@@ -42,37 +42,20 @@ try {
   console.warn('OPML demo error:', e.message);
 }
 
-// // --- SnapProcessor (Snap JSON) ---
-// console.log('\n=== Snap Example (.snap.json) ===');
-// try {
-//   const snapFile = path.join(__dirname, 'example.snap.json');
-//   const snapProcessor = new SnapProcessor();
-//   const snapTree = snapProcessor.loadIntoTree(snapFile);
-//   console.log('Snap tree:', snapTree);
-//   console.log('Snap texts:', snapProcessor.extractTexts(snapFile));
-//   if (prettyPrint) prettyPrint.printTree(snapTree, { showNavigation: true });
-//   // Optional: symbol demo
-//   if (symbolTools && symbolTools.SnapSymbolExtractor) {
-//     const extractor = new symbolTools.SnapSymbolExtractor();
-//     const symbolRefs = extractor.getSymbolReferences(snapFile);
-//     console.log('Snap symbol refs:', symbolRefs.slice(0, 5));
-//   }
-// } catch (e) {
-//   console.warn('Snap demo error (.snap.json):', e.message);
-// }
 
-// // --- SnapProcessor (SPB) ---
-// console.log('\n=== Snap Example (.spb) ===');
-// try {
-//   const spbFile = path.join(__dirname, 'example.spb');
-//   const snapProcessor = new SnapProcessor();
-//   const snapTree = snapProcessor.loadIntoTree(spbFile);
-//   console.log('Snap tree (.spb):', snapTree);
-//   console.log('Snap texts (.spb):', snapProcessor.extractTexts(spbFile));
-//   if (prettyPrint) prettyPrint.printTree(snapTree, { showNavigation: true });
-// } catch (e) {
-//   console.warn('Snap demo error (.spb):', e.message);
-// }
+
+// --- SnapProcessor (SPB) ---
+console.log('\n=== Snap Example (.spb) ===');
+try {
+  const spbFile = path.join(__dirname, 'example.spb');
+  const snapProcessor = new SnapProcessor();
+  const snapTree = snapProcessor.loadIntoTree(spbFile);
+  console.log('Snap tree (.spb):', snapTree);
+  console.log('Snap texts (.spb):', snapProcessor.extractTexts(spbFile));
+  if (prettyPrint) prettyPrint.printTree(snapTree, { showNavigation: true });
+} catch (e) {
+  console.warn('Snap demo error (.spb):', e.message);
+}
 
 // // --- SnapProcessor (SPS) ---
 // console.log('\n=== Snap Example (.sps) ===');
