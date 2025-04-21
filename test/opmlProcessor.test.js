@@ -1,13 +1,14 @@
 // Unit test for OPMLProcessor
 const path = require('path');
-const OPMLProcessor = require('../src/processors/opmlProcessor');
-const { AACTree } = require('../src/core/treeStructure');
+const { OpmlProcessor } = require('../dist/processors/opmlProcessor');
+const { AACTree } = require('../dist/core/treeStructure');
 
 describe('OPMLProcessor', () => {
   const opmlPath = path.join(__dirname, '../examples/example.opml');
 
   it('can process .opml files and build a navigation tree', () => {
-    const tree = OPMLProcessor.loadIntoTree(opmlPath);
+    const processor = new OpmlProcessor();
+    const tree = processor.loadIntoTree(opmlPath);
     expect(tree).toBeInstanceOf(AACTree);
     // Should have at least one page
     expect(Object.keys(tree.pages).length).toBeGreaterThan(0);

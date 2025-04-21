@@ -1,5 +1,5 @@
 // Unit tests for GridsetProcessor
-const GridsetProcessor = require('../src/processors/gridsetProcessor');
+const { GridsetProcessor } = require('../dist/processors/gridsetProcessor');
 const path = require('path');
 
 describe('GridsetProcessor', () => {

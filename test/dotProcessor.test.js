@@ -1,13 +1,14 @@
 // Unit test for DotProcessor
 const path = require('path');
-const DotProcessor = require('../src/processors/dotProcessor');
-const { AACTree } = require('../src/core/treeStructure');
+const { DotProcessor } = require('../dist/processors/dotProcessor');
+const { AACTree } = require('../dist/core/treeStructure');
 
 describe('DotProcessor', () => {
   const dotPath = path.join(__dirname, '../examples/example.dot');
 
   it('can process .dot files and build a navigation tree', () => {
-    const tree = DotProcessor.loadIntoTree(dotPath);
+    const processor = new DotProcessor();
+    const tree = processor.loadIntoTree(dotPath);
     expect(tree).toBeInstanceOf(AACTree);
     // Should have at least one page
     expect(Object.keys(tree.pages).length).toBeGreaterThan(0);

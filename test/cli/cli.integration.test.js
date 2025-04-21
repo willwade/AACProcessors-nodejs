@@ -2,7 +2,7 @@ const { execSync } = require('child_process');
 const path = require('path');
 
 describe('aac-processors CLI', () => {
-  const cliPath = path.join(__dirname, '../../src/cli/index.js');
+  const cliPath = path.join(__dirname, '../../dist/cli/index.js');
   const gridsetExample = path.join(__dirname, '../../examples/example.gridset');
   const touchchatExample = path.join(__dirname, '../../examples/example.ce');
 

@@ -2,27 +2,28 @@
 const path = require('path');
 
 // Import processors
-const { DotProcessor, OPMLProcessor, SnapProcessor, GridsetProcessor, TouchChatProcessor } = require('../src/processors');
+const { DotProcessor, OpmlProcessor, SnapProcessor, GridsetProcessor, TouchChatProcessor, ApplePanelsProcessor, ObfProcessor } = require('../dist/processors');
 
 // Optional: pretty printer
 let prettyPrint;
 try {
-  prettyPrint = require('../src/viewer/prettyPrint');
+  prettyPrint = require('../dist/viewer/prettyPrint');
 } catch {}
 
 // Optional: symbol tools
 let symbolTools;
 try {
-  symbolTools = require('../src/optional/symbolTools');
+  symbolTools = require('../dist/optional/symbolTools');
 } catch {}
 
 // --- DotProcessor ---
 console.log('\n=== DOT Example ===');
 try {
   const dotFile = path.join(__dirname, 'example.dot');
-  const dotTree = DotProcessor.loadIntoTree(dotFile);
+  const dotProcessor = new DotProcessor();
+  const dotTree = dotProcessor.loadIntoTree(dotFile);
   console.log('DOT tree:', dotTree);
-  console.log('DOT texts:', DotProcessor.extractTexts ? DotProcessor.extractTexts(dotFile) : '(no extractTexts)');
+  console.log('DOT texts:', dotProcessor.extractTexts ? dotProcessor.extractTexts(dotFile) : '(no extractTexts)');
   if (prettyPrint) prettyPrint.printTree(dotTree, { showNavigation: true });
 } catch (e) {
   console.warn('DOT demo error:', e.message);
@@ -32,32 +33,59 @@ try {
 console.log('\n=== OPML Example ===');
 try {
   const opmlFile = path.join(__dirname, 'example.opml');
-  const opmlTree = OPMLProcessor.loadIntoTree(opmlFile);
+  const opmlProcessor = new OpmlProcessor();
+  const opmlTree = opmlProcessor.loadIntoTree(opmlFile);
   console.log('OPML tree:', opmlTree);
-  console.log('OPML texts:', OPMLProcessor.extractTexts ? OPMLProcessor.extractTexts(opmlFile) : '(no extractTexts)');
+  console.log('OPML texts:', opmlProcessor.extractTexts ? opmlProcessor.extractTexts(opmlFile) : '(no extractTexts)');
   if (prettyPrint) prettyPrint.printTree(opmlTree, { showNavigation: true });
 } catch (e) {
   console.warn('OPML demo error:', e.message);
 }
 
-// --- SnapProcessor ---
-console.log('\n=== Snap Example ===');
-try {
-  const snapFile = path.join(__dirname, 'example.snap.json');
-  const snapProcessor = new SnapProcessor();
-  const snapTree = snapProcessor.loadIntoTree(snapFile);
-  console.log('Snap tree:', snapTree);
-  console.log('Snap texts:', snapProcessor.extractTexts(snapFile));
-  if (prettyPrint) prettyPrint.printTree(snapTree, { showNavigation: true });
-  // Optional: symbol demo
-  if (symbolTools && symbolTools.SnapSymbolExtractor) {
-    const extractor = new symbolTools.SnapSymbolExtractor();
-    const symbolRefs = extractor.getSymbolReferences(snapFile);
-    console.log('Snap symbol refs:', symbolRefs.slice(0, 5));
-  }
-} catch (e) {
-  console.warn('Snap demo error:', e.message);
-}
+// // --- SnapProcessor (Snap JSON) ---
+// console.log('\n=== Snap Example (.snap.json) ===');
+// try {
+//   const snapFile = path.join(__dirname, 'example.snap.json');
+//   const snapProcessor = new SnapProcessor();
+//   const snapTree = snapProcessor.loadIntoTree(snapFile);
+//   console.log('Snap tree:', snapTree);
+//   console.log('Snap texts:', snapProcessor.extractTexts(snapFile));
+//   if (prettyPrint) prettyPrint.printTree(snapTree, { showNavigation: true });
+//   // Optional: symbol demo
+//   if (symbolTools && symbolTools.SnapSymbolExtractor) {
+//     const extractor = new symbolTools.SnapSymbolExtractor();
+//     const symbolRefs = extractor.getSymbolReferences(snapFile);
+//     console.log('Snap symbol refs:', symbolRefs.slice(0, 5));
+//   }
+// } catch (e) {
+//   console.warn('Snap demo error (.snap.json):', e.message);
+// }
+
+// // --- SnapProcessor (SPB) ---
+// console.log('\n=== Snap Example (.spb) ===');
+// try {
+//   const spbFile = path.join(__dirname, 'example.spb');
+//   const snapProcessor = new SnapProcessor();
+//   const snapTree = snapProcessor.loadIntoTree(spbFile);
+//   console.log('Snap tree (.spb):', snapTree);
+//   console.log('Snap texts (.spb):', snapProcessor.extractTexts(spbFile));
+//   if (prettyPrint) prettyPrint.printTree(snapTree, { showNavigation: true });
+// } catch (e) {
+//   console.warn('Snap demo error (.spb):', e.message);
+// }
+
+// // --- SnapProcessor (SPS) ---
+// console.log('\n=== Snap Example (.sps) ===');
+// try {
+//   const spsFile = path.join(__dirname, 'example.sps');
+//   const snapProcessor = new SnapProcessor();
+//   const snapTree = snapProcessor.loadIntoTree(spsFile);
+//   console.log('Snap tree (.sps):', snapTree);
+//   console.log('Snap texts (.sps):', snapProcessor.extractTexts(spsFile));
+//   if (prettyPrint) prettyPrint.printTree(snapTree, { showNavigation: true });
+// } catch (e) {
+//   console.warn('Snap demo error (.sps):', e.message);
+// }
 
 // --- GridsetProcessor ---
 console.log('\n=== Gridset Example ===');
@@ -75,7 +103,7 @@ try {
 // --- TouchChatProcessor ---
 console.log('\n=== TouchChat Example ===');
 try {
-  const touchchatFile = path.join(__dirname, 'example.touchchat.json');
+  const touchchatFile = path.join(__dirname, 'example.ce');
   const touchchatProcessor = new TouchChatProcessor();
   const tcTree = touchchatProcessor.loadIntoTree(touchchatFile);
   console.log('TouchChat tree:', tcTree);
@@ -88,15 +116,18 @@ try {
 // --- OBF/OBZ Processor ---
 console.log('\n=== OBF/OBZ Example ===');
 try {
-  const OBFProcessor = require('../src/processors/obfProcessor');
+  // Use ObfProcessor from dist, matching others
+const obfProcessor = new ObfProcessor();
   const obzFile = path.join(__dirname, 'example.obz');
-  // loadIntoTree is async, so use then/catch
-  OBFProcessor.loadIntoTree(obzFile).then(obTree => {
+  // If loadIntoTree is async, use then/catch. If not, call directly.
+  let obTree;
+  try {
+    obTree = obfProcessor.loadIntoTree(obzFile);
     console.log('OBZ tree:', obTree);
     // Try extractTexts if available
-    if (OBFProcessor.extractTexts) {
+    if (obfProcessor.extractTexts) {
       try {
-        const texts = OBFProcessor.extractTexts(obzFile);
+        const texts = obfProcessor.extractTexts(obzFile);
         console.log('OBZ texts:', texts);
       } catch (e) {
         console.warn('OBZ extractTexts error:', e.message);
@@ -104,10 +135,10 @@ try {
     }
     if (prettyPrint) prettyPrint.printTree(obTree, { showNavigation: true });
     console.log('\nDemo complete.');
-  }).catch(e => {
+  } catch (e) {
     console.warn('OBZ demo error:', e.message);
     console.log('\nDemo complete.');
-  });
+  }
   // Return here so the rest of the demo waits for async
   return;
 } catch (e) {

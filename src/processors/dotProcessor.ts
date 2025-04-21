@@ -1,0 +1,176 @@
+import { BaseProcessor } from '../core/baseProcessor';
+import { AACTree, AACPage, AACButton } from '../core/treeStructure';
+// Removed unused import: FileProcessor
+import fs from 'fs';
+
+interface DotNode {
+  id: string;
+  label: string;
+}
+
+interface DotEdge {
+  from: string;
+  to: string;
+  label?: string;
+}
+
+class DotProcessor extends BaseProcessor {
+  private parseDotFile(content: string): {
+    nodes: Array<DotNode & { id: string; label: string }>;
+    edges: Array<DotEdge & { from: string; to: string }>;
+  } {
+    const nodes = new Map<string, DotNode>();
+    const edges: DotEdge[] = [];
+    const lines = content.split('\n');
+
+    for (const line of lines) {
+      const trimmedLine = line.trim();
+
+      // Skip empty lines and comments
+      if (!trimmedLine || trimmedLine.startsWith('//')) continue;
+
+      // Handle explicit node definitions: node1 [label="Home Page"]
+      const nodeMatch = trimmedLine.match(/^"?([^"\s]+)"?\s*\[label="([^"]+)"\]/);
+      if (nodeMatch) {
+        const [, id, label] = nodeMatch;
+        nodes.set(id, { id, label });
+        continue;
+      }
+
+      // Handle edges: "more quick chat" -> "That tickles"
+      const edgeMatch = trimmedLine.match(
+        /^"?([^"\s]+)"?\s*->\s*"?([^"\s]+)"?(?:\s*\[label="([^"]+)"\])?/
+      );
+      if (edgeMatch) {
+        const [, from, to, label] = edgeMatch;
+        edges.push({ from, to, label });
+
+        // Add nodes if they don't exist (implicit definition)
+        if (!nodes.has(from)) {
+          nodes.set(from, { id: from, label: from });
+        }
+        if (!nodes.has(to)) {
+          nodes.set(to, { id: to, label: to });
+        }
+      }
+    }
+
+    return { nodes: Array.from(nodes.values()), edges };
+  }
+
+  extractTexts(filePathOrBuffer: string | Buffer): string[] {
+    const content =
+      typeof filePathOrBuffer === 'string'
+        ? fs.readFileSync(filePathOrBuffer, 'utf8')
+        : filePathOrBuffer.toString('utf8');
+
+    const { nodes, edges } = this.parseDotFile(content);
+    const texts: string[] = [];
+
+    // Collect node labels
+    for (const node of nodes) {
+      texts.push(node.label);
+    }
+
+    // Collect edge labels
+    for (const edge of edges) {
+      if (edge.label) {
+        texts.push(edge.label);
+      }
+    }
+
+    return texts;
+  }
+
+  loadIntoTree(filePathOrBuffer: string | Buffer): AACTree {
+    const content =
+      typeof filePathOrBuffer === 'string'
+        ? fs.readFileSync(filePathOrBuffer, 'utf8')
+        : filePathOrBuffer.toString('utf8');
+
+    const { nodes, edges } = this.parseDotFile(content);
+    const tree = new AACTree();
+
+    // Create pages for each node
+    for (const node of nodes) {
+      const page = new AACPage({
+        id: node.id,
+        name: node.label,
+        grid: [],
+        buttons: [],
+        parentId: null,
+      });
+      tree.addPage(page);
+    }
+
+    // Create navigation buttons based on edges
+    for (const edge of edges) {
+      const fromPage = tree.getPage(edge.from);
+      if (fromPage) {
+        const button = new AACButton({
+          id: `nav_${edge.from}_${edge.to}`,
+          label: edge.label || edge.to,
+          message: '',
+          type: 'NAVIGATE',
+          targetPageId: edge.to,
+          action: {
+            type: 'NAVIGATE',
+            targetPageId: edge.to,
+          },
+        });
+        fromPage.addButton(button);
+      }
+    }
+
+    return tree;
+  }
+
+  processTexts(
+    filePathOrBuffer: string | Buffer,
+    translations: Map<string, string>,
+    _outputPath: string
+  ): Buffer {
+    const safeBuffer = Buffer.isBuffer(filePathOrBuffer)
+      ? filePathOrBuffer
+      : fs.readFileSync(filePathOrBuffer);
+
+    const content = safeBuffer.toString('utf8');
+    let translatedContent = content;
+
+    translations.forEach((translation, text) => {
+      if (typeof text === 'string' && typeof translation === 'string') {
+        translatedContent = translatedContent.replace(
+          new RegExp(`label="${text}"`, 'g'),
+          `label="${translation}"`
+        );
+      }
+    });
+
+    return Buffer.from(translatedContent || '', 'utf8');
+  }
+
+  saveFromTree(tree: AACTree, _outputPath: string): void {
+    let dotContent = 'digraph AACBoard {\n';
+
+    // Add nodes
+    for (const pageId in tree.pages) {
+      const page = tree.pages[pageId];
+      dotContent += `  "${page.id}" [label="${page.name}"]\n`;
+    }
+
+    // Add edges from navigation buttons
+    for (const pageId in tree.pages) {
+      const page = tree.pages[pageId];
+      page.buttons
+        .filter((btn: AACButton) => btn.type === 'NAVIGATE' && btn.targetPageId)
+        .forEach((btn: AACButton) => {
+          dotContent += `  "${page.id}" -> "${btn.targetPageId}" [label="${btn.label}"]\n`;
+        });
+    }
+
+    dotContent += '}\n';
+    fs.writeFileSync(_outputPath, dotContent);
+  }
+}
+
+export { DotProcessor };
