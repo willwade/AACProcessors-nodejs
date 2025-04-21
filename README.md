@@ -23,15 +23,22 @@ A JavaScript/Node.js library and CLI for reading, writing, and working with data
 ## Installation
 
 ```bash
-npm install aac-processors
+npm install
+git clone https://github.com/willwade/AACProcessors-nodejs.git
+cd AACProcessors-nodejs
+npm install
 ```
 
-Or clone this repo and run directly:
+---
+
+## Build (TypeScript)
+
+This library is now written in TypeScript.
+
+To build the project (output to `dist/`):
 
 ```bash
-git clone <this-repo-url>
-cd aac-processors
-npm install
+npm run build
 ```
 
 ---
@@ -41,21 +48,21 @@ npm install
 ### Library (Node.js)
 
 ```js
-const SnapProcessor = require('./src/processors/snapProcessor');
-const GridsetProcessor = require('./src/processors/gridsetProcessor');
-const TouchChatProcessor = require('./src/processors/touchchatProcessor');
+const { DotProcessor, OpmlProcessor, SnapProcessor, GridsetProcessor, TouchChatProcessor, ObfProcessor } = require('./dist/processors');
 const path = require('path');
 
-const snapFile = path.join(__dirname, 'examples/example.sps');
-const snapProcessor = new SnapProcessor();
-const tree = snapProcessor.loadIntoTree(snapFile);
+const dotFile = path.join(__dirname, 'examples/example.dot');
+const dotProcessor = new DotProcessor();
+const tree = dotProcessor.loadIntoTree(dotFile);
 console.log(tree);
 ```
 
 ### CLI
 
+After building, you can use the CLI:
+
 ```bash
-node src/cli/index.js extract examples/example.gridset --format gridset
+node dist/cli/index.js extract examples/example.gridset --format gridset
 ```
 
 ---
@@ -66,11 +73,17 @@ See [`examples/demo.js`](examples/demo.js) for a comprehensive showcase of all e
 - Loads and analyzes Snap, Gridset, TouchChat, OPML, DOT, OBF/OBZ files
 - Prints trees, extracts texts, and demonstrates optional symbol extraction
 
+To run the demo script (after building):
+
+```bash
+node examples/demo.js
+```
+
 ---
 
 ## Optional Symbol Support
 
-Symbol lookup (PCS, ARASAAC, etc.) is available via [`src/optional/symbolTools.js`](src/optional/symbolTools.js):
+Symbol lookup (PCS, ARASAAC, etc.) is available via [`src/optional/symbolTools.ts`](src/optional/symbolTools.ts):
 - Symbol extractors and resolvers for Snap, Grid 3, TouchChat
 - Only loaded if needed—core library works without symbol files
 - See code comments for extension points
