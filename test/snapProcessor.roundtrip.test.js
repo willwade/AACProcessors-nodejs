@@ -4,6 +4,7 @@ const path = require('path');
 const SnapProcessor = require('../src/processors/snapProcessor');
 describe('SnapProcessor round-trip', () => {
   const snapPath = path.join(__dirname, '../examples/example.snap.json');
+  const spsPath = path.join(__dirname, '../examples/example.sps');
   const outPath = path.join(__dirname, 'out.snap.json');
   afterAll(() => { if (fs.existsSync(outPath)) fs.unlinkSync(outPath); });
   it('round-trips Snap JSON without losing pages or navigation', () => {
@@ -18,5 +19,13 @@ describe('SnapProcessor round-trip', () => {
       const btnLabels2 = tree2.pages[pid].buttons.map(b => b.label).sort();
       expect(btnLabels1).toEqual(btnLabels2);
     }
+  });
+
+  it('round-trips .sps file without losing pages', () => {
+    if (!fs.existsSync(spsPath)) return;
+    const tree1 = SnapProcessor.prototype.loadIntoTree.call(SnapProcessor, spsPath);
+    SnapProcessor.prototype.saveFromTree.call(SnapProcessor, tree1, outPath);
+    const tree2 = SnapProcessor.prototype.loadIntoTree.call(SnapProcessor, outPath);
+    expect(Object.keys(tree1.pages).sort()).toEqual(Object.keys(tree2.pages).sort());
   });
 });

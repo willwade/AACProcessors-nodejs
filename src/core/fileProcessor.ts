@@ -1,20 +1,21 @@
-// Step 6: Implement FileProcessor (file reading/writing, format detection)
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
+
+type FileFormat = 'gridset' | 'coughdrop' | 'touchchat' | 'snap' | 'dot' | 'opml' | 'unknown';
 
 class FileProcessor {
   // Read a file and return its contents as a Buffer
-  static readFile(filePath) {
+  static readFile(filePath: string): Buffer {
     return fs.readFileSync(filePath);
   }
 
   // Write data (Buffer or string) to a file
-  static writeFile(filePath, data) {
+  static writeFile(filePath: string, data: Buffer | string): void {
     fs.writeFileSync(filePath, data);
   }
 
   // Detect file format based on extension or magic bytes
-  static detectFormat(filePathOrBuffer) {
+  static detectFormat(filePathOrBuffer: string | Buffer): FileFormat {
     if (typeof filePathOrBuffer === 'string') {
       const ext = path.extname(filePathOrBuffer).toLowerCase();
       switch (ext) {
@@ -23,8 +24,11 @@ class FileProcessor {
         case '.obf':
         case '.obz':
           return 'coughdrop';
+        case'.ce':
+        case '.wfl':
         case '.touchchat':
           return 'touchchat';
+        case '.sps':
         case '.spb':
           return 'snap';
         case '.dot':
@@ -42,4 +46,4 @@ class FileProcessor {
   }
 }
 
-module.exports = FileProcessor;
+export default FileProcessor;

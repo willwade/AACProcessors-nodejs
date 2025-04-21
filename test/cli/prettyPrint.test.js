@@ -1,4 +1,4 @@
-const { prettyPrintTree } = require('../../src/cli/prettyPrint');
+const { prettyPrintTree } = require('../../dist/cli/prettyPrint');
 
 describe('prettyPrintTree', () => {
   it('prints a simple tree with one page and buttons', () => {

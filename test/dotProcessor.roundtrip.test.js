@@ -1,15 +1,16 @@
 // Round-trip test for DotProcessor: load, save, reload, and compare structure
 const fs = require('fs');
 const path = require('path');
-const DotProcessor = require('../src/processors/dotProcessor');
+const { DotProcessor } = require('../dist/processors/dotProcessor');
 describe('DotProcessor round-trip', () => {
   const dotPath = path.join(__dirname, '../examples/example.dot');
   const outPath = path.join(__dirname, 'out.dot');
   afterAll(() => { if (fs.existsSync(outPath)) fs.unlinkSync(outPath); });
   it('round-trips DOT file without losing pages or navigation', () => {
-    const tree1 = DotProcessor.loadIntoTree(dotPath);
-    DotProcessor.saveFromTree(tree1, outPath);
-    const tree2 = DotProcessor.loadIntoTree(outPath);
+    const processor = new DotProcessor();
+    const tree1 = processor.loadIntoTree(dotPath);
+    processor.saveFromTree(tree1, outPath);
+    const tree2 = processor.loadIntoTree(outPath);
     // Compare page IDs and navigation
     expect(Object.keys(tree1.pages).sort()).toEqual(Object.keys(tree2.pages).sort());
     for (const pid in tree1.pages) {

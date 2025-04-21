@@ -1,5 +1,5 @@
 // Unit tests for TouchChatProcessor
-const TouchChatProcessor = require('../src/processors/touchchatProcessor');
+const { TouchChatProcessor } = require('../dist/processors/touchchatProcessor');
 const path = require('path');
 
 describe('TouchChatProcessor', () => {

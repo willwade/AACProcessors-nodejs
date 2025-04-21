@@ -2,7 +2,7 @@ const { execSync } = require('child_process');
 const path = require('path');
 
 describe('aac-processors CLI (Snap)', () => {
-  const cliPath = path.join(__dirname, '../../src/cli/index.js');
+  const cliPath = path.join(__dirname, '../../dist/cli/index.js');
   const snapExample = path.join(__dirname, '../../examples/example.sps');
 
   it('extracts texts from a snap file', () => {

@@ -1,14 +1,15 @@
 // Test for OBFProcessor (Open Board Format/Zip)
 const fs = require('fs');
 const path = require('path');
-const OBFProcessor = require('../src/processors/obfProcessor');
-const { AACButton, AACPage, AACTree } = require('../src/core/treeStructure');
+const { ObfProcessor } = require('../dist/processors/obfProcessor');
+const { AACButton, AACPage, AACTree } = require('../dist/core/treeStructure');
 
 describe('OBFProcessor', () => {
   const obzPath = path.join(__dirname, '../examples/example.obz');
 
   it('can process .obz (zip) files with manifest', async () => {
-    const tree = await OBFProcessor.loadIntoTree(obzPath);
+    const processor = new ObfProcessor();
+    const tree = await processor.loadIntoTree(obzPath);
     expect(tree).toBeInstanceOf(AACTree);
     // Should have at least one page
     expect(Object.keys(tree.pages).length).toBeGreaterThan(0);
