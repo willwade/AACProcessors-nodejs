@@ -7,6 +7,12 @@ export class AACButton implements IAACButton {
   type: 'SPEAK' | 'NAVIGATE';
   action: { type: 'SPEAK' | 'NAVIGATE'; targetPageId?: string } | null;
   targetPageId?: string;
+  audioRecording?: {
+    id?: number;
+    data?: Buffer;
+    identifier?: string;
+    metadata?: string;
+  };
 
   constructor({
     id,
@@ -15,6 +21,7 @@ export class AACButton implements IAACButton {
     type = 'SPEAK',
     targetPageId,
     action = null,
+    audioRecording,
   }: {
     id: string;
     label?: string;
@@ -22,6 +29,12 @@ export class AACButton implements IAACButton {
     type?: 'SPEAK' | 'NAVIGATE';
     targetPageId?: string;
     action?: { type: 'SPEAK' | 'NAVIGATE'; targetPageId?: string } | null;
+    audioRecording?: {
+      id?: number;
+      data?: Buffer;
+      identifier?: string;
+      metadata?: string;
+    };
   }) {
     this.id = id;
     this.label = label;
@@ -29,6 +42,7 @@ export class AACButton implements IAACButton {
     this.type = type;
     this.targetPageId = targetPageId;
     this.action = action;
+    this.audioRecording = audioRecording;
   }
 }
 

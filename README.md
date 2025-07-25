@@ -57,6 +57,30 @@ const tree = dotProcessor.loadIntoTree(dotFile);
 console.log(tree);
 ```
 
+### Audio Support (SnapProcessor)
+
+The SnapProcessor now supports optional audio loading and manipulation:
+
+```js
+// Basic usage (no audio) - backward compatible
+const processor = new SnapProcessor();
+const tree = processor.loadIntoTree('pageset.sps');
+
+// With audio support
+const audioProcessor = new SnapProcessor(null, { loadAudio: true });
+const audioTree = audioProcessor.loadIntoTree('pageset.sps');
+// Buttons will have audioRecording property if audio exists
+
+// Add audio to buttons
+const audioData = fs.readFileSync('audio.wav');
+const audioId = processor.addAudioToButton(dbPath, buttonId, audioData, 'metadata');
+
+// Create enhanced pageset with multiple audio files
+const audioMappings = new Map();
+audioMappings.set(buttonId, { audioData, metadata: 'Punjabi audio' });
+processor.createAudioEnhancedPageset(source, target, audioMappings);
+```
+
 ### CLI
 
 After building, you can use the CLI:
