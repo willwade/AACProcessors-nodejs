@@ -10,6 +10,12 @@ export interface AACButton {
   type: AACButtonAction['type'];
   action: AACButtonAction | null;
   targetPageId?: string;
+  audioRecording?: {
+    id?: number;
+    data?: Buffer;
+    identifier?: string;
+    metadata?: string;
+  };
 }
 
 export interface AACPage {
