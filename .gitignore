@@ -128,3 +128,28 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+# Audio files and sensitive data
+*.wav
+*.mp3
+*.m4a
+*.aac
+*.ogg
+*.flac
+*audio_files/
+*audio_files.zip
+.envrc
+test_*.wav
+test_*.mp3
+
+# Temporary output files
+out.txt
+demo_out.txt
+*.tmp
+*_temp.*
+
+# API keys and secrets
+*_key.js
+*_keys.js
+azure_*.js
+*_secret.*
