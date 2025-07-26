@@ -37,16 +37,14 @@ describe('SnapProcessor', () => {
     expect(tree).toBeTruthy();
     const pageIds = Object.keys(tree.pages);
     expect(pageIds.length).toBeGreaterThan(0);
+
     // All page ids should be UUID-like (contain hyphens)
     pageIds.forEach(id => {
-      expect(id).toMatch(/-/);
-    });
-  });
-
       expect(typeof id).toBe('string');
       expect(id.length).toBeGreaterThan(10);
       expect(id).toMatch(/-/);
     });
+
     // Check that navigation button targetPageIds are also UniqueIds
     for (const pageId of pageIds) {
       const page = tree.pages[pageId];

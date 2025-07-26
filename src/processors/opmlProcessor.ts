@@ -5,7 +5,8 @@ import { XMLParser } from 'fast-xml-parser';
 import fs from 'fs';
 
 interface OpmlOutline {
-  _attributes: {
+  '@_text'?: string;
+  _attributes?: {
     text: string;
     [key: string]: string;
   };
@@ -24,16 +25,16 @@ class OpmlProcessor extends BaseProcessor {
   private processOutline(
     outline: OpmlOutline,
     parentId: string | null = null
-  ): { page: AACPage; childPages: AACPage[] } {
+  ): { page: AACPage | null; childPages: AACPage[] } {
     if (!outline || (typeof outline !== 'object')) {
-      return { page: null as any, childPages: [] };
+      return { page: null, childPages: [] };
     }
-    const text = (outline._attributes && typeof outline._attributes.text === 'string')
-      ? outline._attributes.text
-      : (typeof (outline as any).text === 'string' ? (outline as any).text : undefined);
-    if (!text) {
+    const text = outline['@_text'] ||
+                 (outline._attributes && outline._attributes.text) ||
+                 (outline as any).text;
+    if (!text || typeof text !== 'string') {
       // Skip invalid outlines
-      return { page: null as any, childPages: [] };
+      return { page: null, childPages: [] };
     }
     const page = new AACPage({
       id: text.replace(/[^a-zA-Z0-9]/g, '_'),
@@ -47,25 +48,30 @@ class OpmlProcessor extends BaseProcessor {
 
     if (outline.outline) {
       outline.outline.forEach((child) => {
-        const button = new AACButton({
-          id: `nav_${page.id}_${child._attributes.text}`,
-          label: child._attributes.text,
-          message: '',
-          type: 'NAVIGATE',
-          targetPageId: child._attributes.text.replace(/[^a-zA-Z0-9]/g, '_'),
-          action: {
+        const childText = child['@_text'] ||
+                         (child._attributes && child._attributes.text) ||
+                         (child as any).text;
+        if (childText && typeof childText === 'string') {
+          const button = new AACButton({
+            id: `nav_${page.id}_${childText}`,
+            label: childText,
+            message: '',
             type: 'NAVIGATE',
-            targetPageId: child._attributes.text.replace(/[^a-zA-Z0-9]/g, '_'),
-          },
-        });
-        page.addButton(button);
+            targetPageId: childText.replace(/[^a-zA-Z0-9]/g, '_'),
+            action: {
+              type: 'NAVIGATE',
+              targetPageId: childText.replace(/[^a-zA-Z0-9]/g, '_'),
+            },
+          });
+          page.addButton(button);
 
-        const { page: childPage, childPages: grandChildren } = this.processOutline(child, page.id);
-        if (childPage && childPage.id) childPages.push(childPage, ...grandChildren);
+          const { page: childPage, childPages: grandChildren } = this.processOutline(child, page.id);
+          if (childPage && childPage.id) childPages.push(childPage, ...grandChildren);
+        }
       });
     }
 
-    if (!page || !page.id) return { page: null as any, childPages: [] };
+    if (!page || !page.id) return { page: null, childPages: [] };
     return { page, childPages };
   }
 
@@ -101,7 +107,6 @@ class OpmlProcessor extends BaseProcessor {
 
     const parser = new XMLParser({ ignoreAttributes: false });
     const data = parser.parse(content) as OpmlDocument;
-    console.log('PARSED OPML DATA:', JSON.stringify(data, null, 2));
     const tree = new AACTree();
 
     const outlines = Array.isArray(data.opml.body.outline) ? data.opml.body.outline : [data.opml.body.outline];
@@ -132,20 +137,10 @@ class OpmlProcessor extends BaseProcessor {
   }
 
   saveFromTree(tree: AACTree, outputPath: string) {
-    console.log('saveFromTree: ENTERED');
-    const fs = require('fs');
-    fs.writeFileSync(require('path').join(__dirname, '../../test/sft_was_called.txt'), 'saveFromTree was called');
-    try {
-      const resolvedPath = require('path').resolve(outputPath);
-      console.log('saveFromTree: resolved outputPath =', resolvedPath);
-      fs.writeFileSync(resolvedPath, 'TEST STRING - confirming write');
-      console.log('saveFromTree: test string written to', resolvedPath);
-      // Now proceed with XML export
-      console.log('saveFromTree: starting OPML export to', outputPath);
       // Helper to recursively build outline nodes
       function buildOutline(page: AACPage): any {
       const outline: any = {
-        _attributes: { text: page.name },
+        '@_text': page.name,
       };
       // Find child pages (by NAVIGATE buttons)
       const childOutlines = page.buttons
@@ -174,7 +169,7 @@ class OpmlProcessor extends BaseProcessor {
     // Compose OPML document
     const opmlObj = {
       opml: {
-        _attributes: { version: '2.0' },
+        '@_version': '2.0',
         head: { title: 'Exported OPML' },
         body: { outline: outlines },
       },
@@ -186,39 +181,11 @@ class OpmlProcessor extends BaseProcessor {
       format: true,
       indentBy: '    ',
       suppressEmptyNode: false,
-      attributeNamePrefix: '',
+      attributeNamePrefix: '@_',
     });
-    let xml = '';
-    try {
-      const resolvedPath = require('path').resolve(outputPath);
-      console.log('saveFromTree: resolved outputPath =', resolvedPath);
-      xml = '<?xml version="1.0" encoding="UTF-8"?>\n' + builder.build(opmlObj);
-      console.log('saveFromTree: XML to write:', xml.slice(0, 500));
-      const FileProcessor = require('../core/fileProcessor').default;
-      FileProcessor.writeFile(outputPath, xml);
-      if (fs.existsSync(outputPath)) {
-        console.log('saveFromTree: out.opml EXISTS at', outputPath);
-        try {
-          const written = fs.readFileSync(outputPath, 'utf8');
-          console.log('saveFromTree: out.opml contents:', written.slice(0, 500));
-        } catch (e) {
-          console.error('saveFromTree: Could not read back out.opml:', e);
-        }
-      } else {
-        console.error('saveFromTree: out.opml DOES NOT EXIST at', outputPath);
-      }
-    } catch (err) {
-      console.error('saveFromTree: ERROR during XML build or file write:', err);
-    }
-    console.log('saveFromTree: OPML export complete');
-    } catch (err) {
-      console.error('saveFromTree: ERROR exporting OPML (outer catch):', err);
-      throw err;
-    }
-    console.log('saveFromTree: EXITED');
-  
-}
-
+    const xml = '<?xml version="1.0" encoding="UTF-8"?>\n' + builder.build(opmlObj);
+    fs.writeFileSync(outputPath, xml, 'utf8');
+  }
 }
 
 export { OpmlProcessor };

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+    <head>
+        <title>Exported OPML</title>
+    </head>
+    <body>
+        <outline text="Main Page">
+            <outline text="Category 1">
+                <outline text="Item 1"></outline>
+                <outline text="Item 2"></outline>
+            </outline>
+            <outline text="Category 2">
+                <outline text="Item 3"></outline>
+                <outline text="Item 4"></outline>
+            </outline>
+        </outline>
+    </body>
+</opml>
