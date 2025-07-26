@@ -234,15 +234,110 @@ class TouchChatProcessor extends BaseProcessor {
   }
 
   processTexts(
-    _filePathOrBuffer: string | Buffer,
-    _translations: Map<string, string>,
-    _outputPath: string
+    filePathOrBuffer: string | Buffer,
+    translations: Map<string, string>,
+    outputPath: string
   ): Buffer {
-    throw new Error('TouchChat processTexts not implemented');
+    // Load the tree, apply translations, and save to new file
+    const tree = this.loadIntoTree(filePathOrBuffer);
+
+    // Apply translations to all text content
+    Object.values(tree.pages).forEach(page => {
+      // Translate page names
+      if (page.name && translations.has(page.name)) {
+        page.name = translations.get(page.name)!;
+      }
+
+      // Translate button labels and messages
+      page.buttons.forEach(button => {
+        if (button.label && translations.has(button.label)) {
+          button.label = translations.get(button.label)!;
+        }
+        if (button.message && translations.has(button.message)) {
+          button.message = translations.get(button.message)!;
+        }
+      });
+    });
+
+    // Save the translated tree and return its content
+    this.saveFromTree(tree, outputPath);
+    return fs.readFileSync(outputPath);
   }
 
-  saveFromTree(_tree: AACTree, _outputPath: string): void {
-    throw new Error('TouchChat saveFromTree not implemented');
+  saveFromTree(tree: AACTree, outputPath: string): void {
+    // For now, implement a basic version that creates a new TouchChat database
+    // This is a simplified implementation - a full implementation would require
+    // more complex database schema handling
+
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'touchchat-export-'));
+    const dbPath = path.join(tmpDir, 'vocab.db');
+
+    try {
+      const db = new Database(dbPath);
+
+      // Create basic schema (simplified version)
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS resources (
+          id INTEGER PRIMARY KEY,
+          name TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS pages (
+          id INTEGER PRIMARY KEY,
+          resource_id INTEGER,
+          FOREIGN KEY (resource_id) REFERENCES resources (id)
+        );
+
+        CREATE TABLE IF NOT EXISTS buttons (
+          id INTEGER PRIMARY KEY,
+          resource_id INTEGER,
+          label TEXT,
+          message TEXT,
+          FOREIGN KEY (resource_id) REFERENCES resources (id)
+        );
+      `);
+
+      // Insert pages and buttons
+      let resourceId = 1;
+      Object.values(tree.pages).forEach(page => {
+        // Insert resource for page name
+        const insertResource = db.prepare('INSERT INTO resources (id, name) VALUES (?, ?)');
+        insertResource.run(resourceId, page.name || 'Page');
+
+        // Insert page
+        const insertPage = db.prepare('INSERT INTO pages (id, resource_id) VALUES (?, ?)');
+        insertPage.run(parseInt(page.id) || resourceId, resourceId);
+
+        // Insert buttons
+        page.buttons.forEach((button, index) => {
+          const buttonResourceId = resourceId + index + 1;
+          insertResource.run(buttonResourceId, button.label || 'Button');
+
+          const insertButton = db.prepare('INSERT INTO buttons (id, resource_id, label, message) VALUES (?, ?, ?, ?)');
+          insertButton.run(
+            parseInt(button.id) || buttonResourceId,
+            buttonResourceId,
+            button.label || '',
+            button.message || button.label || ''
+          );
+        });
+
+        resourceId += page.buttons.length + 1;
+      });
+
+      db.close();
+
+      // Create zip file with the database
+      const zip = new AdmZip();
+      zip.addLocalFile(dbPath, '', 'vocab.db');
+      zip.writeZip(outputPath);
+
+    } finally {
+      // Clean up
+      if (fs.existsSync(tmpDir)) {
+        fs.rmSync(tmpDir, { recursive: true, force: true });
+      }
+    }
   }
 }
 

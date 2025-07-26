@@ -47,7 +47,8 @@ class OpmlProcessor extends BaseProcessor {
     const childPages: AACPage[] = [];
 
     if (outline.outline) {
-      outline.outline.forEach((child) => {
+      const children = Array.isArray(outline.outline) ? outline.outline : [outline.outline];
+      children.forEach((child) => {
         const childText = child['@_text'] ||
                          (child._attributes && child._attributes.text) ||
                          (child as any).text;
@@ -86,11 +87,24 @@ class OpmlProcessor extends BaseProcessor {
     const texts: string[] = [];
 
     function processNode(node: any) {
+      // Handle different attribute formats
+      let textValue: string | undefined;
+
       if (node && node._attributes && typeof node._attributes.text === 'string') {
-        texts.push(node._attributes.text);
+        textValue = node._attributes.text;
+      } else if (node && typeof node['@_text'] === 'string') {
+        textValue = node['@_text'];
+      } else if (node && typeof node.text === 'string') {
+        textValue = node.text;
       }
-      if (node && Array.isArray(node.outline)) {
-        node.outline.forEach(processNode);
+
+      if (textValue) {
+        texts.push(textValue);
+      }
+
+      if (node && node.outline) {
+        const children = Array.isArray(node.outline) ? node.outline : [node.outline];
+        children.forEach(processNode);
       }
     };
 
@@ -109,7 +123,13 @@ class OpmlProcessor extends BaseProcessor {
     const data = parser.parse(content) as OpmlDocument;
     const tree = new AACTree();
 
-    const outlines = Array.isArray(data.opml.body.outline) ? data.opml.body.outline : [data.opml.body.outline];
+    // Handle case where body.outline might not exist or be in different formats
+    const bodyOutline = data.opml?.body?.outline;
+    if (!bodyOutline) {
+      return tree; // Return empty tree if no outline data
+    }
+
+    const outlines = Array.isArray(bodyOutline) ? bodyOutline : [bodyOutline];
     let firstRootId: string | null = null;
     outlines.forEach((outline) => {
       const { page, childPages } = this.processOutline(outline);
@@ -129,18 +149,38 @@ class OpmlProcessor extends BaseProcessor {
   }
 
   processTexts(
-    _filePathOrBuffer: string | Buffer,
-    _translations: Map<string, string>,
-    _outputPath: string
+    filePathOrBuffer: string | Buffer,
+    translations: Map<string, string>,
+    outputPath: string
   ): Buffer {
-    throw new Error('OPML processTexts not implemented');
+    const content = typeof filePathOrBuffer === 'string'
+      ? fs.readFileSync(filePathOrBuffer, 'utf8')
+      : filePathOrBuffer.toString('utf8');
+
+    let translatedContent = content;
+
+    // Apply translations to text attributes in OPML outline elements
+    translations.forEach((translation, originalText) => {
+      if (typeof originalText === 'string' && typeof translation === 'string') {
+        // Replace text attributes in outline elements
+        const textAttrRegex = new RegExp(`text="${originalText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`, 'g');
+        translatedContent = translatedContent.replace(textAttrRegex, `text="${translation}"`);
+      }
+    });
+
+    const resultBuffer = Buffer.from(translatedContent, 'utf8');
+
+    // Save to output path
+    fs.writeFileSync(outputPath, resultBuffer);
+
+    return resultBuffer;
   }
 
   saveFromTree(tree: AACTree, outputPath: string) {
       // Helper to recursively build outline nodes
       function buildOutline(page: AACPage): any {
       const outline: any = {
-        '@_text': page.name,
+        '@_text': page.name || page.id,
       };
       // Find child pages (by NAVIGATE buttons)
       const childOutlines = page.buttons
