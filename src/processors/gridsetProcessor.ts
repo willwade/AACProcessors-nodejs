@@ -103,12 +103,47 @@ class GridsetProcessor extends BaseProcessor {
           // Cells may be array or single object
           const cellArr = Array.isArray(cells) ? cells : [cells];
           cellArr.forEach((cell: any, idx: number) => {
-            if (!cell) return;
-            // Defensive: must have label
-            const label = cell.Text || cell.text || '';
-            if (!label) return;
-            const message = cell.Message || cell.message || label;
-            const navigationTarget = cell.Jump || cell.jump || undefined;
+            if (!cell || !cell.Content) return;
+
+            // Extract label from CaptionAndImage/Caption
+            const content = cell.Content;
+            const captionAndImage = content.CaptionAndImage || content.captionAndImage;
+            let label = captionAndImage?.Caption || captionAndImage?.caption || '';
+
+            // If no caption, try other sources or create a placeholder
+            if (!label) {
+              // For cells without captions (like AutoContent cells), create a meaningful label
+              if (content.ContentType === 'AutoContent') {
+                label = `AutoContent_${idx}`;
+              } else {
+                return; // Skip cells without labels
+              }
+            }
+
+            const message = label; // Use caption as message
+
+            // Check for navigation commands
+            let navigationTarget: string | undefined;
+            const commands = content.Commands?.Command || content.commands?.command;
+            if (commands) {
+              const commandArr = Array.isArray(commands) ? commands : [commands];
+              for (const command of commandArr) {
+                if (command.ID === 'Jump.To' || command.id === 'Jump.To') {
+                  const parameters = command.Parameter || command.parameter;
+                  if (parameters) {
+                    const paramArr = Array.isArray(parameters) ? parameters : [parameters];
+                    for (const param of paramArr) {
+                      if ((param.Key === 'grid' || param.key === 'grid') && param['#text']) {
+                        navigationTarget = param['#text'];
+                        break;
+                      }
+                    }
+                  }
+                  break;
+                }
+              }
+            }
+
             const button = new AACButton({
               id: `${gridId}_btn_${idx}`,
               label: String(label),
