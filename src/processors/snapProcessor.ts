@@ -54,7 +54,6 @@ class SnapProcessor extends BaseProcessor {
   }
 
   loadIntoTree(filePathOrBuffer: string | Buffer): AACTree {
-    console.error('[SnapProcessor] ENTER loadIntoTree', filePathOrBuffer);
     const tree = new AACTree();
     const filePath =
       typeof filePathOrBuffer === 'string'
@@ -75,7 +74,7 @@ class SnapProcessor extends BaseProcessor {
       pages.forEach((pageRow) => {
         const uniqueId = String(pageRow.UniqueId || pageRow.Id);
         idToUniqueId[String(pageRow.Id)] = uniqueId;
-        console.error(`[SnapProcessor] Page: numeric Id=${pageRow.Id}, UniqueId=${uniqueId}, Title=${pageRow.Title || pageRow.Name}`);
+
         const page = new AACPage({
           id: uniqueId,
           name: pageRow.Title || pageRow.Name,
@@ -129,7 +128,7 @@ class SnapProcessor extends BaseProcessor {
         const uniqueId = String(pageRow.UniqueId || pageRow.Id);
         const page = tree.getPage(uniqueId);
         if (!page) {
-          console.error(`[SnapProcessor] No page found for UniqueId=${uniqueId} (original pageRow.Id=${pageRow.Id})`);
+
           continue;
         }
 
@@ -145,7 +144,7 @@ class SnapProcessor extends BaseProcessor {
           // Determine parent page association for this button
           let parentPageId = btnRow.ButtonPageId ? String(btnRow.ButtonPageId) : undefined;
           let parentUniqueId = parentPageId && idToUniqueId[parentPageId] ? idToUniqueId[parentPageId] : uniqueId;
-          console.error(`[SnapProcessor] Button: Id=${btnRow.Id}, Label=${btnRow.Label}, ButtonPageId=${parentPageId}, AssociatedPageUniqueId=${parentUniqueId}`);
+
 
           // Load audio recording if requested and available
           let audioRecording;
@@ -188,7 +187,7 @@ class SnapProcessor extends BaseProcessor {
           if (parentPage) {
             parentPage.addButton(button);
           } else {
-            console.error(`[SnapProcessor] Could not associate button Id=${btnRow.Id} with page UniqueId=${parentUniqueId}`);
+
           }
 
           // If this is a navigation button, update the target page's parentId
@@ -208,7 +207,7 @@ class SnapProcessor extends BaseProcessor {
         try {
           fs.unlinkSync(filePath);
         } catch (e) {
-          console.error('Failed to clean up temporary file:', e);
+          // Failed to clean up temporary file
         }
       }
     }
@@ -299,7 +298,7 @@ class SnapProcessor extends BaseProcessor {
           audioInfo.metadata
         );
       } catch (error) {
-        console.error(`Failed to add audio to button ${buttonId}:`, error);
+        // Failed to add audio to button
       }
     });
   }
