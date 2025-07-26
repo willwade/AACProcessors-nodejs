@@ -82,15 +82,50 @@ class ApplePanelsProcessor extends BaseProcessor {
   }
 
   processTexts(
-    _filePathOrBuffer: string | Buffer,
-    _translations: Map<string, string>,
-    _outputPath: string
+    filePathOrBuffer: string | Buffer,
+    translations: Map<string, string>,
+    outputPath: string
   ): Buffer {
-    throw new Error('ApplePanels processTexts not implemented');
+    // Load the tree, apply translations, and save to new file
+    const tree = this.loadIntoTree(filePathOrBuffer);
+
+    // Apply translations to all text content
+    Object.values(tree.pages).forEach(page => {
+      // Translate page names
+      if (page.name && translations.has(page.name)) {
+        page.name = translations.get(page.name)!;
+      }
+
+      // Translate button labels and messages
+      page.buttons.forEach(button => {
+        if (button.label && translations.has(button.label)) {
+          button.label = translations.get(button.label)!;
+        }
+        if (button.message && translations.has(button.message)) {
+          button.message = translations.get(button.message)!;
+        }
+      });
+    });
+
+    // Save the translated tree to a temporary file and return its content
+    this.saveFromTree(tree, outputPath);
+    return fs.readFileSync(outputPath);
   }
 
-  saveFromTree(_tree: AACTree, _outputPath: string): void {
-    throw new Error('ApplePanels saveFromTree not implemented');
+  saveFromTree(tree: AACTree, outputPath: string): void {
+    const panels: ApplePanelsPanel[] = Object.values(tree.pages).map(page => ({
+      id: page.id,
+      name: page.name || 'Panel',
+      buttons: page.buttons.map(button => ({
+        label: button.label,
+        message: button.message || button.label,
+        targetPanel: button.type === 'NAVIGATE' ? button.targetPageId : undefined
+      }))
+    }));
+
+    const document = { panels } as any;
+    const plistContent = plist.build(document);
+    fs.writeFileSync(outputPath, plistContent);
   }
 }
 

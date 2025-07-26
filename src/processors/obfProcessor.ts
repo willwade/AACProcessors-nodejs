@@ -2,6 +2,7 @@ import { BaseProcessor } from '../core/baseProcessor';
 import { AACTree, AACPage, AACButton } from '../core/treeStructure';
 // Removed unused import: FileProcessor
 import AdmZip from 'adm-zip';
+import fs from 'fs';
 // Removed unused import: path
 
 interface ObfButton {
@@ -112,11 +113,20 @@ class ObfProcessor extends BaseProcessor {
     function tryParseObfJson(data: string | Buffer): ObfBoard | null {
       try {
         const str = typeof data === 'string' ? data : data.toString('utf8');
+
+        // Check for empty or whitespace-only content
+        if (!str.trim()) {
+          return null;
+        }
+
         const obj = JSON.parse(str);
         if (obj && typeof obj === 'object' && 'id' in obj && 'buttons' in obj) {
           return obj as ObfBoard;
         }
-      } catch (e) {}
+      } catch (error: any) {
+        // Log parsing errors for debugging but don't throw
+        console.warn(`Failed to parse OBF JSON: ${error.message}`);
+      }
       return null;
     }
 
@@ -172,15 +182,82 @@ class ObfProcessor extends BaseProcessor {
   }
 
   processTexts(
-    _filePathOrBuffer: string | Buffer,
-    _translations: Map<string, string>,
-    _outputPath: string
+    filePathOrBuffer: string | Buffer,
+    translations: Map<string, string>,
+    outputPath: string
   ): Buffer {
-    throw new Error('OBF processTexts not implemented');
+    // Load the tree, apply translations, and save to new file
+    const tree = this.loadIntoTree(filePathOrBuffer);
+
+    // Apply translations to all text content
+    Object.values(tree.pages).forEach(page => {
+      // Translate page names
+      if (page.name && translations.has(page.name)) {
+        page.name = translations.get(page.name)!;
+      }
+
+      // Translate button labels and messages
+      page.buttons.forEach(button => {
+        if (button.label && translations.has(button.label)) {
+          button.label = translations.get(button.label)!;
+        }
+        if (button.message && translations.has(button.message)) {
+          button.message = translations.get(button.message)!;
+        }
+      });
+    });
+
+    // Save the translated tree and return its content
+    this.saveFromTree(tree, outputPath);
+    return fs.readFileSync(outputPath);
   }
 
-  saveFromTree(_tree: AACTree, _outputPath: string): void {
-    throw new Error('OBF saveFromTree not implemented');
+  saveFromTree(tree: AACTree, outputPath: string): void {
+    if (outputPath.endsWith('.obf')) {
+      // Save as single OBF JSON file
+      const rootPage = tree.rootId ? tree.getPage(tree.rootId) : Object.values(tree.pages)[0];
+      if (!rootPage) {
+        throw new Error('No pages to save');
+      }
+
+      const obfBoard: ObfBoard = {
+        id: rootPage.id,
+        name: rootPage.name || 'Exported Board',
+        buttons: rootPage.buttons.map(button => ({
+          id: button.id,
+          label: button.label,
+          vocalization: button.message || button.label,
+          load_board: button.type === 'NAVIGATE' && button.targetPageId ? {
+            path: button.targetPageId
+          } : undefined
+        }))
+      };
+
+      fs.writeFileSync(outputPath, JSON.stringify(obfBoard, null, 2));
+    } else {
+      // Save as OBZ (zip with multiple OBF files)
+      const zip = new AdmZip();
+
+      Object.values(tree.pages).forEach(page => {
+        const obfBoard: ObfBoard = {
+          id: page.id,
+          name: page.name || 'Board',
+          buttons: page.buttons.map(button => ({
+            id: button.id,
+            label: button.label,
+            vocalization: button.message || button.label,
+            load_board: button.type === 'NAVIGATE' && button.targetPageId ? {
+              path: button.targetPageId
+            } : undefined
+          }))
+        };
+
+        const obfContent = JSON.stringify(obfBoard, null, 2);
+        zip.addFile(`${page.id}.obf`, Buffer.from(obfContent, 'utf8'));
+      });
+
+      zip.writeZip(outputPath);
+    }
   }
 }
 

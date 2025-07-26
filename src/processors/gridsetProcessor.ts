@@ -2,7 +2,7 @@ import { BaseProcessor } from '../core/baseProcessor';
 import { AACTree, AACPage, AACButton } from '../core/treeStructure';
 import AdmZip from 'adm-zip';
 import fs from 'fs';
-import { XMLParser } from 'fast-xml-parser';
+import { XMLParser, XMLBuilder } from 'fast-xml-parser';
 
 interface GridsetButton {
   label: string;
@@ -38,7 +38,14 @@ class GridsetProcessor extends BaseProcessor {
 
   loadIntoTree(filePathOrBuffer: Buffer): AACTree {
     const tree = new AACTree();
-    const zip = new AdmZip(filePathOrBuffer);
+
+    let zip: AdmZip;
+    try {
+      zip = new AdmZip(filePathOrBuffer);
+    } catch (error: any) {
+      throw new Error(`Invalid ZIP file format: ${error.message}`);
+    }
+
     const parser = new XMLParser();
 
     // Debug: log all entry names
@@ -58,9 +65,9 @@ class GridsetProcessor extends BaseProcessor {
         let data: any;
         try {
           data = parser.parse(xmlContent);
-        } catch (e) {
-          // Skip malformed XML
-          console.log('Malformed XML in:', entry.entryName);
+        } catch (error: any) {
+          // Skip malformed XML but log the specific error
+          console.warn(`Malformed XML in ${entry.entryName}: ${error.message}`);
           return;
         }
 
@@ -182,15 +189,109 @@ class GridsetProcessor extends BaseProcessor {
   }
 
   processTexts(
-    _filePathOrBuffer: string | Buffer,
-    _translations: Map<string, string>,
-    _outputPath: string
+    filePathOrBuffer: string | Buffer,
+    translations: Map<string, string>,
+    outputPath: string
   ): Buffer {
-    throw new Error('Gridset processTexts not implemented');
+    // Load the tree, apply translations, and save to new file
+    const buffer = Buffer.isBuffer(filePathOrBuffer)
+      ? filePathOrBuffer
+      : fs.readFileSync(filePathOrBuffer);
+    const tree = this.loadIntoTree(buffer);
+
+    // Apply translations to all text content
+    Object.values(tree.pages).forEach(page => {
+      // Translate page names
+      if (page.name && translations.has(page.name)) {
+        page.name = translations.get(page.name)!;
+      }
+
+      // Translate button labels and messages
+      page.buttons.forEach(button => {
+        if (button.label && translations.has(button.label)) {
+          button.label = translations.get(button.label)!;
+        }
+        if (button.message && translations.has(button.message)) {
+          button.message = translations.get(button.message)!;
+        }
+      });
+    });
+
+    // Save the translated tree and return its content
+    this.saveFromTree(tree, outputPath);
+    return fs.readFileSync(outputPath);
   }
 
-  saveFromTree(_tree: AACTree, _outputPath: string): void {
-    throw new Error('Gridset saveFromTree not implemented');
+  saveFromTree(tree: AACTree, outputPath: string): void {
+    const zip = new AdmZip();
+
+    if (Object.keys(tree.pages).length === 0) {
+      // Create empty zip for empty tree
+      zip.writeZip(outputPath);
+      return;
+    }
+
+    // Create a grid for each page
+    Object.values(tree.pages).forEach((page, index) => {
+      const gridData = {
+        '?xml': { '@_version': '1.0', '@_encoding': 'UTF-8' },
+        Grid: {
+          '@_xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
+          GridGuid: page.id,
+          Name: page.name || `Grid ${index + 1}`,
+          // Add basic row/column definitions (assume 4x4 grid)
+          ColumnDefinitions: {
+            ColumnDefinition: Array(4).fill({})
+          },
+          RowDefinitions: {
+            RowDefinition: Array(4).fill({})
+          },
+          Cells: page.buttons.length > 0 ? {
+            Cell: page.buttons.map((button, btnIndex) => ({
+              '@_X': btnIndex % 4, // Column position
+              '@_Y': Math.floor(btnIndex / 4), // Row position
+              Content: {
+                Commands: button.type === 'NAVIGATE' && button.targetPageId ? {
+                  Command: {
+                    '@_ID': 'Jump.To',
+                    Parameter: {
+                      '@_Key': 'grid',
+                      '#text': button.targetPageId
+                    }
+                  }
+                } : {
+                  Command: {
+                    '@_ID': 'Action.InsertText',
+                    Parameter: {
+                      '@_Key': 'text',
+                      '#text': button.message || button.label || ''
+                    }
+                  }
+                },
+                CaptionAndImage: {
+                  Caption: button.label || ''
+                }
+              }
+            }))
+          } : { Cell: [] }
+        }
+      };
+
+      // Convert to XML
+      const builder = new XMLBuilder({
+        ignoreAttributes: false,
+        format: true,
+        indentBy: '  '
+      });
+      const xmlContent = builder.build(gridData);
+
+      // Add to zip in Grids folder
+      const gridPath = `Grids/Grid_${page.id}/grid.xml`;
+      zip.addFile(gridPath, Buffer.from(xmlContent, 'utf8'));
+    });
+
+    // Write the zip file
+    zip.writeZip(outputPath);
   }
 }
 

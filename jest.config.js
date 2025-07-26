@@ -20,8 +20,16 @@ module.exports = {
     '/dist/',
     '/__tests__/'
   ],
+  coverageThreshold: {
+    global: {
+      branches: 40,
+      functions: 40,
+      lines: 40,
+      statements: 40
+    }
+  },
   // Enable module resolution for both src and dist
-  moduleNameMapping: {
+  moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1'
   },
   // Ensure Jest can find modules

@@ -100,11 +100,7 @@ export class AACTree implements IAACTree {
   }
 
   getPage(id: string): AACPage | undefined {
-    const page = this.pages[id];
-    if (!page) {
-      throw new Error(`Page with id ${id} not found`);
-    }
-    return page;
+    return this.pages[id];
   }
 
   traverse(callback: (page: AACPage) => void): void {

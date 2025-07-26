@@ -28,7 +28,7 @@ class SnapProcessor extends BaseProcessor {
   private symbolResolver: unknown | null = null;
   private loadAudio: boolean = false;
 
-  constructor(symbolResolver = null, options: { loadAudio?: boolean } = {}) {
+  constructor(symbolResolver: unknown | null = null, options: { loadAudio?: boolean } = {}) {
     super();
     this.symbolResolver = symbolResolver;
     this.loadAudio = options.loadAudio || false;
@@ -64,8 +64,9 @@ class SnapProcessor extends BaseProcessor {
       fs.writeFileSync(filePath, filePathOrBuffer);
     }
 
+    let db: any = null;
     try {
-      const db = new Database(filePath, { readonly: true });
+      db = new Database(filePath, { readonly: true });
 
       // Load pages first, using UniqueId as canonical id
       const pages = db.prepare('SELECT * FROM Page').all() as any[];
@@ -200,29 +201,156 @@ class SnapProcessor extends BaseProcessor {
         });
       }
 
-      db.close();
       return tree;
+    } catch (error: any) {
+      // Provide more specific error messages
+      if (error.code === 'SQLITE_NOTADB') {
+        throw new Error(`Invalid SQLite database file: ${typeof filePathOrBuffer === 'string' ? filePathOrBuffer : 'buffer'}`);
+      } else if (error.code === 'ENOENT') {
+        throw new Error(`File not found: ${filePathOrBuffer}`);
+      } else if (error.code === 'EACCES') {
+        throw new Error(`Permission denied accessing file: ${filePathOrBuffer}`);
+      } else {
+        throw new Error(`Failed to load Snap file: ${error.message}`);
+      }
     } finally {
+      // Ensure database is closed
+      if (db) {
+        try {
+          db.close();
+        } catch (e) {
+          console.warn('Failed to close database:', e);
+        }
+      }
+
+      // Clean up temporary file if created from buffer
       if (Buffer.isBuffer(filePathOrBuffer)) {
         try {
           fs.unlinkSync(filePath);
         } catch (e) {
-          // Failed to clean up temporary file
+          console.warn('Failed to clean up temporary file:', e);
         }
       }
     }
   }
 
   processTexts(
-    _filePathOrBuffer: string | Buffer,
-    _translations: Map<string, string>,
-    _outputPath: string
+    filePathOrBuffer: string | Buffer,
+    translations: Map<string, string>,
+    outputPath: string
   ): Buffer {
-    throw new Error('Snap processTexts not implemented');
+    // Load the tree, apply translations, and save to new file
+    const tree = this.loadIntoTree(filePathOrBuffer);
+
+    // Apply translations to all text content
+    Object.values(tree.pages).forEach(page => {
+      // Translate page names
+      if (page.name && translations.has(page.name)) {
+        page.name = translations.get(page.name)!;
+      }
+
+      // Translate button labels and messages
+      page.buttons.forEach(button => {
+        if (button.label && translations.has(button.label)) {
+          button.label = translations.get(button.label)!;
+        }
+        if (button.message && translations.has(button.message)) {
+          button.message = translations.get(button.message)!;
+        }
+      });
+    });
+
+    // Save the translated tree and return its content
+    this.saveFromTree(tree, outputPath);
+    return fs.readFileSync(outputPath);
   }
 
-  saveFromTree(_tree: AACTree, _outputPath: string): void {
-    throw new Error('Snap saveFromTree not implemented');
+  saveFromTree(tree: AACTree, outputPath: string): void {
+    // Create a new SQLite database for Snap format
+    const db = new Database(outputPath, { readonly: false });
+
+    try {
+      // Create basic Snap database schema (simplified)
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS Page (
+          Id INTEGER PRIMARY KEY,
+          UniqueId TEXT UNIQUE,
+          Title TEXT,
+          Name TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS Button (
+          Id INTEGER PRIMARY KEY,
+          Label TEXT,
+          Message TEXT,
+          NavigatePageId INTEGER,
+          ElementReferenceId INTEGER
+        );
+
+        CREATE TABLE IF NOT EXISTS ElementReference (
+          Id INTEGER PRIMARY KEY,
+          PageId INTEGER,
+          FOREIGN KEY (PageId) REFERENCES Page (Id)
+        );
+
+        CREATE TABLE IF NOT EXISTS ElementPlacement (
+          Id INTEGER PRIMARY KEY,
+          ElementReferenceId INTEGER,
+          GridPosition INTEGER,
+          FOREIGN KEY (ElementReferenceId) REFERENCES ElementReference (Id)
+        );
+      `);
+
+      // Insert pages
+      let pageIdCounter = 1;
+      let buttonIdCounter = 1;
+      let elementRefIdCounter = 1;
+
+      const pageIdMap = new Map<string, number>();
+
+      // First pass: create all pages
+      Object.values(tree.pages).forEach(page => {
+        const numericPageId = pageIdCounter++;
+        pageIdMap.set(page.id, numericPageId);
+
+        const insertPage = db.prepare('INSERT INTO Page (Id, UniqueId, Title, Name) VALUES (?, ?, ?, ?)');
+        insertPage.run(numericPageId, page.id, page.name || '', page.name || '');
+      });
+
+      // Second pass: create buttons with proper page references
+      Object.values(tree.pages).forEach(page => {
+        const numericPageId = pageIdMap.get(page.id)!;
+
+        page.buttons.forEach((button, index) => {
+          const elementRefId = elementRefIdCounter++;
+
+          // Insert ElementReference
+          const insertElementRef = db.prepare('INSERT INTO ElementReference (Id, PageId) VALUES (?, ?)');
+          insertElementRef.run(elementRefId, numericPageId);
+
+          // Insert Button
+          const navigatePageId = button.type === 'NAVIGATE' && button.targetPageId
+            ? pageIdMap.get(button.targetPageId) || null
+            : null;
+
+          const insertButton = db.prepare('INSERT INTO Button (Id, Label, Message, NavigatePageId, ElementReferenceId) VALUES (?, ?, ?, ?, ?)');
+          insertButton.run(
+            buttonIdCounter++,
+            button.label || '',
+            button.message || button.label || '',
+            navigatePageId,
+            elementRefId
+          );
+
+          // Insert ElementPlacement
+          const insertPlacement = db.prepare('INSERT INTO ElementPlacement (Id, ElementReferenceId, GridPosition) VALUES (?, ?, ?)');
+          insertPlacement.run(elementRefIdCounter++, elementRefId, index);
+        });
+      });
+
+    } finally {
+      db.close();
+    }
   }
 
   /**

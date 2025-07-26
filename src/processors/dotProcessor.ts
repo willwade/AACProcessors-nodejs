@@ -83,10 +83,30 @@ class DotProcessor extends BaseProcessor {
   }
 
   loadIntoTree(filePathOrBuffer: string | Buffer): AACTree {
-    const content =
-      typeof filePathOrBuffer === 'string'
+    let content: string;
+
+    try {
+      content = typeof filePathOrBuffer === 'string'
         ? fs.readFileSync(filePathOrBuffer, 'utf8')
         : filePathOrBuffer.toString('utf8');
+    } catch (error) {
+      // Re-throw file system errors (like file not found)
+      if (typeof filePathOrBuffer === 'string') {
+        throw error;
+      }
+      // For buffer errors, return empty tree
+      return new AACTree();
+    }
+
+    // Check if content looks like binary data or is empty
+    if (!content || content.trim().length === 0) {
+      return new AACTree();
+    }
+
+    // Check for binary data (contains null bytes or non-printable characters)
+    if (content.includes('\0') || /[\x00-\x08\x0E-\x1F\x7F-\xFF]/.test(content.substring(0, 100))) {
+      return new AACTree();
+    }
 
     const { nodes, edges } = this.parseDotFile(content);
     const tree = new AACTree();
@@ -128,7 +148,7 @@ class DotProcessor extends BaseProcessor {
   processTexts(
     filePathOrBuffer: string | Buffer,
     translations: Map<string, string>,
-    _outputPath: string
+    outputPath: string
   ): Buffer {
     const safeBuffer = Buffer.isBuffer(filePathOrBuffer)
       ? filePathOrBuffer
@@ -139,14 +159,23 @@ class DotProcessor extends BaseProcessor {
 
     translations.forEach((translation, text) => {
       if (typeof text === 'string' && typeof translation === 'string') {
+        // Escape special regex characters in the text
+        const escapedText = text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const escapedTranslation = translation.replace(/\$/g, '$$$$'); // Escape $ in replacement
+
         translatedContent = translatedContent.replace(
-          new RegExp(`label="${text}"`, 'g'),
-          `label="${translation}"`
+          new RegExp(`label="${escapedText}"`, 'g'),
+          `label="${escapedTranslation}"`
         );
       }
     });
 
-    return Buffer.from(translatedContent || '', 'utf8');
+    const resultBuffer = Buffer.from(translatedContent || '', 'utf8');
+
+    // Save to output path
+    fs.writeFileSync(outputPath, resultBuffer);
+
+    return resultBuffer;
   }
 
   saveFromTree(tree: AACTree, _outputPath: string): void {
