@@ -1,10 +1,10 @@
-import { BaseProcessor } from '../core/baseProcessor';
-import { AACTree, AACPage, AACButton } from '../core/treeStructure';
-import AdmZip from 'adm-zip';
-import Database from 'better-sqlite3';
-import path from 'path';
-import fs from 'fs';
-import os from 'os';
+import { BaseProcessor } from "../core/baseProcessor";
+import { AACTree, AACPage, AACButton } from "../core/treeStructure";
+import AdmZip from "adm-zip";
+import Database from "better-sqlite3";
+import path from "path";
+import fs from "fs";
+import os from "os";
 
 interface TouchChatButton {
   id: number;
@@ -38,7 +38,7 @@ class TouchChatProcessor extends BaseProcessor {
       this.tree = this.loadIntoTree(filePathOrBuffer);
     }
     if (!this.tree) {
-      throw new Error('No tree available - call loadIntoTree first');
+      throw new Error("No tree available - call loadIntoTree first");
     }
     const texts: string[] = [];
     for (const pageId in this.tree.pages) {
@@ -61,17 +61,19 @@ class TouchChatProcessor extends BaseProcessor {
       this.sourceFile = filePathOrBuffer;
 
       // Step 1: Unzip
-      tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'touchchat-'));
+      tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "touchchat-"));
       const zip = new AdmZip(
-        typeof filePathOrBuffer === 'string' ? filePathOrBuffer : Buffer.from(filePathOrBuffer)
+        typeof filePathOrBuffer === "string"
+          ? filePathOrBuffer
+          : Buffer.from(filePathOrBuffer),
       );
       zip.extractAllTo(tmpDir, true);
 
       // Step 2: Find and open SQLite DB
       const files = fs.readdirSync(tmpDir);
-      const vocabFile = files.find((f) => f.endsWith('.c4v'));
+      const vocabFile = files.find((f) => f.endsWith(".c4v"));
       if (!vocabFile) {
-        throw new Error('No .c4v vocab DB found in TouchChat export');
+        throw new Error("No .c4v vocab DB found in TouchChat export");
       }
 
       const dbPath = path.join(tmpDir, vocabFile);
@@ -92,7 +94,7 @@ class TouchChatProcessor extends BaseProcessor {
       pages.forEach((pageRow) => {
         const page = new AACPage({
           id: String(pageRow.id),
-          name: pageRow.name || '',
+          name: pageRow.name || "",
           grid: [],
           buttons: [],
           parentId: null,
@@ -108,7 +110,9 @@ class TouchChatProcessor extends BaseProcessor {
         JOIN button_boxes bb ON bb.id = bbc.button_box_id
       `;
       try {
-        const buttonBoxCells = db.prepare(buttonBoxQuery).all() as (TouchChatButton & {
+        const buttonBoxCells = db
+          .prepare(buttonBoxQuery)
+          .all() as (TouchChatButton & {
           box_id: number;
         })[];
         const buttonBoxes = new Map<
@@ -127,9 +131,9 @@ class TouchChatProcessor extends BaseProcessor {
           }
           const button = new AACButton({
             id: String(cell.id),
-            label: cell.label || '',
-            message: cell.message || '',
-            type: 'SPEAK',
+            label: cell.label || "",
+            message: cell.message || "",
+            type: "SPEAK",
             action: null,
           });
           buttonBoxes.get(cell.box_id)?.push({
@@ -141,7 +145,9 @@ class TouchChatProcessor extends BaseProcessor {
         });
 
         // Map button boxes to pages
-        const boxInstances = db.prepare('SELECT * FROM button_box_instances').all() as {
+        const boxInstances = db
+          .prepare("SELECT * FROM button_box_instances")
+          .all() as {
           id: number;
           page_id: number;
           button_box_id: number;
@@ -172,19 +178,23 @@ class TouchChatProcessor extends BaseProcessor {
         WHERE r.type = 7
       `;
       try {
-        const pageButtons = db.prepare(pageButtonsQuery).all() as (TouchChatButton & {
+        const pageButtons = db
+          .prepare(pageButtonsQuery)
+          .all() as (TouchChatButton & {
           type: number;
         })[];
         pageButtons.forEach((btnRow) => {
           const button = new AACButton({
             id: String(btnRow.id),
-            label: btnRow.label || '',
-            message: btnRow.message || '',
-            type: 'SPEAK',
+            label: btnRow.label || "",
+            message: btnRow.message || "",
+            type: "SPEAK",
             action: null,
           });
           // Find the page that references this resource
-          const page = Object.values(tree.pages).find((p) => p.id === String(btnRow.id));
+          const page = Object.values(tree.pages).find(
+            (p) => p.id === String(btnRow.id),
+          );
           if (page) page.addButton(button);
         });
       } catch (e) {
@@ -208,9 +218,11 @@ class TouchChatProcessor extends BaseProcessor {
           // Find button in any page
           for (const pageId in tree.pages) {
             const page = tree.pages[pageId];
-            const button = page.buttons.find((b) => b.id === String(nav.button_id));
+            const button = page.buttons.find(
+              (b) => b.id === String(nav.button_id),
+            );
             if (button) {
-              button.type = 'NAVIGATE';
+              button.type = "NAVIGATE";
               button.targetPageId = String(nav.target_page_id);
               break;
             }
@@ -230,7 +242,7 @@ class TouchChatProcessor extends BaseProcessor {
         try {
           fs.rmSync(tmpDir, { recursive: true, force: true });
         } catch (e) {
-          console.warn('Failed to clean up temp directory:', e);
+          console.warn("Failed to clean up temp directory:", e);
         }
       }
     }
@@ -239,7 +251,7 @@ class TouchChatProcessor extends BaseProcessor {
   processTexts(
     filePathOrBuffer: string | Buffer,
     translations: Map<string, string>,
-    outputPath: string
+    outputPath: string,
   ): Buffer {
     // Load the tree, apply translations, and save to new file
     const tree = this.loadIntoTree(filePathOrBuffer);
@@ -272,8 +284,8 @@ class TouchChatProcessor extends BaseProcessor {
     // This is a simplified implementation - a full implementation would require
     // more complex database schema handling
 
-    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'touchchat-export-'));
-    const dbPath = path.join(tmpDir, 'vocab.db');
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "touchchat-export-"));
+    const dbPath = path.join(tmpDir, "vocab.db");
 
     try {
       const db = new Database(dbPath);
@@ -313,27 +325,31 @@ class TouchChatProcessor extends BaseProcessor {
 
         // Insert resource for page name
         const pageResourceId = resourceIdCounter++;
-        const insertResource = db.prepare('INSERT INTO resources (id, name) VALUES (?, ?)');
-        insertResource.run(pageResourceId, page.name || 'Page');
+        const insertResource = db.prepare(
+          "INSERT INTO resources (id, name) VALUES (?, ?)",
+        );
+        insertResource.run(pageResourceId, page.name || "Page");
 
         // Insert page
-        const insertPage = db.prepare('INSERT INTO pages (id, resource_id) VALUES (?, ?)');
+        const insertPage = db.prepare(
+          "INSERT INTO pages (id, resource_id) VALUES (?, ?)",
+        );
         insertPage.run(numericPageId, pageResourceId);
 
         // Insert buttons
         page.buttons.forEach((button) => {
           const buttonResourceId = resourceIdCounter++;
-          insertResource.run(buttonResourceId, button.label || 'Button');
+          insertResource.run(buttonResourceId, button.label || "Button");
 
           const numericButtonId = buttonIdCounter++;
           const insertButton = db.prepare(
-            'INSERT INTO buttons (id, resource_id, label, message) VALUES (?, ?, ?, ?)'
+            "INSERT INTO buttons (id, resource_id, label, message) VALUES (?, ?, ?, ?)",
           );
           insertButton.run(
             numericButtonId,
             buttonResourceId,
-            button.label || '',
-            button.message || button.label || ''
+            button.label || "",
+            button.message || button.label || "",
           );
         });
       });
@@ -342,7 +358,7 @@ class TouchChatProcessor extends BaseProcessor {
 
       // Create zip file with the database
       const zip = new AdmZip();
-      zip.addLocalFile(dbPath, '', 'vocab.c4v');
+      zip.addLocalFile(dbPath, "", "vocab.c4v");
       zip.writeZip(outputPath);
     } finally {
       // Clean up

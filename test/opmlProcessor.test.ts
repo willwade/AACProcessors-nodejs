@@ -1,12 +1,12 @@
 // Unit test for OPMLProcessor
-import path from 'path';
-import { OpmlProcessor } from '../src/processors/opmlProcessor';
-import { AACTree } from '../src/core/treeStructure';
+import path from "path";
+import { OpmlProcessor } from "../src/processors/opmlProcessor";
+import { AACTree } from "../src/core/treeStructure";
 
-describe('OPMLProcessor', () => {
-  const opmlPath: string = path.join(__dirname, '../examples/example.opml');
+describe("OPMLProcessor", () => {
+  const opmlPath: string = path.join(__dirname, "../examples/example.opml");
 
-  it('can process .opml files and build a navigation tree', () => {
+  it("can process .opml files and build a navigation tree", () => {
     const processor = new OpmlProcessor();
     const tree: AACTree = processor.loadIntoTree(opmlPath);
     expect(tree).toBeInstanceOf(AACTree);
@@ -20,7 +20,7 @@ describe('OPMLProcessor', () => {
     let navFound = false;
     tree.traverse((page) => {
       page.buttons.forEach((btn) => {
-        if (btn.type === 'NAVIGATE' && btn.targetPageId) navFound = true;
+        if (btn.type === "NAVIGATE" && btn.targetPageId) navFound = true;
       });
     });
     expect(navFound).toBe(true);

@@ -10,7 +10,7 @@ describe("aac-processors CLI (Snap)", () => {
       console.log("🔨 Building project for CLI tests...");
       execSync("npm run build", {
         stdio: "inherit",
-        cwd: path.join(__dirname, "../..")
+        cwd: path.join(__dirname, "../.."),
       });
     }
   });
