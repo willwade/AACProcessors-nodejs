@@ -9,20 +9,27 @@ import { AACTree } from './treeStructure';
 import fs from 'fs';
 
 export function getProcessor(format: string) {
-  switch ((format || '').toLowerCase()) {
+  const normalizedFormat = (format || '').toLowerCase();
+
+  switch (normalizedFormat) {
     case 'opml':
       return new OpmlProcessor();
     case 'obf':
       return new ObfProcessor();
     case 'touchchat':
+    case 'ce': // TouchChat file extension
       return new TouchChatProcessor();
     case 'gridset':
+    case 'grd': // Gridset file extension
       return new GridsetProcessor();
     case 'snap':
+    case 'sps': // Snap file extension
+    case 'spb': // Snap backup file extension
       return new SnapProcessor();
     case 'dot':
       return new DotProcessor();
     case 'applepanels':
+    case 'panels': // Apple Panels file extension
       return new ApplePanelsProcessor();
     default:
       throw new Error('Unknown format: ' + format);
@@ -30,32 +37,7 @@ export function getProcessor(format: string) {
 }
 
 export async function analyze(file: string, format: string) {
-  let processor;
-  switch ((format || '').toLowerCase()) {
-    case 'opml':
-      processor = new OpmlProcessor();
-      break;
-    case 'obf':
-      processor = new ObfProcessor();
-      break;
-    case 'touchchat':
-      processor = new TouchChatProcessor();
-      break;
-    case 'gridset':
-      processor = new GridsetProcessor();
-      break;
-    case 'snap':
-      processor = new SnapProcessor();
-      break;
-    case 'dot':
-      processor = new DotProcessor();
-      break;
-    case 'applepanels':
-      processor = new ApplePanelsProcessor();
-      break;
-    default:
-      throw new Error('Unknown format: ' + format);
-  }
+  const processor = getProcessor(format);
   const fileBuffer = fs.readFileSync(file);
   const tree: AACTree = processor.loadIntoTree(fileBuffer);
   return { tree };
