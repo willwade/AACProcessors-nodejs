@@ -331,7 +331,7 @@ interface AACButton {
 
 ## 🧪 Testing & Quality
 
-This library maintains **62% test coverage** with **255+ comprehensive tests** including:
+This library maintains **65% test coverage** with **111 comprehensive tests** including:
 
 - **Unit tests** for all processors and core functionality
 - **Integration tests** for cross-format workflows
@@ -429,23 +429,27 @@ Inspired by the Python AACProcessors project and built for the AAC community.
 
 ## 📋 TODO & Roadmap
 
-### High Priority
+### 🔥 Critical Priority (Immediate Action Required)
 
-- [ ] **Fix SnapProcessor coverage** (currently 48.32%) - Add comprehensive audio handling, database corruption tests, and SQLite schema validation
-- [ ] **Improve TouchChatProcessor coverage** (currently 57.62%) - Add comprehensive SQLite schema tests and fix UNIQUE constraint violations in real-world data processing
-- [ ] **Fix database constraint violations** - Resolve UNIQUE constraint failures in Page.Id and buttons.id when processing real-world data files
-- [ ] **Add missing core functionality tests** (currently 46.15% coverage) - Test analyze.ts, fileProcessor.ts, and other core utilities
-- [ ] **Fix property-based test failures** - Resolve TypeScript interface compatibility issues causing test failures with button ID uniqueness and round-trip processing
+- [ ] **Fix CLI test infrastructure** (currently 0% coverage, 3 failing tests) - Update test expectations to match actual CLI output format and achieve >80% CLI coverage
+- [ ] **Complete SnapProcessor coverage** (currently 48.32% - lowest processor) - Add comprehensive audio handling, database corruption tests, and SQLite schema validation to reach >75% coverage
+- [ ] **Add core functionality tests** (analyze.ts: 0%, fileProcessor.ts: 0%) - Test core utilities to achieve >80% coverage in src/core/ directory
 
-### Critical Test Fixes Needed
+### 🚨 High Priority (Next Sprint)
 
-- [ ] **Real-world data processing** - Fix SQLite constraint violations when processing example.spb, example.sps, and example.ce files
-- [ ] **Audio handling edge cases** - Complete SnapProcessor audio functionality that's currently undefined
-- [ ] **Memory leak detection** - Fix performance tests that are failing due to memory assertion issues
-- [ ] **Property-based test generators** - Fix test data generators to ensure valid button ID uniqueness
+- [ ] **Fix TouchChatProcessor regressions** (currently 86.44% but 4 tests failing) - Resolve comprehensive test failures while maintaining >85% coverage
+- [ ] **Resolve database constraint violations** - Fix UNIQUE constraint failures in Page.Id and buttons.id when processing real-world data files (blocks production usage)
+
+### ⚠️ Medium Priority (Following Sprint)
+
+- [ ] **Improve GridsetProcessor coverage** (currently 71.69%) - Enhance ZIP handling and complex Grid3 archive support to reach >80% coverage
+- [ ] **Improve AstericsGridProcessor coverage** (currently 62.5%) - Add comprehensive tests for Asterics Grid format processing to reach >80% coverage
+- [ ] **Add Symbol Tools coverage** (currently 0%) - Implement tests for PCS and ARASAAC symbol lookups to reach >70% coverage
+- [ ] **Fix property-based test failures** - Resolve TypeScript interface compatibility issues in edge case generators
 
 ### Recently Completed ✅
 
+- [x] **TouchChatProcessor save/load functionality** - Fixed button persistence and ID mapping (coverage improved from 57.62% to 86.44%)
 - [x] **Build integration** - Ensure `npm run build` is executed before CLI tests (Fixed: All test scripts now automatically build before running)
 - [x] **CLI test infrastructure** - Fixed "Cannot find module" errors in CLI integration tests
 
@@ -467,7 +471,7 @@ Inspired by the Python AACProcessors project and built for the AAC community.
 
 ### Testing & Quality
 
-- [ ] **Reach 90%+ test coverage** - Current: 77% (target: 90%+)
+- [ ] **Reach 80%+ test coverage** - Current: 65.15% (target: 80%+)
 - [ ] **Add mutation testing** - Use Stryker.js for mutation testing
 - [ ] **Add benchmark suite** - Performance regression testing
 - [ ] **CI/CD improvements** - Add automated releases and npm publishing
@@ -475,8 +479,11 @@ Inspired by the Python AACProcessors project and built for the AAC community.
 
 ### Known Issues
 
-- ⚠️ **TouchChatProcessor**: Some complex SQLite schemas not fully supported
-- ⚠️ **Property-based tests**: TypeScript interface mismatches in edge cases
+- ⚠️ **CLI Tests**: 3 tests failing due to output format expectations (immediate fix needed)
+- ⚠️ **TouchChatProcessor**: 4 comprehensive tests failing after recent merge
+- ⚠️ **SnapProcessor**: Lowest coverage at 48.32%, missing audio handling tests
+- ⚠️ **Core Utilities**: Zero test coverage for analyze.ts and fileProcessor.ts
+- ⚠️ **Real-world data**: UNIQUE constraint violations with example files
 - ⚠️ **Memory usage**: Large files (>50MB) may cause memory pressure
 - ⚠️ **Concurrent access**: Some processors not fully thread-safe for simultaneous writes
 
