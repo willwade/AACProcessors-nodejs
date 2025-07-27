@@ -54,7 +54,6 @@ class GridsetProcessor extends BaseProcessor {
     zip.getEntries().forEach((entry) => {
       // Only process files named grid.xml under Grids/ (any subdir)
       if (entry.entryName.startsWith('Grids/') && entry.entryName.endsWith('grid.xml')) {
-
         let xmlContent: string;
         try {
           xmlContent = entry.getData().toString('utf8');
@@ -71,8 +70,6 @@ class GridsetProcessor extends BaseProcessor {
           return;
         }
 
-
-
         // Grid3 XML: <Grid> root
         const grid = data.Grid || data.grid;
         if (!grid) {
@@ -86,7 +83,8 @@ class GridsetProcessor extends BaseProcessor {
           return undefined;
         }
         const gridId = extractText(grid.GridGuid || grid.gridGuid || grid.id);
-        let gridName = extractText(grid.Name) || extractText(grid.name) || extractText(grid['@_Name']);
+        let gridName =
+          extractText(grid.Name) || extractText(grid.name) || extractText(grid['@_Name']);
         if (!gridName) {
           // Fallback: get folder name from entry path
           const match = entry.entryName.match(/^Grids\/([^/]+)\//);
@@ -200,14 +198,14 @@ class GridsetProcessor extends BaseProcessor {
     const tree = this.loadIntoTree(buffer);
 
     // Apply translations to all text content
-    Object.values(tree.pages).forEach(page => {
+    Object.values(tree.pages).forEach((page) => {
       // Translate page names
       if (page.name && translations.has(page.name)) {
         page.name = translations.get(page.name)!;
       }
 
       // Translate button labels and messages
-      page.buttons.forEach(button => {
+      page.buttons.forEach((button) => {
         if (button.label && translations.has(button.label)) {
           button.label = translations.get(button.label)!;
         }
@@ -241,47 +239,53 @@ class GridsetProcessor extends BaseProcessor {
           Name: page.name || `Grid ${index + 1}`,
           // Add basic row/column definitions (assume 4x4 grid)
           ColumnDefinitions: {
-            ColumnDefinition: Array(4).fill({})
+            ColumnDefinition: Array(4).fill({}),
           },
           RowDefinitions: {
-            RowDefinition: Array(4).fill({})
+            RowDefinition: Array(4).fill({}),
           },
-          Cells: page.buttons.length > 0 ? {
-            Cell: page.buttons.map((button, btnIndex) => ({
-              '@_X': btnIndex % 4, // Column position
-              '@_Y': Math.floor(btnIndex / 4), // Row position
-              Content: {
-                Commands: button.type === 'NAVIGATE' && button.targetPageId ? {
-                  Command: {
-                    '@_ID': 'Jump.To',
-                    Parameter: {
-                      '@_Key': 'grid',
-                      '#text': button.targetPageId
-                    }
-                  }
-                } : {
-                  Command: {
-                    '@_ID': 'Action.InsertText',
-                    Parameter: {
-                      '@_Key': 'text',
-                      '#text': button.message || button.label || ''
-                    }
-                  }
-                },
-                CaptionAndImage: {
-                  Caption: button.label || ''
+          Cells:
+            page.buttons.length > 0
+              ? {
+                  Cell: page.buttons.map((button, btnIndex) => ({
+                    '@_X': btnIndex % 4, // Column position
+                    '@_Y': Math.floor(btnIndex / 4), // Row position
+                    Content: {
+                      Commands:
+                        button.type === 'NAVIGATE' && button.targetPageId
+                          ? {
+                              Command: {
+                                '@_ID': 'Jump.To',
+                                Parameter: {
+                                  '@_Key': 'grid',
+                                  '#text': button.targetPageId,
+                                },
+                              },
+                            }
+                          : {
+                              Command: {
+                                '@_ID': 'Action.InsertText',
+                                Parameter: {
+                                  '@_Key': 'text',
+                                  '#text': button.message || button.label || '',
+                                },
+                              },
+                            },
+                      CaptionAndImage: {
+                        Caption: button.label || '',
+                      },
+                    },
+                  })),
                 }
-              }
-            }))
-          } : { Cell: [] }
-        }
+              : { Cell: [] },
+        },
       };
 
       // Convert to XML
       const builder = new XMLBuilder({
         ignoreAttributes: false,
         format: true,
-        indentBy: '  '
+        indentBy: '  ',
       });
       const xmlContent = builder.build(gridData);
 

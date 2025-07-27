@@ -27,7 +27,7 @@ describe('SnapProcessor', () => {
     const pageIds: string[] = Object.keys(tree.pages);
     expect(pageIds.length).toBeGreaterThan(0);
     // All page ids should be UUID-like (contain hyphens)
-    pageIds.forEach(id => {
+    pageIds.forEach((id) => {
       expect(id).toMatch(/-/);
     });
   });
@@ -40,7 +40,7 @@ describe('SnapProcessor', () => {
     expect(pageIds.length).toBeGreaterThan(0);
 
     // All page ids should be UUID-like (contain hyphens)
-    pageIds.forEach(id => {
+    pageIds.forEach((id) => {
       expect(typeof id).toBe('string');
       expect(id.length).toBeGreaterThan(10);
       expect(id).toMatch(/-/);

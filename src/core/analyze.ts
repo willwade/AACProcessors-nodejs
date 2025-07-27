@@ -33,19 +33,26 @@ export async function analyze(file: string, format: string) {
   let processor;
   switch ((format || '').toLowerCase()) {
     case 'opml':
-      processor = new OpmlProcessor(); break;
+      processor = new OpmlProcessor();
+      break;
     case 'obf':
-      processor = new ObfProcessor(); break;
+      processor = new ObfProcessor();
+      break;
     case 'touchchat':
-      processor = new TouchChatProcessor(); break;
+      processor = new TouchChatProcessor();
+      break;
     case 'gridset':
-      processor = new GridsetProcessor(); break;
+      processor = new GridsetProcessor();
+      break;
     case 'snap':
-      processor = new SnapProcessor(); break;
+      processor = new SnapProcessor();
+      break;
     case 'dot':
-      processor = new DotProcessor(); break;
+      processor = new DotProcessor();
+      break;
     case 'applepanels':
-      processor = new ApplePanelsProcessor(); break;
+      processor = new ApplePanelsProcessor();
+      break;
     default:
       throw new Error('Unknown format: ' + format);
   }

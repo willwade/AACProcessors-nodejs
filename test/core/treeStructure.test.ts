@@ -17,7 +17,7 @@ describe('AACButton', () => {
       label: 'Go to Page 2',
       type: 'NAVIGATE',
       targetPageId: 'page2',
-      action: { type: 'NAVIGATE', targetPageId: 'page2' }
+      action: { type: 'NAVIGATE', targetPageId: 'page2' },
     });
     expect(button.type).toBe('NAVIGATE');
     expect(button.targetPageId).toBe('page2');
@@ -34,8 +34,8 @@ describe('AACButton', () => {
         id: 123,
         data: audioData,
         identifier: 'SND:hello',
-        metadata: 'test metadata'
-      }
+        metadata: 'test metadata',
+      },
     });
     expect(button.audioRecording?.id).toBe(123);
     expect(button.audioRecording?.data).toBe(audioData);
@@ -58,7 +58,7 @@ describe('AACPage', () => {
     const page = new AACPage({
       id: 'page2',
       name: 'Main Page',
-      parentId: 'parent1'
+      parentId: 'parent1',
     });
     expect(page.id).toBe('page2');
     expect(page.name).toBe('Main Page');
@@ -125,14 +125,14 @@ describe('AACTree', () => {
     const navButton = new AACButton({
       id: 'nav1',
       type: 'NAVIGATE',
-      targetPageId: 'page2'
+      targetPageId: 'page2',
     });
     page1.addButton(navButton);
 
     const navButton2 = new AACButton({
       id: 'nav2',
       type: 'NAVIGATE',
-      targetPageId: 'page3'
+      targetPageId: 'page3',
     });
     page2.addButton(navButton2);
 
@@ -141,7 +141,7 @@ describe('AACTree', () => {
     tree.addPage(page3);
 
     const visitedPages: string[] = [];
-    tree.traverse(page => {
+    tree.traverse((page) => {
       visitedPages.push(page.id);
     });
 
@@ -157,9 +157,17 @@ describe('AACTree', () => {
     const page2 = new AACPage({ id: 'page2' });
 
     // Create circular navigation
-    const nav1 = new AACButton({ id: 'nav1', type: 'NAVIGATE', targetPageId: 'page2' });
-    const nav2 = new AACButton({ id: 'nav2', type: 'NAVIGATE', targetPageId: 'page1' });
-    
+    const nav1 = new AACButton({
+      id: 'nav1',
+      type: 'NAVIGATE',
+      targetPageId: 'page2',
+    });
+    const nav2 = new AACButton({
+      id: 'nav2',
+      type: 'NAVIGATE',
+      targetPageId: 'page1',
+    });
+
     page1.addButton(nav1);
     page2.addButton(nav2);
 
@@ -167,7 +175,7 @@ describe('AACTree', () => {
     tree.addPage(page2);
 
     const visitedPages: string[] = [];
-    tree.traverse(page => {
+    tree.traverse((page) => {
       visitedPages.push(page.id);
     });
 

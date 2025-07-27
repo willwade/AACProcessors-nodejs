@@ -81,7 +81,7 @@ export class Grid3SymbolExtractor extends SymbolExtractor {
 
     zip.getEntries().forEach((entry) => {
       if (entry.entryName.endsWith('.gridset')) {
-        const xmlBuffer = entry.getData() as Buffer;
+        const xmlBuffer = entry.getData();
         const _data = parser.parse(xmlBuffer.toString('utf8'));
         // Extract symbol references from Grid 3 XML structure
         // Implementation depends on Grid 3 file format

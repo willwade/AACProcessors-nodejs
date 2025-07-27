@@ -29,7 +29,7 @@ export class TestEnvironmentManager {
 
   static createTempEnvironment(testName: string): TestEnvironment {
     const tempDir = path.join(os.tmpdir(), 'aac-processors-test', testName, Date.now().toString());
-    
+
     // Ensure directory exists
     fs.mkdirSync(tempDir, { recursive: true });
 
@@ -50,7 +50,7 @@ export class TestEnvironmentManager {
   }
 
   static cleanupAll(): void {
-    this.environments.forEach(env => {
+    this.environments.forEach((env) => {
       try {
         env.cleanup();
       } catch (error) {
@@ -66,9 +66,12 @@ export class TestEnvironmentManager {
     return filePath;
   }
 
-  static createTestFiles(tempDir: string, files: Record<string, string | Buffer>): Record<string, string> {
+  static createTestFiles(
+    tempDir: string,
+    files: Record<string, string | Buffer>
+  ): Record<string, string> {
     const filePaths: Record<string, string> = {};
-    
+
     Object.entries(files).forEach(([filename, content]) => {
       filePaths[filename] = this.createTestFile(tempDir, filename, content);
     });
@@ -106,14 +109,14 @@ export class PerformanceHelper {
         rss: memoryAfter.rss - memoryBefore.rss,
         heapUsed: memoryAfter.heapUsed - memoryBefore.heapUsed,
         heapTotal: memoryAfter.heapTotal - memoryBefore.heapTotal,
-        external: memoryAfter.external - memoryBefore.external
-      }
+        external: memoryAfter.external - memoryBefore.external,
+      },
     };
 
     if (description) {
       console.log(`Performance [${description}]:`, {
         time: `${metrics.executionTime.toFixed(2)}ms`,
-        memory: `+${Math.round(metrics.memoryDelta.heapUsed / 1024 / 1024)}MB`
+        memory: `+${Math.round(metrics.memoryDelta.heapUsed / 1024 / 1024)}MB`,
       });
     }
 
@@ -145,14 +148,14 @@ export class PerformanceHelper {
         rss: memoryAfter.rss - memoryBefore.rss,
         heapUsed: memoryAfter.heapUsed - memoryBefore.heapUsed,
         heapTotal: memoryAfter.heapTotal - memoryBefore.heapTotal,
-        external: memoryAfter.external - memoryBefore.external
-      }
+        external: memoryAfter.external - memoryBefore.external,
+      },
     };
 
     if (description) {
       console.log(`Performance [${description}]:`, {
         time: `${metrics.executionTime.toFixed(2)}ms`,
-        memory: `+${Math.round(metrics.memoryDelta.heapUsed / 1024 / 1024)}MB`
+        memory: `+${Math.round(metrics.memoryDelta.heapUsed / 1024 / 1024)}MB`,
       });
     }
 
@@ -184,13 +187,13 @@ export class FileSystemHelper {
   static createLargeFile(filePath: string, sizeInMB: number): void {
     const chunkSize = 1024 * 1024; // 1MB chunks
     const chunk = Buffer.alloc(chunkSize, 'A');
-    
+
     const writeStream = fs.createWriteStream(filePath);
-    
+
     for (let i = 0; i < sizeInMB; i++) {
       writeStream.write(chunk);
     }
-    
+
     writeStream.end();
   }
 
@@ -241,7 +244,7 @@ export class AsyncTestHelper {
     intervalMs: number = 100
   ): Promise<void> {
     const startTime = Date.now();
-    
+
     while (Date.now() - startTime < timeoutMs) {
       const result = await condition();
       if (result) {
@@ -249,12 +252,12 @@ export class AsyncTestHelper {
       }
       await this.sleep(intervalMs);
     }
-    
+
     throw new Error(`Condition not met within ${timeoutMs}ms`);
   }
 
   static sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   static async withTimeout<T>(
@@ -279,7 +282,7 @@ export class AsyncTestHelper {
     const executing: Promise<void>[] = [];
 
     for (const operation of operations) {
-      const promise = operation().then(result => {
+      const promise = operation().then((result) => {
         results.push(result);
       });
 
@@ -393,7 +396,7 @@ export class TestPatterns {
     const original = createData();
     const serialized = serialize(original);
     const deserialized = deserialize(serialized);
-    
+
     expect(compare(original, deserialized)).toBe(true);
   }
 
@@ -402,7 +405,9 @@ export class TestPatterns {
     concurrency: number = 5,
     iterations: number = 10
   ): Promise<T[]> {
-    const operations = Array(iterations).fill(0).map(() => operation);
+    const operations = Array(iterations)
+      .fill(0)
+      .map(() => operation);
     return AsyncTestHelper.runConcurrently(operations, concurrency);
   }
 
@@ -411,9 +416,9 @@ export class TestPatterns {
     maxMemoryMB: number = 50
   ): { result: T; metrics: PerformanceMetrics } {
     const { result, metrics } = PerformanceHelper.measure(operation);
-    
+
     PerformanceHelper.expectPerformance(metrics, {
-      maxMemoryMB
+      maxMemoryMB,
     });
 
     return { result, metrics };

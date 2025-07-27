@@ -45,7 +45,7 @@ class ApplePanelsProcessor extends BaseProcessor {
 
     const parsedData = plist.parse(content);
     const data = {
-      panels: Array.isArray((parsedData as any).panels) ? (parsedData as any).panels : []
+      panels: Array.isArray((parsedData as any).panels) ? (parsedData as any).panels : [],
     } as ApplePanelsDocument;
     const tree = new AACTree();
 
@@ -90,14 +90,14 @@ class ApplePanelsProcessor extends BaseProcessor {
     const tree = this.loadIntoTree(filePathOrBuffer);
 
     // Apply translations to all text content
-    Object.values(tree.pages).forEach(page => {
+    Object.values(tree.pages).forEach((page) => {
       // Translate page names
       if (page.name && translations.has(page.name)) {
         page.name = translations.get(page.name)!;
       }
 
       // Translate button labels and messages
-      page.buttons.forEach(button => {
+      page.buttons.forEach((button) => {
         if (button.label && translations.has(button.label)) {
           button.label = translations.get(button.label)!;
         }
@@ -113,14 +113,14 @@ class ApplePanelsProcessor extends BaseProcessor {
   }
 
   saveFromTree(tree: AACTree, outputPath: string): void {
-    const panels: ApplePanelsPanel[] = Object.values(tree.pages).map(page => ({
+    const panels: ApplePanelsPanel[] = Object.values(tree.pages).map((page) => ({
       id: page.id,
       name: page.name || 'Panel',
-      buttons: page.buttons.map(button => ({
+      buttons: page.buttons.map((button) => ({
         label: button.label,
         message: button.message || button.label,
-        targetPanel: button.type === 'NAVIGATE' ? button.targetPageId : undefined
-      }))
+        targetPanel: button.type === 'NAVIGATE' ? button.targetPageId : undefined,
+      })),
     }));
 
     const document = { panels } as any;
