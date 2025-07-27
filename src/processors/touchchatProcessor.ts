@@ -1,10 +1,10 @@
-import { BaseProcessor } from '../core/baseProcessor';
-import { AACTree, AACPage, AACButton } from '../core/treeStructure';
-import AdmZip from 'adm-zip';
-import Database from 'better-sqlite3';
-import path from 'path';
-import fs from 'fs';
-import os from 'os';
+import { BaseProcessor } from "../core/baseProcessor";
+import { AACTree, AACPage, AACButton } from "../core/treeStructure";
+import AdmZip from "adm-zip";
+import Database from "better-sqlite3";
+import path from "path";
+import fs from "fs";
+import os from "os";
 
 interface TouchChatButton {
   id: number;
@@ -38,7 +38,7 @@ class TouchChatProcessor extends BaseProcessor {
       this.tree = this.loadIntoTree(filePathOrBuffer);
     }
     if (!this.tree) {
-      throw new Error('No tree available - call loadIntoTree first');
+      throw new Error("No tree available - call loadIntoTree first");
     }
     const texts: string[] = [];
     for (const pageId in this.tree.pages) {
@@ -61,18 +61,19 @@ class TouchChatProcessor extends BaseProcessor {
       this.sourceFile = filePathOrBuffer;
 
       // Step 1: Unzip
-      tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'touchchat-'));
+      tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "touchchat-"));
       const zip = new AdmZip(
-        typeof filePathOrBuffer === 'string' ? filePathOrBuffer : Buffer.from(filePathOrBuffer)
+        typeof filePathOrBuffer === "string"
+          ? filePathOrBuffer
+          : Buffer.from(filePathOrBuffer),
       );
       zip.extractAllTo(tmpDir, true);
 
       // Step 2: Find and open SQLite DB
       const files = fs.readdirSync(tmpDir);
-      console.log('Files in CE archive:', files);
-      const vocabFile = files.find((f) => f.endsWith('.c4v'));
+      const vocabFile = files.find((f) => f.endsWith(".c4v"));
       if (!vocabFile) {
-        throw new Error('No .c4v vocab DB found in TouchChat export');
+        throw new Error("No .c4v vocab DB found in TouchChat export");
       }
 
       const dbPath = path.join(tmpDir, vocabFile);
@@ -80,6 +81,25 @@ class TouchChatProcessor extends BaseProcessor {
 
       // Step 3: Create tree and load pages
       const tree = new AACTree();
+
+      // Set root ID to the first page ID (will be updated if we find a better root)
+      let rootPageId: string | null = null;
+
+      // Load ID mappings first
+      const idMappings = new Map<number, string>();
+      try {
+        const mappingQuery =
+          "SELECT numeric_id, string_id FROM page_id_mapping";
+        const mappings = db.prepare(mappingQuery).all() as {
+          numeric_id: number;
+          string_id: string;
+        }[];
+        mappings.forEach((mapping) => {
+          idMappings.set(mapping.numeric_id, mapping.string_id);
+        });
+      } catch (e) {
+        // No mapping table, use numeric IDs as strings
+      }
 
       // First, load all pages and get their names from resources
       const pageQuery = `
@@ -91,14 +111,22 @@ class TouchChatProcessor extends BaseProcessor {
         name: string;
       })[];
       pages.forEach((pageRow) => {
+        // Use mapped string ID if available, otherwise use numeric ID as string
+        const pageId = idMappings.get(pageRow.id) || String(pageRow.id);
+
         const page = new AACPage({
-          id: String(pageRow.id),
-          name: pageRow.name || '',
+          id: pageId,
+          name: pageRow.name || "",
           grid: [],
           buttons: [],
           parentId: null,
         });
         tree.addPage(page);
+
+        // Set the first page as root if no root is set
+        if (!rootPageId) {
+          rootPageId = pageId;
+        }
       });
 
       // Load button boxes and their cells
@@ -109,7 +137,9 @@ class TouchChatProcessor extends BaseProcessor {
         JOIN button_boxes bb ON bb.id = bbc.button_box_id
       `;
       try {
-        const buttonBoxCells = db.prepare(buttonBoxQuery).all() as (TouchChatButton & {
+        const buttonBoxCells = db
+          .prepare(buttonBoxQuery)
+          .all() as (TouchChatButton & {
           box_id: number;
         })[];
         const buttonBoxes = new Map<
@@ -128,9 +158,9 @@ class TouchChatProcessor extends BaseProcessor {
           }
           const button = new AACButton({
             id: String(cell.id),
-            label: cell.label || '',
-            message: cell.message || '',
-            type: 'SPEAK',
+            label: cell.label || "",
+            message: cell.message || "",
+            type: "SPEAK",
             action: null,
           });
           buttonBoxes.get(cell.box_id)?.push({
@@ -142,7 +172,9 @@ class TouchChatProcessor extends BaseProcessor {
         });
 
         // Map button boxes to pages
-        const boxInstances = db.prepare('SELECT * FROM button_box_instances').all() as {
+        const boxInstances = db
+          .prepare("SELECT * FROM button_box_instances")
+          .all() as {
           id: number;
           page_id: number;
           button_box_id: number;
@@ -153,7 +185,10 @@ class TouchChatProcessor extends BaseProcessor {
         }[];
 
         boxInstances.forEach((instance) => {
-          const page = tree.getPage(String(instance.page_id));
+          // Use mapped string ID if available, otherwise use numeric ID as string
+          const pageId =
+            idMappings.get(instance.page_id) || String(instance.page_id);
+          const page = tree.getPage(pageId);
           const buttons = buttonBoxes.get(instance.button_box_id);
           if (page && buttons) {
             buttons.forEach(({ button }) => {
@@ -162,7 +197,7 @@ class TouchChatProcessor extends BaseProcessor {
           }
         });
       } catch (e) {
-        console.log('No button box cells found:', e);
+        // console.log('No button box cells found:', e);
       }
 
       // Load buttons directly linked to pages via resources
@@ -173,23 +208,27 @@ class TouchChatProcessor extends BaseProcessor {
         WHERE r.type = 7
       `;
       try {
-        const pageButtons = db.prepare(pageButtonsQuery).all() as (TouchChatButton & {
+        const pageButtons = db
+          .prepare(pageButtonsQuery)
+          .all() as (TouchChatButton & {
           type: number;
         })[];
         pageButtons.forEach((btnRow) => {
           const button = new AACButton({
             id: String(btnRow.id),
-            label: btnRow.label || '',
-            message: btnRow.message || '',
-            type: 'SPEAK',
+            label: btnRow.label || "",
+            message: btnRow.message || "",
+            type: "SPEAK",
             action: null,
           });
           // Find the page that references this resource
-          const page = Object.values(tree.pages).find((p) => p.id === String(btnRow.id));
+          const page = Object.values(tree.pages).find(
+            (p) => p.id === String(btnRow.id),
+          );
           if (page) page.addButton(button);
         });
       } catch (e) {
-        console.log('No direct page buttons found:', e);
+        // console.log('No direct page buttons found:', e);
       }
 
       // Load navigation actions
@@ -209,27 +248,54 @@ class TouchChatProcessor extends BaseProcessor {
           // Find button in any page
           for (const pageId in tree.pages) {
             const page = tree.pages[pageId];
-            const button = page.buttons.find((b) => b.id === String(nav.button_id));
+            const button = page.buttons.find(
+              (b) => b.id === String(nav.button_id),
+            );
             if (button) {
-              button.type = 'NAVIGATE';
-              button.targetPageId = String(nav.target_page_id);
+              button.type = "NAVIGATE";
+              // Use mapped string ID for target page if available
+              const targetPageId =
+                idMappings.get(parseInt(nav.target_page_id)) ||
+                nav.target_page_id;
+              button.targetPageId = String(targetPageId);
               break;
             }
           }
         });
       } catch (e) {
-        console.log('No navigation actions found:', e);
+        // console.log('No navigation actions found:', e);
+      }
+
+      // Try to load root ID from metadata, fallback to first page
+      try {
+        const metadataQuery =
+          "SELECT value FROM tree_metadata WHERE key = 'rootId'";
+        const rootIdRow = db.prepare(metadataQuery).get() as
+          | { value: string }
+          | undefined;
+        if (rootIdRow && tree.getPage(rootIdRow.value)) {
+          tree.rootId = rootIdRow.value;
+        } else if (rootPageId) {
+          tree.rootId = rootPageId;
+        }
+      } catch (e) {
+        // No metadata table, use first page as root
+        if (rootPageId) {
+          tree.rootId = rootPageId;
+        }
       }
 
       return tree;
     } finally {
       // Clean up
-      if (db) db.close();
-      if (tmpDir) {
+      if (db) {
+        db.close();
+      }
+      if (tmpDir && fs.existsSync(tmpDir)) {
         try {
           fs.rmSync(tmpDir, { recursive: true, force: true });
         } catch (e) {
-          console.warn('Failed to clean up temp directory:', e);
+          console.warn("Failed to clean up temp directory:", e);
         }
       }
     }
@@ -238,7 +304,7 @@ class TouchChatProcessor extends BaseProcessor {
   processTexts(
     filePathOrBuffer: string | Buffer,
     translations: Map<string, string>,
-    outputPath: string
+    outputPath: string,
   ): Buffer {
     // Load the tree, apply translations, and save to new file
     const tree = this.loadIntoTree(filePathOrBuffer);
@@ -267,26 +333,29 @@ class TouchChatProcessor extends BaseProcessor {
   }
 
   saveFromTree(tree: AACTree, outputPath: string): void {
-    // For now, implement a basic version that creates a new TouchChat database
-    // This is a simplified implementation - a full implementation would require
-    // more complex database schema handling
-
-    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'touchchat-export-'));
-    const dbPath = path.join(tmpDir, 'vocab.db');
+    // Create a TouchChat database that matches the expected schema for loading
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "touchchat-export-"));
+    const dbPath = path.join(tmpDir, "vocab.c4v");
 
     try {
       const db = new Database(dbPath);
 
-      // Create basic schema (simplified version)
+      // Create schema that matches what loadIntoTree expects
       db.exec(`
         CREATE TABLE IF NOT EXISTS resources (
           id INTEGER PRIMARY KEY,
-          name TEXT
+          name TEXT,
+          type INTEGER DEFAULT 0
         );
 
         CREATE TABLE IF NOT EXISTS pages (
           id INTEGER PRIMARY KEY,
           resource_id INTEGER,
+          name TEXT,
+          symbol_link_id INTEGER,
+          page_style_id INTEGER DEFAULT 1,
+          button_style_id INTEGER DEFAULT 1,
+          feature INTEGER,
           FOREIGN KEY (resource_id) REFERENCES resources (id)
         );
 
@@ -295,45 +364,192 @@ class TouchChatProcessor extends BaseProcessor {
           resource_id INTEGER,
           label TEXT,
           message TEXT,
+          symbol_link_id INTEGER,
+          visible INTEGER DEFAULT 1,
+          button_style_id INTEGER DEFAULT 1,
+          pronunciation TEXT,
+          skin_tone_override INTEGER,
           FOREIGN KEY (resource_id) REFERENCES resources (id)
+        );
+
+        CREATE TABLE IF NOT EXISTS button_boxes (
+          id INTEGER PRIMARY KEY
+        );
+
+        CREATE TABLE IF NOT EXISTS button_box_cells (
+          id INTEGER PRIMARY KEY,
+          button_box_id INTEGER,
+          resource_id INTEGER,
+          location INTEGER,
+          span_x INTEGER DEFAULT 1,
+          span_y INTEGER DEFAULT 1,
+          FOREIGN KEY (button_box_id) REFERENCES button_boxes (id),
+          FOREIGN KEY (resource_id) REFERENCES resources (id)
+        );
+
+        CREATE TABLE IF NOT EXISTS button_box_instances (
+          id INTEGER PRIMARY KEY,
+          page_id INTEGER,
+          button_box_id INTEGER,
+          position_x INTEGER DEFAULT 0,
+          position_y INTEGER DEFAULT 0,
+          size_x INTEGER DEFAULT 1,
+          size_y INTEGER DEFAULT 1,
+          FOREIGN KEY (page_id) REFERENCES pages (id),
+          FOREIGN KEY (button_box_id) REFERENCES button_boxes (id)
+        );
+
+        CREATE TABLE IF NOT EXISTS actions (
+          id INTEGER PRIMARY KEY,
+          resource_id INTEGER,
+          code INTEGER,
+          FOREIGN KEY (resource_id) REFERENCES resources (id)
+        );
+
+        CREATE TABLE IF NOT EXISTS action_data (
+          id INTEGER PRIMARY KEY,
+          action_id INTEGER,
+          value TEXT,
+          FOREIGN KEY (action_id) REFERENCES actions (id)
+        );
+
+        CREATE TABLE IF NOT EXISTS tree_metadata (
+          key TEXT PRIMARY KEY,
+          value TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS page_id_mapping (
+          numeric_id INTEGER PRIMARY KEY,
+          string_id TEXT UNIQUE
         );
       `);
 
-      // Insert pages and buttons
-      let resourceId = 1;
+      // Insert pages and buttons using the proper schema
+      let resourceIdCounter = 1;
+      let pageIdCounter = 1;
+      let buttonIdCounter = 1;
+      let buttonBoxIdCounter = 1;
+      let buttonBoxInstanceIdCounter = 1;
+      let actionIdCounter = 1;
+
+      // Create mapping from string IDs to numeric IDs
+      const pageIdMap = new Map<string, number>();
+
+      // First pass: create pages and map IDs
       Object.values(tree.pages).forEach((page) => {
+        // Try to use numeric ID if possible, otherwise assign sequential ID
+        const numericPageId = /^\d+$/.test(page.id)
+          ? parseInt(page.id)
+          : pageIdCounter++;
+        pageIdMap.set(page.id, numericPageId);
+
         // Insert resource for page name
-        const insertResource = db.prepare('INSERT INTO resources (id, name) VALUES (?, ?)');
-        insertResource.run(resourceId, page.name || 'Page');
+        const pageResourceId = resourceIdCounter++;
+        const insertResource = db.prepare(
+          "INSERT INTO resources (id, name, type) VALUES (?, ?, ?)",
+        );
+        insertResource.run(pageResourceId, page.name || "Page", 0);
 
-        // Insert page
-        const insertPage = db.prepare('INSERT INTO pages (id, resource_id) VALUES (?, ?)');
-        insertPage.run(parseInt(page.id) || resourceId, resourceId);
+        // Insert page with original ID preserved
+        const insertPage = db.prepare(
+          "INSERT INTO pages (id, resource_id, name) VALUES (?, ?, ?)",
+        );
+        insertPage.run(numericPageId, pageResourceId, page.name || "Page");
 
-        // Insert buttons
-        page.buttons.forEach((button, index) => {
-          const buttonResourceId = resourceId + index + 1;
-          insertResource.run(buttonResourceId, button.label || 'Button');
-
-          const insertButton = db.prepare(
-            'INSERT INTO buttons (id, resource_id, label, message) VALUES (?, ?, ?, ?)'
-          );
-          insertButton.run(
-            parseInt(button.id) || buttonResourceId,
-            buttonResourceId,
-            button.label || '',
-            button.message || button.label || ''
-          );
-        });
-
-        resourceId += page.buttons.length + 1;
+        // Store ID mapping
+        const insertIdMapping = db.prepare(
+          "INSERT INTO page_id_mapping (numeric_id, string_id) VALUES (?, ?)",
+        );
+        insertIdMapping.run(numericPageId, page.id);
       });
+
+      // Second pass: create buttons and their relationships
+      Object.values(tree.pages).forEach((page) => {
+        const numericPageId = pageIdMap.get(page.id)!;
+
+        if (page.buttons.length > 0) {
+          // Create a button box for this page's buttons
+          const buttonBoxId = buttonBoxIdCounter++;
+          const insertButtonBox = db.prepare(
+            "INSERT INTO button_boxes (id) VALUES (?)",
+          );
+          insertButtonBox.run(buttonBoxId);
+
+          // Create button box instance
+          const insertButtonBoxInstance = db.prepare(
+            "INSERT INTO button_box_instances (id, page_id, button_box_id, position_x, position_y, size_x, size_y) VALUES (?, ?, ?, ?, ?, ?, ?)",
+          );
+          insertButtonBoxInstance.run(
+            buttonBoxInstanceIdCounter++,
+            numericPageId,
+            buttonBoxId,
+            0,
+            0,
+            1,
+            1,
+          );
+
+          // Insert buttons
+          page.buttons.forEach((button, index) => {
+            const buttonResourceId = resourceIdCounter++;
+            const insertResource = db.prepare(
+              "INSERT INTO resources (id, name, type) VALUES (?, ?, ?)",
+            );
+            insertResource.run(buttonResourceId, button.label || "Button", 7);
+
+            const numericButtonId = parseInt(button.id) || buttonIdCounter++;
+            const insertButton = db.prepare(
+              "INSERT INTO buttons (id, resource_id, label, message, visible) VALUES (?, ?, ?, ?, ?)",
+            );
+            insertButton.run(
+              numericButtonId,
+              buttonResourceId,
+              button.label || "",
+              button.message || button.label || "",
+              1,
+            );
+
+            // Insert button box cell
+            const insertButtonBoxCell = db.prepare(
+              "INSERT INTO button_box_cells (button_box_id, resource_id, location, span_x, span_y) VALUES (?, ?, ?, ?, ?)",
+            );
+            insertButtonBoxCell.run(buttonBoxId, buttonResourceId, index, 1, 1);
+
+            // Handle navigation actions
+            if (button.type === "NAVIGATE" && button.targetPageId) {
+              const targetPageId = pageIdMap.get(button.targetPageId);
+              if (targetPageId) {
+                // Insert action
+                const insertAction = db.prepare(
+                  "INSERT INTO actions (id, resource_id, code) VALUES (?, ?, ?)",
+                );
+                insertAction.run(actionIdCounter, buttonResourceId, 1); // code 1 = navigation
+
+                // Insert action data
+                const insertActionData = db.prepare(
+                  "INSERT INTO action_data (action_id, value) VALUES (?, ?)",
+                );
+                insertActionData.run(actionIdCounter, String(targetPageId));
+                actionIdCounter++;
+              }
+            }
+          });
+        }
+      });
+
+      // Save tree metadata (root ID)
+      if (tree.rootId) {
+        const insertMetadata = db.prepare(
+          "INSERT INTO tree_metadata (key, value) VALUES (?, ?)",
+        );
+        insertMetadata.run("rootId", tree.rootId);
+      }
 
       db.close();
 
       // Create zip file with the database
       const zip = new AdmZip();
-      zip.addLocalFile(dbPath, '', 'vocab.c4v');
+      zip.addLocalFile(dbPath, "", "vocab.c4v");
       zip.writeZip(outputPath);
     } finally {
       // Clean up
