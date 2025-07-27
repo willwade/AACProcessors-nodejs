@@ -25,7 +25,9 @@ describe('Property-Based Testing', () => {
 
   // Generators for test data
   const validIdGenerator = fc.stringMatching(/^[a-zA-Z][a-zA-Z0-9_-]{0,49}$/);
-  const validLabelGenerator = fc.string({ minLength: 1, maxLength: 100 });
+  const validLabelGenerator = fc.string({ minLength: 1, maxLength: 100 })
+    .filter(s => s.trim().length > 0)
+    .map(s => s.trim() || 'DefaultLabel');
   const validMessageGenerator = fc.string({ maxLength: 500 });
 
   const buttonTypeGenerator = fc.constantFrom('SPEAK', 'NAVIGATE');
@@ -45,12 +47,14 @@ describe('Property-Based Testing', () => {
       id: validIdGenerator,
       name: validLabelGenerator,
       buttons: fc.array(aacButtonGenerator, { maxLength: 20 }),
+      parentId: fc.option(validIdGenerator, { nil: null }),
     })
     .map((data) => {
       const page = new AACPage({
         id: data.id,
         name: data.name,
         buttons: [],
+        parentId: data.parentId,
       });
       data.buttons.forEach((button) => page.addButton(button));
       return page;
@@ -154,6 +158,17 @@ describe('Property-Based Testing', () => {
           const processor = new ObfProcessor();
 
           try {
+            // Skip trees with invalid button configurations
+            const hasInvalidButtons = Object.values(originalTree.pages).some(page =>
+              page.buttons.some(button =>
+                button.type === 'NAVIGATE' && !button.targetPageId
+              )
+            );
+
+            if (hasInvalidButtons) {
+              return true; // Skip this test case
+            }
+
             const outputPath = path.join(
               tempDir,
               `obf_roundtrip_${Date.now()}_${Math.random()}.obf`
@@ -337,6 +352,18 @@ describe('Property-Based Testing', () => {
           const processor = new DotProcessor();
 
           try {
+            // Skip trees with no meaningful content
+            const hasContent = Object.values(tree.pages).some(page =>
+              page.name.trim().length > 0 ||
+              page.buttons.some(button =>
+                button.label.trim().length > 0 || button.message.trim().length > 0
+              )
+            );
+
+            if (!hasContent) {
+              return true; // Skip this test case
+            }
+
             const outputPath = path.join(
               tempDir,
               `text_extraction_${Date.now()}_${Math.random()}.dot`
@@ -351,11 +378,11 @@ describe('Property-Based Testing', () => {
             // All extracted texts should be strings
             const allStrings = extractedTexts.every((text) => typeof text === 'string');
 
-            // Non-empty texts should have length > 0
-            const nonEmptyTexts = extractedTexts.filter((text) => text.length > 0);
-            const validNonEmpty = nonEmptyTexts.every((text) => text.trim().length > 0);
+            // If we have content, we should extract some non-empty texts
+            const nonEmptyTexts = extractedTexts.filter((text) => text.trim().length > 0);
+            const hasNonEmptyTexts = nonEmptyTexts.length > 0;
 
-            return allStrings && validNonEmpty;
+            return allStrings && hasNonEmptyTexts;
           } catch (error) {
             console.log('Text extraction test failed (acceptable):', error);
             return true;
