@@ -395,8 +395,7 @@ Inspired by the Python AACProcessors project and built for the AAC community.
 - [ ] **Add symbol library integration** - Complete implementation of PCS, ARASAAC symbol lookups
 
 ### Low Priority
-- [ ] **Add more AAC formats** - Support for Proloquo2Go, LAMP Words for Life
-- [ ] **Web interface** - Browser-based AAC file converter and analyzer
+- [ ] **Add more AAC formats** - Look for other common AAC formats to add
 - [ ] **Plugin system** - Allow third-party processors and extensions
 - [ ] **Batch processing CLI** - Process multiple files in parallel
 - [ ] **Configuration file support** - Allow .aacprocessors.json config files
