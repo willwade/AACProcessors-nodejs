@@ -39,8 +39,11 @@ describe('SnapProcessor Coverage', () => {
       const processor = new SnapProcessor(null, { loadAudio: true });
       const tree = processor.loadIntoTree(tempDbPath);
       const page = tree.getPage('page-1');
-      expect(page.buttons[0].audioRecording).toBeDefined();
-      expect(page.buttons[0].audioRecording.data).toEqual(Buffer.from('audio data'));
+      expect(page).toBeDefined();
+      if (page) {
+        expect(page.buttons[0].audioRecording).toBeDefined();
+        expect(page.buttons[0].audioRecording.data).toEqual(Buffer.from('audio data'));
+      }
     });
 
     it('should add audio to a button', () => {
