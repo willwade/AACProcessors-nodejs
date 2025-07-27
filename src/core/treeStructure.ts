@@ -2,6 +2,7 @@ import {
   AACButton as IAACButton,
   AACPage as IAACPage,
   AACTree as IAACTree,
+  AACStyle,
 } from "../types/aac";
 
 export class AACButton implements IAACButton {
@@ -11,6 +12,7 @@ export class AACButton implements IAACButton {
   type: "SPEAK" | "NAVIGATE";
   action: { type: "SPEAK" | "NAVIGATE"; targetPageId?: string } | null;
   targetPageId?: string;
+  style?: AACStyle;
   audioRecording?: {
     id?: number;
     data?: Buffer;
@@ -26,6 +28,7 @@ export class AACButton implements IAACButton {
     targetPageId,
     action = null,
     audioRecording,
+    style,
   }: {
     id: string;
     label?: string;
@@ -39,6 +42,7 @@ export class AACButton implements IAACButton {
       identifier?: string;
       metadata?: string;
     };
+    style?: AACStyle;
   }) {
     this.id = id;
     this.label = label;
@@ -47,6 +51,7 @@ export class AACButton implements IAACButton {
     this.targetPageId = targetPageId;
     this.action = action;
     this.audioRecording = audioRecording;
+    this.style = style;
   }
 }
 
@@ -56,6 +61,7 @@ export class AACPage implements IAACPage {
   grid: Array<Array<AACButton | null>>;
   buttons: AACButton[];
   parentId: string | null;
+  style?: AACStyle;
 
   constructor({
     id,
@@ -63,18 +69,21 @@ export class AACPage implements IAACPage {
     grid = [],
     buttons = [],
     parentId = null,
+    style,
   }: {
     id: string;
     name?: string;
     grid?: Array<Array<AACButton | null>>;
     buttons?: AACButton[];
     parentId?: string | null;
+    style?: AACStyle;
   }) {
     this.id = id;
     this.name = name;
     this.grid = grid;
     this.buttons = buttons;
     this.parentId = parentId;
+    this.style = style;
   }
 
   addButton(button: AACButton): void {

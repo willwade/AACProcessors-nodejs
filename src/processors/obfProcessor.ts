@@ -13,6 +13,8 @@ interface ObfButton {
     path: string;
   };
   box_id?: number;
+  background_color?: string;
+  border_color?: string;
 }
 
 interface ObfBoard {
@@ -35,6 +37,10 @@ class ObfProcessor extends BaseProcessor {
           label: String(btn?.label || ""),
           message: String(btn?.vocalization || btn?.label || ""),
           type,
+          style: {
+            backgroundColor: btn.background_color,
+            borderColor: btn.border_color,
+          },
           action: btn.load_board
             ? {
                 type: "NAVIGATE",
@@ -244,6 +250,8 @@ class ObfProcessor extends BaseProcessor {
                   path: button.targetPageId,
                 }
               : undefined,
+          background_color: button.style?.backgroundColor,
+          border_color: button.style?.borderColor,
         })),
       };
 
@@ -266,6 +274,8 @@ class ObfProcessor extends BaseProcessor {
                     path: button.targetPageId,
                   }
                 : undefined,
+            background_color: button.style?.backgroundColor,
+            border_color: button.style?.borderColor,
           })),
         };
 

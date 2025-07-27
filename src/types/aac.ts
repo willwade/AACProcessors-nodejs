@@ -3,6 +3,20 @@ export interface AACButtonAction {
   targetPageId?: string;
 }
 
+export interface AACStyle {
+  backgroundColor?: string;
+  fontColor?: string;
+  borderColor?: string;
+  borderWidth?: number;
+  fontSize?: number;
+  fontFamily?: string;
+  fontWeight?: string;
+  fontStyle?: string;
+  textUnderline?: boolean;
+  labelOnTop?: boolean;
+  transparent?: boolean;
+}
+
 export interface AACButton {
   id: string;
   label: string;
@@ -10,6 +24,7 @@ export interface AACButton {
   type: AACButtonAction["type"];
   action: AACButtonAction | null;
   targetPageId?: string;
+  style?: AACStyle;
   audioRecording?: {
     id?: number;
     data?: Buffer;
@@ -24,6 +39,7 @@ export interface AACPage {
   grid: Array<Array<AACButton | null>>;
   buttons: AACButton[];
   parentId: string | null;
+  style?: AACStyle;
 }
 
 export interface AACTree {

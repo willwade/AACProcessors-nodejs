@@ -28,6 +28,14 @@ interface TouchChatPage {
   feature: number | null;
 }
 
+function intToHex(colorInt: number | null | undefined): string | undefined {
+  if (colorInt === null || typeof colorInt === "undefined") {
+    return undefined;
+  }
+  // Assuming the color is in ARGB format, we mask out the alpha channel
+  return `#${(colorInt & 0x00ffffff).toString(16).padStart(6, "0")}`;
+}
+
 class TouchChatProcessor extends BaseProcessor {
   private tree: AACTree | null = null;
   private sourceFile: string | Buffer | null = null;
@@ -101,6 +109,22 @@ class TouchChatProcessor extends BaseProcessor {
         // No mapping table, use numeric IDs as strings
       }
 
+      // Load styles
+      const buttonStyles = new Map();
+      const pageStyles = new Map();
+      try {
+        const buttonStyleRows = db.prepare("SELECT * FROM button_styles").all();
+        buttonStyleRows.forEach((style: any) => {
+          buttonStyles.set(style.id, style);
+        });
+        const pageStyleRows = db.prepare("SELECT * FROM page_styles").all();
+        pageStyleRows.forEach((style: any) => {
+          pageStyles.set(style.id, style);
+        });
+      } catch (e) {
+        // console.log('No styles found:', e);
+      }
+
       // First, load all pages and get their names from resources
       const pageQuery = `
         SELECT p.*, r.name
@@ -113,6 +137,7 @@ class TouchChatProcessor extends BaseProcessor {
       pages.forEach((pageRow) => {
         // Use mapped string ID if available, otherwise use numeric ID as string
         const pageId = idMappings.get(pageRow.id) || String(pageRow.id);
+        const style = pageStyles.get(pageRow.page_style_id);
 
         const page = new AACPage({
           id: pageId,
@@ -120,6 +145,9 @@ class TouchChatProcessor extends BaseProcessor {
           grid: [],
           buttons: [],
           parentId: null,
+          style: {
+            backgroundColor: intToHex(style?.bg_color),
+          },
         });
         tree.addPage(page);
 
@@ -156,12 +184,26 @@ class TouchChatProcessor extends BaseProcessor {
           if (!buttonBoxes.has(cell.box_id)) {
             buttonBoxes.set(cell.box_id, []);
           }
+          const style = buttonStyles.get(cell.button_style_id);
           const button = new AACButton({
             id: String(cell.id),
             label: cell.label || "",
             message: cell.message || "",
             type: "SPEAK",
             action: null,
+            style: {
+              backgroundColor: intToHex(style?.body_color),
+              borderColor: intToHex(style?.border_color),
+              borderWidth: style?.border_width,
+              fontColor: intToHex(style?.font_color),
+              fontSize: style?.font_height,
+              fontFamily: style?.font_name,
+              fontWeight: style?.font_bold ? "bold" : "normal",
+              fontStyle: style?.font_italic ? "italic" : "normal",
+              textUnderline: style?.font_underline,
+              transparent: style?.transparent,
+              labelOnTop: style?.label_on_top,
+            },
           });
           buttonBoxes.get(cell.box_id)?.push({
             button,
@@ -214,12 +256,26 @@ class TouchChatProcessor extends BaseProcessor {
           type: number;
         })[];
         pageButtons.forEach((btnRow) => {
+          const style = buttonStyles.get(btnRow.button_style_id);
           const button = new AACButton({
             id: String(btnRow.id),
             label: btnRow.label || "",
             message: btnRow.message || "",
             type: "SPEAK",
             action: null,
+            style: {
+              backgroundColor: intToHex(style?.body_color),
+              borderColor: intToHex(style?.border_color),
+              borderWidth: style?.border_width,
+              fontColor: intToHex(style?.font_color),
+              fontSize: style?.font_height,
+              fontFamily: style?.font_name,
+              fontWeight: style?.font_bold ? "bold" : "normal",
+              fontStyle: style?.font_italic ? "italic" : "normal",
+              textUnderline: style?.font_underline,
+              transparent: style?.transparent,
+              labelOnTop: style?.label_on_top,
+            },
           });
           // Find the page that references this resource
           const page = Object.values(tree.pages).find(

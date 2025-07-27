@@ -15,13 +15,21 @@ interface SnapButton {
   MessageRecordingId?: number | null;
   UseMessageRecording?: number | null;
   SerializedMessageSoundMetadata?: string | null;
+  LabelColor?: number;
+  BackgroundColor?: number;
+  BorderColor?: number;
+  BorderThickness?: number;
+  FontSize?: number;
+  FontFamily?: string;
+  FontStyle?: number;
 }
 
 interface SnapPage {
   Id: number;
-  Name: string;
+  Name:string;
   Buttons: SnapButton[];
   ParentId: number | null;
+  BackgroundColor?: number;
 }
 
 class SnapProcessor extends BaseProcessor {
@@ -75,16 +83,21 @@ class SnapProcessor extends BaseProcessor {
       const pages = db.prepare("SELECT * FROM Page").all() as any[];
       // Map from numeric Id -> UniqueId for later lookup
       const idToUniqueId: Record<string, string> = {};
-      pages.forEach((pageRow) => {
-        const uniqueId = String(pageRow.UniqueId || pageRow.Id);
+      pages.forEach((pageRow: SnapPage) => {
+        const uniqueId = String((pageRow as any).UniqueId || pageRow.Id);
         idToUniqueId[String(pageRow.Id)] = uniqueId;
 
         const page = new AACPage({
           id: uniqueId,
-          name: pageRow.Title || pageRow.Name,
+          name: (pageRow as any).Title || pageRow.Name,
           grid: [],
           buttons: [],
           parentId: null, // ParentId will be set via navigation buttons below
+          style: {
+            backgroundColor: pageRow.BackgroundColor
+              ? `#${pageRow.BackgroundColor.toString(16)}`
+              : undefined,
+          },
         });
         tree.addPage(page);
       });
@@ -97,6 +110,8 @@ class SnapProcessor extends BaseProcessor {
             ? `
             SELECT b.Id, b.Label, b.Message, b.LibrarySymbolId, b.PageSetImageId,
                    b.MessageRecordingId, b.UseMessageRecording, b.SerializedMessageSoundMetadata,
+                   b.LabelColor, b.BackgroundColor, b.BorderColor, b.BorderThickness,
+                   b.FontSize, b.FontFamily, b.FontStyle,
                    ep.GridPosition, bpl.PageUniqueId, b.NavigatePageId, er.PageId as ButtonPageId
             FROM Button b
             LEFT JOIN ElementReference er ON b.ElementReferenceId = er.Id
@@ -107,6 +122,8 @@ class SnapProcessor extends BaseProcessor {
           `
             : `
             SELECT b.Id, b.Label, b.Message, b.LibrarySymbolId, b.PageSetImageId,
+                   b.LabelColor, b.BackgroundColor, b.BorderColor, b.BorderThickness,
+                   b.FontSize, b.FontFamily, b.FontStyle,
                    ep.GridPosition, bpl.PageUniqueId, b.NavigatePageId, er.PageId as ButtonPageId
             FROM Button b
             LEFT JOIN ElementReference er ON b.ElementReferenceId = er.Id
@@ -209,6 +226,21 @@ class SnapProcessor extends BaseProcessor {
                 }
               : null,
             audioRecording: audioRecording,
+            style: {
+              backgroundColor: btnRow.BackgroundColor
+                ? `#${btnRow.BackgroundColor.toString(16)}`
+                : undefined,
+              borderColor: btnRow.BorderColor
+                ? `#${btnRow.BorderColor.toString(16)}`
+                : undefined,
+              borderWidth: btnRow.BorderThickness,
+              fontColor: btnRow.LabelColor
+                ? `#${btnRow.LabelColor.toString(16)}`
+                : undefined,
+              fontSize: btnRow.FontSize,
+              fontFamily: btnRow.FontFamily,
+              fontStyle: btnRow.FontStyle?.toString(),
+            },
           });
 
           // Add to the intended parent page
@@ -303,7 +335,8 @@ class SnapProcessor extends BaseProcessor {
           Id INTEGER PRIMARY KEY,
           UniqueId TEXT UNIQUE,
           Title TEXT,
-          Name TEXT
+          Name TEXT,
+          BackgroundColor INTEGER
         );
 
         CREATE TABLE IF NOT EXISTS Button (
@@ -311,7 +344,14 @@ class SnapProcessor extends BaseProcessor {
           Label TEXT,
           Message TEXT,
           NavigatePageId INTEGER,
-          ElementReferenceId INTEGER
+          ElementReferenceId INTEGER,
+          LabelColor INTEGER,
+          BackgroundColor INTEGER,
+          BorderColor INTEGER,
+          BorderThickness REAL,
+          FontSize REAL,
+          FontFamily TEXT,
+          FontStyle INTEGER
         );
 
         CREATE TABLE IF NOT EXISTS ElementReference (
@@ -341,13 +381,16 @@ class SnapProcessor extends BaseProcessor {
         pageIdMap.set(page.id, numericPageId);
 
         const insertPage = db.prepare(
-          "INSERT INTO Page (Id, UniqueId, Title, Name) VALUES (?, ?, ?, ?)",
+          "INSERT INTO Page (Id, UniqueId, Title, Name, BackgroundColor) VALUES (?, ?, ?, ?, ?)",
         );
         insertPage.run(
           numericPageId,
           page.id,
           page.name || "",
           page.name || "",
+          page.style?.backgroundColor
+            ? parseInt(page.style.backgroundColor.replace("#", ""), 16)
+            : null,
         );
       });
 
@@ -371,7 +414,7 @@ class SnapProcessor extends BaseProcessor {
               : null;
 
           const insertButton = db.prepare(
-            "INSERT INTO Button (Id, Label, Message, NavigatePageId, ElementReferenceId) VALUES (?, ?, ?, ?, ?)",
+            "INSERT INTO Button (Id, Label, Message, NavigatePageId, ElementReferenceId, LabelColor, BackgroundColor, BorderColor, BorderThickness, FontSize, FontFamily, FontStyle) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
           );
           insertButton.run(
             buttonIdCounter++,
@@ -379,6 +422,21 @@ class SnapProcessor extends BaseProcessor {
             button.message || button.label || "",
             navigatePageId,
             elementRefId,
+            button.style?.fontColor
+              ? parseInt(button.style.fontColor.replace("#", ""), 16)
+              : null,
+            button.style?.backgroundColor
+              ? parseInt(button.style.backgroundColor.replace("#", ""), 16)
+              : null,
+            button.style?.borderColor
+              ? parseInt(button.style.borderColor.replace("#", ""), 16)
+              : null,
+            button.style?.borderWidth,
+            button.style?.fontSize,
+            button.style?.fontFamily,
+            button.style?.fontStyle
+              ? parseInt(button.style.fontStyle)
+              : null,
           );
 
           // Insert ElementPlacement

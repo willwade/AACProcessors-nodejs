@@ -209,6 +209,9 @@ class AstericsGridProcessor extends BaseProcessor {
         grid: [],
         buttons: [],
         parentId: null,
+        style: {
+          backgroundColor: grdFile.metadata?.colorConfig?.gridBackgroundColor,
+        },
       });
       tree.addPage(page);
     });
@@ -298,6 +301,9 @@ class AstericsGridProcessor extends BaseProcessor {
           }
         : null,
       audioRecording: audioRecording,
+      style: {
+        backgroundColor: element.backgroundColor,
+      },
     });
   }
 
@@ -510,6 +516,7 @@ class AstericsGridProcessor extends BaseProcessor {
           actions: actions,
           type: "ELEMENT_TYPE_NORMAL",
           additionalProps: {},
+          backgroundColor: button.style?.backgroundColor,
         };
       });
 
@@ -526,6 +533,12 @@ class AstericsGridProcessor extends BaseProcessor {
 
     const grdFile: AstericsGridFile = {
       grids: grids,
+      metadata: {
+        colorConfig: {
+          gridBackgroundColor: tree.pages[tree.rootId as string]?.style
+            ?.backgroundColor,
+        },
+      },
     };
 
     fs.writeFileSync(outputPath, JSON.stringify(grdFile, null, 2));
