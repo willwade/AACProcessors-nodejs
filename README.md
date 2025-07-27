@@ -416,6 +416,7 @@ Inspired by the Python AACProcessors project and built for the AAC community.
 
 ## More enhancements
 
+- LOOK AT ASTERICS GRID FORMAT. ITS NOT JUST OBF!
 
 - Styling information for buttons, background colors, and text colors etc
 - Current language and locale information of aac pageset
