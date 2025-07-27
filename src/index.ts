@@ -11,6 +11,7 @@ import { GridsetProcessor } from './processors/gridsetProcessor';
 import { SnapProcessor } from './processors/snapProcessor';
 import { TouchChatProcessor } from './processors/touchchatProcessor';
 import { ApplePanelsProcessor } from './processors/applePanelsProcessor';
+import { AstericsGridProcessor } from './processors/astericsGridProcessor';
 
 /**
  * Factory function to get the appropriate processor for a file extension
@@ -41,6 +42,8 @@ export function getProcessor(filePathOrExtension: string): BaseProcessor {
       return new TouchChatProcessor();
     case '.plist':
       return new ApplePanelsProcessor();
+    case '.grd':
+      return new AstericsGridProcessor();
     default:
       throw new Error(`Unsupported file extension: ${extension}`);
   }
@@ -51,7 +54,7 @@ export function getProcessor(filePathOrExtension: string): BaseProcessor {
  * @returns Array of supported file extensions
  */
 export function getSupportedExtensions(): string[] {
-  return ['.dot', '.opml', '.obf', '.obz', '.gridset', '.spb', '.sps', '.ce', '.plist'];
+  return ['.dot', '.opml', '.obf', '.obz', '.gridset', '.spb', '.sps', '.ce', '.plist', '.grd'];
 }
 
 /**

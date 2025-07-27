@@ -148,6 +148,9 @@ demo_out.txt
 *.tmp
 *_temp.*
 
+# Test temporary files
+test/temp*
+
 # API keys and secrets
 *_key.js
 *_keys.js
