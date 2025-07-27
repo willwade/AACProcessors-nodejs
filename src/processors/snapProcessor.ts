@@ -224,15 +224,11 @@ class SnapProcessor extends BaseProcessor {
     } finally {
       // Ensure database is closed
       if (db) {
-        try {
-          db.close();
-        } catch (e) {
-          console.warn('Failed to close database:', e);
-        }
+        db.close();
       }
 
       // Clean up temporary file if created from buffer
-      if (Buffer.isBuffer(filePathOrBuffer)) {
+      if (Buffer.isBuffer(filePathOrBuffer) && fs.existsSync(filePath)) {
         try {
           fs.unlinkSync(filePath);
         } catch (e) {
@@ -373,49 +369,44 @@ class SnapProcessor extends BaseProcessor {
    * Add audio recording to a button in the database
    */
   addAudioToButton(dbPath: string, buttonId: number, audioData: Buffer, metadata?: string): number {
-    const db = new Database(dbPath, { readonly: false });
+    const db = new Database(dbPath, { fileMustExist: true });
 
     try {
-      // Generate SHA1 hash for the identifier
-      const sha1Hash = crypto.createHash('sha1').update(audioData).digest('base64');
-      const identifier = `SND:${sha1Hash}`;
-
-      // Check if audio with this identifier already exists
-      let audioId;
-      const existingAudio = db
-        .prepare(
-          `
-        SELECT Id FROM PageSetData WHERE Identifier = ?
-      `
-        )
-        .get(identifier) as { Id: number } | undefined;
-
-      if (existingAudio) {
-        audioId = existingAudio.Id;
-      } else {
-        // Insert new audio data
-        const insertAudio = db.prepare(`
-          INSERT INTO PageSetData (Identifier, Data) VALUES (?, ?)
+        // Ensure PageSetData table exists
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS PageSetData (
+                Id INTEGER PRIMARY KEY,
+                Identifier TEXT UNIQUE,
+                Data BLOB
+            );
         `);
-        const result = insertAudio.run(identifier, audioData);
-        audioId = result.lastInsertRowid as number;
-      }
 
-      // Update button to reference the audio
-      const updateButton = db.prepare(`
-        UPDATE Button
-        SET MessageRecordingId = ?,
-            UseMessageRecording = 1,
-            SerializedMessageSoundMetadata = ?
-        WHERE Id = ?
-      `);
+        // Generate SHA1 hash for the identifier
+        const sha1Hash = crypto.createHash('sha1').update(audioData).digest('hex');
+        const identifier = `SND:${sha1Hash}`;
 
-      const metadataJson = metadata ? JSON.stringify({ FileName: metadata }) : null;
-      updateButton.run(audioId, metadataJson, buttonId);
+        // Check if audio with this identifier already exists
+        let audioId;
+        const existingAudio = db.prepare('SELECT Id FROM PageSetData WHERE Identifier = ?').get(identifier) as { Id: number } | undefined;
 
-      return audioId;
+        if (existingAudio) {
+            audioId = existingAudio.Id;
+        } else {
+            // Insert new audio data
+            const result = db.prepare('INSERT INTO PageSetData (Identifier, Data) VALUES (?, ?)').run(identifier, audioData);
+            audioId = Number(result.lastInsertRowid);
+        }
+
+        // Update button to reference the audio
+        const updateButton = db.prepare(
+            'UPDATE Button SET MessageRecordingId = ?, UseMessageRecording = 1, SerializedMessageSoundMetadata = ? WHERE Id = ?'
+        );
+        const metadataJson = metadata ? JSON.stringify({ FileName: metadata }) : null;
+        updateButton.run(audioId, metadataJson, buttonId);
+
+        return audioId;
     } finally {
-      db.close();
+        db.close();
     }
   }
 
@@ -432,11 +423,7 @@ class SnapProcessor extends BaseProcessor {
 
     // Add audio recordings to the copy
     audioMappings.forEach((audioInfo, buttonId) => {
-      try {
-        this.addAudioToButton(targetDbPath, buttonId, audioInfo.audioData, audioInfo.metadata);
-      } catch (error) {
-        // Failed to add audio to button
-      }
+      this.addAudioToButton(targetDbPath, buttonId, audioInfo.audioData, audioInfo.metadata);
     });
   }
 

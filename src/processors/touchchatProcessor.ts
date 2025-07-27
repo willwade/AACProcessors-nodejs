@@ -69,7 +69,6 @@ class TouchChatProcessor extends BaseProcessor {
 
       // Step 2: Find and open SQLite DB
       const files = fs.readdirSync(tmpDir);
-      console.log('Files in CE archive:', files);
       const vocabFile = files.find((f) => f.endsWith('.c4v'));
       if (!vocabFile) {
         throw new Error('No .c4v vocab DB found in TouchChat export');
@@ -162,7 +161,7 @@ class TouchChatProcessor extends BaseProcessor {
           }
         });
       } catch (e) {
-        console.log('No button box cells found:', e);
+        // console.log('No button box cells found:', e);
       }
 
       // Load buttons directly linked to pages via resources
@@ -189,7 +188,7 @@ class TouchChatProcessor extends BaseProcessor {
           if (page) page.addButton(button);
         });
       } catch (e) {
-        console.log('No direct page buttons found:', e);
+        // console.log('No direct page buttons found:', e);
       }
 
       // Load navigation actions
@@ -218,14 +217,16 @@ class TouchChatProcessor extends BaseProcessor {
           }
         });
       } catch (e) {
-        console.log('No navigation actions found:', e);
+        // console.log('No navigation actions found:', e);
       }
 
       return tree;
     } finally {
       // Clean up
-      if (db) db.close();
-      if (tmpDir) {
+      if (db) {
+        db.close();
+      }
+      if (tmpDir && fs.existsSync(tmpDir)) {
         try {
           fs.rmSync(tmpDir, { recursive: true, force: true });
         } catch (e) {
@@ -300,33 +301,41 @@ class TouchChatProcessor extends BaseProcessor {
       `);
 
       // Insert pages and buttons
-      let resourceId = 1;
+      let resourceIdCounter = 1;
+      let pageIdCounter = 1;
+      let buttonIdCounter = 1;
+
+      const pageIdMap = new Map<string, number>();
+
       Object.values(tree.pages).forEach((page) => {
+        const numericPageId = pageIdCounter++;
+        pageIdMap.set(page.id, numericPageId);
+
         // Insert resource for page name
+        const pageResourceId = resourceIdCounter++;
         const insertResource = db.prepare('INSERT INTO resources (id, name) VALUES (?, ?)');
-        insertResource.run(resourceId, page.name || 'Page');
+        insertResource.run(pageResourceId, page.name || 'Page');
 
         // Insert page
         const insertPage = db.prepare('INSERT INTO pages (id, resource_id) VALUES (?, ?)');
-        insertPage.run(parseInt(page.id) || resourceId, resourceId);
+        insertPage.run(numericPageId, pageResourceId);
 
         // Insert buttons
-        page.buttons.forEach((button, index) => {
-          const buttonResourceId = resourceId + index + 1;
+        page.buttons.forEach((button) => {
+          const buttonResourceId = resourceIdCounter++;
           insertResource.run(buttonResourceId, button.label || 'Button');
 
+          const numericButtonId = buttonIdCounter++;
           const insertButton = db.prepare(
             'INSERT INTO buttons (id, resource_id, label, message) VALUES (?, ?, ?, ?)'
           );
           insertButton.run(
-            parseInt(button.id) || buttonResourceId,
+            numericButtonId,
             buttonResourceId,
             button.label || '',
             button.message || button.label || ''
           );
         });
-
-        resourceId += page.buttons.length + 1;
       });
 
       db.close();
