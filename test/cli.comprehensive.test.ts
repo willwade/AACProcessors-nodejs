@@ -14,10 +14,13 @@ describe('CLI Comprehensive Tests', () => {
     if (!fs.existsSync(tempDir)) {
       fs.mkdirSync(tempDir, { recursive: true });
     }
-    
+
     // Ensure CLI is built
     try {
-      execSync('npm run build', { cwd: path.join(__dirname, '..'), stdio: 'pipe' });
+      execSync('npm run build', {
+        cwd: path.join(__dirname, '..'),
+        stdio: 'pipe',
+      });
     } catch (error) {
       console.warn('Build failed, CLI tests may not work properly');
     }
@@ -37,9 +40,9 @@ describe('CLI Comprehensive Tests', () => {
       const testFile = path.join(tempDir, 'test.dot');
       processor.saveFromTree(tree, testFile);
 
-      const result = execSync(`node ${cliPath} extract ${testFile}`, { 
+      const result = execSync(`node ${cliPath} extract ${testFile}`, {
         encoding: 'utf8',
-        cwd: tempDir 
+        cwd: tempDir,
       });
 
       expect(result).toContain('Home');
@@ -52,12 +55,12 @@ describe('CLI Comprehensive Tests', () => {
       const processor = new DotProcessor();
       const inputFile = path.join(tempDir, 'input.dot');
       const outputFile = path.join(tempDir, 'output.opml');
-      
+
       processor.saveFromTree(tree, inputFile);
 
       const result = execSync(`node ${cliPath} convert ${inputFile} ${outputFile} --format opml`, {
         encoding: 'utf8',
-        cwd: tempDir
+        cwd: tempDir,
       });
 
       expect(fs.existsSync(outputFile)).toBe(true);
@@ -69,7 +72,7 @@ describe('CLI Comprehensive Tests', () => {
         execSync(`node ${cliPath} invalidcommand`, {
           encoding: 'utf8',
           cwd: tempDir,
-          stdio: 'pipe'
+          stdio: 'pipe',
         });
       }).toThrow();
     });
@@ -77,7 +80,7 @@ describe('CLI Comprehensive Tests', () => {
     it('should show help when no arguments provided', () => {
       const result = execSync(`node ${cliPath}`, {
         encoding: 'utf8',
-        cwd: tempDir
+        cwd: tempDir,
       });
 
       expect(result).toContain('Usage:');
@@ -88,7 +91,7 @@ describe('CLI Comprehensive Tests', () => {
     it('should show help with --help flag', () => {
       const result = execSync(`node ${cliPath} --help`, {
         encoding: 'utf8',
-        cwd: tempDir
+        cwd: tempDir,
       });
 
       expect(result).toContain('Usage:');
@@ -98,7 +101,7 @@ describe('CLI Comprehensive Tests', () => {
     it('should show version with --version flag', () => {
       const result = execSync(`node ${cliPath} --version`, {
         encoding: 'utf8',
-        cwd: tempDir
+        cwd: tempDir,
       });
 
       expect(result.trim()).toMatch(/^\d+\.\d+\.\d+/);
@@ -114,7 +117,7 @@ describe('CLI Comprehensive Tests', () => {
 
       const result = execSync(`node ${cliPath} extract ${testFile}`, {
         encoding: 'utf8',
-        cwd: tempDir
+        cwd: tempDir,
       });
 
       expect(result).toContain('Home');
@@ -133,13 +136,13 @@ describe('CLI Comprehensive Tests', () => {
       const opmlFile = path.join(tempDir, 'test.opml');
       execSync(`node ${cliPath} convert ${dotFile} ${opmlFile} --format opml`, {
         cwd: tempDir,
-        stdio: 'pipe'
+        stdio: 'pipe',
       });
 
       // Extract from OPML
       const result = execSync(`node ${cliPath} extract ${opmlFile}`, {
         encoding: 'utf8',
-        cwd: tempDir
+        cwd: tempDir,
       });
 
       expect(result).toContain('Home');
@@ -150,16 +153,16 @@ describe('CLI Comprehensive Tests', () => {
       const processor = new DotProcessor();
       const inputFile = path.join(tempDir, 'dot_to_opml.dot');
       const outputFile = path.join(tempDir, 'dot_to_opml.opml');
-      
+
       processor.saveFromTree(tree, inputFile);
 
       execSync(`node ${cliPath} convert ${inputFile} ${outputFile} --format opml`, {
         cwd: tempDir,
-        stdio: 'pipe'
+        stdio: 'pipe',
       });
 
       expect(fs.existsSync(outputFile)).toBe(true);
-      
+
       const content = fs.readFileSync(outputFile, 'utf8');
       expect(content).toContain('<?xml');
       expect(content).toContain('<opml');
@@ -172,35 +175,35 @@ describe('CLI Comprehensive Tests', () => {
       const tempDotFile = path.join(tempDir, 'temp_for_opml.dot');
       const opmlFile = path.join(tempDir, 'opml_to_dot.opml');
       const finalDotFile = path.join(tempDir, 'opml_to_dot.dot');
-      
+
       dotProcessor.saveFromTree(tree, tempDotFile);
-      
+
       // Convert to OPML first
       execSync(`node ${cliPath} convert ${tempDotFile} ${opmlFile} --format opml`, {
         cwd: tempDir,
-        stdio: 'pipe'
+        stdio: 'pipe',
       });
 
       // Convert back to DOT
       execSync(`node ${cliPath} convert ${opmlFile} ${finalDotFile} --format dot`, {
         cwd: tempDir,
-        stdio: 'pipe'
+        stdio: 'pipe',
       });
 
       expect(fs.existsSync(finalDotFile)).toBe(true);
-      
+
       const content = fs.readFileSync(finalDotFile, 'utf8');
       expect(content).toContain('digraph');
     });
 
     it('should handle file not found errors', () => {
       const nonExistentFile = path.join(tempDir, 'does_not_exist.dot');
-      
+
       expect(() => {
         execSync(`node ${cliPath} extract ${nonExistentFile}`, {
           encoding: 'utf8',
           cwd: tempDir,
-          stdio: 'pipe'
+          stdio: 'pipe',
         });
       }).toThrow();
     });
@@ -208,12 +211,12 @@ describe('CLI Comprehensive Tests', () => {
     it('should handle unsupported file formats', () => {
       const unsupportedFile = path.join(tempDir, 'unsupported.xyz');
       fs.writeFileSync(unsupportedFile, 'unsupported content');
-      
+
       expect(() => {
         execSync(`node ${cliPath} extract ${unsupportedFile}`, {
           encoding: 'utf8',
           cwd: tempDir,
-          stdio: 'pipe'
+          stdio: 'pipe',
         });
       }).toThrow();
     });
@@ -229,7 +232,7 @@ describe('CLI Comprehensive Tests', () => {
       // Test default format
       const defaultResult = execSync(`node ${cliPath} extract ${testFile}`, {
         encoding: 'utf8',
-        cwd: tempDir
+        cwd: tempDir,
       });
 
       expect(defaultResult).toContain('Home');
@@ -244,7 +247,7 @@ describe('CLI Comprehensive Tests', () => {
 
       const result = execSync(`node ${cliPath} extract ${testFile} --verbose`, {
         encoding: 'utf8',
-        cwd: tempDir
+        cwd: tempDir,
       });
 
       expect(result).toContain('Home');
@@ -259,7 +262,7 @@ describe('CLI Comprehensive Tests', () => {
 
       const result = execSync(`node ${cliPath} extract ${testFile} --quiet`, {
         encoding: 'utf8',
-        cwd: tempDir
+        cwd: tempDir,
       });
 
       // Quiet mode should still return the extracted text
@@ -269,7 +272,7 @@ describe('CLI Comprehensive Tests', () => {
     it('should display help information correctly', () => {
       const helpResult = execSync(`node ${cliPath} help`, {
         encoding: 'utf8',
-        cwd: tempDir
+        cwd: tempDir,
       });
 
       expect(helpResult).toContain('Usage:');
@@ -281,7 +284,7 @@ describe('CLI Comprehensive Tests', () => {
     it('should display command-specific help', () => {
       const extractHelp = execSync(`node ${cliPath} help extract`, {
         encoding: 'utf8',
-        cwd: tempDir
+        cwd: tempDir,
       });
 
       expect(extractHelp).toContain('extract');
@@ -292,11 +295,11 @@ describe('CLI Comprehensive Tests', () => {
   describe('Integration Tests', () => {
     it('should process example.dot file correctly', () => {
       const exampleDotFile = path.join(examplesDir, 'example.dot');
-      
+
       if (fs.existsSync(exampleDotFile)) {
         const result = execSync(`node ${cliPath} extract ${exampleDotFile}`, {
           encoding: 'utf8',
-          cwd: tempDir
+          cwd: tempDir,
         });
 
         expect(result).toBeDefined();
@@ -308,13 +311,13 @@ describe('CLI Comprehensive Tests', () => {
 
     it('should convert example.obf to dot format', () => {
       const exampleObfFile = path.join(examplesDir, 'example.obf');
-      
+
       if (fs.existsSync(exampleObfFile)) {
         const outputFile = path.join(tempDir, 'converted_example.dot');
-        
+
         execSync(`node ${cliPath} convert ${exampleObfFile} ${outputFile} --format dot`, {
           cwd: tempDir,
-          stdio: 'pipe'
+          stdio: 'pipe',
         });
 
         expect(fs.existsSync(outputFile)).toBe(true);
@@ -328,22 +331,22 @@ describe('CLI Comprehensive Tests', () => {
       const tree1 = TreeFactory.createSimple();
       const tree2 = TreeFactory.createCommunicationBoard();
       const processor = new DotProcessor();
-      
+
       const file1 = path.join(tempDir, 'batch1.dot');
       const file2 = path.join(tempDir, 'batch2.dot');
-      
+
       processor.saveFromTree(tree1, file1);
       processor.saveFromTree(tree2, file2);
 
       // Process each file
       const result1 = execSync(`node ${cliPath} extract ${file1}`, {
         encoding: 'utf8',
-        cwd: tempDir
+        cwd: tempDir,
       });
 
       const result2 = execSync(`node ${cliPath} extract ${file2}`, {
         encoding: 'utf8',
-        cwd: tempDir
+        cwd: tempDir,
       });
 
       expect(result1).toContain('Home');
@@ -356,12 +359,12 @@ describe('CLI Comprehensive Tests', () => {
     it('should display helpful error messages for invalid files', () => {
       const invalidFile = path.join(tempDir, 'invalid.dot');
       fs.writeFileSync(invalidFile, 'invalid dot content');
-      
+
       try {
         execSync(`node ${cliPath} extract ${invalidFile}`, {
           encoding: 'utf8',
           cwd: tempDir,
-          stdio: 'pipe'
+          stdio: 'pipe',
         });
       } catch (error: any) {
         expect(error.message).toContain('Command failed');
@@ -374,16 +377,16 @@ describe('CLI Comprehensive Tests', () => {
       const tree = TreeFactory.createSimple();
       const processor = new DotProcessor();
       processor.saveFromTree(tree, restrictedFile);
-      
+
       try {
         // Try to change permissions (may not work on all systems)
         fs.chmodSync(restrictedFile, 0o000);
-        
+
         try {
           execSync(`node ${cliPath} extract ${restrictedFile}`, {
             encoding: 'utf8',
             cwd: tempDir,
-            stdio: 'pipe'
+            stdio: 'pipe',
           });
         } catch (error: any) {
           expect(error.message).toContain('Command failed');
@@ -406,7 +409,7 @@ describe('CLI Comprehensive Tests', () => {
         execSync(`node ${cliPath} wrongcommand`, {
           encoding: 'utf8',
           cwd: tempDir,
-          stdio: 'pipe'
+          stdio: 'pipe',
         });
       } catch (error: any) {
         expect(error.message).toContain('Command failed');
@@ -418,7 +421,7 @@ describe('CLI Comprehensive Tests', () => {
         execSync(`node ${cliPath} extract`, {
           encoding: 'utf8',
           cwd: tempDir,
-          stdio: 'pipe'
+          stdio: 'pipe',
         });
       } catch (error: any) {
         expect(error.message).toContain('Command failed');
@@ -430,15 +433,15 @@ describe('CLI Comprehensive Tests', () => {
       const processor = new DotProcessor();
       const inputFile = path.join(tempDir, 'valid_input.dot');
       processor.saveFromTree(tree, inputFile);
-      
+
       // Try to write to an invalid path
       const invalidOutputPath = '/invalid/path/output.opml';
-      
+
       try {
         execSync(`node ${cliPath} convert ${inputFile} ${invalidOutputPath} --format opml`, {
           encoding: 'utf8',
           cwd: tempDir,
-          stdio: 'pipe'
+          stdio: 'pipe',
         });
       } catch (error: any) {
         expect(error.message).toContain('Command failed');

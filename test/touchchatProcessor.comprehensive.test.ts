@@ -31,13 +31,13 @@ describe('TouchChatProcessor - Comprehensive Coverage Tests', () => {
       // Test with minimal valid TouchChat database structure
       const tree = TreeFactory.createSimple();
       const outputPath = path.join(tempDir, 'v1_test.ce');
-      
+
       expect(() => {
         processor.saveFromTree(tree, outputPath);
       }).not.toThrow();
-      
+
       expect(fs.existsSync(outputPath)).toBe(true);
-      
+
       // Verify we can load it back
       const loadedTree = processor.loadIntoTree(outputPath);
       expect(loadedTree).toBeDefined();
@@ -48,10 +48,10 @@ describe('TouchChatProcessor - Comprehensive Coverage Tests', () => {
       // Test with more complex button configurations
       const tree = TreeFactory.createCommunicationBoard();
       const outputPath = path.join(tempDir, 'v2_test.ce');
-      
+
       processor.saveFromTree(tree, outputPath);
       const loadedTree = processor.loadIntoTree(outputPath);
-      
+
       expect(loadedTree).toBeDefined();
       expect(Object.keys(loadedTree.pages).length).toBe(Object.keys(tree.pages).length);
     });
@@ -60,10 +60,10 @@ describe('TouchChatProcessor - Comprehensive Coverage Tests', () => {
       // Test with large dataset
       const tree = TreeFactory.createLarge(5, 10);
       const outputPath = path.join(tempDir, 'v3_test.ce');
-      
+
       processor.saveFromTree(tree, outputPath);
       const loadedTree = processor.loadIntoTree(outputPath);
-      
+
       expect(loadedTree).toBeDefined();
       expect(Object.keys(loadedTree.pages).length).toBe(5);
     });
@@ -74,20 +74,25 @@ describe('TouchChatProcessor - Comprehensive Coverage Tests', () => {
         name: 'Custom Actions Page',
         buttons: [
           { label: 'Speak Button', message: 'Hello World', type: 'SPEAK' },
-          { label: 'Nav Button', message: 'Navigate', type: 'NAVIGATE', targetPageId: 'target' },
-        ]
+          {
+            label: 'Nav Button',
+            message: 'Navigate',
+            type: 'NAVIGATE',
+            targetPageId: 'target',
+          },
+        ],
       });
-      
+
       const tree = new AACTree();
       tree.addPage(page);
       tree.addPage(PageFactory.create({ id: 'target', name: 'Target Page' }));
-      
+
       const outputPath = path.join(tempDir, 'custom_actions.ce');
       processor.saveFromTree(tree, outputPath);
-      
+
       const loadedTree = processor.loadIntoTree(outputPath);
       const loadedPage = loadedTree.getPage('custom_actions');
-      
+
       expect(loadedPage).toBeDefined();
       expect(loadedPage!.buttons).toHaveLength(2);
       expect(loadedPage!.buttons[0].type).toBe('SPEAK');
@@ -99,32 +104,32 @@ describe('TouchChatProcessor - Comprehensive Coverage Tests', () => {
       const button = ButtonFactory.create({
         label: 'Audio Button',
         message: 'I have audio',
-        type: 'SPEAK'
+        type: 'SPEAK',
       });
-      
+
       // Add audio recording
       button.audioRecording = {
         id: 1,
         data: Buffer.from('fake audio data'),
         identifier: 'audio_1',
-        metadata: 'Test audio recording'
+        metadata: 'Test audio recording',
       };
-      
+
       const page = PageFactory.create({
         id: 'audio_page',
-        name: 'Audio Page'
+        name: 'Audio Page',
       });
       page.addButton(button);
-      
+
       const tree = new AACTree();
       tree.addPage(page);
-      
+
       const outputPath = path.join(tempDir, 'audio_test.ce');
       processor.saveFromTree(tree, outputPath);
-      
+
       const loadedTree = processor.loadIntoTree(outputPath);
       const loadedPage = loadedTree.getPage('audio_page');
-      
+
       expect(loadedPage).toBeDefined();
       expect(loadedPage!.buttons[0].label).toBe('Audio Button');
     });
@@ -132,45 +137,59 @@ describe('TouchChatProcessor - Comprehensive Coverage Tests', () => {
     it('should process navigation buttons with complex targets', () => {
       // Create a complex navigation hierarchy
       const homePage = PageFactory.create({ id: 'home', name: 'Home' });
-      const categoryPage = PageFactory.create({ id: 'category', name: 'Category', parentId: 'home' });
-      const subPage = PageFactory.create({ id: 'sub', name: 'Sub Page', parentId: 'category' });
-      
+      const categoryPage = PageFactory.create({
+        id: 'category',
+        name: 'Category',
+        parentId: 'home',
+      });
+      const subPage = PageFactory.create({
+        id: 'sub',
+        name: 'Sub Page',
+        parentId: 'category',
+      });
+
       // Add navigation buttons
-      homePage.addButton(ButtonFactory.create({
-        label: 'Go to Category',
-        type: 'NAVIGATE',
-        targetPageId: 'category'
-      }));
-      
-      categoryPage.addButton(ButtonFactory.create({
-        label: 'Go to Sub',
-        type: 'NAVIGATE', 
-        targetPageId: 'sub'
-      }));
-      
-      categoryPage.addButton(ButtonFactory.create({
-        label: 'Back to Home',
-        type: 'NAVIGATE',
-        targetPageId: 'home'
-      }));
-      
+      homePage.addButton(
+        ButtonFactory.create({
+          label: 'Go to Category',
+          type: 'NAVIGATE',
+          targetPageId: 'category',
+        })
+      );
+
+      categoryPage.addButton(
+        ButtonFactory.create({
+          label: 'Go to Sub',
+          type: 'NAVIGATE',
+          targetPageId: 'sub',
+        })
+      );
+
+      categoryPage.addButton(
+        ButtonFactory.create({
+          label: 'Back to Home',
+          type: 'NAVIGATE',
+          targetPageId: 'home',
+        })
+      );
+
       const tree = new AACTree();
       tree.addPage(homePage);
       tree.addPage(categoryPage);
       tree.addPage(subPage);
       tree.rootId = 'home';
-      
+
       const outputPath = path.join(tempDir, 'navigation_test.ce');
       processor.saveFromTree(tree, outputPath);
-      
+
       const loadedTree = processor.loadIntoTree(outputPath);
-      
+
       expect(loadedTree.rootId).toBe('home');
       expect(Object.keys(loadedTree.pages)).toHaveLength(3);
-      
+
       const loadedHome = loadedTree.getPage('home');
       expect(loadedHome!.buttons[0].targetPageId).toBe('category');
-      
+
       const loadedCategory = loadedTree.getPage('category');
       expect(loadedCategory!.buttons).toHaveLength(2);
       expect(loadedCategory!.buttons[0].targetPageId).toBe('sub');
@@ -182,7 +201,7 @@ describe('TouchChatProcessor - Comprehensive Coverage Tests', () => {
     it('should handle corrupted SQLite databases gracefully', () => {
       const corruptedPath = path.join(tempDir, 'corrupted.ce');
       fs.writeFileSync(corruptedPath, 'This is not a valid zip file');
-      
+
       expect(() => {
         processor.loadIntoTree(corruptedPath);
       }).toThrow();
@@ -193,10 +212,10 @@ describe('TouchChatProcessor - Comprehensive Coverage Tests', () => {
       const AdmZip = require('adm-zip');
       const zip = new AdmZip();
       zip.addFile('empty.txt', Buffer.from('empty'));
-      
+
       const invalidPath = path.join(tempDir, 'invalid.ce');
       zip.writeZip(invalidPath);
-      
+
       expect(() => {
         processor.loadIntoTree(invalidPath);
       }).toThrow();
@@ -206,11 +225,11 @@ describe('TouchChatProcessor - Comprehensive Coverage Tests', () => {
       // Test with a valid tree that has proper relationships
       const tree = TreeFactory.createCommunicationBoard();
       const outputPath = path.join(tempDir, 'fk_test.ce');
-      
+
       expect(() => {
         processor.saveFromTree(tree, outputPath);
       }).not.toThrow();
-      
+
       const loadedTree = processor.loadIntoTree(outputPath);
       expect(loadedTree).toBeDefined();
     });
@@ -219,24 +238,24 @@ describe('TouchChatProcessor - Comprehensive Coverage Tests', () => {
   describe('Large Dataset Performance', () => {
     it('should process databases with 1000+ buttons efficiently', () => {
       const startTime = Date.now();
-      
+
       // Create a large tree with many buttons
       const tree = TreeFactory.createLarge(10, 100); // 10 pages, 100 buttons each = 1000 buttons
       const outputPath = path.join(tempDir, 'large_test.ce');
-      
+
       processor.saveFromTree(tree, outputPath);
       const loadedTree = processor.loadIntoTree(outputPath);
-      
+
       const endTime = Date.now();
       const processingTime = endTime - startTime;
-      
+
       expect(loadedTree).toBeDefined();
       expect(Object.keys(loadedTree.pages)).toHaveLength(10);
       expect(processingTime).toBeLessThan(10000); // Should complete in under 10 seconds
-      
+
       // Verify button count
       let totalButtons = 0;
-      Object.values(loadedTree.pages).forEach(page => {
+      Object.values(loadedTree.pages).forEach((page) => {
         totalButtons += page.buttons.length;
       });
       expect(totalButtons).toBe(1000);
@@ -246,7 +265,7 @@ describe('TouchChatProcessor - Comprehensive Coverage Tests', () => {
       // Create a deep hierarchy
       const tree = new AACTree();
       let currentParent = 'root';
-      
+
       // Create 5 levels deep
       for (let level = 0; level < 5; level++) {
         for (let i = 0; i < 3; i++) {
@@ -254,21 +273,23 @@ describe('TouchChatProcessor - Comprehensive Coverage Tests', () => {
           const page = PageFactory.create({
             id: pageId,
             name: `Level ${level} Page ${i}`,
-            parentId: level === 0 ? null : currentParent
+            parentId: level === 0 ? null : currentParent,
           });
-          
+
           // Add navigation buttons to children
           if (level < 4) {
             for (let j = 0; j < 3; j++) {
               const targetId = `level_${level + 1}_page_${j}`;
-              page.addButton(ButtonFactory.create({
-                label: `Go to ${targetId}`,
-                type: 'NAVIGATE',
-                targetPageId: targetId
-              }));
+              page.addButton(
+                ButtonFactory.create({
+                  label: `Go to ${targetId}`,
+                  type: 'NAVIGATE',
+                  targetPageId: targetId,
+                })
+              );
             }
           }
-          
+
           tree.addPage(page);
           if (level === 0 && i === 0) {
             tree.rootId = pageId;
@@ -276,10 +297,10 @@ describe('TouchChatProcessor - Comprehensive Coverage Tests', () => {
           }
         }
       }
-      
+
       const outputPath = path.join(tempDir, 'hierarchy_test.ce');
       processor.saveFromTree(tree, outputPath);
-      
+
       const loadedTree = processor.loadIntoTree(outputPath);
       expect(loadedTree).toBeDefined();
       expect(Object.keys(loadedTree.pages)).toHaveLength(15); // 5 levels * 3 pages = 15 pages
@@ -292,13 +313,13 @@ describe('TouchChatProcessor - Comprehensive Coverage Tests', () => {
         console.log('Skipping test - example file not found');
         return;
       }
-      
+
       const texts = processor.extractTexts(exampleFile);
       expect(Array.isArray(texts)).toBe(true);
       expect(texts.length).toBeGreaterThan(0);
-      
+
       // Verify texts are non-empty strings
-      texts.forEach(text => {
+      texts.forEach((text) => {
         expect(typeof text).toBe('string');
         expect(text.length).toBeGreaterThan(0);
       });

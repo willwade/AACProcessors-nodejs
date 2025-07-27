@@ -10,6 +10,7 @@ import { GridsetProcessor } from '../src/processors/gridsetProcessor';
 import { SnapProcessor } from '../src/processors/snapProcessor';
 import { TouchChatProcessor } from '../src/processors/touchchatProcessor';
 import { ApplePanelsProcessor } from '../src/processors/applePanelsProcessor';
+import { AstericsGridProcessor } from '../src/processors/astericsGridProcessor';
 
 describe('Integration Tests', () => {
   const tempDir = path.join(__dirname, 'temp_integration');
@@ -116,6 +117,7 @@ describe('Integration Tests', () => {
         { ext: '.sps', expectedType: SnapProcessor },
         { ext: '.ce', expectedType: TouchChatProcessor },
         { ext: '.plist', expectedType: ApplePanelsProcessor },
+        { ext: '.grd', expectedType: AstericsGridProcessor },
       ];
 
       testCases.forEach(({ ext, expectedType }) => {

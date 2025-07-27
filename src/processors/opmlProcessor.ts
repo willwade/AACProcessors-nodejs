@@ -228,7 +228,7 @@ class OpmlProcessor extends BaseProcessor {
       );
     }
     // Build outlines
-    const outlines = rootPages.map(page => buildOutline(page));
+    const outlines = rootPages.map((page) => buildOutline(page));
     // Compose OPML document
     const opmlObj = {
       opml: {

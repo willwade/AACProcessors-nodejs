@@ -42,9 +42,12 @@ program
       }
 
       // Output the texts (one per line for easier processing)
-      texts.forEach(text => console.log(text));
+      texts.forEach((text) => console.log(text));
     } catch (error) {
-      console.error('Error extracting texts:', error instanceof Error ? error.message : String(error));
+      console.error(
+        'Error extracting texts:',
+        error instanceof Error ? error.message : String(error)
+      );
       process.exit(1);
     }
   });
@@ -72,7 +75,10 @@ program
 
       console.log(`Successfully converted ${input} to ${output} (${options.format} format)`);
     } catch (error) {
-      console.error('Error converting file:', error instanceof Error ? error.message : String(error));
+      console.error(
+        'Error converting file:',
+        error instanceof Error ? error.message : String(error)
+      );
       process.exit(1);
     }
   });

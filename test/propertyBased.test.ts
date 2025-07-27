@@ -25,9 +25,10 @@ describe('Property-Based Testing', () => {
 
   // Generators for test data
   const validIdGenerator = fc.stringMatching(/^[a-zA-Z][a-zA-Z0-9_-]{0,49}$/);
-  const validLabelGenerator = fc.string({ minLength: 1, maxLength: 100 })
-    .filter(s => s.trim().length > 0)
-    .map(s => s.trim() || 'DefaultLabel');
+  const validLabelGenerator = fc
+    .string({ minLength: 1, maxLength: 100 })
+    .filter((s) => s.trim().length > 0)
+    .map((s) => s.trim() || 'DefaultLabel');
   const validMessageGenerator = fc.string({ maxLength: 500 });
 
   const buttonTypeGenerator = fc.constantFrom('SPEAK', 'NAVIGATE');
@@ -159,10 +160,8 @@ describe('Property-Based Testing', () => {
 
           try {
             // Skip trees with invalid button configurations
-            const hasInvalidButtons = Object.values(originalTree.pages).some(page =>
-              page.buttons.some(button =>
-                button.type === 'NAVIGATE' && !button.targetPageId
-              )
+            const hasInvalidButtons = Object.values(originalTree.pages).some((page) =>
+              page.buttons.some((button) => button.type === 'NAVIGATE' && !button.targetPageId)
             );
 
             if (hasInvalidButtons) {
@@ -353,11 +352,12 @@ describe('Property-Based Testing', () => {
 
           try {
             // Skip trees with no meaningful content
-            const hasContent = Object.values(tree.pages).some(page =>
-              page.name.trim().length > 0 ||
-              page.buttons.some(button =>
-                button.label.trim().length > 0 || button.message.trim().length > 0
-              )
+            const hasContent = Object.values(tree.pages).some(
+              (page) =>
+                page.name.trim().length > 0 ||
+                page.buttons.some(
+                  (button) => button.label.trim().length > 0 || button.message.trim().length > 0
+                )
             );
 
             if (!hasContent) {

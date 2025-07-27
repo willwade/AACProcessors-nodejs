@@ -60,7 +60,12 @@ npm run build
 ### Basic Usage (TypeScript/ES6)
 
 ```typescript
-import { getProcessor, DotProcessor, SnapProcessor } from "aac-processors";
+import {
+  getProcessor,
+  DotProcessor,
+  SnapProcessor,
+  AstericsGridProcessor,
+} from "aac-processors";
 
 // Auto-detect processor by file extension
 const processor = getProcessor("communication-board.dot");
@@ -135,6 +140,47 @@ console.log("Conversion complete!");
 ```
 
 ### Advanced Usage
+
+#### Asterics Grid with Audio Support
+
+```typescript
+import { AstericsGridProcessor } from "aac-processors";
+
+// Load Asterics Grid file with audio support
+const processor = new AstericsGridProcessor({ loadAudio: true });
+const tree = processor.loadIntoTree("communication-board.grd");
+
+// Access audio recordings from buttons
+tree.traverse((page) => {
+  page.buttons.forEach((button) => {
+    if (button.audioRecording) {
+      console.log(`Button "${button.label}" has audio recording`);
+      console.log(
+        `Audio data size: ${button.audioRecording.data?.length} bytes`,
+      );
+    }
+  });
+});
+
+// Add audio to specific elements
+const audioData = Buffer.from(/* your audio data */);
+processor.addAudioToElement(
+  "board.grd",
+  "element-id",
+  audioData,
+  JSON.stringify({ mimeType: "audio/wav", durationMs: 2000 }),
+);
+
+// Create enhanced version with multiple audio recordings
+const audioMappings = new Map();
+audioMappings.set("element-1", { audioData: audioBuffer1 });
+audioMappings.set("element-2", { audioData: audioBuffer2 });
+processor.createAudioEnhancedGridFile(
+  "source.grd",
+  "enhanced.grd",
+  audioMappings,
+);
+```
 
 #### Working with the AACTree Structure
 
@@ -270,15 +316,16 @@ interface AACButton {
 
 ### Supported Processors
 
-| Processor              | File Extensions | Description                   |
-| ---------------------- | --------------- | ----------------------------- |
-| `DotProcessor`         | `.dot`          | Graphviz DOT format           |
-| `OpmlProcessor`        | `.opml`         | OPML hierarchical format      |
-| `ObfProcessor`         | `.obf`, `.obz`  | Open Board Format (JSON/ZIP)  |
-| `SnapProcessor`        | `.sps`, `.spb`  | Tobii Dynavox Snap format     |
-| `GridsetProcessor`     | `.gridset`      | Smartbox Grid 3 format        |
-| `TouchChatProcessor`   | `.ce`           | PRC-Saltillo TouchChat format |
-| `ApplePanelsProcessor` | `.plist`        | iOS Apple Panels format       |
+| Processor               | File Extensions | Description                   |
+| ----------------------- | --------------- | ----------------------------- |
+| `DotProcessor`          | `.dot`          | Graphviz DOT format           |
+| `OpmlProcessor`         | `.opml`         | OPML hierarchical format      |
+| `ObfProcessor`          | `.obf`, `.obz`  | Open Board Format (JSON/ZIP)  |
+| `SnapProcessor`         | `.sps`, `.spb`  | Tobii Dynavox Snap format     |
+| `GridsetProcessor`      | `.gridset`      | Smartbox Grid 3 format        |
+| `TouchChatProcessor`    | `.ce`           | PRC-Saltillo TouchChat format |
+| `ApplePanelsProcessor`  | `.plist`        | iOS Apple Panels format       |
+| `AstericsGridProcessor` | `.grd`          | Asterics Grid native format   |
 
 ---
 
@@ -381,6 +428,7 @@ Inspired by the Python AACProcessors project and built for the AAC community.
 ## 📋 TODO & Roadmap
 
 ### High Priority
+
 - [ ] **Improve TouchChatProcessor coverage** (currently 57.62%) - Add comprehensive SQLite schema tests
 - [ ] **Enhance SnapProcessor coverage** (currently 67.11%) - Add audio handling edge cases and database corruption tests
 - [ ] **Fix property-based test edge cases** - Resolve TypeScript interface compatibility issues
@@ -388,6 +436,7 @@ Inspired by the Python AACProcessors project and built for the AAC community.
 - [ ] **Performance optimization** - Optimize memory usage for very large communication boards (1000+ buttons)
 
 ### Medium Priority
+
 - [ ] **Add GridsetProcessor ZIP handling** - Improve support for complex Grid3 ZIP archives
 - [ ] **Enhance error recovery** - Better handling of partially corrupted database files
 - [ ] **Add streaming support** - Process very large files without loading entirely into memory
@@ -395,12 +444,14 @@ Inspired by the Python AACProcessors project and built for the AAC community.
 - [ ] **Add symbol library integration** - Complete implementation of PCS, ARASAAC symbol lookups
 
 ### Low Priority
+
 - [ ] **Add more AAC formats** - Look for other common AAC formats to add
 - [ ] **Plugin system** - Allow third-party processors and extensions
 - [ ] **Batch processing CLI** - Process multiple files in parallel
 - [ ] **Configuration file support** - Allow .aacprocessors.json config files
 
 ### Testing & Quality
+
 - [ ] **Reach 90%+ test coverage** - Current: 77% (target: 90%+)
 - [ ] **Add mutation testing** - Use Stryker.js for mutation testing
 - [ ] **Add benchmark suite** - Performance regression testing
@@ -408,6 +459,7 @@ Inspired by the Python AACProcessors project and built for the AAC community.
 - [ ] **Documentation improvements** - Add more real-world examples and tutorials
 
 ### Known Issues
+
 - ⚠️ **TouchChatProcessor**: Some complex SQLite schemas not fully supported
 - ⚠️ **Property-based tests**: TypeScript interface mismatches in edge cases
 - ⚠️ **Memory usage**: Large files (>50MB) may cause memory pressure
@@ -415,14 +467,14 @@ Inspired by the Python AACProcessors project and built for the AAC community.
 
 ## More enhancements
 
-- LOOK AT ASTERICS GRID FORMAT. ITS NOT JUST OBF!
-
+- Action types on buttons. We have SPEAK, NAVIGATE, but we could also have things like "PLAY_AUDIO", "SEND_MESSAGE", "OPEN_URL", etc. This would allow us to have a more flexible structure for actions, especially if we want to support different types of actions or additional metadata in the future. This needs to be very flexible. eaach system has a very different set of actions. We could have a set of core actions that are supported by all systems, and then allow each system to define its own additional actions. This could be done by having a set of core action types that are defined in the AACSystem type, and then allowing each system to define its own additional action types in the AACPageSet or AACPage types.
 - Styling information for buttons, background colors, and text colors etc
 - Current language and locale information of aac pageset
-- Symbols and their associated data. Now we have an optional part but I think this might need rethinking. I wonder if "Symbols" should be a separate type - alongside AACPageSet and AACPage. that then AACPageSet and AACPage can reference. This would allow us to have a more flexible structure for symbols, especially if we want to support different types of symbols or additional metadata in the future. Symbols would have: Library name, ID, Text name, Reference (URL, DB ID, etc.), and an optional part for additional metadata. We could have synoynms, antonyms, also and for different languages somehow. 
-- Somehow we need to deal with access. Switch scanning: Blocks probably being the main aspect. But also - we need to identify somewhere a set of core rules for each aac system. Like for example - what access methods are supported, what languages are supported, what symbols are supported, etc. This could be a set of rules that can be referenced by AACSystem - a different type altogether maybe? It could be in a JSON format maybe. (use case here being for a MCP). 
+- Symbols and their associated data. Now we have an optional part but I think this might need rethinking. I wonder if "Symbols" should be a separate type - alongside AACPageSet and AACPage. that then AACPageSet and AACPage can reference. This would allow us to have a more flexible structure for symbols, especially if we want to support different types of symbols or additional metadata in the future. Symbols would have: Library name, ID, Text name, Reference (URL, DB ID, etc.), and an optional part for additional metadata. We could have synoynms, antonyms, also and for different languages somehow.
+- Somehow we need to deal with access. Switch scanning: Blocks probably being the main aspect. But also - we need to identify somewhere a set of core rules for each aac system. Like for example - what access methods are supported, what languages are supported, what symbols are supported, etc. This could be a set of rules that can be referenced by AACSystem - a different type altogether maybe? It could be in a JSON format maybe. (use case here being for a MCP).
 
 ### Contributing
+
 Want to help with any of these items? See our [Contributing Guidelines](#-contributing) and pick an issue that interests you!
 
 ---
