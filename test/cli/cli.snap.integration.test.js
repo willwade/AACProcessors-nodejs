@@ -1,7 +1,19 @@
 const { execSync } = require("child_process");
 const path = require("path");
+const fs = require("fs");
 
 describe("aac-processors CLI (Snap)", () => {
+  // Ensure build exists before running CLI tests
+  beforeAll(() => {
+    const cliPath = path.join(__dirname, "../../dist/cli/index.js");
+    if (!fs.existsSync(cliPath)) {
+      console.log("🔨 Building project for CLI tests...");
+      execSync("npm run build", {
+        stdio: "inherit",
+        cwd: path.join(__dirname, "../..")
+      });
+    }
+  });
   const cliPath = path.join(__dirname, "../../dist/cli/index.js");
   const snapExample = path.join(__dirname, "../../examples/example.sps");
 

@@ -331,7 +331,7 @@ interface AACButton {
 
 ## 🧪 Testing & Quality
 
-This library maintains **77% test coverage** with **140+ comprehensive tests** including:
+This library maintains **62% test coverage** with **255+ comprehensive tests** including:
 
 - **Unit tests** for all processors and core functionality
 - **Integration tests** for cross-format workflows
@@ -342,18 +342,20 @@ This library maintains **77% test coverage** with **140+ comprehensive tests** i
 ### Running Tests
 
 ```bash
-# Run all tests
+# Run all tests (automatically builds first)
 npm test
 
-# Run with coverage report
+# Run with coverage report (automatically builds first)
 npm run test:coverage
 
-# Run tests in watch mode
+# Run tests in watch mode (automatically builds first)
 npm run test:watch
 
 # Generate detailed coverage analysis
 npm run coverage:report
 ```
+
+**Note**: All test commands automatically run `npm run build` first to ensure CLI tests have the required `dist/` files. CLI integration tests require the compiled JavaScript files to test the command-line interface.
 
 ### Development Commands
 
@@ -429,14 +431,27 @@ Inspired by the Python AACProcessors project and built for the AAC community.
 
 ### High Priority
 
-- [ ] **Improve TouchChatProcessor coverage** (currently 57.62%) - Add comprehensive SQLite schema tests
-- [ ] **Enhance SnapProcessor coverage** (currently 67.11%) - Add audio handling edge cases and database corruption tests
-- [ ] **Fix property-based test edge cases** - Resolve TypeScript interface compatibility issues
-- [ ] **Add CLI comprehensive tests** - Test all command-line interface functionality
-- [ ] **Performance optimization** - Optimize memory usage for very large communication boards (1000+ buttons)
+- [ ] **Fix SnapProcessor coverage** (currently 48.32%) - Add comprehensive audio handling, database corruption tests, and SQLite schema validation
+- [ ] **Improve TouchChatProcessor coverage** (currently 57.62%) - Add comprehensive SQLite schema tests and fix UNIQUE constraint violations in real-world data processing
+- [ ] **Fix database constraint violations** - Resolve UNIQUE constraint failures in Page.Id and buttons.id when processing real-world data files
+- [ ] **Add missing core functionality tests** (currently 46.15% coverage) - Test analyze.ts, fileProcessor.ts, and other core utilities
+- [ ] **Fix property-based test failures** - Resolve TypeScript interface compatibility issues causing test failures with button ID uniqueness and round-trip processing
+
+### Critical Test Fixes Needed
+
+- [ ] **Real-world data processing** - Fix SQLite constraint violations when processing example.spb, example.sps, and example.ce files
+- [ ] **Audio handling edge cases** - Complete SnapProcessor audio functionality that's currently undefined
+- [ ] **Memory leak detection** - Fix performance tests that are failing due to memory assertion issues
+- [ ] **Property-based test generators** - Fix test data generators to ensure valid button ID uniqueness
+
+### Recently Completed ✅
+
+- [x] **Build integration** - Ensure `npm run build` is executed before CLI tests (Fixed: All test scripts now automatically build before running)
+- [x] **CLI test infrastructure** - Fixed "Cannot find module" errors in CLI integration tests
 
 ### Medium Priority
 
+- [ ] **Performance optimization** - Optimize memory usage for very large communication boards (1000+ buttons)
 - [ ] **Add GridsetProcessor ZIP handling** - Improve support for complex Grid3 ZIP archives
 - [ ] **Enhance error recovery** - Better handling of partially corrupted database files
 - [ ] **Add streaming support** - Process very large files without loading entirely into memory
