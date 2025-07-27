@@ -1,8 +1,8 @@
-import { BaseProcessor } from '../core/baseProcessor';
-import { AACTree, AACPage, AACButton } from '../core/treeStructure';
+import { BaseProcessor } from "../core/baseProcessor";
+import { AACTree, AACPage, AACButton } from "../core/treeStructure";
 // Removed unused import: FileProcessor
-import plist from 'plist';
-import fs from 'fs';
+import plist from "plist";
+import fs from "fs";
 
 interface ApplePanelsButton {
   label: string;
@@ -39,13 +39,15 @@ class ApplePanelsProcessor extends BaseProcessor {
 
   loadIntoTree(filePathOrBuffer: string | Buffer): AACTree {
     const content =
-      typeof filePathOrBuffer === 'string'
-        ? fs.readFileSync(filePathOrBuffer, 'utf8')
-        : filePathOrBuffer.toString('utf8');
+      typeof filePathOrBuffer === "string"
+        ? fs.readFileSync(filePathOrBuffer, "utf8")
+        : filePathOrBuffer.toString("utf8");
 
     const parsedData = plist.parse(content);
     const data = {
-      panels: Array.isArray((parsedData as any).panels) ? (parsedData as any).panels : [],
+      panels: Array.isArray((parsedData as any).panels)
+        ? (parsedData as any).panels
+        : [],
     } as ApplePanelsDocument;
     const tree = new AACTree();
 
@@ -63,11 +65,11 @@ class ApplePanelsProcessor extends BaseProcessor {
           id: `${panel.id}_btn_${idx}`,
           label: btn.label,
           message: btn.message || btn.label,
-          type: btn.targetPanel ? 'NAVIGATE' : 'SPEAK',
+          type: btn.targetPanel ? "NAVIGATE" : "SPEAK",
           targetPageId: btn.targetPanel,
           action: btn.targetPanel
             ? {
-                type: 'NAVIGATE',
+                type: "NAVIGATE",
                 targetPageId: btn.targetPanel,
               }
             : null,
@@ -84,7 +86,7 @@ class ApplePanelsProcessor extends BaseProcessor {
   processTexts(
     filePathOrBuffer: string | Buffer,
     translations: Map<string, string>,
-    outputPath: string
+    outputPath: string,
   ): Buffer {
     // Load the tree, apply translations, and save to new file
     const tree = this.loadIntoTree(filePathOrBuffer);
@@ -113,15 +115,18 @@ class ApplePanelsProcessor extends BaseProcessor {
   }
 
   saveFromTree(tree: AACTree, outputPath: string): void {
-    const panels: ApplePanelsPanel[] = Object.values(tree.pages).map((page) => ({
-      id: page.id,
-      name: page.name || 'Panel',
-      buttons: page.buttons.map((button) => ({
-        label: button.label,
-        message: button.message || button.label,
-        targetPanel: button.type === 'NAVIGATE' ? button.targetPageId : undefined,
-      })),
-    }));
+    const panels: ApplePanelsPanel[] = Object.values(tree.pages).map(
+      (page) => ({
+        id: page.id,
+        name: page.name || "Panel",
+        buttons: page.buttons.map((button) => ({
+          label: button.label,
+          message: button.message || button.label,
+          targetPanel:
+            button.type === "NAVIGATE" ? button.targetPageId : undefined,
+        })),
+      }),
+    );
 
     const document = { panels } as any;
     const plistContent = plist.build(document);

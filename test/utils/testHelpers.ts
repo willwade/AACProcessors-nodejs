@@ -1,8 +1,8 @@
 // Test helper utilities for setup, teardown, and common operations
-import fs from 'fs';
-import path from 'path';
-import os from 'os';
-import { performance } from 'perf_hooks';
+import fs from "fs";
+import path from "path";
+import os from "os";
+import { performance } from "perf_hooks";
 
 export interface TestEnvironment {
   tempDir: string;
@@ -28,7 +28,12 @@ export class TestEnvironmentManager {
   private static environments: TestEnvironment[] = [];
 
   static createTempEnvironment(testName: string): TestEnvironment {
-    const tempDir = path.join(os.tmpdir(), 'aac-processors-test', testName, Date.now().toString());
+    const tempDir = path.join(
+      os.tmpdir(),
+      "aac-processors-test",
+      testName,
+      Date.now().toString(),
+    );
 
     // Ensure directory exists
     fs.mkdirSync(tempDir, { recursive: true });
@@ -54,13 +59,17 @@ export class TestEnvironmentManager {
       try {
         env.cleanup();
       } catch (error) {
-        console.warn('Failed to cleanup environment:', error);
+        console.warn("Failed to cleanup environment:", error);
       }
     });
     this.environments.length = 0;
   }
 
-  static createTestFile(tempDir: string, filename: string, content: string | Buffer): string {
+  static createTestFile(
+    tempDir: string,
+    filename: string,
+    content: string | Buffer,
+  ): string {
     const filePath = path.join(tempDir, filename);
     fs.writeFileSync(filePath, content);
     return filePath;
@@ -68,7 +77,7 @@ export class TestEnvironmentManager {
 
   static createTestFiles(
     tempDir: string,
-    files: Record<string, string | Buffer>
+    files: Record<string, string | Buffer>,
   ): Record<string, string> {
     const filePaths: Record<string, string> = {};
 
@@ -86,7 +95,7 @@ export class TestEnvironmentManager {
 export class PerformanceHelper {
   static async measureAsync<T>(
     operation: () => Promise<T>,
-    description?: string
+    description?: string,
   ): Promise<{ result: T; metrics: PerformanceMetrics }> {
     // Force garbage collection if available
     if (global.gc) {
@@ -125,7 +134,7 @@ export class PerformanceHelper {
 
   static measure<T>(
     operation: () => T,
-    description?: string
+    description?: string,
   ): { result: T; metrics: PerformanceMetrics } {
     // Force garbage collection if available
     if (global.gc) {
@@ -167,7 +176,7 @@ export class PerformanceHelper {
     expectations: {
       maxTime?: number;
       maxMemoryMB?: number;
-    }
+    },
   ): void {
     if (expectations.maxTime !== undefined) {
       expect(metrics.executionTime).toBeLessThan(expectations.maxTime);
@@ -186,7 +195,7 @@ export class PerformanceHelper {
 export class FileSystemHelper {
   static createLargeFile(filePath: string, sizeInMB: number): void {
     const chunkSize = 1024 * 1024; // 1MB chunks
-    const chunk = Buffer.alloc(chunkSize, 'A');
+    const chunk = Buffer.alloc(chunkSize, "A");
 
     const writeStream = fs.createWriteStream(filePath);
 
@@ -199,12 +208,13 @@ export class FileSystemHelper {
 
   static createCorruptedFile(filePath: string, originalContent: string): void {
     // Create a file with corrupted content (truncated, invalid characters, etc.)
-    const corruptedContent = originalContent.slice(0, originalContent.length / 2) + '\0\xFF\xFE';
-    fs.writeFileSync(filePath, corruptedContent, 'binary');
+    const corruptedContent =
+      originalContent.slice(0, originalContent.length / 2) + "\0\xFF\xFE";
+    fs.writeFileSync(filePath, corruptedContent, "binary");
   }
 
   static createEmptyFile(filePath: string): void {
-    fs.writeFileSync(filePath, '');
+    fs.writeFileSync(filePath, "");
   }
 
   static createBinaryFile(filePath: string, size: number = 1024): void {
@@ -241,7 +251,7 @@ export class AsyncTestHelper {
   static async waitFor(
     condition: () => boolean | Promise<boolean>,
     timeoutMs: number = 5000,
-    intervalMs: number = 100
+    intervalMs: number = 100,
   ): Promise<void> {
     const startTime = Date.now();
 
@@ -263,11 +273,13 @@ export class AsyncTestHelper {
   static async withTimeout<T>(
     promise: Promise<T>,
     timeoutMs: number,
-    errorMessage?: string
+    errorMessage?: string,
   ): Promise<T> {
     const timeoutPromise = new Promise<never>((_, reject) => {
       setTimeout(() => {
-        reject(new Error(errorMessage || `Operation timed out after ${timeoutMs}ms`));
+        reject(
+          new Error(errorMessage || `Operation timed out after ${timeoutMs}ms`),
+        );
       }, timeoutMs);
     });
 
@@ -276,7 +288,7 @@ export class AsyncTestHelper {
 
   static async runConcurrently<T>(
     operations: (() => Promise<T>)[],
-    maxConcurrency: number = 5
+    maxConcurrency: number = 5,
   ): Promise<T[]> {
     const results: T[] = [];
     const executing: Promise<void>[] = [];
@@ -292,7 +304,12 @@ export class AsyncTestHelper {
         await Promise.race(executing);
         // Remove completed promises
         for (let i = executing.length - 1; i >= 0; i--) {
-          if (await Promise.race([executing[i].then(() => true), Promise.resolve(false)])) {
+          if (
+            await Promise.race([
+              executing[i].then(() => true),
+              Promise.resolve(false),
+            ])
+          ) {
             executing.splice(i, 1);
           }
         }
@@ -311,13 +328,13 @@ export class ErrorTestHelper {
   static expectError<T>(
     operation: () => T,
     expectedErrorType?: new (...args: any[]) => Error,
-    expectedMessage?: string | RegExp
+    expectedMessage?: string | RegExp,
   ): Error {
     let thrownError: Error | null = null;
 
     try {
       operation();
-      fail('Expected operation to throw an error, but it did not');
+      fail("Expected operation to throw an error, but it did not");
     } catch (error) {
       thrownError = error as Error;
     }
@@ -327,7 +344,7 @@ export class ErrorTestHelper {
     }
 
     if (expectedMessage) {
-      if (typeof expectedMessage === 'string') {
+      if (typeof expectedMessage === "string") {
         expect(thrownError!.message).toContain(expectedMessage);
       } else {
         expect(thrownError!.message).toMatch(expectedMessage);
@@ -340,13 +357,13 @@ export class ErrorTestHelper {
   static async expectAsyncError<T>(
     operation: () => Promise<T>,
     expectedErrorType?: new (...args: any[]) => Error,
-    expectedMessage?: string | RegExp
+    expectedMessage?: string | RegExp,
   ): Promise<Error> {
     let thrownError: Error | null = null;
 
     try {
       await operation();
-      fail('Expected async operation to throw an error, but it did not');
+      fail("Expected async operation to throw an error, but it did not");
     } catch (error) {
       thrownError = error as Error;
     }
@@ -356,7 +373,7 @@ export class ErrorTestHelper {
     }
 
     if (expectedMessage) {
-      if (typeof expectedMessage === 'string') {
+      if (typeof expectedMessage === "string") {
         expect(thrownError!.message).toContain(expectedMessage);
       } else {
         expect(thrownError!.message).toMatch(expectedMessage);
@@ -391,7 +408,7 @@ export class TestPatterns {
     createData: () => T,
     serialize: (data: T) => string | Buffer,
     deserialize: (serialized: string | Buffer) => T,
-    compare: (original: T, deserialized: T) => boolean
+    compare: (original: T, deserialized: T) => boolean,
   ): void {
     const original = createData();
     const serialized = serialize(original);
@@ -403,7 +420,7 @@ export class TestPatterns {
   static async testConcurrentAccess<T>(
     operation: () => Promise<T>,
     concurrency: number = 5,
-    iterations: number = 10
+    iterations: number = 10,
   ): Promise<T[]> {
     const operations = Array(iterations)
       .fill(0)
@@ -413,7 +430,7 @@ export class TestPatterns {
 
   static testMemoryUsage<T>(
     operation: () => T,
-    maxMemoryMB: number = 50
+    maxMemoryMB: number = 50,
   ): { result: T; metrics: PerformanceMetrics } {
     const { result, metrics } = PerformanceHelper.measure(operation);
 
