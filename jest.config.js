@@ -15,6 +15,13 @@ module.exports = {
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
   collectCoverage: true,
   coverageDirectory: 'coverage',
+  coverageReporters: ['text', 'text-summary', 'lcov', 'html', 'json', 'json-summary', 'cobertura'],
+  collectCoverageFrom: [
+    'src/**/*.{js,ts}',
+    '!src/**/*.d.ts',
+    '!src/**/*.test.{js,ts}',
+    '!src/**/__tests__/**',
+  ],
   coveragePathIgnorePatterns: [
     '/node_modules/',
     '/dist/',
@@ -22,11 +29,24 @@ module.exports = {
   ],
   coverageThreshold: {
     global: {
-      branches: 40,
-      functions: 40,
-      lines: 40,
-      statements: 40
-    }
+      branches: 60,
+      functions: 70,
+      lines: 77,
+      statements: 76,
+    },
+    // Per-file thresholds for critical components
+    'src/core/': {
+      branches: 80,
+      functions: 90,
+      lines: 90,
+      statements: 90,
+    },
+    'src/processors/dotProcessor.ts': {
+      branches: 70,
+      functions: 80,
+      lines: 80,
+      statements: 80,
+    },
   },
   // Enable module resolution for both src and dist
   moduleNameMapper: {
