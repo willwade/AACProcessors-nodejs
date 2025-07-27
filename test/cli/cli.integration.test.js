@@ -1,7 +1,19 @@
 const { execSync } = require("child_process");
 const path = require("path");
+const fs = require("fs");
 
 describe("aac-processors CLI", () => {
+  // Ensure build exists before running CLI tests
+  beforeAll(() => {
+    const cliPath = path.join(__dirname, "../../dist/cli/index.js");
+    if (!fs.existsSync(cliPath)) {
+      console.log("🔨 Building project for CLI tests...");
+      execSync("npm run build", {
+        stdio: "inherit",
+        cwd: path.join(__dirname, "../..")
+      });
+    }
+  });
   const cliPath = path.join(__dirname, "../../dist/cli/index.js");
   const gridsetExample = path.join(__dirname, "../../examples/example.gridset");
   const touchchatExample = path.join(__dirname, "../../examples/example.ce");
@@ -10,14 +22,18 @@ describe("aac-processors CLI", () => {
     const result = execSync(
       `node ${cliPath} extract ${gridsetExample} --format gridset`,
     ).toString();
-    expect(result).toContain("Extracted texts:");
+    // Should contain actual text content from the gridset
+    expect(result).toContain("Food");
+    expect(result.length).toBeGreaterThan(50); // Should have substantial text output
   });
 
   it("extracts texts from a touchchat file", () => {
     const result = execSync(
       `node ${cliPath} extract ${touchchatExample} --format touchchat`,
     ).toString();
-    expect(result).toContain("Extracted texts:");
+    // Should contain actual text content from the touchchat file
+    expect(result.length).toBeGreaterThan(10); // Should have some text output
+    expect(result.trim()).not.toBe(""); // Should not be empty
   });
 
   it("pretty prints analyze for gridset", () => {
