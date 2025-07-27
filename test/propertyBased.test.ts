@@ -57,19 +57,45 @@ describe('Property-Based Testing', () => {
         buttons: [],
         parentId: data.parentId,
       });
-      data.buttons.forEach((button) => page.addButton(button));
+      const buttonIds = new Set<string>();
+      data.buttons.forEach((button) => {
+        if (!buttonIds.has(button.id)) {
+          page.addButton(button);
+          buttonIds.add(button.id);
+        }
+      });
       return page;
     });
 
   const aacTreeGenerator = fc
     .array(aacPageGenerator, { minLength: 1, maxLength: 10 })
     .map((pages) => {
-      const tree = new AACTree();
-      pages.forEach((page) => tree.addPage(page));
-      if (pages.length > 0) {
-        tree.rootId = pages[0].id;
-      }
-      return tree;
+        const tree = new AACTree();
+        const pageIds = new Set<string>();
+        pages.forEach((page) => {
+            if (!pageIds.has(page.id)) {
+                tree.addPage(page);
+                pageIds.add(page.id);
+            }
+        });
+
+        if (pages.length > 0) {
+            tree.rootId = pages[0].id;
+        }
+
+        // Create valid navigation links
+        const allPageIds = Array.from(pageIds);
+        if (allPageIds.length > 1) {
+            Object.values(tree.pages).forEach(page => {
+                page.buttons.forEach(button => {
+                    if (button.type === 'NAVIGATE') {
+                        button.targetPageId = fc.randomElement(allPageIds);
+                    }
+                });
+            });
+        }
+
+        return tree;
     });
 
   describe('Round-Trip Property Tests', () => {
