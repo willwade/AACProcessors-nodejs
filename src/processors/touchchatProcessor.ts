@@ -333,7 +333,7 @@ class TouchChatProcessor extends BaseProcessor {
 
       // Create zip file with the database
       const zip = new AdmZip();
-      zip.addLocalFile(dbPath, '', 'vocab.db');
+      zip.addLocalFile(dbPath, '', 'vocab.c4v');
       zip.writeZip(outputPath);
     } finally {
       // Clean up

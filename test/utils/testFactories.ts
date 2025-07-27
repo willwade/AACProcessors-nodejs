@@ -13,7 +13,7 @@ export interface PageConfig {
   id?: string;
   name?: string;
   buttons?: ButtonConfig[];
-  parentId?: string;
+  parentId?: string | null;
 }
 
 export interface TreeConfig {

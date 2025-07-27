@@ -188,15 +188,25 @@ class OpmlProcessor extends BaseProcessor {
   }
 
   saveFromTree(tree: AACTree, outputPath: string) {
-    // Helper to recursively build outline nodes
-    function buildOutline(page: AACPage): any {
+    // Helper to recursively build outline nodes with cycle detection
+    function buildOutline(page: AACPage, visited: Set<string> = new Set()): any {
+      // Prevent infinite recursion by tracking visited pages
+      if (visited.has(page.id)) {
+        return {
+          '@_text': `${page.name || page.id} (circular reference)`,
+        };
+      }
+
+      visited.add(page.id);
+
       const outline: any = {
         '@_text': page.name || page.id,
       };
+
       // Find child pages (by NAVIGATE buttons)
       const childOutlines = page.buttons
         .filter((b) => b.type === 'NAVIGATE' && !!b.targetPageId && !!tree.pages[b.targetPageId])
-        .map((b) => buildOutline(tree.pages[b.targetPageId!]));
+        .map((b) => buildOutline(tree.pages[b.targetPageId!], new Set(visited))); // Pass copy of visited set
       if (childOutlines.length) outline.outline = childOutlines;
       return outline;
     }
@@ -218,7 +228,7 @@ class OpmlProcessor extends BaseProcessor {
       );
     }
     // Build outlines
-    const outlines = rootPages.map(buildOutline);
+    const outlines = rootPages.map(page => buildOutline(page));
     // Compose OPML document
     const opmlObj = {
       opml: {
