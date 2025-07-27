@@ -64,8 +64,16 @@ describe('TouchChatProcessor Coverage', () => {
         const newTree = newProcessor.loadIntoTree(tempZipPath);
 
         expect(Object.keys(newTree.pages).length).toBe(2);
-        expect(newTree.getPage('1').buttons.length).toBe(1);
-        expect(newTree.getPage('2').buttons.length).toBe(1);
+        const page1 = newTree.getPage('1');
+        const page2 = newTree.getPage('2');
+        expect(page1).toBeDefined();
+        expect(page2).toBeDefined();
+        if (page1) {
+            expect(page1.buttons.length).toBe(1);
+        }
+        if (page2) {
+            expect(page2.buttons.length).toBe(1);
+        }
     });
   });
 

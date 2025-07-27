@@ -32,7 +32,7 @@ describe('FileProcessor', () => {
         it('should detect format from file extension', () => {
             expect(FileProcessor.detectFormat('test.gridset')).toBe('gridset');
             expect(FileProcessor.detectFormat('test.obf')).toBe('coughdrop');
-            expect(File.detectFormat('test.obz')).toBe('coughdrop');
+            expect(FileProcessor.detectFormat('test.obz')).toBe('coughdrop');
             expect(FileProcessor.detectFormat('test.ce')).toBe('touchchat');
             expect(FileProcessor.detectFormat('test.sps')).toBe('snap');
             expect(FileProcessor.detectFormat('test.dot')).toBe('dot');
