@@ -1,4 +1,4 @@
-import { AACTree } from '../types/aac';
+import { AACTree } from "../types/aac";
 
 abstract class BaseProcessor {
   // Extract all text content (for translation, analysis, etc.)
@@ -11,7 +11,7 @@ abstract class BaseProcessor {
   abstract processTexts(
     filePathOrBuffer: string | Buffer,
     translations: Map<string, string>,
-    outputPath: string
+    outputPath: string,
   ): Buffer;
 
   // Save tree structure back to file/buffer

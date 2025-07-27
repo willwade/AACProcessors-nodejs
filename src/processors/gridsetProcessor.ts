@@ -1,8 +1,8 @@
-import { BaseProcessor } from '../core/baseProcessor';
-import { AACTree, AACPage, AACButton } from '../core/treeStructure';
-import AdmZip from 'adm-zip';
-import fs from 'fs';
-import { XMLParser, XMLBuilder } from 'fast-xml-parser';
+import { BaseProcessor } from "../core/baseProcessor";
+import { AACTree, AACPage, AACButton } from "../core/treeStructure";
+import AdmZip from "adm-zip";
+import fs from "fs";
+import { XMLParser, XMLBuilder } from "fast-xml-parser";
 
 interface GridsetButton {
   label: string;
@@ -53,10 +53,13 @@ class GridsetProcessor extends BaseProcessor {
     // Process each grid file in the gridset
     zip.getEntries().forEach((entry) => {
       // Only process files named grid.xml under Grids/ (any subdir)
-      if (entry.entryName.startsWith('Grids/') && entry.entryName.endsWith('grid.xml')) {
+      if (
+        entry.entryName.startsWith("Grids/") &&
+        entry.entryName.endsWith("grid.xml")
+      ) {
         let xmlContent: string;
         try {
-          xmlContent = entry.getData().toString('utf8');
+          xmlContent = entry.getData().toString("utf8");
         } catch (e) {
           // Skip unreadable files
           return;
@@ -78,13 +81,15 @@ class GridsetProcessor extends BaseProcessor {
         // Defensive: GridGuid and Name required
         function extractText(val: any): string | undefined {
           if (!val) return undefined;
-          if (typeof val === 'string') return val;
-          if (typeof val === 'object' && '#text' in val) return val['#text'];
+          if (typeof val === "string") return val;
+          if (typeof val === "object" && "#text" in val) return val["#text"];
           return undefined;
         }
         const gridId = extractText(grid.GridGuid || grid.gridGuid || grid.id);
         let gridName =
-          extractText(grid.Name) || extractText(grid.name) || extractText(grid['@_Name']);
+          extractText(grid.Name) ||
+          extractText(grid.name) ||
+          extractText(grid["@_Name"]);
         if (!gridName) {
           // Fallback: get folder name from entry path
           const match = entry.entryName.match(/^Grids\/([^/]+)\//);
@@ -112,13 +117,15 @@ class GridsetProcessor extends BaseProcessor {
 
             // Extract label from CaptionAndImage/Caption
             const content = cell.Content;
-            const captionAndImage = content.CaptionAndImage || content.captionAndImage;
-            let label = captionAndImage?.Caption || captionAndImage?.caption || '';
+            const captionAndImage =
+              content.CaptionAndImage || content.captionAndImage;
+            let label =
+              captionAndImage?.Caption || captionAndImage?.caption || "";
 
             // If no caption, try other sources or create a placeholder
             if (!label) {
               // For cells without captions (like AutoContent cells), create a meaningful label
-              if (content.ContentType === 'AutoContent') {
+              if (content.ContentType === "AutoContent") {
                 label = `AutoContent_${idx}`;
               } else {
                 return; // Skip cells without labels
@@ -129,17 +136,25 @@ class GridsetProcessor extends BaseProcessor {
 
             // Check for navigation commands
             let navigationTarget: string | undefined;
-            const commands = content.Commands?.Command || content.commands?.command;
+            const commands =
+              content.Commands?.Command || content.commands?.command;
             if (commands) {
-              const commandArr = Array.isArray(commands) ? commands : [commands];
+              const commandArr = Array.isArray(commands)
+                ? commands
+                : [commands];
               for (const command of commandArr) {
-                if (command.ID === 'Jump.To' || command.id === 'Jump.To') {
+                if (command.ID === "Jump.To" || command.id === "Jump.To") {
                   const parameters = command.Parameter || command.parameter;
                   if (parameters) {
-                    const paramArr = Array.isArray(parameters) ? parameters : [parameters];
+                    const paramArr = Array.isArray(parameters)
+                      ? parameters
+                      : [parameters];
                     for (const param of paramArr) {
-                      if ((param.Key === 'grid' || param.key === 'grid') && param['#text']) {
-                        navigationTarget = param['#text'];
+                      if (
+                        (param.Key === "grid" || param.key === "grid") &&
+                        param["#text"]
+                      ) {
+                        navigationTarget = param["#text"];
                         break;
                       }
                     }
@@ -153,11 +168,13 @@ class GridsetProcessor extends BaseProcessor {
               id: `${gridId}_btn_${idx}`,
               label: String(label),
               message: String(message),
-              type: navigationTarget ? 'NAVIGATE' : 'SPEAK',
-              targetPageId: navigationTarget ? String(navigationTarget) : undefined,
+              type: navigationTarget ? "NAVIGATE" : "SPEAK",
+              targetPageId: navigationTarget
+                ? String(navigationTarget)
+                : undefined,
               action: navigationTarget
                 ? {
-                    type: 'NAVIGATE',
+                    type: "NAVIGATE",
                     targetPageId: String(navigationTarget),
                   }
                 : null,
@@ -174,7 +191,7 @@ class GridsetProcessor extends BaseProcessor {
     for (const pageId in tree.pages) {
       const page = tree.pages[pageId];
       page.buttons.forEach((btn: AACButton) => {
-        if (btn.type === 'NAVIGATE' && btn.targetPageId) {
+        if (btn.type === "NAVIGATE" && btn.targetPageId) {
           const targetPage = tree.getPage(btn.targetPageId);
           if (targetPage) {
             targetPage.parentId = page.id;
@@ -189,7 +206,7 @@ class GridsetProcessor extends BaseProcessor {
   processTexts(
     filePathOrBuffer: string | Buffer,
     translations: Map<string, string>,
-    outputPath: string
+    outputPath: string,
   ): Buffer {
     // Load the tree, apply translations, and save to new file
     const buffer = Buffer.isBuffer(filePathOrBuffer)
@@ -232,9 +249,9 @@ class GridsetProcessor extends BaseProcessor {
     // Create a grid for each page
     Object.values(tree.pages).forEach((page, index) => {
       const gridData = {
-        '?xml': { '@_version': '1.0', '@_encoding': 'UTF-8' },
+        "?xml": { "@_version": "1.0", "@_encoding": "UTF-8" },
         Grid: {
-          '@_xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
+          "@_xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
           GridGuid: page.id,
           Name: page.name || `Grid ${index + 1}`,
           // Add basic row/column definitions (assume 4x4 grid)
@@ -248,31 +265,31 @@ class GridsetProcessor extends BaseProcessor {
             page.buttons.length > 0
               ? {
                   Cell: page.buttons.map((button, btnIndex) => ({
-                    '@_X': btnIndex % 4, // Column position
-                    '@_Y': Math.floor(btnIndex / 4), // Row position
+                    "@_X": btnIndex % 4, // Column position
+                    "@_Y": Math.floor(btnIndex / 4), // Row position
                     Content: {
                       Commands:
-                        button.type === 'NAVIGATE' && button.targetPageId
+                        button.type === "NAVIGATE" && button.targetPageId
                           ? {
                               Command: {
-                                '@_ID': 'Jump.To',
+                                "@_ID": "Jump.To",
                                 Parameter: {
-                                  '@_Key': 'grid',
-                                  '#text': button.targetPageId,
+                                  "@_Key": "grid",
+                                  "#text": button.targetPageId,
                                 },
                               },
                             }
                           : {
                               Command: {
-                                '@_ID': 'Action.InsertText',
+                                "@_ID": "Action.InsertText",
                                 Parameter: {
-                                  '@_Key': 'text',
-                                  '#text': button.message || button.label || '',
+                                  "@_Key": "text",
+                                  "#text": button.message || button.label || "",
                                 },
                               },
                             },
                       CaptionAndImage: {
-                        Caption: button.label || '',
+                        Caption: button.label || "",
                       },
                     },
                   })),
@@ -285,13 +302,13 @@ class GridsetProcessor extends BaseProcessor {
       const builder = new XMLBuilder({
         ignoreAttributes: false,
         format: true,
-        indentBy: '  ',
+        indentBy: "  ",
       });
       const xmlContent = builder.build(gridData);
 
       // Add to zip in Grids folder
       const gridPath = `Grids/Grid_${page.id}/grid.xml`;
-      zip.addFile(gridPath, Buffer.from(xmlContent, 'utf8'));
+      zip.addFile(gridPath, Buffer.from(xmlContent, "utf8"));
     });
 
     // Write the zip file

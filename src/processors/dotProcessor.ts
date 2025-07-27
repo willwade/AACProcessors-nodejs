@@ -1,7 +1,7 @@
-import { BaseProcessor } from '../core/baseProcessor';
-import { AACTree, AACPage, AACButton } from '../core/treeStructure';
+import { BaseProcessor } from "../core/baseProcessor";
+import { AACTree, AACPage, AACButton } from "../core/treeStructure";
 // Removed unused import: FileProcessor
-import fs from 'fs';
+import fs from "fs";
 
 interface DotNode {
   id: string;
@@ -21,16 +21,18 @@ class DotProcessor extends BaseProcessor {
   } {
     const nodes = new Map<string, DotNode>();
     const edges: DotEdge[] = [];
-    const lines = content.split('\n');
+    const lines = content.split("\n");
 
     for (const line of lines) {
       const trimmedLine = line.trim();
 
       // Skip empty lines and comments
-      if (!trimmedLine || trimmedLine.startsWith('//')) continue;
+      if (!trimmedLine || trimmedLine.startsWith("//")) continue;
 
       // Handle explicit node definitions: node1 [label="Home Page"]
-      const nodeMatch = trimmedLine.match(/^"?([^"\s]+)"?\s*\[label="([^"]+)"\]/);
+      const nodeMatch = trimmedLine.match(
+        /^"?([^"\s]+)"?\s*\[label="([^"]+)"\]/,
+      );
       if (nodeMatch) {
         const [, id, label] = nodeMatch;
         nodes.set(id, { id, label });
@@ -39,7 +41,7 @@ class DotProcessor extends BaseProcessor {
 
       // Handle edges: "more quick chat" -> "That tickles"
       const edgeMatch = trimmedLine.match(
-        /^"?([^"\s]+)"?\s*->\s*"?([^"\s]+)"?(?:\s*\[label="([^"]+)"\])?/
+        /^"?([^"\s]+)"?\s*->\s*"?([^"\s]+)"?(?:\s*\[label="([^"]+)"\])?/,
       );
       if (edgeMatch) {
         const [, from, to, label] = edgeMatch;
@@ -60,9 +62,9 @@ class DotProcessor extends BaseProcessor {
 
   extractTexts(filePathOrBuffer: string | Buffer): string[] {
     const content =
-      typeof filePathOrBuffer === 'string'
-        ? fs.readFileSync(filePathOrBuffer, 'utf8')
-        : filePathOrBuffer.toString('utf8');
+      typeof filePathOrBuffer === "string"
+        ? fs.readFileSync(filePathOrBuffer, "utf8")
+        : filePathOrBuffer.toString("utf8");
 
     const { nodes, edges } = this.parseDotFile(content);
     const texts: string[] = [];
@@ -87,12 +89,12 @@ class DotProcessor extends BaseProcessor {
 
     try {
       content =
-        typeof filePathOrBuffer === 'string'
-          ? fs.readFileSync(filePathOrBuffer, 'utf8')
-          : filePathOrBuffer.toString('utf8');
+        typeof filePathOrBuffer === "string"
+          ? fs.readFileSync(filePathOrBuffer, "utf8")
+          : filePathOrBuffer.toString("utf8");
     } catch (error) {
       // Re-throw file system errors (like file not found)
-      if (typeof filePathOrBuffer === 'string') {
+      if (typeof filePathOrBuffer === "string") {
         throw error;
       }
       // For buffer errors, return empty tree
@@ -105,7 +107,10 @@ class DotProcessor extends BaseProcessor {
     }
 
     // Check for binary data (contains null bytes or non-printable characters)
-    if (content.includes('\0') || /[\x00-\x08\x0E-\x1F\x7F-\xFF]/.test(content.substring(0, 100))) {
+    if (
+      content.includes("\0") ||
+      /[\x00-\x08\x0E-\x1F\x7F-\xFF]/.test(content.substring(0, 100))
+    ) {
       return new AACTree();
     }
 
@@ -131,11 +136,11 @@ class DotProcessor extends BaseProcessor {
         const button = new AACButton({
           id: `nav_${edge.from}_${edge.to}`,
           label: edge.label || edge.to,
-          message: '',
-          type: 'NAVIGATE',
+          message: "",
+          type: "NAVIGATE",
           targetPageId: edge.to,
           action: {
-            type: 'NAVIGATE',
+            type: "NAVIGATE",
             targetPageId: edge.to,
           },
         });
@@ -149,29 +154,29 @@ class DotProcessor extends BaseProcessor {
   processTexts(
     filePathOrBuffer: string | Buffer,
     translations: Map<string, string>,
-    outputPath: string
+    outputPath: string,
   ): Buffer {
     const safeBuffer = Buffer.isBuffer(filePathOrBuffer)
       ? filePathOrBuffer
       : fs.readFileSync(filePathOrBuffer);
 
-    const content = safeBuffer.toString('utf8');
+    const content = safeBuffer.toString("utf8");
     let translatedContent = content;
 
     translations.forEach((translation, text) => {
-      if (typeof text === 'string' && typeof translation === 'string') {
+      if (typeof text === "string" && typeof translation === "string") {
         // Escape special regex characters in the text
-        const escapedText = text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const escapedTranslation = translation.replace(/\$/g, '$$$$'); // Escape $ in replacement
+        const escapedText = text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const escapedTranslation = translation.replace(/\$/g, "$$$$"); // Escape $ in replacement
 
         translatedContent = translatedContent.replace(
-          new RegExp(`label="${escapedText}"`, 'g'),
-          `label="${escapedTranslation}"`
+          new RegExp(`label="${escapedText}"`, "g"),
+          `label="${escapedTranslation}"`,
         );
       }
     });
 
-    const resultBuffer = Buffer.from(translatedContent || '', 'utf8');
+    const resultBuffer = Buffer.from(translatedContent || "", "utf8");
 
     // Save to output path
     fs.writeFileSync(outputPath, resultBuffer);
@@ -180,7 +185,7 @@ class DotProcessor extends BaseProcessor {
   }
 
   saveFromTree(tree: AACTree, _outputPath: string): void {
-    let dotContent = 'digraph AACBoard {\n';
+    let dotContent = "digraph AACBoard {\n";
 
     // Add nodes
     for (const pageId in tree.pages) {
@@ -192,13 +197,13 @@ class DotProcessor extends BaseProcessor {
     for (const pageId in tree.pages) {
       const page = tree.pages[pageId];
       page.buttons
-        .filter((btn: AACButton) => btn.type === 'NAVIGATE' && btn.targetPageId)
+        .filter((btn: AACButton) => btn.type === "NAVIGATE" && btn.targetPageId)
         .forEach((btn: AACButton) => {
           dotContent += `  "${page.id}" -> "${btn.targetPageId}" [label="${btn.label}"]\n`;
         });
     }
 
-    dotContent += '}\n';
+    dotContent += "}\n";
     fs.writeFileSync(_outputPath, dotContent);
   }
 }
