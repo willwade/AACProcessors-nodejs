@@ -9,9 +9,9 @@ describe('OBFProcessor round-trip', () => {
   const obzPath: string = path.join(__dirname, '../examples/example.obz');
   const outObfPath: string = path.join(__dirname, 'out.obf');
   const outObzPath: string = path.join(__dirname, 'out.obz');
-  
+
   afterAll(() => {
-    [outObfPath, outObzPath].forEach(file => {
+    [outObfPath, outObzPath].forEach((file) => {
       if (fs.existsSync(file)) fs.unlinkSync(file);
     });
   });
@@ -25,26 +25,26 @@ describe('OBFProcessor round-trip', () => {
     const processor = new ObfProcessor();
     const tree1: AACTree = processor.loadIntoTree(obfPath);
     processor.saveFromTree(tree1, outObfPath);
-    
+
     expect(fs.existsSync(outObfPath)).toBe(true);
-    
+
     const tree2: AACTree = processor.loadIntoTree(outObfPath);
-    
+
     // Compare basic structure
     expect(Object.keys(tree1.pages).length).toBe(Object.keys(tree2.pages).length);
-    
+
     // Compare page content
     for (const pageId in tree1.pages) {
       expect(tree2.pages).toHaveProperty(pageId);
       const page1 = tree1.pages[pageId];
       const page2 = tree2.pages[pageId];
-      
+
       expect(page2.name).toBe(page1.name);
       expect(page2.buttons.length).toBe(page1.buttons.length);
-      
+
       // Compare button labels
-      const labels1 = page1.buttons.map(b => b.label).sort();
-      const labels2 = page2.buttons.map(b => b.label).sort();
+      const labels1 = page1.buttons.map((b) => b.label).sort();
+      const labels2 = page2.buttons.map((b) => b.label).sort();
       expect(labels2).toEqual(labels1);
     }
   });
@@ -58,11 +58,11 @@ describe('OBFProcessor round-trip', () => {
     const processor = new ObfProcessor();
     const tree1: AACTree = processor.loadIntoTree(obzPath);
     processor.saveFromTree(tree1, outObzPath);
-    
+
     expect(fs.existsSync(outObzPath)).toBe(true);
-    
+
     const tree2: AACTree = processor.loadIntoTree(outObzPath);
-    
+
     // Compare structure
     expect(Object.keys(tree2.pages).length).toBeGreaterThan(0);
     expect(Object.keys(tree1.pages).length).toBe(Object.keys(tree2.pages).length);
@@ -70,29 +70,29 @@ describe('OBFProcessor round-trip', () => {
 
   it('can save and load a simple constructed tree', () => {
     const processor = new ObfProcessor();
-    
+
     // Create a simple tree programmatically
     const tree1 = new AACTree();
     const page = new (require('../src/core/treeStructure').AACPage)({
       id: 'test-page',
       name: 'Test Page',
-      buttons: []
+      buttons: [],
     });
-    
+
     const button = new (require('../src/core/treeStructure').AACButton)({
       id: 'test-button',
       label: 'Test Button',
       message: 'Hello World',
-      type: 'SPEAK'
+      type: 'SPEAK',
     });
-    
+
     page.addButton(button);
     tree1.addPage(page);
-    
+
     // Save and reload
     processor.saveFromTree(tree1, outObfPath);
     const tree2: AACTree = processor.loadIntoTree(outObfPath);
-    
+
     // Verify structure
     expect(Object.keys(tree2.pages)).toHaveLength(1);
     const reloadedPage = tree2.pages['test-page'];

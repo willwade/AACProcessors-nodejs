@@ -20,7 +20,7 @@ import { ApplePanelsProcessor } from './processors/applePanelsProcessor';
  */
 export function getProcessor(filePathOrExtension: string): BaseProcessor {
   // Extract extension from file path
-  const extension = filePathOrExtension.includes('.') 
+  const extension = filePathOrExtension.includes('.')
     ? filePathOrExtension.substring(filePathOrExtension.lastIndexOf('.'))
     : filePathOrExtension;
 

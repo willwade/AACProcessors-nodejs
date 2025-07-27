@@ -18,7 +18,7 @@ describe('DotProcessor', () => {
     expect(rootPage).toBeDefined();
     expect(rootPage!.buttons.length).toBeGreaterThan(0);
     // Buttons should be NAVIGATE type
-    rootPage!.buttons.forEach(btn => {
+    rootPage!.buttons.forEach((btn) => {
       expect(btn.type).toBe('NAVIGATE');
       expect(btn.targetPageId).toBeTruthy();
     });

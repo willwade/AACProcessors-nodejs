@@ -26,12 +26,13 @@ class OpmlProcessor extends BaseProcessor {
     outline: OpmlOutline,
     parentId: string | null = null
   ): { page: AACPage | null; childPages: AACPage[] } {
-    if (!outline || (typeof outline !== 'object')) {
+    if (!outline || typeof outline !== 'object') {
       return { page: null, childPages: [] };
     }
-    const text = outline['@_text'] ||
-                 (outline._attributes && outline._attributes.text) ||
-                 (outline as any).text;
+    const text =
+      outline['@_text'] ||
+      (outline._attributes && outline._attributes.text) ||
+      (outline as any).text;
     if (!text || typeof text !== 'string') {
       // Skip invalid outlines
       return { page: null, childPages: [] };
@@ -49,9 +50,8 @@ class OpmlProcessor extends BaseProcessor {
     if (outline.outline) {
       const children = Array.isArray(outline.outline) ? outline.outline : [outline.outline];
       children.forEach((child) => {
-        const childText = child['@_text'] ||
-                         (child._attributes && child._attributes.text) ||
-                         (child as any).text;
+        const childText =
+          child['@_text'] || (child._attributes && child._attributes.text) || (child as any).text;
         if (childText && typeof childText === 'string') {
           const button = new AACButton({
             id: `nav_${page.id}_${childText}`,
@@ -66,7 +66,10 @@ class OpmlProcessor extends BaseProcessor {
           });
           page.addButton(button);
 
-          const { page: childPage, childPages: grandChildren } = this.processOutline(child, page.id);
+          const { page: childPage, childPages: grandChildren } = this.processOutline(
+            child,
+            page.id
+          );
           if (childPage && childPage.id) childPages.push(childPage, ...grandChildren);
         }
       });
@@ -106,9 +109,11 @@ class OpmlProcessor extends BaseProcessor {
         const children = Array.isArray(node.outline) ? node.outline : [node.outline];
         children.forEach(processNode);
       }
-    };
+    }
 
-    const outlines = Array.isArray(data.opml.body.outline) ? data.opml.body.outline : [data.opml.body.outline];
+    const outlines = Array.isArray(data.opml.body.outline)
+      ? data.opml.body.outline
+      : [data.opml.body.outline];
     outlines.forEach(processNode);
     return texts;
   }
@@ -137,7 +142,9 @@ class OpmlProcessor extends BaseProcessor {
         tree.addPage(page);
         if (!firstRootId) firstRootId = page.id;
       }
-      childPages.forEach((childPage) => { if (childPage && childPage.id) tree.addPage(childPage); });
+      childPages.forEach((childPage) => {
+        if (childPage && childPage.id) tree.addPage(childPage);
+      });
     });
     // Set rootId to first root page, or fallback to first page if any exist
     if (firstRootId) {
@@ -153,9 +160,10 @@ class OpmlProcessor extends BaseProcessor {
     translations: Map<string, string>,
     outputPath: string
   ): Buffer {
-    const content = typeof filePathOrBuffer === 'string'
-      ? fs.readFileSync(filePathOrBuffer, 'utf8')
-      : filePathOrBuffer.toString('utf8');
+    const content =
+      typeof filePathOrBuffer === 'string'
+        ? fs.readFileSync(filePathOrBuffer, 'utf8')
+        : filePathOrBuffer.toString('utf8');
 
     let translatedContent = content;
 
@@ -163,7 +171,10 @@ class OpmlProcessor extends BaseProcessor {
     translations.forEach((translation, originalText) => {
       if (typeof originalText === 'string' && typeof translation === 'string') {
         // Replace text attributes in outline elements
-        const textAttrRegex = new RegExp(`text="${originalText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`, 'g');
+        const textAttrRegex = new RegExp(
+          `text="${originalText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`,
+          'g'
+        );
         translatedContent = translatedContent.replace(textAttrRegex, `text="${translation}"`);
       }
     });
@@ -177,14 +188,14 @@ class OpmlProcessor extends BaseProcessor {
   }
 
   saveFromTree(tree: AACTree, outputPath: string) {
-      // Helper to recursively build outline nodes
-      function buildOutline(page: AACPage): any {
+    // Helper to recursively build outline nodes
+    function buildOutline(page: AACPage): any {
       const outline: any = {
         '@_text': page.name || page.id,
       };
       // Find child pages (by NAVIGATE buttons)
       const childOutlines = page.buttons
-        .filter((b) => b.type === 'NAVIGATE' && !!b.targetPageId && !!tree.pages[b.targetPageId!])
+        .filter((b) => b.type === 'NAVIGATE' && !!b.targetPageId && !!tree.pages[b.targetPageId])
         .map((b) => buildOutline(tree.pages[b.targetPageId!]));
       if (childOutlines.length) outline.outline = childOutlines;
       return outline;
@@ -202,7 +213,9 @@ class OpmlProcessor extends BaseProcessor {
     if ((!rootPages || rootPages.length === 0) && treeRootId && tree.pages[treeRootId]) {
       rootPages = [tree.pages[treeRootId]];
     } else if (treeRootId) {
-      rootPages = rootPages.sort((a, b) => (a.id === treeRootId ? -1 : b.id === treeRootId ? 1 : 0));
+      rootPages = rootPages.sort((a, b) =>
+        a.id === treeRootId ? -1 : b.id === treeRootId ? 1 : 0
+      );
     }
     // Build outlines
     const outlines = rootPages.map(buildOutline);

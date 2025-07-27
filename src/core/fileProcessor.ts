@@ -24,7 +24,7 @@ class FileProcessor {
         case '.obf':
         case '.obz':
           return 'coughdrop';
-        case'.ce':
+        case '.ce':
         case '.wfl':
         case '.touchchat':
           return 'touchchat';

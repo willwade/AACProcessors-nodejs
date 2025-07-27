@@ -29,13 +29,13 @@ export class ButtonFactory {
 
   static create(config: ButtonConfig = {}): AACButton {
     const id = config.id || `btn_${++this.counter}`;
-    
+
     return new AACButton({
       id,
       label: config.label || `Button ${id}`,
       message: config.message || `Message for ${id}`,
       type: config.type || 'SPEAK',
-      targetPageId: config.targetPageId
+      targetPageId: config.targetPageId,
     });
   }
 
@@ -43,7 +43,7 @@ export class ButtonFactory {
     return this.create({
       label,
       message: message || label,
-      type: 'SPEAK'
+      type: 'SPEAK',
     });
   }
 
@@ -52,7 +52,7 @@ export class ButtonFactory {
       label,
       message: `Navigate to ${targetPageId}`,
       type: 'NAVIGATE',
-      targetPageId
+      targetPageId,
     });
   }
 
@@ -60,7 +60,7 @@ export class ButtonFactory {
     return this.create({
       label,
       message: message || `Action: ${label}`,
-      type: 'SPEAK' // Use SPEAK instead of ACTION since ACTION is not supported
+      type: 'SPEAK', // Use SPEAK instead of ACTION since ACTION is not supported
     });
   }
 
@@ -68,7 +68,7 @@ export class ButtonFactory {
     return Array.from({ length: count }, (_, i) =>
       this.create({
         label: `${type} Button ${i + 1}`,
-        type
+        type,
       })
     );
   }
@@ -82,17 +82,17 @@ export class PageFactory {
 
   static create(config: PageConfig = {}): AACPage {
     const id = config.id || `page_${++this.counter}`;
-    
+
     const page = new AACPage({
       id,
       name: config.name || `Page ${id}`,
       buttons: [],
-      parentId: config.parentId
+      parentId: config.parentId,
     });
 
     // Add buttons if specified
     if (config.buttons) {
-      config.buttons.forEach(buttonConfig => {
+      config.buttons.forEach((buttonConfig) => {
         const button = ButtonFactory.create(buttonConfig);
         page.addButton(button);
       });
@@ -104,7 +104,7 @@ export class PageFactory {
   static createWithButtons(name: string, buttonConfigs: ButtonConfig[]): AACPage {
     return this.create({
       name,
-      buttons: buttonConfigs
+      buttons: buttonConfigs,
     });
   }
 
@@ -116,36 +116,36 @@ export class PageFactory {
         { label: 'Hello', message: 'Hello!', type: 'SPEAK' },
         { label: 'Food', message: 'I want food', type: 'SPEAK' },
         { label: 'Drink', message: 'I want a drink', type: 'SPEAK' },
-        { label: 'More', targetPageId: 'more', type: 'NAVIGATE' }
-      ]
+        { label: 'More', targetPageId: 'more', type: 'NAVIGATE' },
+      ],
     });
   }
 
   static createCategory(categoryName: string, items: string[]): AACPage {
-    const buttons = items.map(item => ({
+    const buttons = items.map((item) => ({
       label: item,
       message: `I want ${item.toLowerCase()}`,
-      type: 'SPEAK' as const
+      type: 'SPEAK' as const,
     }));
 
     return this.create({
       id: categoryName.toLowerCase().replace(/\s+/g, '_'),
       name: categoryName,
-      buttons
+      buttons,
     });
   }
 
   static createNavigation(pageName: string, destinations: string[]): AACPage {
-    const buttons = destinations.map(dest => ({
+    const buttons = destinations.map((dest) => ({
       label: `Go to ${dest}`,
       targetPageId: dest.toLowerCase().replace(/\s+/g, '_'),
-      type: 'NAVIGATE' as const
+      type: 'NAVIGATE' as const,
     }));
 
     return this.create({
       id: pageName.toLowerCase().replace(/\s+/g, '_'),
       name: pageName,
-      buttons
+      buttons,
     });
   }
 }
@@ -159,7 +159,7 @@ export class TreeFactory {
 
     // Add pages if specified
     if (config.pages) {
-      config.pages.forEach(pageConfig => {
+      config.pages.forEach((pageConfig) => {
         const page = PageFactory.create(pageConfig);
         tree.addPage(page);
       });
@@ -183,28 +183,38 @@ export class TreeFactory {
       buttons: [
         { label: 'Please', message: 'Please', type: 'SPEAK' },
         { label: 'Thank you', message: 'Thank you', type: 'SPEAK' },
-        { label: 'Home', targetPageId: 'home', type: 'NAVIGATE' }
-      ]
+        { label: 'Home', targetPageId: 'home', type: 'NAVIGATE' },
+      ],
     });
 
     return this.create({
       pages: [
-        { ...homePage, id: homePage.id, name: homePage.name, buttons: homePage.buttons.map(b => ({
-          id: b.id,
-          label: b.label,
-          message: b.message,
-          type: b.type,
-          targetPageId: b.targetPageId
-        })) },
-        { ...morePage, id: morePage.id, name: morePage.name, buttons: morePage.buttons.map(b => ({
-          id: b.id,
-          label: b.label,
-          message: b.message,
-          type: b.type,
-          targetPageId: b.targetPageId
-        })) }
+        {
+          ...homePage,
+          id: homePage.id,
+          name: homePage.name,
+          buttons: homePage.buttons.map((b) => ({
+            id: b.id,
+            label: b.label,
+            message: b.message,
+            type: b.type,
+            targetPageId: b.targetPageId,
+          })),
+        },
+        {
+          ...morePage,
+          id: morePage.id,
+          name: morePage.name,
+          buttons: morePage.buttons.map((b) => ({
+            id: b.id,
+            label: b.label,
+            message: b.message,
+            type: b.type,
+            targetPageId: b.targetPageId,
+          })),
+        },
       ],
-      rootId: 'home'
+      rootId: 'home',
     });
   }
 
@@ -214,22 +224,22 @@ export class TreeFactory {
       PageFactory.createCategory('Food', ['Apple', 'Banana', 'Bread', 'Water', 'Milk']),
       PageFactory.createCategory('Activities', ['Play', 'Read', 'Music', 'TV', 'Walk']),
       PageFactory.createCategory('People', ['Mom', 'Dad', 'Friend', 'Teacher', 'Doctor']),
-      PageFactory.createNavigation('Navigation', ['Home', 'Food', 'Activities', 'People'])
+      PageFactory.createNavigation('Navigation', ['Home', 'Food', 'Activities', 'People']),
     ];
 
     return this.create({
-      pages: pages.map(page => ({
+      pages: pages.map((page) => ({
         id: page.id,
         name: page.name,
-        buttons: page.buttons.map(b => ({
+        buttons: page.buttons.map((b) => ({
           id: b.id,
           label: b.label,
           message: b.message,
           type: b.type,
-          targetPageId: b.targetPageId
-        }))
+          targetPageId: b.targetPageId,
+        })),
       })),
-      rootId: 'home'
+      rootId: 'home',
     });
   }
 
@@ -238,41 +248,45 @@ export class TreeFactory {
 
     for (let i = 0; i < pageCount; i++) {
       const buttons: ButtonConfig[] = [];
-      
+
       for (let j = 0; j < buttonsPerPage; j++) {
         buttons.push({
           label: `Button ${j + 1}`,
           message: `Message ${j + 1} on page ${i + 1}`,
           type: j % 3 === 0 ? 'NAVIGATE' : 'SPEAK',
-          targetPageId: j % 3 === 0 ? `page_${(i + 1) % pageCount + 1}` : undefined
+          targetPageId: j % 3 === 0 ? `page_${((i + 1) % pageCount) + 1}` : undefined,
         });
       }
 
       pages.push({
         id: `page_${i + 1}`,
         name: `Page ${i + 1}`,
-        buttons
+        buttons,
       });
     }
 
     return this.create({
       pages,
-      rootId: 'page_1'
+      rootId: 'page_1',
     });
   }
 
   static createMinimal(): AACTree {
     return this.create({
-      pages: [{
-        id: 'single',
-        name: 'Single Page',
-        buttons: [{
-          label: 'Hello',
-          message: 'Hello World',
-          type: 'SPEAK'
-        }]
-      }],
-      rootId: 'single'
+      pages: [
+        {
+          id: 'single',
+          name: 'Single Page',
+          buttons: [
+            {
+              label: 'Hello',
+              message: 'Hello World',
+              type: 'SPEAK',
+            },
+          ],
+        },
+      ],
+      rootId: 'single',
     });
   }
 
@@ -300,41 +314,45 @@ export class TestDataUtils {
 
   static generateUnicodeString(): string {
     const unicodeChars = ['😀', '🎉', '🌟', '你好', 'مرحبا', 'Café', '∑∞≠'];
-    return unicodeChars[Math.floor(Math.random() * unicodeChars.length)] + 
-           this.generateRandomString(5);
+    return (
+      unicodeChars[Math.floor(Math.random() * unicodeChars.length)] + this.generateRandomString(5)
+    );
   }
 
-  static createTranslationMap(originalTexts: string[], targetLanguage: string = 'es'): Map<string, string> {
+  static createTranslationMap(
+    originalTexts: string[],
+    targetLanguage: string = 'es'
+  ): Map<string, string> {
     const translations = new Map<string, string>();
-    
+
     const commonTranslations: Record<string, Record<string, string>> = {
       es: {
-        'Hello': 'Hola',
-        'Food': 'Comida',
-        'Drink': 'Bebida',
-        'Home': 'Casa',
-        'More': 'Más',
-        'Please': 'Por favor',
+        Hello: 'Hola',
+        Food: 'Comida',
+        Drink: 'Bebida',
+        Home: 'Casa',
+        More: 'Más',
+        Please: 'Por favor',
         'Thank you': 'Gracias',
-        'Yes': 'Sí',
-        'No': 'No'
+        Yes: 'Sí',
+        No: 'No',
       },
       fr: {
-        'Hello': 'Bonjour',
-        'Food': 'Nourriture',
-        'Drink': 'Boisson',
-        'Home': 'Maison',
-        'More': 'Plus',
-        'Please': 'S\'il vous plaît',
+        Hello: 'Bonjour',
+        Food: 'Nourriture',
+        Drink: 'Boisson',
+        Home: 'Maison',
+        More: 'Plus',
+        Please: "S'il vous plaît",
         'Thank you': 'Merci',
-        'Yes': 'Oui',
-        'No': 'Non'
-      }
+        Yes: 'Oui',
+        No: 'Non',
+      },
     };
 
     const targetTranslations = commonTranslations[targetLanguage] || commonTranslations.es;
 
-    originalTexts.forEach(text => {
+    originalTexts.forEach((text) => {
       if (targetTranslations[text]) {
         translations.set(text, targetTranslations[text]);
       } else {

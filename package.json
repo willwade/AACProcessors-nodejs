@@ -1,28 +1,73 @@
 {
   "name": "aac-processors",
-  "version": "1.0.0",
-  "description": "A library for reading/writing and dealing with data structures in AAC systems",
-  "main": "index.js",
+  "version": "2.0.0",
+  "description": "A comprehensive TypeScript library for processing AAC (Augmentative and Alternative Communication) file formats with translation support",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist/**/*",
+    "docs/**/*",
+    "examples/**/*",
+    "README.md",
+    "LICENSE"
+  ],
   "directories": {
     "doc": "docs",
     "example": "examples",
-    "test": "tests"
+    "test": "test"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "npm run clean && tsc",
+    "build:watch": "tsc --watch",
     "clean": "rimraf dist coverage",
-    "lint": "eslint 'src/**/*.{js,ts}'",
-    "lint:fix": "eslint 'src/**/*.{js,ts}' --fix",
+    "lint": "eslint 'src/**/*.{js,ts}' 'test/**/*.{js,ts}'",
+    "lint:fix": "eslint 'src/**/*.{js,ts}' 'test/**/*.{js,ts}' --fix",
+    "format": "prettier --write 'src/**/*.{js,ts}' 'test/**/*.{js,ts}' '*.{js,ts,json,md}'",
+    "format:check": "prettier --check 'src/**/*.{js,ts}' 'test/**/*.{js,ts}' '*.{js,ts,json,md}'",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "type-check": "tsc --noEmit"
+    "test:ci": "jest --coverage --ci --watchAll=false --testTimeout=30000",
+    "coverage:report": "node scripts/coverage-analysis.js",
+    "type-check": "tsc --noEmit",
+    "prepublishOnly": "npm run build && npm run test:ci",
+    "prepack": "npm run build"
   },
   "keywords": [
-    "aac"
+    "aac",
+    "augmentative-communication",
+    "alternative-communication",
+    "assistive-technology",
+    "accessibility",
+    "communication-boards",
+    "snap",
+    "grid3",
+    "touchchat",
+    "obf",
+    "opml",
+    "dot",
+    "typescript",
+    "translation",
+    "i18n"
   ],
-  "author": "will wade",
+  "author": {
+    "name": "Will Wade",
+    "email": "wwade@acecentre.org.uk",
+    "url": "https://github.com/willwade"
+  },
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/willwade/AACProcessors-nodejs.git"
+  },
+  "bugs": {
+    "url": "https://github.com/willwade/AACProcessors-nodejs/issues"
+  },
+  "homepage": "https://github.com/willwade/AACProcessors-nodejs#readme",
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
   "devDependencies": {
     "@types/adm-zip": "^0.5.7",
     "@types/better-sqlite3": "^7.6.13",
@@ -51,6 +96,6 @@
     "yauzl": "^3.2.0"
   },
   "bin": {
-    "aac-processors": "./src/cli/index.js"
+    "aac-processors": "./dist/cli/index.js"
   }
 }

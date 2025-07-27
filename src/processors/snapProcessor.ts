@@ -90,7 +90,8 @@ class SnapProcessor extends BaseProcessor {
       for (const pageRow of pages) {
         let buttons: any[] = [];
         try {
-          const buttonQuery = this.loadAudio ? `
+          const buttonQuery = this.loadAudio
+            ? `
             SELECT b.Id, b.Label, b.Message, b.LibrarySymbolId, b.PageSetImageId,
                    b.MessageRecordingId, b.UseMessageRecording, b.SerializedMessageSoundMetadata,
                    ep.GridPosition, bpl.PageUniqueId, b.NavigatePageId, er.PageId as ButtonPageId
@@ -100,7 +101,8 @@ class SnapProcessor extends BaseProcessor {
             LEFT JOIN PageLayout pl ON ep.PageLayoutId = pl.Id
             LEFT JOIN ButtonPageLink bpl ON bpl.ButtonId = b.Id
             WHERE er.PageId = ? OR b.ElementReferenceId IN (SELECT Id FROM ElementReference WHERE PageId = ?)
-          ` : `
+          `
+            : `
             SELECT b.Id, b.Label, b.Message, b.LibrarySymbolId, b.PageSetImageId,
                    ep.GridPosition, bpl.PageUniqueId, b.NavigatePageId, er.PageId as ButtonPageId
             FROM Button b
@@ -129,7 +131,6 @@ class SnapProcessor extends BaseProcessor {
         const uniqueId = String(pageRow.UniqueId || pageRow.Id);
         const page = tree.getPage(uniqueId);
         if (!page) {
-
           continue;
         }
 
@@ -143,24 +144,30 @@ class SnapProcessor extends BaseProcessor {
           }
 
           // Determine parent page association for this button
-          let parentPageId = btnRow.ButtonPageId ? String(btnRow.ButtonPageId) : undefined;
-          let parentUniqueId = parentPageId && idToUniqueId[parentPageId] ? idToUniqueId[parentPageId] : uniqueId;
-
+          const parentPageId = btnRow.ButtonPageId ? String(btnRow.ButtonPageId) : undefined;
+          const parentUniqueId =
+            parentPageId && idToUniqueId[parentPageId] ? idToUniqueId[parentPageId] : uniqueId;
 
           // Load audio recording if requested and available
           let audioRecording;
           if (this.loadAudio && btnRow.MessageRecordingId && btnRow.MessageRecordingId > 0) {
             try {
-              const recordingData = db.prepare(`
+              const recordingData = db
+                .prepare(
+                  `
                 SELECT Id, Identifier, Data FROM PageSetData WHERE Id = ?
-              `).get(btnRow.MessageRecordingId) as { Id: number; Identifier: string; Data: Buffer } | undefined;
+              `
+                )
+                .get(btnRow.MessageRecordingId) as
+                | { Id: number; Identifier: string; Data: Buffer }
+                | undefined;
 
               if (recordingData) {
                 audioRecording = {
                   id: recordingData.Id,
                   data: recordingData.Data,
                   identifier: recordingData.Identifier,
-                  metadata: btnRow.SerializedMessageSoundMetadata || undefined
+                  metadata: btnRow.SerializedMessageSoundMetadata || undefined,
                 };
               }
             } catch (e) {
@@ -188,7 +195,6 @@ class SnapProcessor extends BaseProcessor {
           if (parentPage) {
             parentPage.addButton(button);
           } else {
-
           }
 
           // If this is a navigation button, update the target page's parentId
@@ -205,7 +211,9 @@ class SnapProcessor extends BaseProcessor {
     } catch (error: any) {
       // Provide more specific error messages
       if (error.code === 'SQLITE_NOTADB') {
-        throw new Error(`Invalid SQLite database file: ${typeof filePathOrBuffer === 'string' ? filePathOrBuffer : 'buffer'}`);
+        throw new Error(
+          `Invalid SQLite database file: ${typeof filePathOrBuffer === 'string' ? filePathOrBuffer : 'buffer'}`
+        );
       } else if (error.code === 'ENOENT') {
         throw new Error(`File not found: ${filePathOrBuffer}`);
       } else if (error.code === 'EACCES') {
@@ -243,14 +251,14 @@ class SnapProcessor extends BaseProcessor {
     const tree = this.loadIntoTree(filePathOrBuffer);
 
     // Apply translations to all text content
-    Object.values(tree.pages).forEach(page => {
+    Object.values(tree.pages).forEach((page) => {
       // Translate page names
       if (page.name && translations.has(page.name)) {
         page.name = translations.get(page.name)!;
       }
 
       // Translate button labels and messages
-      page.buttons.forEach(button => {
+      page.buttons.forEach((button) => {
         if (button.label && translations.has(button.label)) {
           button.label = translations.get(button.label)!;
         }
@@ -309,31 +317,38 @@ class SnapProcessor extends BaseProcessor {
       const pageIdMap = new Map<string, number>();
 
       // First pass: create all pages
-      Object.values(tree.pages).forEach(page => {
+      Object.values(tree.pages).forEach((page) => {
         const numericPageId = pageIdCounter++;
         pageIdMap.set(page.id, numericPageId);
 
-        const insertPage = db.prepare('INSERT INTO Page (Id, UniqueId, Title, Name) VALUES (?, ?, ?, ?)');
+        const insertPage = db.prepare(
+          'INSERT INTO Page (Id, UniqueId, Title, Name) VALUES (?, ?, ?, ?)'
+        );
         insertPage.run(numericPageId, page.id, page.name || '', page.name || '');
       });
 
       // Second pass: create buttons with proper page references
-      Object.values(tree.pages).forEach(page => {
+      Object.values(tree.pages).forEach((page) => {
         const numericPageId = pageIdMap.get(page.id)!;
 
         page.buttons.forEach((button, index) => {
           const elementRefId = elementRefIdCounter++;
 
           // Insert ElementReference
-          const insertElementRef = db.prepare('INSERT INTO ElementReference (Id, PageId) VALUES (?, ?)');
+          const insertElementRef = db.prepare(
+            'INSERT INTO ElementReference (Id, PageId) VALUES (?, ?)'
+          );
           insertElementRef.run(elementRefId, numericPageId);
 
           // Insert Button
-          const navigatePageId = button.type === 'NAVIGATE' && button.targetPageId
-            ? pageIdMap.get(button.targetPageId) || null
-            : null;
+          const navigatePageId =
+            button.type === 'NAVIGATE' && button.targetPageId
+              ? pageIdMap.get(button.targetPageId) || null
+              : null;
 
-          const insertButton = db.prepare('INSERT INTO Button (Id, Label, Message, NavigatePageId, ElementReferenceId) VALUES (?, ?, ?, ?, ?)');
+          const insertButton = db.prepare(
+            'INSERT INTO Button (Id, Label, Message, NavigatePageId, ElementReferenceId) VALUES (?, ?, ?, ?, ?)'
+          );
           insertButton.run(
             buttonIdCounter++,
             button.label || '',
@@ -343,11 +358,12 @@ class SnapProcessor extends BaseProcessor {
           );
 
           // Insert ElementPlacement
-          const insertPlacement = db.prepare('INSERT INTO ElementPlacement (Id, ElementReferenceId, GridPosition) VALUES (?, ?, ?)');
+          const insertPlacement = db.prepare(
+            'INSERT INTO ElementPlacement (Id, ElementReferenceId, GridPosition) VALUES (?, ?, ?)'
+          );
           insertPlacement.run(elementRefIdCounter++, elementRefId, index);
         });
       });
-
     } finally {
       db.close();
     }
@@ -356,12 +372,7 @@ class SnapProcessor extends BaseProcessor {
   /**
    * Add audio recording to a button in the database
    */
-  addAudioToButton(
-    dbPath: string,
-    buttonId: number,
-    audioData: Buffer,
-    metadata?: string
-  ): number {
+  addAudioToButton(dbPath: string, buttonId: number, audioData: Buffer, metadata?: string): number {
     const db = new Database(dbPath, { readonly: false });
 
     try {
@@ -371,9 +382,13 @@ class SnapProcessor extends BaseProcessor {
 
       // Check if audio with this identifier already exists
       let audioId;
-      const existingAudio = db.prepare(`
+      const existingAudio = db
+        .prepare(
+          `
         SELECT Id FROM PageSetData WHERE Identifier = ?
-      `).get(identifier) as { Id: number } | undefined;
+      `
+        )
+        .get(identifier) as { Id: number } | undefined;
 
       if (existingAudio) {
         audioId = existingAudio.Id;
@@ -399,7 +414,6 @@ class SnapProcessor extends BaseProcessor {
       updateButton.run(audioId, metadataJson, buttonId);
 
       return audioId;
-
     } finally {
       db.close();
     }
@@ -419,12 +433,7 @@ class SnapProcessor extends BaseProcessor {
     // Add audio recordings to the copy
     audioMappings.forEach((audioInfo, buttonId) => {
       try {
-        this.addAudioToButton(
-          targetDbPath,
-          buttonId,
-          audioInfo.audioData,
-          audioInfo.metadata
-        );
+        this.addAudioToButton(targetDbPath, buttonId, audioInfo.audioData, audioInfo.metadata);
       } catch (error) {
         // Failed to add audio to button
       }
@@ -434,7 +443,10 @@ class SnapProcessor extends BaseProcessor {
   /**
    * Extract buttons from a specific page that need audio recordings
    */
-  extractButtonsForAudio(dbPath: string, pageUniqueId: string): Array<{
+  extractButtonsForAudio(
+    dbPath: string,
+    pageUniqueId: string
+  ): Array<{
     id: number;
     label: string;
     message: string;
@@ -444,19 +456,25 @@ class SnapProcessor extends BaseProcessor {
 
     try {
       // Find the page by UniqueId
-      const page = db.prepare('SELECT * FROM Page WHERE UniqueId = ?').get(pageUniqueId) as { Id: number } | undefined;
+      const page = db.prepare('SELECT * FROM Page WHERE UniqueId = ?').get(pageUniqueId) as
+        | { Id: number }
+        | undefined;
       if (!page) {
         throw new Error(`Page with UniqueId ${pageUniqueId} not found`);
       }
 
       // Get buttons for this page
-      const buttons = db.prepare(`
+      const buttons = db
+        .prepare(
+          `
         SELECT
           b.Id, b.Label, b.Message, b.MessageRecordingId, b.UseMessageRecording
         FROM Button b
         JOIN ElementReference er ON b.ElementReferenceId = er.Id
         WHERE er.PageId = ?
-      `).all(page.Id) as Array<{
+      `
+        )
+        .all(page.Id) as Array<{
         Id: number;
         Label: string;
         Message: string | null;
@@ -464,13 +482,12 @@ class SnapProcessor extends BaseProcessor {
         UseMessageRecording: number | null;
       }>;
 
-      return buttons.map(btn => ({
+      return buttons.map((btn) => ({
         id: btn.Id,
         label: btn.Label || '',
         message: btn.Message || btn.Label || '',
-        hasAudio: !!(btn.MessageRecordingId && btn.MessageRecordingId > 0)
+        hasAudio: !!(btn.MessageRecordingId && btn.MessageRecordingId > 0),
       }));
-
     } finally {
       db.close();
     }

@@ -87,7 +87,9 @@ class TouchChatProcessor extends BaseProcessor {
         FROM pages p
         JOIN resources r ON r.id = p.resource_id
       `;
-      const pages = db.prepare(pageQuery).all() as (TouchChatPage & { name: string })[];
+      const pages = db.prepare(pageQuery).all() as (TouchChatPage & {
+        name: string;
+      })[];
       pages.forEach((pageRow) => {
         const page = new AACPage({
           id: String(pageRow.id),
@@ -242,14 +244,14 @@ class TouchChatProcessor extends BaseProcessor {
     const tree = this.loadIntoTree(filePathOrBuffer);
 
     // Apply translations to all text content
-    Object.values(tree.pages).forEach(page => {
+    Object.values(tree.pages).forEach((page) => {
       // Translate page names
       if (page.name && translations.has(page.name)) {
         page.name = translations.get(page.name)!;
       }
 
       // Translate button labels and messages
-      page.buttons.forEach(button => {
+      page.buttons.forEach((button) => {
         if (button.label && translations.has(button.label)) {
           button.label = translations.get(button.label)!;
         }
@@ -299,7 +301,7 @@ class TouchChatProcessor extends BaseProcessor {
 
       // Insert pages and buttons
       let resourceId = 1;
-      Object.values(tree.pages).forEach(page => {
+      Object.values(tree.pages).forEach((page) => {
         // Insert resource for page name
         const insertResource = db.prepare('INSERT INTO resources (id, name) VALUES (?, ?)');
         insertResource.run(resourceId, page.name || 'Page');
@@ -313,7 +315,9 @@ class TouchChatProcessor extends BaseProcessor {
           const buttonResourceId = resourceId + index + 1;
           insertResource.run(buttonResourceId, button.label || 'Button');
 
-          const insertButton = db.prepare('INSERT INTO buttons (id, resource_id, label, message) VALUES (?, ?, ?, ?)');
+          const insertButton = db.prepare(
+            'INSERT INTO buttons (id, resource_id, label, message) VALUES (?, ?, ?, ?)'
+          );
           insertButton.run(
             parseInt(button.id) || buttonResourceId,
             buttonResourceId,
@@ -331,7 +335,6 @@ class TouchChatProcessor extends BaseProcessor {
       const zip = new AdmZip();
       zip.addLocalFile(dbPath, '', 'vocab.db');
       zip.writeZip(outputPath);
-
     } finally {
       // Clean up
       if (fs.existsSync(tmpDir)) {

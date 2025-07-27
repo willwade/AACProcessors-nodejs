@@ -4,8 +4,14 @@ import path from 'path';
 import fs from 'fs';
 
 describe('SnapProcessor Audio Support', () => {
-  const exampleSPSFile: string = path.join(__dirname, '../examples/Aphasia Page Set With Sound.sps');
-  const enhancedSPSFile: string = path.join(__dirname, '../Aphasia_Page_Set_With_Punjabi_Audio.sps');
+  const exampleSPSFile: string = path.join(
+    __dirname,
+    '../examples/Aphasia Page Set With Sound.sps'
+  );
+  const enhancedSPSFile: string = path.join(
+    __dirname,
+    '../Aphasia_Page_Set_With_Punjabi_Audio.sps'
+  );
 
   it('should load pageset without audio by default', () => {
     if (!fs.existsSync(exampleSPSFile)) {
@@ -15,10 +21,10 @@ describe('SnapProcessor Audio Support', () => {
 
     const processor = new SnapProcessor();
     const tree: AACTree = processor.loadIntoTree(exampleSPSFile);
-    
+
     expect(tree).toBeDefined();
     expect(tree.pages).toBeDefined();
-    
+
     // Check that buttons don't have audio data by default
     const pages: AACPage[] = Object.values(tree.pages);
     if (pages.length > 0) {
@@ -38,14 +44,14 @@ describe('SnapProcessor Audio Support', () => {
 
     const processor = new SnapProcessor(null, { loadAudio: true });
     const tree: AACTree = processor.loadIntoTree(exampleSPSFile);
-    
+
     expect(tree).toBeDefined();
     expect(tree.pages).toBeDefined();
-    
+
     // Look for buttons with audio
     let foundAudioButton = false;
-    Object.values(tree.pages).forEach(page => {
-      page.buttons.forEach(button => {
+    Object.values(tree.pages).forEach((page) => {
+      page.buttons.forEach((button) => {
         if (button.audioRecording) {
           foundAudioButton = true;
           expect(button.audioRecording.id).toBeDefined();
@@ -54,7 +60,7 @@ describe('SnapProcessor Audio Support', () => {
         }
       });
     });
-    
+
     // Should find at least one button with audio in the sound-enabled example
     expect(foundAudioButton).toBe(true);
   });
@@ -66,19 +72,22 @@ describe('SnapProcessor Audio Support', () => {
     }
 
     const processor = new SnapProcessor();
-    
+
     // This should work with any page that has buttons
     try {
       // Try to find a page with buttons
       const tree: AACTree = processor.loadIntoTree(exampleSPSFile);
       const pages: AACPage[] = Object.values(tree.pages);
-      
+
       if (pages.length > 0) {
-        const pageWithButtons = pages.find(page => page.buttons.length > 0);
+        const pageWithButtons = pages.find((page) => page.buttons.length > 0);
         if (pageWithButtons) {
-          const buttons = (processor as any).extractButtonsForAudio(exampleSPSFile, pageWithButtons.id);
+          const buttons = (processor as any).extractButtonsForAudio(
+            exampleSPSFile,
+            pageWithButtons.id
+          );
           expect(Array.isArray(buttons)).toBe(true);
-          
+
           if (buttons.length > 0) {
             const firstButton = buttons[0];
             expect(firstButton).toHaveProperty('id');
@@ -102,20 +111,24 @@ describe('SnapProcessor Audio Support', () => {
 
     const processor = new SnapProcessor();
     const testDbPath: string = path.join(__dirname, 'test_audio_temp.sps');
-    
+
     try {
       // Copy the example file for testing
       fs.copyFileSync(exampleSPSFile, testDbPath);
-      
+
       // Create some test audio data
       const testAudioData: Buffer = Buffer.from('RIFF....WAVE....', 'ascii'); // Minimal WAV-like data
-      
+
       // Add audio to a button (using button ID 1 as a test)
-      const audioId: number = processor.addAudioToButton(testDbPath, 1, testAudioData, 'Test Audio');
-      
+      const audioId: number = processor.addAudioToButton(
+        testDbPath,
+        1,
+        testAudioData,
+        'Test Audio'
+      );
+
       expect(typeof audioId).toBe('number');
       expect(audioId).toBeGreaterThan(0);
-      
     } catch (error: any) {
       console.log('Could not test audio addition:', error.message);
     } finally {
@@ -139,23 +152,23 @@ describe('SnapProcessor Audio Support', () => {
     expect(tree.pages).toBeDefined();
 
     // Look for the QuickFires page
-    const quickFiresPage = Object.values(tree.pages).find(page =>
-      page.name && page.name.includes('QuickFires')
+    const quickFiresPage = Object.values(tree.pages).find(
+      (page) => page.name && page.name.includes('QuickFires')
     );
 
     if (quickFiresPage) {
       console.log(`Found QuickFires page with ${quickFiresPage.buttons.length} buttons`);
 
       // Count buttons with audio
-      const buttonsWithAudio = quickFiresPage.buttons.filter(button =>
-        button.audioRecording && button.audioRecording.data
+      const buttonsWithAudio = quickFiresPage.buttons.filter(
+        (button) => button.audioRecording && button.audioRecording.data
       );
 
       console.log(`Buttons with audio: ${buttonsWithAudio.length}`);
       expect(buttonsWithAudio.length).toBeGreaterThan(0);
 
       // Check audio metadata for Punjabi content
-      buttonsWithAudio.forEach(button => {
+      buttonsWithAudio.forEach((button) => {
         if (button.audioRecording && button.audioRecording.metadata) {
           try {
             const metadata = JSON.parse(button.audioRecording.metadata);
@@ -190,7 +203,9 @@ describe('SnapProcessor Audio Integration', () => {
 
     console.log('\n3. Adding audio to buttons:');
     console.log('   const audioData = fs.readFileSync("audio.wav");');
-    console.log('   const audioId = processor.addAudioToButton(dbPath, buttonId, audioData, "metadata");');
+    console.log(
+      '   const audioId = processor.addAudioToButton(dbPath, buttonId, audioData, "metadata");'
+    );
 
     console.log('\n4. Creating enhanced pageset:');
     console.log('   const audioMappings = new Map();');

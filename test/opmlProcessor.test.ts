@@ -18,8 +18,8 @@ describe('OPMLProcessor', () => {
     expect(superRoot!.buttons.length).toBeGreaterThan(0);
     // There should be at least one navigation button in the tree
     let navFound = false;
-    tree.traverse(page => {
-      page.buttons.forEach(btn => {
+    tree.traverse((page) => {
+      page.buttons.forEach((btn) => {
         if (btn.type === 'NAVIGATE' && btn.targetPageId) navFound = true;
       });
     });

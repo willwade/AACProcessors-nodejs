@@ -13,10 +13,9 @@ export function prettyPrintTree(tree: AACTree): string {
         if (btn.type === 'NAVIGATE' && btn.targetPageId) {
           output += ` to page: ${btn.targetPageId}`;
         }
-        output += "]\n";
+        output += ']\n';
       }
     }
   }
   return output;
 }
-

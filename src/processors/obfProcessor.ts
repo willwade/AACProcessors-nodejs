@@ -26,35 +26,32 @@ interface ObfBoard {
 }
 
 class ObfProcessor extends BaseProcessor {
-  private processBoard(
-    boardData: ObfBoard,
-    _boardPath: string
-  ): AACPage {
-    const buttons: AACButton[] = (boardData.buttons || []).map(
-      (btn: ObfButton): AACButton => {
-        const type = btn.load_board ? 'NAVIGATE' : 'SPEAK';
-        return {
-          id: String(btn?.id || ''),
-          label: String(btn?.label || ''),
-          message: String(btn?.vocalization || btn?.label || ''),
-          type,
-          action: btn.load_board ? {
-            type: 'NAVIGATE',
-            targetPageId: btn.load_board.path
-          } : {
-            type: 'SPEAK'
-          },
-          targetPageId: btn.load_board?.path
-        };
-      }
-    );
+  private processBoard(boardData: ObfBoard, _boardPath: string): AACPage {
+    const buttons: AACButton[] = (boardData.buttons || []).map((btn: ObfButton): AACButton => {
+      const type = btn.load_board ? 'NAVIGATE' : 'SPEAK';
+      return {
+        id: String(btn?.id || ''),
+        label: String(btn?.label || ''),
+        message: String(btn?.vocalization || btn?.label || ''),
+        type,
+        action: btn.load_board
+          ? {
+              type: 'NAVIGATE',
+              targetPageId: btn.load_board.path,
+            }
+          : {
+              type: 'SPEAK',
+            },
+        targetPageId: btn.load_board?.path,
+      };
+    });
 
     const page = new AACPage({
       id: String(boardData?.id || ''),
       name: String(boardData?.name || ''),
       grid: [],
       buttons,
-      parentId: null
+      parentId: null,
     });
 
     // Process grid layout if available
@@ -70,7 +67,7 @@ class ObfProcessor extends BaseProcessor {
           const row = Math.floor(btn.box_id / cols);
           const col = btn.box_id % cols;
           if (row < rows && col < cols) {
-            const aacBtn = buttons.find(b => b.id === btn.id);
+            const aacBtn = buttons.find((b) => b.id === btn.id);
             if (aacBtn) {
               grid[row][col] = aacBtn;
             }
@@ -105,7 +102,10 @@ class ObfProcessor extends BaseProcessor {
     console.log('[OBF] loadIntoTree called with:', {
       type: typeof filePathOrBuffer,
       isBuffer: Buffer.isBuffer(filePathOrBuffer),
-      value: typeof filePathOrBuffer === 'string' ? filePathOrBuffer : '[Buffer of length ' + (filePathOrBuffer as Buffer).length + ']'
+      value:
+        typeof filePathOrBuffer === 'string'
+          ? filePathOrBuffer
+          : '[Buffer of length ' + filePathOrBuffer.length + ']',
     });
     const tree = new AACTree();
 
@@ -190,14 +190,14 @@ class ObfProcessor extends BaseProcessor {
     const tree = this.loadIntoTree(filePathOrBuffer);
 
     // Apply translations to all text content
-    Object.values(tree.pages).forEach(page => {
+    Object.values(tree.pages).forEach((page) => {
       // Translate page names
       if (page.name && translations.has(page.name)) {
         page.name = translations.get(page.name)!;
       }
 
       // Translate button labels and messages
-      page.buttons.forEach(button => {
+      page.buttons.forEach((button) => {
         if (button.label && translations.has(button.label)) {
           button.label = translations.get(button.label)!;
         }
@@ -223,14 +223,17 @@ class ObfProcessor extends BaseProcessor {
       const obfBoard: ObfBoard = {
         id: rootPage.id,
         name: rootPage.name || 'Exported Board',
-        buttons: rootPage.buttons.map(button => ({
+        buttons: rootPage.buttons.map((button) => ({
           id: button.id,
           label: button.label,
           vocalization: button.message || button.label,
-          load_board: button.type === 'NAVIGATE' && button.targetPageId ? {
-            path: button.targetPageId
-          } : undefined
-        }))
+          load_board:
+            button.type === 'NAVIGATE' && button.targetPageId
+              ? {
+                  path: button.targetPageId,
+                }
+              : undefined,
+        })),
       };
 
       fs.writeFileSync(outputPath, JSON.stringify(obfBoard, null, 2));
@@ -238,18 +241,21 @@ class ObfProcessor extends BaseProcessor {
       // Save as OBZ (zip with multiple OBF files)
       const zip = new AdmZip();
 
-      Object.values(tree.pages).forEach(page => {
+      Object.values(tree.pages).forEach((page) => {
         const obfBoard: ObfBoard = {
           id: page.id,
           name: page.name || 'Board',
-          buttons: page.buttons.map(button => ({
+          buttons: page.buttons.map((button) => ({
             id: button.id,
             label: button.label,
             vocalization: button.message || button.label,
-            load_board: button.type === 'NAVIGATE' && button.targetPageId ? {
-              path: button.targetPageId
-            } : undefined
-          }))
+            load_board:
+              button.type === 'NAVIGATE' && button.targetPageId
+                ? {
+                    path: button.targetPageId,
+                  }
+                : undefined,
+          })),
         };
 
         const obfContent = JSON.stringify(obfBoard, null, 2);

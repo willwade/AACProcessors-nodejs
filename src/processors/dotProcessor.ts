@@ -86,9 +86,10 @@ class DotProcessor extends BaseProcessor {
     let content: string;
 
     try {
-      content = typeof filePathOrBuffer === 'string'
-        ? fs.readFileSync(filePathOrBuffer, 'utf8')
-        : filePathOrBuffer.toString('utf8');
+      content =
+        typeof filePathOrBuffer === 'string'
+          ? fs.readFileSync(filePathOrBuffer, 'utf8')
+          : filePathOrBuffer.toString('utf8');
     } catch (error) {
       // Re-throw file system errors (like file not found)
       if (typeof filePathOrBuffer === 'string') {
