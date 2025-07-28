@@ -18,6 +18,8 @@ A comprehensive **TypeScript library** for processing AAC (Augmentative and Alte
 - **OPML** (Outline Processor Markup Language) - Hierarchical structures
 - **DOT** (Graphviz) - Graph-based communication boards
 - **Apple Panels** (MacOS) - Plist format support
+- **Asterics Grid** - Native Asterics Grid format with audio
+- **Excel** - Export to Microsoft Excel for vocabulary analysis
 
 ### **Advanced Capabilities**
 
@@ -402,6 +404,9 @@ processor.saveFromTree(tree, "styled-board.spb");
 | **Grid3**         | ✅ Yes     | ✅ Yes       | ✅ Yes  | ✅ Style references             |
 | **Asterics Grid** | ✅ Yes     | ✅ Yes       | ✅ Yes  | ✅ Metadata-based               |
 | **Apple Panels**  | ✅ Yes     | ✅ Size only | ❌ No   | ✅ Display weight               |
+| **Dot**           |  ❌No     | ❌ Yes       | ❌ No   | ❌ Basic only                   |
+| **OPML**          |  ❌No     | ❌ Yes       | ❌ No   | ❌ Basic only                   |
+| **Excel**         | ✅ Yes     | ✅ Size only | ❌ No   | ✅ Display weight               |
 
 #### Cross-Format Styling Conversion
 
