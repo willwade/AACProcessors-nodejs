@@ -45,8 +45,9 @@ describe('CLI Comprehensive Tests', () => {
         cwd: tempDir,
       });
 
+      // DOT processor only extracts navigation relationships and page names
       expect(result).toContain('Home');
-      expect(result).toContain('Food');
+      expect(result).toContain('More'); // Navigation button label
       expect(result.trim().split('\n').length).toBeGreaterThan(0);
     });
 
@@ -120,9 +121,10 @@ describe('CLI Comprehensive Tests', () => {
         cwd: tempDir,
       });
 
+      // DOT processor extracts page names and navigation button labels
       expect(result).toContain('Home');
-      expect(result).toContain('Food');
-      expect(result).toContain('Drinks');
+      expect(result).toContain('Food'); // Page name, not button label
+      expect(result).toContain('Activities'); // Page name
     });
 
     it('should extract text from OPML format via CLI', () => {

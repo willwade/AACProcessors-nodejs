@@ -21,37 +21,30 @@ class DotProcessor extends BaseProcessor {
   } {
     const nodes = new Map<string, DotNode>();
     const edges: DotEdge[] = [];
-    const lines = content.split('\n');
 
-    for (const line of lines) {
-      const trimmedLine = line.trim();
+    // Extract all edge statements using regex to handle single-line DOT files
+    const edgeRegex = /"?([^"\s]+)"?\s*->\s*"?([^"\s]+)"?(?:\s*\[label="([^"]+)"\])?/g;
+    const nodeRegex = /"?([^"\s]+)"?\s*\[label="([^"]+)"\]/g;
 
-      // Skip empty lines and comments
-      if (!trimmedLine || trimmedLine.startsWith('//')) continue;
+    // Find all explicit node definitions
+    let nodeMatch;
+    while ((nodeMatch = nodeRegex.exec(content)) !== null) {
+      const [, id, label] = nodeMatch;
+      nodes.set(id, { id, label });
+    }
 
-      // Handle explicit node definitions: node1 [label="Home Page"]
-      const nodeMatch = trimmedLine.match(/^"?([^"\s]+)"?\s*\[label="([^"]+)"\]/);
-      if (nodeMatch) {
-        const [, id, label] = nodeMatch;
-        nodes.set(id, { id, label });
-        continue;
+    // Find all edge definitions
+    let edgeMatch;
+    while ((edgeMatch = edgeRegex.exec(content)) !== null) {
+      const [, from, to, label] = edgeMatch;
+      edges.push({ from, to, label });
+
+      // Add nodes if they don't exist (implicit definition)
+      if (!nodes.has(from)) {
+        nodes.set(from, { id: from, label: from });
       }
-
-      // Handle edges: "more quick chat" -> "That tickles"
-      const edgeMatch = trimmedLine.match(
-        /^"?([^"\s]+)"?\s*->\s*"?([^"\s]+)"?(?:\s*\[label="([^"]+)"\])?/
-      );
-      if (edgeMatch) {
-        const [, from, to, label] = edgeMatch;
-        edges.push({ from, to, label });
-
-        // Add nodes if they don't exist (implicit definition)
-        if (!nodes.has(from)) {
-          nodes.set(from, { id: from, label: from });
-        }
-        if (!nodes.has(to)) {
-          nodes.set(to, { id: to, label: to });
-        }
+      if (!nodes.has(to)) {
+        nodes.set(to, { id: to, label: to });
       }
     }
 
