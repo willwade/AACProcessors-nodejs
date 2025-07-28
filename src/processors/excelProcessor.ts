@@ -99,14 +99,16 @@ export class ExcelProcessor extends BaseProcessor {
    * @param workbook - Excel workbook to add worksheet to
    * @param page - AAC page to convert
    * @param tree - Full AAC tree for navigation context
+   * @param usedNames - Set of already used worksheet names to avoid duplicates
    */
   private async convertPageToWorksheet(
     workbook: ExcelJS.Workbook,
     page: AACPage,
     tree: AACTree,
+    usedNames: Set<string> = new Set()
   ): Promise<void> {
-    // Create worksheet with page name (sanitized for Excel)
-    const worksheetName = this.sanitizeWorksheetName(page.name || page.id);
+    // Create worksheet with page name (sanitized for Excel and unique)
+    const worksheetName = this.getUniqueWorksheetName(page.name || page.id, usedNames);
     const worksheet = workbook.addWorksheet(worksheetName);
 
     // Determine grid dimensions
@@ -522,13 +524,52 @@ export class ExcelProcessor extends BaseProcessor {
     // - Max 31 characters
     // - Cannot contain: \ / ? * [ ] :
     // - Cannot be empty
-    let sanitized = name.replace(/[\\\/\?\*\[\]:]/g, "_").substring(0, 31);
+    let sanitized = name
+      .replace(/[\\\/\?\*\[\]:]/g, "_")
+      .substring(0, 31)
+      .toLowerCase(); // Normalize case to avoid Excel case-insensitive duplicates
 
     if (sanitized.length === 0) {
-      sanitized = "Sheet1";
+      sanitized = "sheet1";
     }
 
     return sanitized;
+  }
+
+  /**
+   * Get a unique worksheet name by appending a number if needed
+   * @param name - Original name
+   * @param usedNames - Set of already used names (case-insensitive)
+   * @returns Unique worksheet name
+   */
+  private getUniqueWorksheetName(name: string, usedNames: Set<string>): string {
+    let baseName = this.sanitizeWorksheetName(name);
+    let uniqueName = baseName;
+    let counter = 1;
+
+    // Keep trying with incrementing numbers until we find a unique name
+    // Names are already normalized to lowercase by sanitization
+    while (usedNames.has(uniqueName)) {
+      // Calculate how much space we need for the counter suffix
+      const suffix = ` (${counter})`;
+      const maxBaseLength = 31 - suffix.length;
+
+      // Truncate base name if needed to make room for suffix
+      const truncatedBase = baseName.substring(0, maxBaseLength);
+      uniqueName = truncatedBase + suffix;
+      counter++;
+
+      // Safety check to prevent infinite loop
+      if (counter > 1000) {
+        uniqueName = `Sheet${Date.now()}`;
+        break;
+      }
+    }
+
+    // Add the unique name to the set (already normalized to lowercase)
+    usedNames.add(uniqueName);
+
+    return uniqueName;
   }
 
   /**
@@ -581,10 +622,13 @@ export class ExcelProcessor extends BaseProcessor {
       return;
     }
 
+    // Track used worksheet names to handle duplicates
+    const usedNames = new Set<string>();
+
     // Convert each AAC page to an Excel worksheet
     for (const pageId in tree.pages) {
       const page = tree.pages[pageId];
-      await this.convertPageToWorksheet(workbook, page, tree);
+      await this.convertPageToWorksheet(workbook, page, tree, usedNames);
     }
 
     // Save the workbook
