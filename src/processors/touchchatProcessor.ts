@@ -1,5 +1,12 @@
 import { BaseProcessor } from "../core/baseProcessor";
-import { AACTree, AACPage, AACButton } from "../core/treeStructure";
+import {
+  AACTree,
+  AACPage,
+  AACButton,
+  AACSemanticAction,
+  AACSemanticCategory,
+  AACSemanticIntent
+} from "../core/treeStructure";
 import AdmZip from "adm-zip";
 import Database from "better-sqlite3";
 import path from "path";
@@ -315,12 +322,30 @@ class TouchChatProcessor extends BaseProcessor {
         })[];
         pageButtons.forEach((btnRow) => {
           const style = buttonStyles.get(btnRow.button_style_id);
+          // Create semantic action for TouchChat button
+          const semanticAction: AACSemanticAction = {
+            category: AACSemanticCategory.COMMUNICATION,
+            intent: AACSemanticIntent.SPEAK_TEXT,
+            text: btnRow.message || btnRow.label || "",
+            platformData: {
+              touchChat: {
+                actionCode: 0, // Default speak action
+                actionData: btnRow.message || btnRow.label || ""
+              }
+            },
+            fallback: {
+              type: "SPEAK",
+              message: btnRow.message || btnRow.label || ""
+            }
+          };
+
           const button = new AACButton({
             id: String(btnRow.id),
             label: btnRow.label || "",
             message: btnRow.message || "",
             type: "SPEAK",
             action: null,
+            semanticAction: semanticAction,
             style: {
               backgroundColor: intToHex(style?.body_color),
               borderColor: intToHex(style?.border_color),
@@ -372,6 +397,30 @@ class TouchChatProcessor extends BaseProcessor {
                 idMappings.get(parseInt(nav.target_page_id)) ||
                 nav.target_page_id;
               button.targetPageId = String(targetPageId);
+
+              // Create semantic action for navigation
+              button.semanticAction = {
+                category: AACSemanticCategory.NAVIGATION,
+                intent: AACSemanticIntent.NAVIGATE_TO,
+                targetId: String(targetPageId),
+                platformData: {
+                  touchChat: {
+                    actionCode: 1, // TouchChat navigation code
+                    actionData: String(targetPageId)
+                  }
+                },
+                fallback: {
+                  type: "NAVIGATE",
+                  targetPageId: String(targetPageId)
+                }
+              };
+
+              // Update legacy action
+              button.action = {
+                type: "NAVIGATE",
+                targetPageId: String(targetPageId)
+              };
+
               break;
             }
           }
@@ -783,17 +832,35 @@ class TouchChatProcessor extends BaseProcessor {
               buttonLocation,
             );
 
-            // Handle navigation actions
-            if (button.type === "NAVIGATE" && button.targetPageId) {
-              const targetPageId = pageIdMap.get(button.targetPageId);
+            // Handle actions - prefer semantic actions
+            if (button.semanticAction?.intent === AACSemanticIntent.NAVIGATE_TO) {
+              const targetId = button.semanticAction.targetId || button.targetPageId;
+              const targetPageId = targetId ? pageIdMap.get(targetId) : null;
               if (targetPageId) {
-                // Insert action
+                // Insert navigation action
                 const insertAction = db.prepare(
                   "INSERT INTO actions (id, resource_id, code) VALUES (?, ?, ?)",
                 );
-                insertAction.run(actionIdCounter, buttonResourceId, 1); // code 1 = navigation
+                const actionCode = button.semanticAction.platformData?.touchChat?.actionCode || 1;
+                insertAction.run(actionIdCounter, buttonResourceId, actionCode);
 
                 // Insert action data
+                const insertActionData = db.prepare(
+                  "INSERT INTO action_data (action_id, value) VALUES (?, ?)",
+                );
+                const actionData = button.semanticAction.platformData?.touchChat?.actionData || String(targetPageId);
+                insertActionData.run(actionIdCounter, actionData);
+                actionIdCounter++;
+              }
+            } else if (button.type === "NAVIGATE" && button.targetPageId) {
+              // Fallback to legacy navigation handling
+              const targetPageId = pageIdMap.get(button.targetPageId);
+              if (targetPageId) {
+                const insertAction = db.prepare(
+                  "INSERT INTO actions (id, resource_id, code) VALUES (?, ?, ?)",
+                );
+                insertAction.run(actionIdCounter, buttonResourceId, 1);
+
                 const insertActionData = db.prepare(
                   "INSERT INTO action_data (action_id, value) VALUES (?, ?)",
                 );

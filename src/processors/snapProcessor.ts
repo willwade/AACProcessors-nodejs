@@ -1,5 +1,12 @@
 import { BaseProcessor } from "../core/baseProcessor";
-import { AACTree, AACPage, AACButton } from "../core/treeStructure";
+import {
+  AACTree,
+  AACPage,
+  AACButton,
+  AACSemanticAction,
+  AACSemanticCategory,
+  AACSemanticIntent
+} from "../core/treeStructure";
 // Removed unused import: FileProcessor
 import Database from "better-sqlite3";
 import path from "path";
@@ -211,18 +218,55 @@ class SnapProcessor extends BaseProcessor {
             }
           }
 
+          // Create semantic action for Snap button
+          let semanticAction: AACSemanticAction | undefined;
+          let legacyAction: any = null;
+
+          if (targetPageUniqueId) {
+            semanticAction = {
+              category: AACSemanticCategory.NAVIGATION,
+              intent: AACSemanticIntent.NAVIGATE_TO,
+              targetId: targetPageUniqueId,
+              platformData: {
+                snap: {
+                  navigatePageId: btnRow.NavigatePageId,
+                  elementReferenceId: btnRow.Id
+                }
+              },
+              fallback: {
+                type: "NAVIGATE",
+                targetPageId: targetPageUniqueId
+              }
+            };
+            legacyAction = {
+              type: "NAVIGATE",
+              targetPageId: targetPageUniqueId
+            };
+          } else {
+            semanticAction = {
+              category: AACSemanticCategory.COMMUNICATION,
+              intent: AACSemanticIntent.SPEAK_TEXT,
+              text: btnRow.Message || btnRow.Label || "",
+              platformData: {
+                snap: {
+                  elementReferenceId: btnRow.Id
+                }
+              },
+              fallback: {
+                type: "SPEAK",
+                message: btnRow.Message || btnRow.Label || ""
+              }
+            };
+          }
+
           const button = new AACButton({
             id: String(btnRow.Id),
             label: btnRow.Label || "",
             message: btnRow.Message || btnRow.Label || "",
             type: targetPageUniqueId ? "NAVIGATE" : "SPEAK",
             targetPageId: targetPageUniqueId,
-            action: targetPageUniqueId
-              ? {
-                  type: "NAVIGATE",
-                  targetPageId: targetPageUniqueId,
-                }
-              : null,
+            action: legacyAction,
+            semanticAction: semanticAction,
             audioRecording: audioRecording,
             style: {
               backgroundColor: btnRow.BackgroundColor
@@ -446,11 +490,16 @@ class SnapProcessor extends BaseProcessor {
           );
           insertElementRef.run(elementRefId, numericPageId);
 
-          // Insert Button
-          const navigatePageId =
-            button.type === "NAVIGATE" && button.targetPageId
-              ? pageIdMap.get(button.targetPageId) || null
-              : null;
+          // Insert Button - handle semantic actions
+          let navigatePageId = null;
+
+          // Use semantic action if available
+          if (button.semanticAction?.intent === AACSemanticIntent.NAVIGATE_TO) {
+            const targetId = button.semanticAction.targetId || button.targetPageId;
+            navigatePageId = targetId ? pageIdMap.get(targetId) || null : null;
+          } else if (button.type === "NAVIGATE" && button.targetPageId) {
+            navigatePageId = pageIdMap.get(button.targetPageId) || null;
+          }
 
           const insertButton = db.prepare(
             "INSERT INTO Button (Id, Label, Message, NavigatePageId, ElementReferenceId, LabelColor, BackgroundColor, BorderColor, BorderThickness, FontSize, FontFamily, FontStyle) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",

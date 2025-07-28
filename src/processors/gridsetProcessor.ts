@@ -1,5 +1,12 @@
 import { BaseProcessor } from "../core/baseProcessor";
-import { AACTree, AACPage, AACButton } from "../core/treeStructure";
+import {
+  AACTree,
+  AACPage,
+  AACButton,
+  AACSemanticAction,
+  AACSemanticCategory,
+  AACSemanticIntent
+} from "../core/treeStructure";
 import AdmZip from "adm-zip";
 import fs from "fs";
 import { XMLParser, XMLBuilder } from "fast-xml-parser";
@@ -17,6 +24,131 @@ interface _GridsetGrid {
 }
 
 class GridsetProcessor extends BaseProcessor {
+  // Helper function to generate Grid3 commands from AACAction
+  private generateCommandsFromAction(button: AACButton): any {
+    if (!button.action) {
+      // Default SPEAK action
+      return {
+        Command: {
+          "@_ID": "Action.InsertText",
+          Parameter: {
+            "@_Key": "text",
+            "#text": button.message || button.label || "",
+          },
+        },
+      };
+    }
+
+    const action = button.action;
+
+    switch (action.type) {
+      case "NAVIGATE":
+        return {
+          Command: {
+            "@_ID": "Jump.To",
+            Parameter: {
+              "@_Key": "grid",
+              "#text": action.targetPageId || button.targetPageId || "",
+            },
+          },
+        };
+
+      case "GO_BACK":
+        return {
+          Command: {
+            "@_ID": "Jump.Back",
+          },
+        };
+
+      case "SPEAK":
+        const speakParams = [];
+        if (action.unit) speakParams.push({ "@_Key": "unit", "#text": action.unit });
+        if (action.moveCaret !== undefined) speakParams.push({ "@_Key": "movecaret", "#text": action.moveCaret.toString() });
+
+        return {
+          Command: {
+            "@_ID": "Action.Speak",
+            ...(speakParams.length > 0 ? { Parameter: speakParams } : {}),
+          },
+        };
+
+      case "INSERT_TEXT":
+        return {
+          Command: {
+            "@_ID": "Action.InsertText",
+            Parameter: {
+              "@_Key": "text",
+              "#text": action.text || button.message || button.label || "",
+            },
+          },
+        };
+
+      case "DELETE_WORD":
+        return {
+          Command: {
+            "@_ID": "Action.DeleteWord",
+          },
+        };
+
+      case "CLEAR":
+        return {
+          Command: {
+            "@_ID": "Action.Clear",
+          },
+        };
+
+      case "INSERT_LETTER":
+        return {
+          Command: {
+            "@_ID": "Action.Letter",
+            Parameter: {
+              "@_Key": "letter",
+              "#text": action.letter || "",
+            },
+          },
+        };
+
+      case "SETTINGS":
+        const settingsParams = [];
+        if (action.indicatorEnabled !== undefined) {
+          settingsParams.push({ "@_Key": "indicatorenabled", "#text": action.indicatorEnabled ? "1" : "0" });
+        }
+        if (action.settingsAction) {
+          settingsParams.push({ "@_Key": "action", "#text": action.settingsAction });
+        }
+
+        return {
+          Command: {
+            "@_ID": "Settings.RestAll",
+            ...(settingsParams.length > 0 ? { Parameter: settingsParams } : {}),
+          },
+        };
+
+      case "AUTO_CONTENT":
+        return {
+          Command: {
+            "@_ID": "AutoContent.Activate",
+            Parameter: {
+              "@_Key": "autocontenttype",
+              "#text": action.autoContentType || "",
+            },
+          },
+        };
+
+      default:
+        // Fallback to INSERT_TEXT
+        return {
+          Command: {
+            "@_ID": "Action.InsertText",
+            Parameter: {
+              "@_Key": "text",
+              "#text": button.message || button.label || "",
+            },
+          },
+        };
+    }
+  }
+
   // Helper function to convert Grid 3 style to AACStyle
   private convertGrid3StyleToAACStyle(grid3Style: any): any {
     if (!grid3Style) return {};
@@ -197,33 +329,280 @@ class GridsetProcessor extends BaseProcessor {
 
             const message = label; // Use caption as message
 
-            // Check for navigation commands
+            // Parse all command types from Grid3 and create semantic actions
+            let semanticAction: AACSemanticAction | undefined;
+            let legacyAction: any = null;
+            let buttonType: "SPEAK" | "NAVIGATE" | "ACTION" = "SPEAK";
             let navigationTarget: string | undefined;
-            const commands =
-              content.Commands?.Command || content.commands?.command;
+
+            const commands = content.Commands?.Command || content.commands?.command;
             if (commands) {
-              const commandArr = Array.isArray(commands)
-                ? commands
-                : [commands];
+              const commandArr = Array.isArray(commands) ? commands : [commands];
+
               for (const command of commandArr) {
-                if (command.ID === "Jump.To" || command.id === "Jump.To") {
-                  const parameters = command.Parameter || command.parameter;
-                  if (parameters) {
-                    const paramArr = Array.isArray(parameters)
-                      ? parameters
-                      : [parameters];
-                    for (const param of paramArr) {
-                      if (
-                        (param.Key === "grid" || param.key === "grid") &&
-                        param["#text"]
-                      ) {
-                        navigationTarget = param["#text"];
-                        break;
-                      }
+                const commandId = command.ID || command.id;
+                const parameters = command.Parameter || command.parameter;
+                const paramArr = Array.isArray(parameters) ? parameters : [parameters];
+
+                // Helper to get parameter value
+                const getParam = (key: string) => {
+                  if (!parameters) return undefined;
+                  for (const param of paramArr) {
+                    if ((param.Key === key || param.key === key) && param["#text"]) {
+                      return param["#text"];
                     }
                   }
-                  break;
+                  return undefined;
+                };
+
+                switch (commandId) {
+                  case "Jump.To":
+                    const gridTarget = getParam("grid");
+                    if (gridTarget) {
+                      navigationTarget = gridTarget;
+                      buttonType = "NAVIGATE";
+                      semanticAction = {
+                        category: AACSemanticCategory.NAVIGATION,
+                        intent: AACSemanticIntent.NAVIGATE_TO,
+                        targetId: gridTarget,
+                        platformData: {
+                          grid3: {
+                            commandId,
+                            parameters: { grid: gridTarget }
+                          }
+                        },
+                        fallback: {
+                          type: "NAVIGATE",
+                          targetPageId: gridTarget
+                        }
+                      };
+                      legacyAction = {
+                        type: "NAVIGATE",
+                        targetPageId: gridTarget
+                      };
+                    }
+                    break;
+
+                  case "Jump.Back":
+                    buttonType = "ACTION";
+                    semanticAction = {
+                      category: AACSemanticCategory.NAVIGATION,
+                      intent: AACSemanticIntent.GO_BACK,
+                      platformData: {
+                        grid3: {
+                          commandId,
+                          parameters: {}
+                        }
+                      },
+                      fallback: {
+                        type: "ACTION",
+                        message: "Go back"
+                      }
+                    };
+                    legacyAction = {
+                      type: "GO_BACK"
+                    };
+                    break;
+
+                  case "Action.Speak":
+                    buttonType = "SPEAK";
+                    const speakUnit = getParam("unit");
+                    const moveCaret = getParam("movecaret");
+                    semanticAction = {
+                      category: AACSemanticCategory.COMMUNICATION,
+                      intent: AACSemanticIntent.SPEAK_TEXT,
+                      platformData: {
+                        grid3: {
+                          commandId,
+                          parameters: {
+                            unit: speakUnit,
+                            movecaret: moveCaret
+                          }
+                        }
+                      },
+                      fallback: {
+                        type: "SPEAK",
+                        message: "Speak text"
+                      }
+                    };
+                    legacyAction = {
+                      type: "SPEAK",
+                      unit: speakUnit,
+                      moveCaret: moveCaret ? parseInt(moveCaret) : undefined
+                    };
+                    break;
+
+                  case "Action.InsertText":
+                    buttonType = "SPEAK"; // InsertText is primarily communication
+                    const insertText = getParam("text");
+                    semanticAction = {
+                      category: AACSemanticCategory.COMMUNICATION,
+                      intent: AACSemanticIntent.INSERT_TEXT,
+                      text: insertText,
+                      platformData: {
+                        grid3: {
+                          commandId,
+                          parameters: { text: insertText }
+                        }
+                      },
+                      fallback: {
+                        type: "SPEAK",
+                        message: insertText
+                      }
+                    };
+                    legacyAction = {
+                      type: "INSERT_TEXT",
+                      text: insertText
+                    };
+                    break;
+
+                  case "Action.DeleteWord":
+                    buttonType = "ACTION";
+                    semanticAction = {
+                      category: AACSemanticCategory.TEXT_EDITING,
+                      intent: AACSemanticIntent.DELETE_WORD,
+                      platformData: {
+                        grid3: {
+                          commandId,
+                          parameters: {}
+                        }
+                      },
+                      fallback: {
+                        type: "ACTION",
+                        message: "Delete word"
+                      }
+                    };
+                    legacyAction = {
+                      type: "DELETE_WORD"
+                    };
+                    break;
+
+                  case "Action.Clear":
+                    buttonType = "ACTION";
+                    semanticAction = {
+                      category: AACSemanticCategory.TEXT_EDITING,
+                      intent: AACSemanticIntent.CLEAR_TEXT,
+                      platformData: {
+                        grid3: {
+                          commandId,
+                          parameters: {}
+                        }
+                      },
+                      fallback: {
+                        type: "ACTION",
+                        message: "Clear text"
+                      }
+                    };
+                    legacyAction = {
+                      type: "CLEAR"
+                    };
+                    break;
+
+                  case "Action.Letter":
+                    buttonType = "ACTION";
+                    const letter = getParam("letter");
+                    semanticAction = {
+                      category: AACSemanticCategory.TEXT_EDITING,
+                      intent: AACSemanticIntent.INSERT_TEXT,
+                      text: letter,
+                      platformData: {
+                        grid3: {
+                          commandId,
+                          parameters: { letter }
+                        }
+                      },
+                      fallback: {
+                        type: "ACTION",
+                        message: letter
+                      }
+                    };
+                    legacyAction = {
+                      type: "INSERT_LETTER",
+                      letter
+                    };
+                    break;
+
+                  case "Settings.RestAll":
+                    buttonType = "ACTION";
+                    semanticAction = {
+                      category: AACSemanticCategory.CUSTOM,
+                      intent: AACSemanticIntent.PLATFORM_SPECIFIC,
+                      platformData: {
+                        grid3: {
+                          commandId,
+                          parameters: {
+                            indicatorenabled: getParam("indicatorenabled"),
+                            action: getParam("action")
+                          }
+                        }
+                      },
+                      fallback: {
+                        type: "ACTION",
+                        message: "Settings action"
+                      }
+                    };
+                    legacyAction = {
+                      type: "SETTINGS",
+                      indicatorEnabled: getParam("indicatorenabled") === "1",
+                      settingsAction: getParam("action")
+                    };
+                    break;
+
+                  case "AutoContent.Activate":
+                    buttonType = "ACTION";
+                    semanticAction = {
+                      category: AACSemanticCategory.CUSTOM,
+                      intent: AACSemanticIntent.PLATFORM_SPECIFIC,
+                      platformData: {
+                        grid3: {
+                          commandId,
+                          parameters: {
+                            autocontenttype: getParam("autocontenttype")
+                          }
+                        }
+                      },
+                      fallback: {
+                        type: "ACTION",
+                        message: "Auto content"
+                      }
+                    };
+                    legacyAction = {
+                      type: "AUTO_CONTENT",
+                      autoContentType: getParam("autocontenttype")
+                    };
+                    break;
+
+                  default:
+                    // Unknown command - preserve as generic action
+                    if (commandId) {
+                      buttonType = "ACTION";
+                      const allParams = Object.fromEntries(
+                        paramArr.map(p => [(p.Key || p.key), p["#text"]])
+                      );
+                      semanticAction = {
+                        category: AACSemanticCategory.CUSTOM,
+                        intent: AACSemanticIntent.PLATFORM_SPECIFIC,
+                        platformData: {
+                          grid3: {
+                            commandId,
+                            parameters: allParams
+                          }
+                        },
+                        fallback: {
+                          type: "ACTION",
+                          message: "Unknown command"
+                        }
+                      };
+                      legacyAction = {
+                        type: "SPEAK",
+                        parameters: { commandId, ...allParams }
+                      };
+                    }
+                    break;
                 }
+
+                // Use first recognized command
+                if (semanticAction || legacyAction) break;
               }
             }
 
@@ -244,16 +623,10 @@ class GridsetProcessor extends BaseProcessor {
               id: `${gridId}_btn_${idx}`,
               label: String(label),
               message: String(message),
-              type: navigationTarget ? "NAVIGATE" : "SPEAK",
-              targetPageId: navigationTarget
-                ? String(navigationTarget)
-                : undefined,
-              action: navigationTarget
-                ? {
-                    type: "NAVIGATE",
-                    targetPageId: String(navigationTarget),
-                  }
-                : null,
+              type: buttonType,
+              targetPageId: navigationTarget ? String(navigationTarget) : undefined,
+              action: legacyAction,
+              semanticAction: semanticAction,
               style: {
                 ...cellStyle,
                 ...inlineStyle, // Inline styles override referenced styles
@@ -444,27 +817,7 @@ class GridsetProcessor extends BaseProcessor {
                       "@_Y": buttonY,
                       "@_StyleID": buttonStyleId,
                       Content: {
-                        Commands:
-                          button.type === "NAVIGATE" && button.targetPageId
-                            ? {
-                                Command: {
-                                  "@_ID": "Jump.To",
-                                  Parameter: {
-                                    "@_Key": "grid",
-                                    "#text": button.targetPageId,
-                                  },
-                                },
-                              }
-                            : {
-                                Command: {
-                                  "@_ID": "Action.InsertText",
-                                  Parameter: {
-                                    "@_Key": "text",
-                                    "#text":
-                                      button.message || button.label || "",
-                                  },
-                                },
-                              },
+                        Commands: this.generateCommandsFromAction(button),
                         CaptionAndImage: {
                           Caption: button.label || "",
                         },

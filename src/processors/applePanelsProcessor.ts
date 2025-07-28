@@ -1,5 +1,12 @@
 import { BaseProcessor } from "../core/baseProcessor";
-import { AACTree, AACPage, AACButton } from "../core/treeStructure";
+import {
+  AACTree,
+  AACPage,
+  AACButton,
+  AACSemanticAction,
+  AACSemanticCategory,
+  AACSemanticIntent
+} from "../core/treeStructure";
 // Removed unused import: FileProcessor
 import plist from "plist";
 import fs from "fs";
@@ -139,18 +146,59 @@ class ApplePanelsProcessor extends BaseProcessor {
       }
 
       panel.buttons.forEach((btn, idx) => {
+        // Create semantic action from Apple Panels button
+        let semanticAction: AACSemanticAction | undefined;
+        let legacyAction: any = null;
+
+        if (btn.targetPanel) {
+          semanticAction = {
+            category: AACSemanticCategory.NAVIGATION,
+            intent: AACSemanticIntent.NAVIGATE_TO,
+            targetId: btn.targetPanel,
+            platformData: {
+              applePanels: {
+                actionType: "ActionOpenPanel",
+                parameters: { PanelID: `USER.${btn.targetPanel}` }
+              }
+            },
+            fallback: {
+              type: "NAVIGATE",
+              targetPageId: btn.targetPanel
+            }
+          };
+          legacyAction = {
+            type: "NAVIGATE",
+            targetPageId: btn.targetPanel
+          };
+        } else {
+          semanticAction = {
+            category: AACSemanticCategory.COMMUNICATION,
+            intent: AACSemanticIntent.SPEAK_TEXT,
+            text: btn.message || btn.label,
+            platformData: {
+              applePanels: {
+                actionType: "ActionPressKeyCharSequence",
+                parameters: {
+                  CharString: btn.message || btn.label || "",
+                  isStickyKey: false
+                }
+              }
+            },
+            fallback: {
+              type: "SPEAK",
+              message: btn.message || btn.label
+            }
+          };
+        }
+
         const button = new AACButton({
           id: `${panel.id}_btn_${idx}`,
           label: btn.label,
           message: btn.message || btn.label,
           type: btn.targetPanel ? "NAVIGATE" : "SPEAK",
           targetPageId: btn.targetPanel,
-          action: btn.targetPanel
-            ? {
-                type: "NAVIGATE",
-                targetPageId: btn.targetPanel,
-              }
-            : null,
+          action: legacyAction,
+          semanticAction: semanticAction,
           style: {
             backgroundColor: btn.DisplayColor,
             fontSize: btn.FontSize,
@@ -336,7 +384,7 @@ class ApplePanelsProcessor extends BaseProcessor {
           FontSize: button.style?.fontSize || 12,
           ID: `Button.${button.id}`,
           PanelObjectType: "Button",
-          Rect: rect
+          Rect: rect!
         };
 
         if (button.style?.backgroundColor) {
@@ -349,28 +397,100 @@ class ApplePanelsProcessor extends BaseProcessor {
           buttonObj.DisplayImageWeight = "FontWeightRegular";
         }
 
-        // Add actions
-        if (button.type === "NAVIGATE" && button.targetPageId) {
-          buttonObj.Actions = [{
+        // Add actions - prefer semantic action if available
+        buttonObj.Actions = [this.createApplePanelsAction(button)];
+      }
+
+      return buttonObj;
+    });
+
+    return panelObjects;
+  }
+
+  private createApplePanelsAction(button: AACButton): any {
+    // Use semantic action if available
+    if (button.semanticAction?.platformData?.applePanels) {
+      const applePanelsData = button.semanticAction.platformData.applePanels;
+      return {
+        ActionParam: applePanelsData.parameters,
+        ActionRecordedOffset: 0.0,
+        ActionType: applePanelsData.actionType,
+        ID: `Action.${button.id}`
+      };
+    }
+
+    // Handle semantic actions without Apple Panels specific data
+    if (button.semanticAction) {
+      switch (button.semanticAction.intent) {
+        case AACSemanticIntent.NAVIGATE_TO:
+          return {
             ActionParam: {
-              PanelID: `USER.${button.targetPageId}`
+              PanelID: `USER.${button.semanticAction.targetId || button.targetPageId || ""}`
             },
             ActionRecordedOffset: 0.0,
             ActionType: "ActionOpenPanel",
             ID: `Action.${button.id}`
-          }];
-        } else {
-          // SPEAK action
-          buttonObj.Actions = [{
+          };
+
+        case AACSemanticIntent.SPEAK_TEXT:
+        case AACSemanticIntent.INSERT_TEXT:
+          return {
             ActionParam: {
-              CharString: button.message || button.label || "",
+              CharString: button.semanticAction.text || button.message || button.label || "",
               isStickyKey: false
             },
             ActionRecordedOffset: 0.0,
             ActionType: "ActionPressKeyCharSequence",
             ID: `Action.${button.id}`
-          }];
-        }
+          };
+
+        case AACSemanticIntent.SEND_KEYS:
+          return {
+            ActionParam: {
+              CharString: button.semanticAction.text || "",
+              isStickyKey: false
+            },
+            ActionRecordedOffset: 0.0,
+            ActionType: "ActionSendKeys",
+            ID: `Action.${button.id}`
+          };
+
+        default:
+          // Fallback to speech for unknown semantic actions
+          return {
+            ActionParam: {
+              CharString: button.semanticAction.fallback?.message || button.message || button.label || "",
+              isStickyKey: false
+            },
+            ActionRecordedOffset: 0.0,
+            ActionType: "ActionPressKeyCharSequence",
+            ID: `Action.${button.id}`
+          };
+      }
+    }
+
+    // Legacy action handling
+    if (button.type === "NAVIGATE" && button.targetPageId) {
+      return {
+        ActionParam: {
+          PanelID: `USER.${button.targetPageId}`
+        },
+        ActionRecordedOffset: 0.0,
+        ActionType: "ActionOpenPanel",
+        ID: `Action.${button.id}`
+      };
+    } else {
+      // Default SPEAK action
+      return {
+        ActionParam: {
+          CharString: button.message || button.label || "",
+          isStickyKey: false
+        },
+        ActionRecordedOffset: 0.0,
+        ActionType: "ActionPressKeyCharSequence",
+        ID: `Action.${button.id}`
+      };
+    }
 
         return buttonObj;
       });
