@@ -1,4 +1,4 @@
-import { AACTree } from '../types/aac';
+import { AACTree } from './treeStructure';
 
 abstract class BaseProcessor {
   // Extract all text content (for translation, analysis, etc.)

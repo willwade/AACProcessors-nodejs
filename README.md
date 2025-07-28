@@ -553,15 +553,15 @@ Inspired by the Python AACProcessors project and built for the AAC community.
 
 ### 🔥 Critical Priority (Immediate Action Required)
 
-- [ ] **Fix audio metadata test failures** (21 tests failing) - Resolve non-null assertion errors in audio comprehensive tests, particularly in snapProcessor.audio.comprehensive.test.ts
-- [ ] **Fix linting issues** (177 remaining issues) - Address TypeScript eslint errors and warnings, particularly non-null assertions and require statements
-- [ ] **Fix CLI test infrastructure** (currently 0% coverage, 3 failing tests) - Update test expectations to match actual CLI output format and achieve >80% CLI coverage
+- [ ] **Fix audio persistence issues** (5 tests failing) - Resolve functional audio recording persistence in SnapProcessor save/load cycle (reduced from 21 failing tests)
+- [ ] **Resolve database constraint violations** - Fix UNIQUE constraint failures in Page.Id and buttons.id when processing real-world data files (blocks production usage)
+- [ ] **Fix Grid3 layout issues** - Grid sizes not reliable and X,Y positions incorrect, particularly affecting Grid3 processor functionality
 
 ### 🚨 High Priority (Next Sprint)
 
 - [ ] **Complete SnapProcessor coverage** (currently 48.32% - lowest processor) - Add comprehensive audio handling, database corruption tests, and SQLite schema validation to reach >75% coverage
-- [ ] **Add core functionality tests** (analyze.ts: 0%, fileProcessor.ts: 0%) - Test core utilities to achieve >80% coverage in src/core/ directory
-- [ ] **Resolve database constraint violations** - Fix UNIQUE constraint failures in Page.Id and buttons.id when processing real-world data files (blocks production usage)
+- [ ] **Reduce remaining linting issues** (123 remaining) - Address TypeScript eslint errors and warnings in test files and less critical areas
+- [ ] **Improve GridsetProcessor coverage** (currently 71.69%) - Enhance ZIP handling and complex Grid3 archive support to reach >80% coverage
 
 ### ⚠️ Medium Priority (Following Sprint)
 
@@ -572,10 +572,13 @@ Inspired by the Python AACProcessors project and built for the AAC community.
 
 ### Recently Completed ✅
 
+- [x] **Core utilities test coverage** - Complete implementation for analyze.ts and fileProcessor.ts (0% → 100% coverage, 45 comprehensive tests, src/core/ directory 30% → 83% coverage)
+- [x] **CLI test infrastructure** - Fixed DotProcessor parsing and test expectations (0 → 25 passing tests, 100% CLI functionality)
+- [x] **Critical linting fixes** - Resolved unsafe argument types and CLI type safety issues (177 → 123 errors, 32% improvement)
+- [x] **Audio test syntax fixes** - Fixed non-null assertion errors in audio tests (21 → 5 failing tests, 76% improvement)
 - [x] **Comprehensive styling support** - Complete implementation across all AAC formats with cross-format preservation (Added: AACStyle interface, enhanced all processors, 7 new test cases, complete documentation)
 - [x] **TouchChatProcessor save/load functionality** - Fixed button persistence and ID mapping (coverage improved from 57.62% to 86.44%)
 - [x] **Build integration** - Ensure `npm run build` is executed before CLI tests (Fixed: All test scripts now automatically build before running)
-- [x] **CLI test infrastructure** - Fixed "Cannot find module" errors in CLI integration tests
 
 ### Medium Priority
 
@@ -603,19 +606,18 @@ Inspired by the Python AACProcessors project and built for the AAC community.
 
 ### Known Issues
 
-- ⚠️ **Audio Tests**: 21 tests failing due to non-null assertion errors in audio metadata processing (critical fix needed)
-- ⚠️ **Linting**: 177 ESLint issues including non-null assertions and require statements (code quality impact)
-- ⚠️ **CLI Tests**: 3 tests failing due to output format expectations (immediate fix needed)
-- ⚠️ **SnapProcessor**: Lowest coverage at 48.32%, missing audio handling tests
-- ⚠️ **Core Utilities**: Zero test coverage for analyze.ts and fileProcessor.ts
-- ⚠️ **Real-world data**: UNIQUE constraint violations with example files
+- ⚠️ **Audio Persistence**: 5 functional tests failing due to audio recording not persisting through SnapProcessor save/load cycle
+- ⚠️ **Grid3 Layout**: Grid sizes not reliable and X,Y positions incorrect, particularly affecting Grid3 processor functionality
+- ⚠️ **Database Constraints**: UNIQUE constraint violations with real-world data files (Page.Id and buttons.id conflicts)
+- ⚠️ **Linting**: 123 ESLint issues remaining (mostly in test files, reduced from 177)
+- ⚠️ **SnapProcessor**: Lowest coverage at 48.32%, missing comprehensive audio handling tests
 - ⚠️ **Memory usage**: Large files (>50MB) may cause memory pressure
 - ⚠️ **Concurrent access**: Some processors not fully thread-safe for simultaneous writes
 
 ## More enhancements
 
+- Much more effort put into fixing the layout issues. Grid sizes are not reliably and X, Y positions too. Particularly in the Grid3
 - Action types on buttons. We have SPEAK, NAVIGATE, but we could also have things like "PLAY_AUDIO", "SEND_MESSAGE", "OPEN_URL", etc. This would allow us to have a more flexible structure for actions, especially if we want to support different types of actions or additional metadata in the future. This needs to be very flexible. eaach system has a very different set of actions. We could have a set of core actions that are supported by all systems, and then allow each system to define its own additional actions. This could be done by having a set of core action types that are defined in the AACSystem type, and then allowing each system to define its own additional action types in the AACPageSet or AACPage types.
-- ✅ **Styling information for buttons, background colors, and text colors etc** - Comprehensive styling support implemented across all formats
 - Current language and locale information of aac pageset
 - Symbols and their associated data. Now we have an optional part but I think this might need rethinking. I wonder if "Symbols" should be a separate type - alongside AACPageSet and AACPage. that then AACPageSet and AACPage can reference. This would allow us to have a more flexible structure for symbols, especially if we want to support different types of symbols or additional metadata in the future. Symbols would have: Library name, ID, Text name, Reference (URL, DB ID, etc.), and an optional part for additional metadata. We could have synoynms, antonyms, also and for different languages somehow.
 - Somehow we need to deal with access. Switch scanning: Blocks probably being the main aspect. But also - we need to identify somewhere a set of core rules for each aac system. Like for example - what access methods are supported, what languages are supported, what symbols are supported, etc. This could be a set of rules that can be referenced by AACSystem - a different type altogether maybe? It could be in a JSON format maybe. (use case here being for a MCP).

@@ -6,9 +6,10 @@ import { SnapProcessor } from '../processors/snapProcessor';
 import { DotProcessor } from '../processors/dotProcessor';
 import { ApplePanelsProcessor } from '../processors/applePanelsProcessor';
 import { AACTree } from './treeStructure';
+import { BaseProcessor } from './baseProcessor';
 import fs from 'fs';
 
-export function getProcessor(format: string) {
+export function getProcessor(format: string): BaseProcessor {
   const normalizedFormat = (format || '').toLowerCase();
 
   switch (normalizedFormat) {
@@ -36,9 +37,9 @@ export function getProcessor(format: string) {
   }
 }
 
-export async function analyze(file: string, format: string) {
+export function analyze(file: string, format: string) {
   const processor = getProcessor(format);
   const fileBuffer = fs.readFileSync(file);
-  const tree: AACTree = processor.loadIntoTree(fileBuffer);
+  const tree = processor.loadIntoTree(fileBuffer);
   return { tree };
 }
