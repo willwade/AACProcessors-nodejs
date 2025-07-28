@@ -25,7 +25,10 @@ interface _GridsetGrid {
 
 class GridsetProcessor extends BaseProcessor {
   // Helper function to generate Grid3 commands from semantic actions
-  private generateCommandsFromSemanticAction(button: AACButton): any {
+  private generateCommandsFromSemanticAction(
+    button: AACButton,
+    tree?: AACTree,
+  ): any {
     const semanticAction = button.semanticAction;
 
     if (!semanticAction) {
@@ -62,12 +65,20 @@ class GridsetProcessor extends BaseProcessor {
     // Convert semantic actions to Grid3 commands
     switch (semanticAction.intent) {
       case AACSemanticIntent.NAVIGATE_TO:
+        // For Grid3, we need to use the grid name, not the ID
+        let targetGridName = semanticAction.targetId || "";
+        if (tree && semanticAction.targetId) {
+          const targetPage = tree.getPage(semanticAction.targetId);
+          if (targetPage) {
+            targetGridName = targetPage.name || targetPage.id;
+          }
+        }
         return {
           Command: {
             "@_ID": "Jump.To",
             Parameter: {
               "@_Key": "grid",
-              "#text": semanticAction.targetId || "",
+              "#text": targetGridName,
             },
           },
         };
@@ -76,6 +87,34 @@ class GridsetProcessor extends BaseProcessor {
         return {
           Command: {
             "@_ID": "Jump.Back",
+          },
+        };
+
+      case AACSemanticIntent.GO_HOME:
+        return {
+          Command: {
+            "@_ID": "Jump.Home",
+          },
+        };
+
+      case AACSemanticIntent.DELETE_WORD:
+        return {
+          Command: {
+            "@_ID": "Action.DeleteWord",
+          },
+        };
+
+      case AACSemanticIntent.DELETE_CHARACTER:
+        return {
+          Command: {
+            "@_ID": "Action.DeleteLetter",
+          },
+        };
+
+      case AACSemanticIntent.CLEAR_TEXT:
+        return {
+          Command: {
+            "@_ID": "Action.Clear",
           },
         };
 
@@ -177,19 +216,35 @@ class GridsetProcessor extends BaseProcessor {
       throw new Error(`Invalid ZIP file format: ${error.message}`);
     }
 
-    const parser = new XMLParser();
+    const parser = new XMLParser({ ignoreAttributes: false });
 
-    // First, load styles from style.xml if it exists
+    // First, load styles from Settings0/Styles/styles.xml (Grid3 format)
     const styles = new Map<string, any>();
     const styleEntry = zip
       .getEntries()
-      .find((entry) => entry.entryName.endsWith("style.xml"));
+      .find(
+        (entry) =>
+          entry.entryName.endsWith("styles.xml") ||
+          entry.entryName.endsWith("style.xml"),
+      );
     if (styleEntry) {
       try {
         const styleXmlContent = styleEntry.getData().toString("utf8");
         const styleData = parser.parse(styleXmlContent);
         // Parse styles and store them in the map
-        if (styleData.Styles?.Style) {
+        // Grid3 uses StyleData.Styles.Style with Key attribute
+        if (styleData.StyleData?.Styles?.Style) {
+          const styleArray = Array.isArray(styleData.StyleData.Styles.Style)
+            ? styleData.StyleData.Styles.Style
+            : [styleData.StyleData.Styles.Style];
+          styleArray.forEach((style: any) => {
+            if (style["@_Key"]) {
+              styles.set(style["@_Key"], style);
+            }
+          });
+        }
+        // Also handle legacy format with @_ID
+        else if (styleData.Styles?.Style) {
           const styleArray = Array.isArray(styleData.Styles.Style)
             ? styleData.Styles.Style
             : [styleData.Styles.Style];
@@ -200,13 +255,56 @@ class GridsetProcessor extends BaseProcessor {
           });
         }
       } catch (e) {
-        console.warn("Failed to parse style.xml:", e);
+        console.warn("Failed to parse styles.xml:", e);
       }
     }
 
     // Debug: log all entry names
     // console.log('Gridset zip entries:', zip.getEntries().map(e => e.entryName));
-    // Process each grid file in the gridset
+
+    // First pass: collect all grid names and IDs for navigation resolution
+    const gridNameToIdMap = new Map<string, string>();
+    const gridIdToNameMap = new Map<string, string>();
+
+    zip.getEntries().forEach((entry) => {
+      if (
+        entry.entryName.startsWith("Grids/") &&
+        entry.entryName.endsWith("grid.xml")
+      ) {
+        try {
+          const xmlContent = entry.getData().toString("utf8");
+          const data = parser.parse(xmlContent);
+          const grid = data.Grid || data.grid;
+          if (!grid) return;
+
+          function extractText(val: any): string | undefined {
+            if (!val) return undefined;
+            if (typeof val === "string") return val;
+            if (typeof val === "object" && "#text" in val) return val["#text"];
+            return undefined;
+          }
+
+          const gridId = extractText(grid.GridGuid || grid.gridGuid || grid.id);
+          let gridName =
+            extractText(grid.Name) ||
+            extractText(grid.name) ||
+            extractText(grid["@_Name"]);
+          if (!gridName) {
+            const match = entry.entryName.match(/^Grids\/([^/]+)\//);
+            if (match) gridName = match[1];
+          }
+
+          if (gridId && gridName) {
+            gridNameToIdMap.set(gridName, gridId);
+            gridIdToNameMap.set(gridId, gridName);
+          }
+        } catch (e) {
+          // Skip errors in first pass
+        }
+      }
+    });
+
+    // Second pass: process each grid file in the gridset
     zip.getEntries().forEach((entry) => {
       // Only process files named grid.xml under Grids/ (any subdir)
       if (
@@ -266,6 +364,20 @@ class GridsetProcessor extends BaseProcessor {
           },
         });
 
+        // Calculate grid dimensions from ColumnDefinitions and RowDefinitions
+        const columnDefs = grid.ColumnDefinitions?.ColumnDefinition || [];
+        const rowDefs = grid.RowDefinitions?.RowDefinition || [];
+        const maxCols = Array.isArray(columnDefs)
+          ? columnDefs.length
+          : columnDefs
+            ? 1
+            : 5;
+        const maxRows = Array.isArray(rowDefs)
+          ? rowDefs.length
+          : rowDefs
+            ? 1
+            : 4;
+
         // Process buttons: <Cells><Cell>
         const cells = grid.Cells?.Cell || grid.cells?.cell;
         if (cells) {
@@ -274,8 +386,6 @@ class GridsetProcessor extends BaseProcessor {
 
           // Create a 2D grid to track button positions
           const gridLayout: (AACButton | null)[][] = [];
-          const maxRows = 10; // Reasonable maximum
-          const maxCols = 10;
           for (let r = 0; r < maxRows; r++) {
             gridLayout[r] = new Array(maxCols).fill(null);
           }
@@ -284,8 +394,9 @@ class GridsetProcessor extends BaseProcessor {
             if (!cell || !cell.Content) return;
 
             // Extract position information from cell attributes
-            const cellX = parseInt(cell["@_X"] || "0", 10);
-            const cellY = parseInt(cell["@_Y"] || "0", 10);
+            // Grid3 uses 1-based coordinates, convert to 0-based for internal use
+            const cellX = Math.max(0, parseInt(cell["@_X"] || "1", 10) - 1);
+            const cellY = Math.max(0, parseInt(cell["@_Y"] || "1", 10) - 1);
             const colSpan = parseInt(cell["@_ColumnSpan"] || "1", 10);
             const rowSpan = parseInt(cell["@_RowSpan"] || "1", 10);
 
@@ -322,21 +433,25 @@ class GridsetProcessor extends BaseProcessor {
                 : [commands];
 
               for (const command of commandArr) {
-                const commandId = command.ID || command.id;
+                const commandId = command["@_ID"] || command.ID || command.id;
                 const parameters = command.Parameter || command.parameter;
-                const paramArr = Array.isArray(parameters)
-                  ? parameters
-                  : [parameters];
+
+                const paramArr = parameters
+                  ? Array.isArray(parameters)
+                    ? parameters
+                    : [parameters]
+                  : [];
 
                 // Helper to get parameter value
                 const getParam = (key: string) => {
                   if (!parameters) return undefined;
                   for (const param of paramArr) {
                     if (
-                      (param.Key === key || param.key === key) &&
-                      param["#text"]
+                      param["@_Key"] === key ||
+                      param.Key === key ||
+                      param.key === key
                     ) {
-                      return param["#text"];
+                      return param["#text"] || param.text || param;
                     }
                   }
                   return undefined;
@@ -346,12 +461,15 @@ class GridsetProcessor extends BaseProcessor {
                   case "Jump.To":
                     const gridTarget = getParam("grid");
                     if (gridTarget) {
-                      navigationTarget = gridTarget;
+                      // Resolve grid name to grid ID for navigation
+                      const targetGridId =
+                        gridNameToIdMap.get(gridTarget) || gridTarget;
+                      navigationTarget = targetGridId;
                       buttonType = "NAVIGATE";
                       semanticAction = {
                         category: AACSemanticCategory.NAVIGATION,
                         intent: AACSemanticIntent.NAVIGATE_TO,
-                        targetId: gridTarget,
+                        targetId: targetGridId,
                         platformData: {
                           grid3: {
                             commandId,
@@ -360,12 +478,12 @@ class GridsetProcessor extends BaseProcessor {
                         },
                         fallback: {
                           type: "NAVIGATE",
-                          targetPageId: gridTarget,
+                          targetPageId: targetGridId,
                         },
                       };
                       legacyAction = {
                         type: "NAVIGATE",
-                        targetPageId: gridTarget,
+                        targetPageId: targetGridId,
                       };
                     }
                     break;
@@ -388,6 +506,27 @@ class GridsetProcessor extends BaseProcessor {
                     };
                     legacyAction = {
                       type: "GO_BACK",
+                    };
+                    break;
+
+                  case "Jump.Home":
+                    buttonType = "ACTION";
+                    semanticAction = {
+                      category: AACSemanticCategory.NAVIGATION,
+                      intent: AACSemanticIntent.GO_HOME,
+                      platformData: {
+                        grid3: {
+                          commandId,
+                          parameters: {},
+                        },
+                      },
+                      fallback: {
+                        type: "ACTION",
+                        message: "Go home",
+                      },
+                    };
+                    legacyAction = {
+                      type: "GO_HOME",
                     };
                     break;
 
@@ -461,6 +600,48 @@ class GridsetProcessor extends BaseProcessor {
                     };
                     legacyAction = {
                       type: "DELETE_WORD",
+                    };
+                    break;
+
+                  case "Action.DeleteLetter":
+                    buttonType = "ACTION";
+                    semanticAction = {
+                      category: AACSemanticCategory.TEXT_EDITING,
+                      intent: AACSemanticIntent.DELETE_CHARACTER,
+                      platformData: {
+                        grid3: {
+                          commandId,
+                          parameters: {},
+                        },
+                      },
+                      fallback: {
+                        type: "ACTION",
+                        message: "Delete character",
+                      },
+                    };
+                    legacyAction = {
+                      type: "DELETE_CHARACTER",
+                    };
+                    break;
+
+                  case "Action.Clear":
+                    buttonType = "ACTION";
+                    semanticAction = {
+                      category: AACSemanticCategory.TEXT_EDITING,
+                      intent: AACSemanticIntent.CLEAR_TEXT,
+                      platformData: {
+                        grid3: {
+                          commandId,
+                          parameters: {},
+                        },
+                      },
+                      fallback: {
+                        type: "ACTION",
+                        message: "Clear text",
+                      },
+                    };
+                    legacyAction = {
+                      type: "CLEAR_TEXT",
                     };
                     break;
 
@@ -606,8 +787,14 @@ class GridsetProcessor extends BaseProcessor {
               };
             }
 
-            // Get style information from cell attributes
-            const cellStyleId = cell["@_StyleID"] || cell["@_styleid"];
+            // Get style information from cell attributes and Content.Style
+            let cellStyleId = cell["@_StyleID"] || cell["@_styleid"];
+
+            // Grid3 format: check Content.Style.BasedOnStyle
+            if (!cellStyleId && content.Style?.BasedOnStyle) {
+              cellStyleId = content.Style.BasedOnStyle;
+            }
+
             const cellStyle = this.getStyleById(styles, cellStyleId);
 
             // Also check for inline style overrides
@@ -618,6 +805,20 @@ class GridsetProcessor extends BaseProcessor {
               inlineStyle.fontColor = cell["@_FontColour"];
             if (cell["@_BorderColour"])
               inlineStyle.borderColor = cell["@_BorderColour"];
+
+            // Grid3 inline styles from Content.Style
+            if (content.Style) {
+              if (content.Style.BackColour)
+                inlineStyle.backgroundColor = content.Style.BackColour;
+              if (content.Style.FontColour)
+                inlineStyle.fontColor = content.Style.FontColour;
+              if (content.Style.BorderColour)
+                inlineStyle.borderColor = content.Style.BorderColour;
+              if (content.Style.FontName)
+                inlineStyle.fontFamily = content.Style.FontName;
+              if (content.Style.FontSize)
+                inlineStyle.fontSize = parseInt(content.Style.FontSize);
+            }
 
             const button = new AACButton({
               id: `${gridId}_btn_${idx}`,
@@ -741,35 +942,75 @@ class GridsetProcessor extends BaseProcessor {
       });
     });
 
-    // Create style.xml if there are styles
+    // Get the first page as the home/start grid
+    const pages = Object.values(tree.pages);
+    const startGrid = pages.length > 0 ? pages[0].name || pages[0].id : "";
+
+    // Create Settings0/settings.xml with proper Grid3 structure
+    const settingsData = {
+      "?xml": { "@_version": "1.0", "@_encoding": "UTF-8" },
+      GridSetSettings: {
+        "@_xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
+        StartGrid: startGrid,
+        // Add other common Grid3 settings
+        ScanEnabled: "false",
+        ScanTimeoutMs: "2000",
+        HoverEnabled: "false",
+        HoverTimeoutMs: "1000",
+        MouseclickEnabled: "true",
+        Language: "en-US",
+      },
+    };
+
+    const settingsBuilder = new XMLBuilder({
+      ignoreAttributes: false,
+      format: true,
+      indentBy: "  ",
+    });
+    const settingsXmlContent = settingsBuilder.build(settingsData);
+    zip.addFile(
+      "Settings0/settings.xml",
+      Buffer.from(settingsXmlContent, "utf8"),
+    );
+
+    // Create Settings0/Styles/style.xml if there are styles
     if (uniqueStyles.size > 0) {
       const stylesArray = Array.from(uniqueStyles.values()).map(
         ({ id, style }) => ({
-          "@_ID": id,
-          BackColour: style.backgroundColor,
-          TileColour: style.backgroundColor,
-          BorderColour: style.borderColor,
-          FontColour: style.fontColor,
-          FontName: style.fontFamily,
-          FontSize: style.fontSize?.toString(),
+          "@_Key": id,
+          BackColour: style.backgroundColor || "#FFFFFFFF",
+          TileColour: style.backgroundColor || "#FFFFFFFF",
+          BorderColour: style.borderColor || "#000000FF",
+          FontColour: style.fontColor || "#000000FF",
+          FontName: style.fontFamily || "Arial",
+          FontSize: style.fontSize?.toString() || "16",
         }),
       );
 
       const styleData = {
         "?xml": { "@_version": "1.0", "@_encoding": "UTF-8" },
-        Styles: {
-          Style: stylesArray,
+        StyleData: {
+          "@_xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
+          Styles: {
+            Style: stylesArray,
+          },
         },
       };
 
-      const builder = new XMLBuilder({
+      const styleBuilder = new XMLBuilder({
         ignoreAttributes: false,
         format: true,
         indentBy: "  ",
       });
-      const styleXmlContent = builder.build(styleData);
-      zip.addFile("style.xml", Buffer.from(styleXmlContent, "utf8"));
+      const styleXmlContent = styleBuilder.build(styleData);
+      zip.addFile(
+        "Settings0/Styles/style.xml",
+        Buffer.from(styleXmlContent, "utf8"),
+      );
     }
+
+    // Collect grid file paths for FileMap.xml
+    const gridFilePaths: string[] = [];
 
     // Create a grid for each page
     Object.values(tree.pages).forEach((page, index) => {
@@ -779,7 +1020,7 @@ class GridsetProcessor extends BaseProcessor {
           "@_xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
           GridGuid: page.id,
           Name: page.name || `Grid ${index + 1}`,
-          BackgroundColour: page.style?.backgroundColor,
+          BackgroundColour: page.style?.backgroundColor || "#E2EDF8FF",
           // Calculate grid dimensions based on actual layout
           ColumnDefinitions: this.calculateColumnDefinitions(page),
           RowDefinitions: this.calculateRowDefinitions(page),
@@ -798,20 +1039,30 @@ class GridsetProcessor extends BaseProcessor {
                       btnIndex,
                     );
 
-                    return {
+                    const cellData: any = {
                       "@_X": position.x,
                       "@_Y": position.y,
                       "@_ColumnSpan": position.columnSpan,
                       "@_RowSpan": position.rowSpan,
-                      "@_StyleID": buttonStyleId,
                       Content: {
-                        Commands:
-                          this.generateCommandsFromSemanticAction(button),
+                        Commands: this.generateCommandsFromSemanticAction(
+                          button,
+                          tree,
+                        ),
                         CaptionAndImage: {
                           Caption: button.label || "",
                         },
                       },
                     };
+
+                    // Add style reference if available
+                    if (buttonStyleId) {
+                      cellData.Content.Style = {
+                        BasedOnStyle: buttonStyleId,
+                      };
+                    }
+
+                    return cellData;
                   }),
                 }
               : { Cell: [] },
@@ -826,10 +1077,35 @@ class GridsetProcessor extends BaseProcessor {
       });
       const xmlContent = builder.build(gridData);
 
-      // Add to zip in Grids folder
-      const gridPath = `Grids/Grid_${page.id}/grid.xml`;
+      // Add to zip in Grids folder with proper Grid3 naming
+      const gridPath = `Grids\\${page.name || page.id}\\grid.xml`;
+      gridFilePaths.push(gridPath);
       zip.addFile(gridPath, Buffer.from(xmlContent, "utf8"));
     });
+
+    // Create FileMap.xml to map all grid files
+    const fileMapData = {
+      "?xml": { "@_version": "1.0", "@_encoding": "UTF-8" },
+      FileMap: {
+        "@_xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
+        Entries: {
+          Entry: gridFilePaths.map((gridPath) => ({
+            "@_StaticFile": gridPath,
+            DynamicFiles: {
+              // Empty for now - could be extended for dynamic content
+            },
+          })),
+        },
+      },
+    };
+
+    const fileMapBuilder = new XMLBuilder({
+      ignoreAttributes: false,
+      format: true,
+      indentBy: "  ",
+    });
+    const fileMapXmlContent = fileMapBuilder.build(fileMapData);
+    zip.addFile("FileMap.xml", Buffer.from(fileMapXmlContent, "utf8"));
 
     // Write the zip file
     zip.writeZip(outputPath);

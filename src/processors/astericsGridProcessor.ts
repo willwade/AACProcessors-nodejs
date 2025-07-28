@@ -218,16 +218,14 @@ class AstericsGridProcessor extends BaseProcessor {
         buttons: [],
         parentId: null,
         style: {
-          backgroundColor:
-            colorConfig?.gridBackgroundColor ||
-            colorConfig?.elementBackgroundColor,
-          borderColor: colorConfig?.elementBorderColor,
-          borderWidth: colorConfig?.borderWidth,
-          fontFamily: colorConfig?.fontFamily,
+          backgroundColor: colorConfig?.gridBackgroundColor || "#FFFFFF",
+          borderColor: colorConfig?.elementBorderColor || "#CCCCCC",
+          borderWidth: colorConfig?.borderWidth || 1,
+          fontFamily: colorConfig?.fontFamily || "Arial",
           fontSize: colorConfig?.fontSizePct
             ? colorConfig.fontSizePct * 16
-            : undefined, // Convert percentage to pixels
-          fontColor: colorConfig?.fontColor,
+            : 16, // Convert percentage to pixels, default to 16
+          fontColor: colorConfig?.fontColor || "#000000",
         },
       });
       tree.addPage(page);
@@ -374,50 +372,167 @@ class AstericsGridProcessor extends BaseProcessor {
       };
     } else {
       // Check for other action types
-      const speakAction = element.actions.find(
-        (a) =>
-          a.modelName === "GridActionSpeakCustom" ||
-          a.modelName === "GridActionSpeak",
+      const collectAction = element.actions.find(
+        (a) => a.modelName === "GridActionCollectElement",
       );
 
-      if (speakAction) {
-        const speakText =
-          speakAction.modelName === "GridActionSpeakCustom"
-            ? this.getLocalizedText(speakAction.speakText)
-            : label;
+      if (collectAction) {
+        // Handle text editing actions
+        switch (collectAction.action) {
+          case "COLLECT_ACTION_REMOVE_WORD":
+            semanticAction = {
+              category: AACSemanticCategory.TEXT_EDITING,
+              intent: AACSemanticIntent.DELETE_WORD,
+              platformData: {
+                astericsGrid: {
+                  modelName: collectAction.modelName,
+                  properties: collectAction,
+                },
+              },
+              fallback: {
+                type: "ACTION",
+                message: "Delete word",
+              },
+            };
+            legacyAction = {
+              type: "DELETE_WORD",
+            };
+            break;
 
-        semanticAction = {
-          category: AACSemanticCategory.COMMUNICATION,
-          intent: AACSemanticIntent.SPEAK_TEXT,
-          text: speakText,
-          platformData: {
-            astericsGrid: {
-              modelName: speakAction.modelName,
-              properties: speakAction,
+          case "COLLECT_ACTION_REMOVE_CHAR":
+            semanticAction = {
+              category: AACSemanticCategory.TEXT_EDITING,
+              intent: AACSemanticIntent.DELETE_CHARACTER,
+              platformData: {
+                astericsGrid: {
+                  modelName: collectAction.modelName,
+                  properties: collectAction,
+                },
+              },
+              fallback: {
+                type: "ACTION",
+                message: "Delete character",
+              },
+            };
+            legacyAction = {
+              type: "DELETE_CHARACTER",
+            };
+            break;
+
+          case "COLLECT_ACTION_CLEAR":
+            semanticAction = {
+              category: AACSemanticCategory.TEXT_EDITING,
+              intent: AACSemanticIntent.CLEAR_TEXT,
+              platformData: {
+                astericsGrid: {
+                  modelName: collectAction.modelName,
+                  properties: collectAction,
+                },
+              },
+              fallback: {
+                type: "ACTION",
+                message: "Clear text",
+              },
+            };
+            legacyAction = {
+              type: "CLEAR_TEXT",
+            };
+            break;
+        }
+      }
+
+      // Check for navigation actions with special nav types
+      if (!semanticAction && navAction) {
+        switch (navAction.navType) {
+          case "TO_LAST":
+            semanticAction = {
+              category: AACSemanticCategory.NAVIGATION,
+              intent: AACSemanticIntent.GO_BACK,
+              platformData: {
+                astericsGrid: {
+                  modelName: navAction.modelName,
+                  properties: navAction,
+                },
+              },
+              fallback: {
+                type: "ACTION",
+                message: "Go back",
+              },
+            };
+            legacyAction = {
+              type: "GO_BACK",
+            };
+            break;
+
+          case "TO_HOME":
+            semanticAction = {
+              category: AACSemanticCategory.NAVIGATION,
+              intent: AACSemanticIntent.GO_HOME,
+              platformData: {
+                astericsGrid: {
+                  modelName: navAction.modelName,
+                  properties: navAction,
+                },
+              },
+              fallback: {
+                type: "ACTION",
+                message: "Go home",
+              },
+            };
+            legacyAction = {
+              type: "GO_HOME",
+            };
+            break;
+        }
+      }
+
+      // Check for speak actions if no other semantic action was found
+      if (!semanticAction) {
+        const speakAction = element.actions.find(
+          (a) =>
+            a.modelName === "GridActionSpeakCustom" ||
+            a.modelName === "GridActionSpeak",
+        );
+
+        if (speakAction) {
+          const speakText =
+            speakAction.modelName === "GridActionSpeakCustom"
+              ? this.getLocalizedText(speakAction.speakText)
+              : label;
+
+          semanticAction = {
+            category: AACSemanticCategory.COMMUNICATION,
+            intent: AACSemanticIntent.SPEAK_TEXT,
+            text: speakText,
+            platformData: {
+              astericsGrid: {
+                modelName: speakAction.modelName,
+                properties: speakAction,
+              },
             },
-          },
-          fallback: {
-            type: "SPEAK",
-            message: speakText,
-          },
-        };
-      } else {
-        // Default speak action
-        semanticAction = {
-          category: AACSemanticCategory.COMMUNICATION,
-          intent: AACSemanticIntent.SPEAK_TEXT,
-          text: label,
-          platformData: {
-            astericsGrid: {
-              modelName: "GridActionSpeak",
-              properties: {},
+            fallback: {
+              type: "SPEAK",
+              message: speakText,
             },
-          },
-          fallback: {
-            type: "SPEAK",
-            message: label,
-          },
-        };
+          };
+        } else {
+          // Default speak action
+          semanticAction = {
+            category: AACSemanticCategory.COMMUNICATION,
+            intent: AACSemanticIntent.SPEAK_TEXT,
+            text: label,
+            platformData: {
+              astericsGrid: {
+                modelName: "GridActionSpeak",
+                properties: {},
+              },
+            },
+            fallback: {
+              type: "SPEAK",
+              message: label,
+            },
+          };
+        }
       }
     }
 
@@ -432,14 +547,14 @@ class AstericsGridProcessor extends BaseProcessor {
       audioRecording: audioRecording,
       style: {
         backgroundColor:
-          element.backgroundColor || colorConfig?.elementBackgroundColor,
-        borderColor: colorConfig?.elementBorderColor,
-        borderWidth: colorConfig?.borderWidth,
-        fontFamily: colorConfig?.fontFamily,
-        fontSize: colorConfig?.fontSizePct
-          ? colorConfig.fontSizePct * 16
-          : undefined,
-        fontColor: colorConfig?.fontColor,
+          element.backgroundColor ||
+          colorConfig?.elementBackgroundColor ||
+          "#FFFFFF",
+        borderColor: colorConfig?.elementBorderColor || "#CCCCCC",
+        borderWidth: colorConfig?.borderWidth || 1,
+        fontFamily: colorConfig?.fontFamily || "Arial",
+        fontSize: colorConfig?.fontSizePct ? colorConfig.fontSizePct * 16 : 16, // Default to 16px
+        fontColor: colorConfig?.fontColor || "#000000",
       },
     });
   }
@@ -598,9 +713,16 @@ class AstericsGridProcessor extends BaseProcessor {
   }
 
   saveFromTree(tree: AACTree, outputPath: string): void {
-    // Get styling information from the first page (assuming consistent styling)
-    const firstPage = Object.values(tree.pages)[0];
-    const pageStyle = firstPage?.style;
+    // Use default Asterics Grid styling instead of taking from first page
+    // This prevents issues where the first page has unusual colors (like purple)
+    const defaultPageStyle = {
+      backgroundColor: "#FFFFFF", // White background by default
+      borderColor: "#CCCCCC",
+      borderWidth: 1,
+      fontFamily: "Arial",
+      fontSize: 16,
+      fontColor: "#000000",
+    };
 
     const grids: GridData[] = Object.values(tree.pages).map((page) => {
       // Create a map of button positions from the grid layout
@@ -643,12 +765,64 @@ class AstericsGridProcessor extends BaseProcessor {
           button.semanticAction?.intent === AACSemanticIntent.NAVIGATE_TO
         ) {
           // Create navigation action from semantic data
+          const targetId =
+            button.semanticAction.targetId || button.targetPageId;
           actions.push({
             id: `grid-action-navigate-${button.id}`,
             modelName: "GridActionNavigate",
             modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
             navType: "navigateToGrid",
-            toGridId: button.semanticAction.targetId || button.targetPageId,
+            toGridId: targetId,
+          });
+        } else if (
+          button.semanticAction?.intent === AACSemanticIntent.GO_BACK
+        ) {
+          // Create back navigation action
+          actions.push({
+            id: `grid-action-navigate-back-${button.id}`,
+            modelName: "GridActionNavigate",
+            modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
+            navType: "TO_LAST",
+          });
+        } else if (
+          button.semanticAction?.intent === AACSemanticIntent.GO_HOME
+        ) {
+          // Create home navigation action
+          actions.push({
+            id: `grid-action-navigate-home-${button.id}`,
+            modelName: "GridActionNavigate",
+            modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
+            navType: "TO_HOME",
+          });
+        } else if (
+          button.semanticAction?.intent === AACSemanticIntent.DELETE_WORD
+        ) {
+          // Create delete word action
+          actions.push({
+            id: `grid-action-delete-word-${button.id}`,
+            modelName: "GridActionCollectElement",
+            modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
+            action: "COLLECT_ACTION_REMOVE_WORD",
+          });
+        } else if (
+          button.semanticAction?.intent === AACSemanticIntent.DELETE_CHARACTER
+        ) {
+          // Create delete character action
+          actions.push({
+            id: `grid-action-delete-char-${button.id}`,
+            modelName: "GridActionCollectElement",
+            modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
+            action: "COLLECT_ACTION_REMOVE_CHAR",
+          });
+        } else if (
+          button.semanticAction?.intent === AACSemanticIntent.CLEAR_TEXT
+        ) {
+          // Create clear text action
+          actions.push({
+            id: `grid-action-clear-${button.id}`,
+            modelName: "GridActionCollectElement",
+            modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
+            action: "COLLECT_ACTION_CLEAR",
           });
         } else if (
           button.semanticAction?.intent === AACSemanticIntent.SPEAK_TEXT
@@ -715,7 +889,9 @@ class AstericsGridProcessor extends BaseProcessor {
           type: "ELEMENT_TYPE_NORMAL",
           additionalProps: {},
           backgroundColor:
-            button.style?.backgroundColor || pageStyle?.backgroundColor,
+            button.style?.backgroundColor ||
+            page.style?.backgroundColor ||
+            defaultPageStyle.backgroundColor,
         };
       });
 
@@ -740,15 +916,13 @@ class AstericsGridProcessor extends BaseProcessor {
       grids: grids,
       metadata: {
         colorConfig: {
-          gridBackgroundColor: pageStyle?.backgroundColor,
-          elementBackgroundColor: pageStyle?.backgroundColor,
-          elementBorderColor: pageStyle?.borderColor,
-          borderWidth: pageStyle?.borderWidth,
-          fontFamily: pageStyle?.fontFamily,
-          fontSizePct: pageStyle?.fontSize
-            ? pageStyle.fontSize / 16
-            : undefined, // Convert pixels to percentage
-          fontColor: pageStyle?.fontColor,
+          gridBackgroundColor: defaultPageStyle.backgroundColor,
+          elementBackgroundColor: defaultPageStyle.backgroundColor,
+          elementBorderColor: defaultPageStyle.borderColor,
+          borderWidth: defaultPageStyle.borderWidth,
+          fontFamily: defaultPageStyle.fontFamily,
+          fontSizePct: defaultPageStyle.fontSize / 16, // Convert pixels to percentage
+          fontColor: defaultPageStyle.fontColor,
           // Add additional properties that might be useful
           elementMargin: 2, // Default margin
           borderRadius: 4, // Default border radius
