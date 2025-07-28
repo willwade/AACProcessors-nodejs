@@ -179,9 +179,12 @@ describe('SnapProcessor - Comprehensive Coverage Tests', () => {
 
       // Verify audio was added
       const finalTree = processor.loadIntoTree(updatedPath);
-      const finalButton = finalTree.getPage('add_audio_page')!.buttons[0];
+      const finalPage = finalTree.getPage('add_audio_page');
+      expect(finalPage).toBeDefined();
+
+      const finalButton = finalPage!.buttons[0];
       expect(finalButton.audioRecording).toBeDefined();
-      expect(finalButton.audioRecording!.identifier).toBe('new_audio');
+      expect(finalButton.audioRecording?.identifier).toBe('new_audio');
     });
 
     it('should update existing audio recordings', () => {
@@ -228,9 +231,12 @@ describe('SnapProcessor - Comprehensive Coverage Tests', () => {
 
       // Verify audio was updated
       const finalTree = processor.loadIntoTree(updatedPath);
-      const finalButton = finalTree.getPage('update_audio_page')!.buttons[0];
-      expect(finalButton.audioRecording!.identifier).toBe('updated_audio');
-      expect(finalButton.audioRecording!.metadata).toBe('Updated audio');
+      const finalPage = finalTree.getPage('update_audio_page');
+      expect(finalPage).toBeDefined();
+
+      const finalButton = finalPage!.buttons[0];
+      expect(finalButton.audioRecording?.identifier).toBe('updated_audio');
+      expect(finalButton.audioRecording?.metadata).toBe('Updated audio');
     });
 
     it('should remove audio recordings from buttons', () => {
@@ -312,13 +318,15 @@ describe('SnapProcessor - Comprehensive Coverage Tests', () => {
       processor.saveFromTree(tree, outputPath);
 
       const loadedTree = processor.loadIntoTree(outputPath);
-      const loadedButton = loadedTree.getPage('metadata_page')!.buttons[0];
+      const loadedPage = loadedTree.getPage('metadata_page');
+      expect(loadedPage).toBeDefined();
 
+      const loadedButton = loadedPage!.buttons[0];
       expect(loadedButton.audioRecording).toBeDefined();
-      expect(loadedButton.audioRecording!.metadata).toBe(complexMetadata);
+      expect(loadedButton.audioRecording?.metadata).toBe(complexMetadata);
 
       // Verify metadata can be parsed back
-      const parsedMetadata = JSON.parse(loadedButton.audioRecording!.metadata || '{}');
+      const parsedMetadata = JSON.parse(loadedButton.audioRecording?.metadata || '{}');
       expect(parsedMetadata.sampleRate).toBe(44100);
       expect(parsedMetadata.format).toBe('WAV');
     });
@@ -359,7 +367,13 @@ describe('SnapProcessor - Comprehensive Coverage Tests', () => {
       sampleRates.forEach((rate) => {
         const page = loadedTree.getPage(`page_${rate}hz`);
         expect(page).toBeDefined();
-        const metadata = JSON.parse(page!.buttons[0].audioRecording!.metadata || '{}');
+
+        // Safe null checks for audio metadata
+        expect(page).toBeDefined();
+        expect(page!.buttons.length).toBeGreaterThan(0);
+        expect(page!.buttons[0].audioRecording).toBeDefined();
+
+        const metadata = JSON.parse(page!.buttons[0].audioRecording?.metadata || '{}');
         expect(metadata.sampleRate).toBe(rate);
       });
     });
@@ -400,7 +414,13 @@ describe('SnapProcessor - Comprehensive Coverage Tests', () => {
       bitDepths.forEach((depth) => {
         const page = loadedTree.getPage(`page_${depth}bit`);
         expect(page).toBeDefined();
-        const metadata = JSON.parse(page!.buttons[0].audioRecording!.metadata || '{}');
+
+        // Safe null checks for audio metadata
+        expect(page).toBeDefined();
+        expect(page!.buttons.length).toBeGreaterThan(0);
+        expect(page!.buttons[0].audioRecording).toBeDefined();
+
+        const metadata = JSON.parse(page!.buttons[0].audioRecording?.metadata || '{}');
         expect(metadata.bitDepth).toBe(depth);
       });
     });

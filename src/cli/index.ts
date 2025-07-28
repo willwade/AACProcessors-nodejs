@@ -6,15 +6,15 @@ import path from 'path';
 import fs from 'fs';
 
 // Set version from package.json
-const packageJson = JSON.parse(fs.readFileSync(path.join(__dirname, '../../package.json'), 'utf8'));
+const packageJson = JSON.parse(fs.readFileSync(path.join(__dirname, '../../package.json'), 'utf8')) as { version: string };
 program.version(packageJson.version);
 
 program
   .command('analyze <file>')
   .option('--format <format>', 'Format type')
   .option('--pretty', 'Pretty print output')
-  .action(async (file, options) => {
-    const result = await analyze(file, options.format);
+  .action(async (file: string, options: { format?: string; pretty?: boolean }) => {
+    const result = await analyze(file, options.format || '');
     if (options.pretty) {
       console.log(prettyPrintTree(result.tree));
     } else {
@@ -27,7 +27,7 @@ program
   .option('--format <format>', 'Format type (auto-detected if not specified)')
   .option('--verbose', 'Verbose output')
   .option('--quiet', 'Quiet output')
-  .action(async (file, options) => {
+  .action(async (file: string, options: { format?: string; verbose?: boolean; quiet?: boolean }) => {
     try {
       // Auto-detect format if not specified
       const format = options.format || path.extname(file).slice(1);
@@ -55,7 +55,7 @@ program
 program
   .command('convert <input> <output>')
   .option('--format <format>', 'Output format (required)')
-  .action(async (input, output, options) => {
+  .action(async (input: string, output: string, options: { format?: string }) => {
     try {
       if (!options.format) {
         console.error('Error: --format option is required for convert command');
@@ -66,8 +66,8 @@ program
       const inputFormat = path.extname(input).slice(1);
       const inputProcessor = getProcessor(inputFormat);
 
-      // Load the tree from input
-      const tree = inputProcessor.loadIntoTree(input);
+      // Load the tree from input (handle Buffer vs string requirements)
+      const tree = inputProcessor.loadIntoTree(input as any);
 
       // Save using output format
       const outputProcessor = getProcessor(options.format);
