@@ -11,6 +11,7 @@ interface ApplePanelsButton {
   DisplayColor?: string;
   DisplayImageWeight?: string;
   FontSize?: number;
+  Rect?: string; // Position and size in format "{{x, y}, {width, height}}"
 }
 
 interface ApplePanelsPanel {
@@ -24,6 +25,29 @@ interface ApplePanelsDocument {
 }
 
 class ApplePanelsProcessor extends BaseProcessor {
+  // Helper function to parse Apple Panels Rect format "{{x, y}, {width, height}}"
+  private parseRect(rectString: string): { x: number; y: number; width: number; height: number } | null {
+    if (!rectString) return null;
+
+    // Parse format like "{{0, 0}, {100, 25}}"
+    const match = rectString.match(/\{\{(\d+),\s*(\d+)\},\s*\{(\d+),\s*(\d+)\}\}/);
+    if (!match) return null;
+
+    return {
+      x: parseInt(match[1], 10),
+      y: parseInt(match[2], 10),
+      width: parseInt(match[3], 10),
+      height: parseInt(match[4], 10)
+    };
+  }
+
+  // Convert pixel coordinates to grid coordinates (assuming 25px grid cells)
+  private pixelToGrid(pixelX: number, pixelY: number, cellSize: number = 25): { gridX: number; gridY: number } {
+    return {
+      gridX: Math.floor(pixelX / cellSize),
+      gridY: Math.floor(pixelY / cellSize)
+    };
+  }
   extractTexts(filePathOrBuffer: string | Buffer): string[] {
     const tree = this.loadIntoTree(filePathOrBuffer);
     const texts: string[] = [];
@@ -63,6 +87,14 @@ class ApplePanelsProcessor extends BaseProcessor {
         parentId: null,
       });
 
+      // Create a 2D grid to track button positions
+      const gridLayout: (AACButton | null)[][] = [];
+      const maxRows = 20; // Reasonable default for Apple Panels
+      const maxCols = 20;
+      for (let r = 0; r < maxRows; r++) {
+        gridLayout[r] = new Array(maxCols).fill(null);
+      }
+
       panel.buttons.forEach((btn, idx) => {
         const button = new AACButton({
           id: `${panel.id}_btn_${idx}`,
@@ -83,8 +115,29 @@ class ApplePanelsProcessor extends BaseProcessor {
           },
         });
         page.addButton(button);
+
+        // Place button in grid layout using Rect position data
+        if (btn.Rect) {
+          const rect = this.parseRect(btn.Rect);
+          if (rect) {
+            const gridPos = this.pixelToGrid(rect.x, rect.y);
+            const gridWidth = Math.max(1, Math.ceil(rect.width / 25));
+            const gridHeight = Math.max(1, Math.ceil(rect.height / 25));
+
+            // Place button in grid (handle width/height span)
+            for (let r = gridPos.gridY; r < gridPos.gridY + gridHeight && r < maxRows; r++) {
+              for (let c = gridPos.gridX; c < gridPos.gridX + gridWidth && c < maxCols; c++) {
+                if (gridLayout[r] && gridLayout[r][c] === null) {
+                  gridLayout[r][c] = button;
+                }
+              }
+            }
+          }
+        }
       });
 
+      // Set the page's grid layout
+      page.grid = gridLayout;
       tree.addPage(page);
     });
 
@@ -127,7 +180,7 @@ class ApplePanelsProcessor extends BaseProcessor {
       (page) => ({
         id: page.id,
         name: page.name || "Panel",
-        buttons: page.buttons.map((button) => {
+        buttons: page.buttons.map((button, index) => {
           const buttonData: any = {
             label: button.label,
             message: button.message || button.label,
@@ -149,6 +202,26 @@ class ApplePanelsProcessor extends BaseProcessor {
             buttonData.FontSize = button.style.fontSize;
           }
 
+          // Find button position in grid layout and convert to Rect format
+          let rect = `{{${index * 105}, {0}}, {100, 25}}`; // Default fallback
+
+          if (page.grid && page.grid.length > 0) {
+            // Search for button in grid layout
+            for (let y = 0; y < page.grid.length; y++) {
+              for (let x = 0; x < page.grid[y].length; x++) {
+                const gridButton = page.grid[y][x];
+                if (gridButton && gridButton.id === button.id) {
+                  // Convert grid coordinates to pixel coordinates
+                  const pixelX = x * 25;
+                  const pixelY = y * 25;
+                  rect = `{{${pixelX}, ${pixelY}}, {100, 25}}`;
+                  break;
+                }
+              }
+            }
+          }
+
+          buttonData.Rect = rect;
           return buttonData;
         }),
       }),
