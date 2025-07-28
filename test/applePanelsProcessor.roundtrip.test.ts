@@ -5,10 +5,13 @@ import { ApplePanelsProcessor } from "../src/processors/applePanelsProcessor";
 import { AACTree, AACPage, AACButton } from "../src/core/treeStructure";
 
 describe("ApplePanelsProcessor round-trip", () => {
-  const outPath: string = path.join(__dirname, "out.applepanels.plist");
+  const outPath: string = path.join(__dirname, "out.applepanels");
 
   afterAll(() => {
-    if (fs.existsSync(outPath)) fs.unlinkSync(outPath);
+    const asconfigPath = `${outPath}.ascconfig`;
+    if (fs.existsSync(asconfigPath)) {
+      fs.rmSync(asconfigPath, { recursive: true, force: true });
+    }
   });
 
   it("can save and load a constructed tree", () => {
@@ -63,9 +66,10 @@ describe("ApplePanelsProcessor round-trip", () => {
 
     // Save and reload
     processor.saveFromTree(tree1, outPath);
-    expect(fs.existsSync(outPath)).toBe(true);
+    const asconfigPath = `${outPath}.ascconfig`;
+    expect(fs.existsSync(asconfigPath)).toBe(true);
 
-    const tree2: AACTree = processor.loadIntoTree(outPath);
+    const tree2: AACTree = processor.loadIntoTree(asconfigPath);
 
     // Verify structure
     expect(Object.keys(tree2.pages)).toHaveLength(2);
@@ -91,9 +95,10 @@ describe("ApplePanelsProcessor round-trip", () => {
     const emptyTree = new AACTree();
 
     processor.saveFromTree(emptyTree, outPath);
-    expect(fs.existsSync(outPath)).toBe(true);
+    const asconfigPath = `${outPath}.ascconfig`;
+    expect(fs.existsSync(asconfigPath)).toBe(true);
 
-    const reloadedTree: AACTree = processor.loadIntoTree(outPath);
+    const reloadedTree: AACTree = processor.loadIntoTree(asconfigPath);
     expect(Object.keys(reloadedTree.pages)).toHaveLength(0);
   });
 });

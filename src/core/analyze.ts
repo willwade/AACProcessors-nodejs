@@ -33,6 +33,7 @@ export function getProcessor(format: string): BaseProcessor {
       return new DotProcessor();
     case "applepanels":
     case "panels": // Apple Panels file extension
+    case "ascconfig": // Apple Panels folder format
       return new ApplePanelsProcessor();
     default:
       throw new Error("Unknown format: " + format);
@@ -41,7 +42,6 @@ export function getProcessor(format: string): BaseProcessor {
 
 export function analyze(file: string, format: string) {
   const processor = getProcessor(format);
-  const fileBuffer = fs.readFileSync(file);
-  const tree = processor.loadIntoTree(fileBuffer);
+  const tree = processor.loadIntoTree(file);
   return { tree };
 }

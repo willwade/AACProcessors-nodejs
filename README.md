@@ -17,7 +17,7 @@ A comprehensive **TypeScript library** for processing AAC (Augmentative and Alte
 - **OBF/OBZ** (Open Board Format) - JSON and ZIP support
 - **OPML** (Outline Processor Markup Language) - Hierarchical structures
 - **DOT** (Graphviz) - Graph-based communication boards
-- **Apple Panels** (iOS) - Plist format support
+- **Apple Panels** (MacOS) - Plist format support
 
 ### **Advanced Capabilities**
 

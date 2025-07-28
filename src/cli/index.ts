@@ -5,6 +5,17 @@ import { analyze, getProcessor } from "../core/analyze";
 import path from "path";
 import fs from "fs";
 
+// Helper function to detect format from file/folder path
+function detectFormat(filePath: string): string {
+  // Check if it's a folder ending with .ascconfig
+  if (fs.existsSync(filePath) && fs.statSync(filePath).isDirectory() && filePath.endsWith('.ascconfig')) {
+    return 'ascconfig';
+  }
+
+  // Otherwise use file extension
+  return path.extname(filePath).slice(1);
+}
+
 // Set version from package.json
 const packageJson = JSON.parse(
   fs.readFileSync(path.join(__dirname, "../../package.json"), "utf8"),
@@ -18,7 +29,7 @@ program
   .action((file: string, options: { format?: string; pretty?: boolean }) => {
     try {
       // Auto-detect format if not specified
-      const format = options.format || path.extname(file).slice(1);
+      const format = options.format || detectFormat(file);
       const result = analyze(file, format);
       if (options.pretty) {
         console.log(prettyPrintTree(result.tree));
@@ -46,7 +57,7 @@ program
     ) => {
       try {
         // Auto-detect format if not specified
-        const format = options.format || path.extname(file).slice(1);
+        const format = options.format || detectFormat(file);
         const processor = getProcessor(format);
         const texts = processor.extractTexts(file);
 
@@ -80,12 +91,11 @@ program
       }
 
       // Auto-detect input format
-      const inputFormat = path.extname(input).slice(1);
+      const inputFormat = detectFormat(input);
       const inputProcessor = getProcessor(inputFormat);
 
-      // Read the input file and load the tree
-      const inputBuffer = fs.readFileSync(input);
-      const tree = inputProcessor.loadIntoTree(inputBuffer);
+      // Load the tree (handle both files and folders)
+      const tree = inputProcessor.loadIntoTree(input);
 
       // Save using output format
       const outputProcessor = getProcessor(options.format);

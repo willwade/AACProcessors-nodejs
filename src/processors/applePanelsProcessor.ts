@@ -3,6 +3,7 @@ import { AACTree, AACPage, AACButton } from "../core/treeStructure";
 // Removed unused import: FileProcessor
 import plist from "plist";
 import fs from "fs";
+import path from "path";
 
 interface ApplePanelsButton {
   label: string;
@@ -65,17 +66,59 @@ class ApplePanelsProcessor extends BaseProcessor {
   }
 
   loadIntoTree(filePathOrBuffer: string | Buffer): AACTree {
-    const content =
-      typeof filePathOrBuffer === "string"
-        ? fs.readFileSync(filePathOrBuffer, "utf8")
-        : filePathOrBuffer.toString("utf8");
+    let content: string;
+
+    if (Buffer.isBuffer(filePathOrBuffer)) {
+      content = filePathOrBuffer.toString("utf8");
+    } else if (typeof filePathOrBuffer === "string") {
+      // Check if it's a .ascconfig folder or a direct .plist file
+      if (filePathOrBuffer.endsWith('.ascconfig')) {
+        // Read from proper Apple Panels structure: *.ascconfig/Contents/Resources/PanelDefinitions.plist
+        const panelDefsPath = `${filePathOrBuffer}/Contents/Resources/PanelDefinitions.plist`;
+        if (fs.existsSync(panelDefsPath)) {
+          content = fs.readFileSync(panelDefsPath, "utf8");
+        } else {
+          throw new Error(`Apple Panels file not found: ${panelDefsPath}`);
+        }
+      } else {
+        // Fallback: treat as direct .plist file
+        content = fs.readFileSync(filePathOrBuffer, "utf8");
+      }
+    } else {
+      throw new Error("Invalid input: expected string path or Buffer");
+    }
 
     const parsedData = plist.parse(content);
-    const data = {
-      panels: Array.isArray((parsedData as any).panels)
-        ? (parsedData as any).panels
-        : [],
-    } as ApplePanelsDocument;
+
+    // Handle both old format (panels array) and new Apple Panels format (Panels dict)
+    let panelsData: any[] = [];
+    if (Array.isArray((parsedData as any).panels)) {
+      // Old format
+      panelsData = (parsedData as any).panels;
+    } else if ((parsedData as any).Panels) {
+      // Apple Panels format: convert Panels dict to array
+      const panelsDict = (parsedData as any).Panels;
+      panelsData = Object.keys(panelsDict).map(panelId => {
+        const panel = panelsDict[panelId];
+        return {
+          id: (panel.ID || panelId).replace(/^USER\./, ''), // Strip USER. prefix to maintain original IDs
+          name: panel.Name || "Panel",
+          buttons: (panel.PanelObjects || []).filter((obj: any) => obj.PanelObjectType === "Button").map((btn: any) => ({
+            label: btn.DisplayText || "Button",
+            message: btn.DisplayText || "Button",
+            DisplayColor: btn.DisplayColor,
+            DisplayImageWeight: btn.DisplayImageWeight,
+            FontSize: btn.FontSize,
+            Rect: btn.Rect,
+            targetPanel: btn.Actions && btn.Actions.length > 0 && btn.Actions[0].ActionType === "ActionOpenPanel"
+              ? btn.Actions[0].ActionParam?.PanelID?.replace(/^USER\./, '')
+              : undefined
+          }))
+        };
+      });
+    }
+
+    const data = { panels: panelsData } as ApplePanelsDocument;
     const tree = new AACTree();
 
     data.panels.forEach((panel) => {
@@ -176,60 +219,141 @@ class ApplePanelsProcessor extends BaseProcessor {
   }
 
   saveFromTree(tree: AACTree, outputPath: string): void {
-    const panels: ApplePanelsPanel[] = Object.values(tree.pages).map(
-      (page) => ({
-        id: page.id,
-        name: page.name || "Panel",
-        buttons: page.buttons.map((button, index) => {
-          const buttonData: any = {
-            label: button.label,
-            message: button.message || button.label,
-          };
+    // Ensure outputPath ends with .ascconfig
+    const configPath = outputPath.endsWith('.ascconfig') ? outputPath : `${outputPath}.ascconfig`;
 
-          if (button.type === "NAVIGATE" && button.targetPageId) {
-            buttonData.targetPanel = button.targetPageId;
-          }
+    // Create the folder structure
+    const contentsPath = path.join(configPath, 'Contents');
+    const resourcesPath = path.join(contentsPath, 'Resources');
 
-          if (button.style?.backgroundColor) {
-            buttonData.DisplayColor = button.style.backgroundColor;
-          }
+    // Create directories
+    if (!fs.existsSync(configPath)) fs.mkdirSync(configPath, { recursive: true });
+    if (!fs.existsSync(contentsPath)) fs.mkdirSync(contentsPath, { recursive: true });
+    if (!fs.existsSync(resourcesPath)) fs.mkdirSync(resourcesPath, { recursive: true });
 
-          if (button.style?.fontWeight === "bold") {
-            buttonData.DisplayImageWeight = "bold";
-          }
+    // Create Info.plist
+    const infoPlist = {
+      ASCConfigurationDisplayName: "AAC Processors Export",
+      ASCConfigurationIdentifier: `com.aacprocessors.${Date.now()}`,
+      ASCConfigurationProductSupportType: "VirtualKeyboard",
+      ASCConfigurationVersion: "7.1",
+      CFBundleDevelopmentRegion: "en",
+      CFBundleIdentifier: "com.aacprocessors.panel.export",
+      CFBundleName: "AAC Processors Panels",
+      CFBundleShortVersionString: "1.0",
+      CFBundleVersion: "1",
+      NSHumanReadableCopyright: "Generated by AAC Processors"
+    };
 
-          if (button.style?.fontSize) {
-            buttonData.FontSize = button.style.fontSize;
-          }
+    const infoPlistContent = plist.build(infoPlist);
+    fs.writeFileSync(path.join(contentsPath, 'Info.plist'), infoPlistContent);
 
-          // Find button position in grid layout and convert to Rect format
-          let rect = `{{${index * 105}, {0}}, {100, 25}}`; // Default fallback
+    // Create AssetIndex.plist (empty)
+    const assetIndexContent = plist.build({});
+    fs.writeFileSync(path.join(resourcesPath, 'AssetIndex.plist'), assetIndexContent);
 
-          if (page.grid && page.grid.length > 0) {
-            // Search for button in grid layout
-            for (let y = 0; y < page.grid.length; y++) {
-              for (let x = 0; x < page.grid[y].length; x++) {
-                const gridButton = page.grid[y][x];
-                if (gridButton && gridButton.id === button.id) {
-                  // Convert grid coordinates to pixel coordinates
-                  const pixelX = x * 25;
-                  const pixelY = y * 25;
-                  rect = `{{${pixelX}, ${pixelY}}, {100, 25}}`;
-                  break;
-                }
+    // Create PanelDefinitions.plist with the actual panel data
+    const panelsDict: any = {};
+
+    Object.values(tree.pages).forEach((page, pageIndex) => {
+      const panelId = `USER.${page.id}`;
+
+      const panelObjects = page.buttons.map((button, buttonIndex) => {
+        // Find button position in grid layout and convert to Rect format
+        let rect = `{{${buttonIndex * 105}, {0}}, {100, 25}}`; // Default fallback
+
+        if (page.grid && page.grid.length > 0) {
+          // Search for button in grid layout
+          for (let y = 0; y < page.grid.length; y++) {
+            for (let x = 0; x < page.grid[y].length; x++) {
+              const gridButton = page.grid[y][x];
+              if (gridButton && gridButton.id === button.id) {
+                // Convert grid coordinates to pixel coordinates
+                const pixelX = x * 25;
+                const pixelY = y * 25;
+                rect = `{{${pixelX}, ${pixelY}}, {100, 25}}`;
+                break;
               }
             }
           }
+        }
 
-          buttonData.Rect = rect;
-          return buttonData;
-        }),
-      }),
-    );
+        const buttonObj: any = {
+          ButtonType: 0,
+          DisplayText: button.label || "Button",
+          FontSize: button.style?.fontSize || 12,
+          ID: `Button.${button.id}`,
+          PanelObjectType: "Button",
+          Rect: rect
+        };
 
-    const document = { panels } as any;
-    const plistContent = plist.build(document);
-    fs.writeFileSync(outputPath, plistContent);
+        if (button.style?.backgroundColor) {
+          buttonObj.DisplayColor = button.style.backgroundColor;
+        }
+
+        if (button.style?.fontWeight === "bold") {
+          buttonObj.DisplayImageWeight = "FontWeightBold";
+        } else {
+          buttonObj.DisplayImageWeight = "FontWeightRegular";
+        }
+
+        // Add actions
+        if (button.type === "NAVIGATE" && button.targetPageId) {
+          buttonObj.Actions = [{
+            ActionParam: {
+              PanelID: `USER.${button.targetPageId}`
+            },
+            ActionRecordedOffset: 0.0,
+            ActionType: "ActionOpenPanel",
+            ID: `Action.${button.id}`
+          }];
+        } else {
+          // SPEAK action
+          buttonObj.Actions = [{
+            ActionParam: {
+              CharString: button.message || button.label || "",
+              isStickyKey: false
+            },
+            ActionRecordedOffset: 0.0,
+            ActionType: "ActionPressKeyCharSequence",
+            ID: `Action.${button.id}`
+          }];
+        }
+
+        return buttonObj;
+      });
+
+      panelsDict[panelId] = {
+        DisplayOrder: pageIndex + 1,
+        GlidingLensSize: 5,
+        HasTransientPosition: false,
+        HideHome: false,
+        HideMinimize: false,
+        HidePanelAdjustments: false,
+        HideSwitchDock: false,
+        HideSwitchDockContextualButtons: false,
+        HideTitlebar: false,
+        ID: panelId,
+        Name: page.name || "Panel",
+        PanelObjects: panelObjects,
+        ProductSupportType: "All",
+        Rect: "{{15, 75}, {425, 55}}",
+        ScanStyle: 0,
+        ShowPanelLocationString: "CustomPanelList",
+        UsesPinnedResizing: false
+      };
+    });
+
+    const panelDefinitions = {
+      Panels: panelsDict,
+      ToolbarOrdering: {
+        ToolbarIdentifiersAfterBasePanel: [],
+        ToolbarIdentifiersPriorToBasePanel: []
+      }
+    };
+
+    const panelDefsContent = plist.build(panelDefinitions);
+    fs.writeFileSync(path.join(resourcesPath, 'PanelDefinitions.plist'), panelDefsContent);
   }
 }
 
