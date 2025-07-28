@@ -4,6 +4,7 @@ import path from "path";
 import { execSync } from "child_process";
 import { getProcessor } from "../src/index";
 import { DotProcessor } from "../src/processors/dotProcessor";
+import { ExcelProcessor } from "../src/processors/excelProcessor";
 import { OpmlProcessor } from "../src/processors/opmlProcessor";
 import { ObfProcessor } from "../src/processors/obfProcessor";
 import { GridsetProcessor } from "../src/processors/gridsetProcessor";
@@ -112,6 +113,7 @@ describe("Integration Tests", () => {
     it("should return correct processor for each file extension", () => {
       const testCases = [
         { ext: ".dot", expectedType: DotProcessor },
+        { ext: ".xlsx", expectedType: ExcelProcessor },
         { ext: ".opml", expectedType: OpmlProcessor },
         { ext: ".obf", expectedType: ObfProcessor },
         { ext: ".obz", expectedType: ObfProcessor },
@@ -253,7 +255,9 @@ describe("Integration Tests", () => {
       expect(mainPage).toBeDefined();
       expect(mainPage.buttons.length).toBe(2);
 
-      const navButton = mainPage.buttons.find((btn) => btn.type === "NAVIGATE");
+      const navButton = mainPage.buttons.find(
+        (btn) => btn.semanticAction?.intent === "NAVIGATE_TO",
+      );
       expect(navButton).toBeDefined();
     });
 

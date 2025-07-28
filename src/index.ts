@@ -5,6 +5,7 @@ export * from "./processors";
 
 import { BaseProcessor } from "./core/baseProcessor";
 import { DotProcessor } from "./processors/dotProcessor";
+import { ExcelProcessor } from "./processors/excelProcessor";
 import { OpmlProcessor } from "./processors/opmlProcessor";
 import { ObfProcessor } from "./processors/obfProcessor";
 import { GridsetProcessor } from "./processors/gridsetProcessor";
@@ -28,6 +29,8 @@ export function getProcessor(filePathOrExtension: string): BaseProcessor {
   switch (extension.toLowerCase()) {
     case ".dot":
       return new DotProcessor();
+    case ".xlsx":
+      return new ExcelProcessor();
     case ".opml":
       return new OpmlProcessor();
     case ".obf":
@@ -56,6 +59,7 @@ export function getProcessor(filePathOrExtension: string): BaseProcessor {
 export function getSupportedExtensions(): string[] {
   return [
     ".dot",
+    ".xlsx",
     ".opml",
     ".obf",
     ".obz",

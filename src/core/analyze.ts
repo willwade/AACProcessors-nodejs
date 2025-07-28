@@ -5,6 +5,7 @@ import { GridsetProcessor } from "../processors/gridsetProcessor";
 import { AstericsGridProcessor } from "../processors/astericsGridProcessor";
 import { SnapProcessor } from "../processors/snapProcessor";
 import { DotProcessor } from "../processors/dotProcessor";
+import { ExcelProcessor } from "../processors/excelProcessor";
 import { ApplePanelsProcessor } from "../processors/applePanelsProcessor";
 import { AACTree } from "./treeStructure";
 import { BaseProcessor, ProcessorOptions } from "./baseProcessor";
@@ -34,6 +35,9 @@ export function getProcessor(
       return new SnapProcessor(options);
     case "dot":
       return new DotProcessor(options);
+    case "excel":
+    case "xlsx": // Excel file extension
+      return new ExcelProcessor(options);
     case "applepanels":
     case "panels": // Apple Panels file extension
     case "ascconfig": // Apple Panels folder format

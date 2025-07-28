@@ -8,6 +8,7 @@ type FileFormat =
   | "snap"
   | "dot"
   | "opml"
+  | "excel"
   | "unknown";
 
 class FileProcessor {
@@ -42,6 +43,8 @@ class FileProcessor {
           return "dot";
         case ".opml":
           return "opml";
+        case ".xlsx":
+          return "excel";
         default:
           return "unknown";
       }

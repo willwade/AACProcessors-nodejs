@@ -220,6 +220,31 @@ processor.createAudioEnhancedGridFile(
 );
 ```
 
+#### Excel Export for Vocabulary Analysis
+
+```typescript
+import { ExcelProcessor, getProcessor } from "aac-processors";
+
+// Convert any AAC format to Excel for analysis
+const sourceProcessor = getProcessor("communication-board.gridset");
+const tree = sourceProcessor.loadIntoTree("communication-board.gridset");
+
+// Export to Excel with visual styling and navigation
+const excelProcessor = new ExcelProcessor();
+excelProcessor.saveFromTree(tree, "vocabulary-analysis.xlsx");
+
+// Each AAC page becomes an Excel worksheet tab
+// Buttons are represented as cells with:
+// - Cell value = button label
+// - Cell background = button background color
+// - Cell font color = button font color
+// - Cell comments = button message/vocalization
+// - Hyperlinks for navigation between worksheets
+
+// Optional: Navigation row with standard AAC buttons
+// (Home, Message Bar, Delete, Back, Clear) appears on each worksheet
+```
+
 #### Working with the AACTree Structure
 
 ```typescript
@@ -418,6 +443,9 @@ npx aac-processors convert input.sps output.obf --format obf
 # Convert TouchChat to Snap format
 npx aac-processors convert communication.ce backup.spb --format snap
 
+# Convert any AAC format to Excel for vocabulary analysis
+npx aac-processors convert input.gridset vocabulary-analysis.xlsx --format xlsx
+
 # Convert with button filtering options
 npx aac-processors convert input.gridset output.grd --format grd --preserve-all-buttons
 npx aac-processors convert input.ce output.spb --format snap --exclude-buttons "settings,menu"
@@ -540,6 +568,7 @@ interface AACButton {
 | `TouchChatProcessor`    | `.ce`           | PRC-Saltillo TouchChat format |
 | `ApplePanelsProcessor`  | `.plist`        | iOS Apple Panels format       |
 | `AstericsGridProcessor` | `.grd`          | Asterics Grid native format   |
+| `ExcelProcessor`        | `.xlsx`         | Microsoft Excel format        |
 
 ---
 
