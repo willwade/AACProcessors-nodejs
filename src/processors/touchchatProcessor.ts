@@ -439,8 +439,13 @@ class TouchChatProcessor extends BaseProcessor {
           location INTEGER,
           span_x INTEGER DEFAULT 1,
           span_y INTEGER DEFAULT 1,
+          button_style_id INTEGER DEFAULT 1,
+          label TEXT,
+          message TEXT,
+          box_id INTEGER,
           FOREIGN KEY (button_box_id) REFERENCES button_boxes (id),
-          FOREIGN KEY (resource_id) REFERENCES resources (id)
+          FOREIGN KEY (resource_id) REFERENCES resources (id),
+          FOREIGN KEY (button_style_id) REFERENCES button_styles (id)
         );
 
         CREATE TABLE IF NOT EXISTS button_box_instances (
@@ -478,7 +483,48 @@ class TouchChatProcessor extends BaseProcessor {
           numeric_id INTEGER PRIMARY KEY,
           string_id TEXT UNIQUE
         );
+
+        CREATE TABLE IF NOT EXISTS button_styles (
+          id INTEGER PRIMARY KEY,
+          label_on_top INTEGER DEFAULT 0,
+          force_label_on_top INTEGER DEFAULT 0,
+          transparent INTEGER DEFAULT 0,
+          force_transparent INTEGER DEFAULT 0,
+          font_color INTEGER,
+          force_font_color INTEGER DEFAULT 0,
+          body_color INTEGER,
+          force_body_color INTEGER DEFAULT 0,
+          border_color INTEGER,
+          force_border_color INTEGER DEFAULT 0,
+          border_width REAL,
+          force_border_width INTEGER DEFAULT 0,
+          font_name TEXT,
+          font_bold INTEGER DEFAULT 0,
+          font_underline INTEGER DEFAULT 0,
+          font_italic INTEGER DEFAULT 0,
+          font_height REAL,
+          force_font INTEGER DEFAULT 0
+        );
+
+        CREATE TABLE IF NOT EXISTS page_styles (
+          id INTEGER PRIMARY KEY,
+          bg_color INTEGER,
+          force_bg_color INTEGER DEFAULT 0,
+          bg_alignment INTEGER DEFAULT 0,
+          force_bg_alignment INTEGER DEFAULT 0
+        );
       `);
+
+      // Insert default styles
+      db.prepare("INSERT INTO button_styles (id) VALUES (1)").run();
+      db.prepare("INSERT INTO page_styles (id) VALUES (1)").run();
+
+      // Helper function to convert hex color to integer
+      const hexToInt = (hexColor?: string): number | null => {
+        if (!hexColor) return null;
+        const hex = hexColor.replace('#', '');
+        return parseInt(hex, 16);
+      };
 
       // Insert pages and buttons using the proper schema
       let resourceIdCounter = 1;
@@ -487,9 +533,14 @@ class TouchChatProcessor extends BaseProcessor {
       let buttonBoxIdCounter = 1;
       let buttonBoxInstanceIdCounter = 1;
       let actionIdCounter = 1;
+      let buttonStyleIdCounter = 2; // Start from 2 since 1 is reserved for default
+      let pageStyleIdCounter = 2; // Start from 2 since 1 is reserved for default
 
       // Create mapping from string IDs to numeric IDs
       const pageIdMap = new Map<string, number>();
+      const insertedButtonIds = new Set<number>();
+      const buttonStyleMap = new Map<string, number>();
+      const pageStyleMap = new Map<string, number>();
 
       // First pass: create pages and map IDs
       Object.values(tree.pages).forEach((page) => {
@@ -499,6 +550,27 @@ class TouchChatProcessor extends BaseProcessor {
           : pageIdCounter++;
         pageIdMap.set(page.id, numericPageId);
 
+        // Create page style if needed
+        let pageStyleId = 1; // default style
+        if (page.style && page.style.backgroundColor) {
+          const styleKey = JSON.stringify(page.style);
+          if (!pageStyleMap.has(styleKey)) {
+            pageStyleId = pageStyleIdCounter++;
+            pageStyleMap.set(styleKey, pageStyleId);
+
+            const insertPageStyle = db.prepare(
+              "INSERT INTO page_styles (id, bg_color, force_bg_color) VALUES (?, ?, ?)",
+            );
+            insertPageStyle.run(
+              pageStyleId,
+              hexToInt(page.style.backgroundColor),
+              page.style.backgroundColor ? 1 : 0,
+            );
+          } else {
+            pageStyleId = pageStyleMap.get(styleKey)!;
+          }
+        }
+
         // Insert resource for page name
         const pageResourceId = resourceIdCounter++;
         const insertResource = db.prepare(
@@ -506,11 +578,11 @@ class TouchChatProcessor extends BaseProcessor {
         );
         insertResource.run(pageResourceId, page.name || "Page", 0);
 
-        // Insert page with original ID preserved
+        // Insert page with original ID preserved and style
         const insertPage = db.prepare(
-          "INSERT INTO pages (id, resource_id, name) VALUES (?, ?, ?)",
+          "INSERT INTO pages (id, resource_id, name, page_style_id) VALUES (?, ?, ?, ?)",
         );
-        insertPage.run(numericPageId, pageResourceId, page.name || "Page");
+        insertPage.run(numericPageId, pageResourceId, page.name || "Page", pageStyleId);
 
         // Store ID mapping
         const insertIdMapping = db.prepare(
@@ -554,22 +626,67 @@ class TouchChatProcessor extends BaseProcessor {
             insertResource.run(buttonResourceId, button.label || "Button", 7);
 
             const numericButtonId = parseInt(button.id) || buttonIdCounter++;
-            const insertButton = db.prepare(
-              "INSERT INTO buttons (id, resource_id, label, message, visible) VALUES (?, ?, ?, ?, ?)",
+
+            // Create button style if needed
+            let buttonStyleId = 1; // default style
+            if (button.style) {
+              const styleKey = JSON.stringify(button.style);
+              if (!buttonStyleMap.has(styleKey)) {
+                buttonStyleId = buttonStyleIdCounter++;
+                buttonStyleMap.set(styleKey, buttonStyleId);
+
+                const insertButtonStyle = db.prepare(
+                  "INSERT INTO button_styles (id, label_on_top, transparent, font_color, body_color, border_color, border_width, font_name, font_bold, font_underline, font_italic, font_height) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                );
+                insertButtonStyle.run(
+                  buttonStyleId,
+                  button.style.labelOnTop ? 1 : 0,
+                  button.style.transparent ? 1 : 0,
+                  hexToInt(button.style.fontColor),
+                  hexToInt(button.style.backgroundColor),
+                  hexToInt(button.style.borderColor),
+                  button.style.borderWidth,
+                  button.style.fontFamily,
+                  button.style.fontWeight === "bold" ? 1 : 0,
+                  button.style.textUnderline ? 1 : 0,
+                  button.style.fontStyle === "italic" ? 1 : 0,
+                  button.style.fontSize,
+                );
+              } else {
+                buttonStyleId = buttonStyleMap.get(styleKey)!;
+              }
+            }
+
+            if (!insertedButtonIds.has(numericButtonId)) {
+              const insertButton = db.prepare(
+                "INSERT INTO buttons (id, resource_id, label, message, visible, button_style_id) VALUES (?, ?, ?, ?, ?, ?)",
+              );
+              insertButton.run(
+                numericButtonId,
+                buttonResourceId,
+                button.label || "",
+                button.message || button.label || "",
+                1,
+                buttonStyleId,
+              );
+              insertedButtonIds.add(numericButtonId);
+            }
+
+            // Insert button box cell with styling
+            const insertButtonBoxCell = db.prepare(
+              "INSERT INTO button_box_cells (button_box_id, resource_id, location, span_x, span_y, button_style_id, label, message, box_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
             );
-            insertButton.run(
-              numericButtonId,
+            insertButtonBoxCell.run(
+              buttonBoxId,
               buttonResourceId,
+              index,
+              1,
+              1,
+              buttonStyleId,
               button.label || "",
               button.message || button.label || "",
-              1,
+              index
             );
-
-            // Insert button box cell
-            const insertButtonBoxCell = db.prepare(
-              "INSERT INTO button_box_cells (button_box_id, resource_id, location, span_x, span_y) VALUES (?, ?, ?, ?, ?)",
-            );
-            insertButtonBoxCell.run(buttonBoxId, buttonResourceId, index, 1, 1);
 
             // Handle navigation actions
             if (button.type === "NAVIGATE" && button.targetPageId) {

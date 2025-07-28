@@ -89,7 +89,8 @@ describe("Property-Based Testing", () => {
         Object.values(tree.pages).forEach((page) => {
           page.buttons.forEach((button) => {
             if (button.type === "NAVIGATE") {
-              button.targetPageId = fc.randomElement(allPageIds);
+              const randomIndex = Math.floor(Math.random() * allPageIds.length);
+              button.targetPageId = allPageIds[randomIndex];
             }
           });
         });
@@ -207,7 +208,7 @@ describe("Property-Based Testing", () => {
 
             const outputPath = path.join(
               tempDir,
-              `obf_roundtrip_${Date.now()}_${Math.random()}.obf`,
+              `obf_roundtrip_${Date.now()}_${Math.random()}.obz`,
             );
             processor.saveFromTree(originalTree, outputPath);
 

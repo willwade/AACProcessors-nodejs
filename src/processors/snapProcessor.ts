@@ -325,6 +325,9 @@ class SnapProcessor extends BaseProcessor {
   }
 
   saveFromTree(tree: AACTree, outputPath: string): void {
+    if (fs.existsSync(outputPath)) {
+      fs.unlinkSync(outputPath);
+    }
     // Create a new SQLite database for Snap format
     const db = new Database(outputPath, { readonly: false });
 

@@ -8,6 +8,9 @@ interface ApplePanelsButton {
   label: string;
   message?: string;
   targetPanel?: string;
+  DisplayColor?: string;
+  DisplayImageWeight?: string;
+  FontSize?: number;
 }
 
 interface ApplePanelsPanel {
@@ -73,6 +76,11 @@ class ApplePanelsProcessor extends BaseProcessor {
                 targetPageId: btn.targetPanel,
               }
             : null,
+          style: {
+            backgroundColor: btn.DisplayColor,
+            fontSize: btn.FontSize,
+            fontWeight: btn.DisplayImageWeight === "bold" ? "bold" : "normal",
+          },
         });
         page.addButton(button);
       });
@@ -119,12 +127,30 @@ class ApplePanelsProcessor extends BaseProcessor {
       (page) => ({
         id: page.id,
         name: page.name || "Panel",
-        buttons: page.buttons.map((button) => ({
-          label: button.label,
-          message: button.message || button.label,
-          targetPanel:
-            button.type === "NAVIGATE" ? button.targetPageId : undefined,
-        })),
+        buttons: page.buttons.map((button) => {
+          const buttonData: any = {
+            label: button.label,
+            message: button.message || button.label,
+          };
+
+          if (button.type === "NAVIGATE" && button.targetPageId) {
+            buttonData.targetPanel = button.targetPageId;
+          }
+
+          if (button.style?.backgroundColor) {
+            buttonData.DisplayColor = button.style.backgroundColor;
+          }
+
+          if (button.style?.fontWeight === "bold") {
+            buttonData.DisplayImageWeight = "bold";
+          }
+
+          if (button.style?.fontSize) {
+            buttonData.FontSize = button.style.fontSize;
+          }
+
+          return buttonData;
+        }),
       }),
     );
 

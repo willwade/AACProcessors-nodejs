@@ -17,6 +17,26 @@ interface GridsetGrid {
 }
 
 class GridsetProcessor extends BaseProcessor {
+  // Helper function to convert Grid 3 style to AACStyle
+  private convertGrid3StyleToAACStyle(grid3Style: any): any {
+    if (!grid3Style) return {};
+
+    return {
+      backgroundColor: grid3Style.BackColour || grid3Style.TileColour,
+      borderColor: grid3Style.BorderColour,
+      fontColor: grid3Style.FontColour,
+      fontFamily: grid3Style.FontName,
+      fontSize: grid3Style.FontSize ? parseInt(grid3Style.FontSize) : undefined,
+    };
+  }
+
+  // Helper function to get style by ID or return default
+  private getStyleById(styles: Map<string, any>, styleId?: string): any {
+    if (!styleId || !styles.has(styleId)) {
+      return {};
+    }
+    return this.convertGrid3StyleToAACStyle(styles.get(styleId));
+  }
   extractTexts(filePathOrBuffer: string | Buffer): string[] {
     const buffer = Buffer.isBuffer(filePathOrBuffer)
       ? filePathOrBuffer
@@ -47,6 +67,27 @@ class GridsetProcessor extends BaseProcessor {
     }
 
     const parser = new XMLParser();
+
+    // First, load styles from style.xml if it exists
+    const styles = new Map<string, any>();
+    const styleEntry = zip.getEntries().find(entry => entry.entryName.endsWith('style.xml'));
+    if (styleEntry) {
+      try {
+        const styleXmlContent = styleEntry.getData().toString("utf8");
+        const styleData = parser.parse(styleXmlContent);
+        // Parse styles and store them in the map
+        if (styleData.Styles?.Style) {
+          const styleArray = Array.isArray(styleData.Styles.Style) ? styleData.Styles.Style : [styleData.Styles.Style];
+          styleArray.forEach((style: any) => {
+            if (style['@_ID']) {
+              styles.set(style['@_ID'], style);
+            }
+          });
+        }
+      } catch (e) {
+        console.warn('Failed to parse style.xml:', e);
+      }
+    }
 
     // Debug: log all entry names
     // console.log('Gridset zip entries:', zip.getEntries().map(e => e.entryName));
@@ -105,6 +146,9 @@ class GridsetProcessor extends BaseProcessor {
           grid: [],
           buttons: [],
           parentId: null,
+          style: {
+            backgroundColor: grid.BackgroundColour || grid.backgroundColour,
+          },
         });
 
         // Process buttons: <Cells><Cell>
@@ -164,6 +208,16 @@ class GridsetProcessor extends BaseProcessor {
               }
             }
 
+            // Get style information from cell attributes
+            const cellStyleId = cell['@_StyleID'] || cell['@_styleid'];
+            const cellStyle = this.getStyleById(styles, cellStyleId);
+
+            // Also check for inline style overrides
+            const inlineStyle: any = {};
+            if (cell['@_BackColour']) inlineStyle.backgroundColor = cell['@_BackColour'];
+            if (cell['@_FontColour']) inlineStyle.fontColor = cell['@_FontColour'];
+            if (cell['@_BorderColour']) inlineStyle.borderColor = cell['@_BorderColour'];
+
             const button = new AACButton({
               id: `${gridId}_btn_${idx}`,
               label: String(label),
@@ -178,6 +232,10 @@ class GridsetProcessor extends BaseProcessor {
                     targetPageId: String(navigationTarget),
                   }
                 : null,
+              style: {
+                ...cellStyle,
+                ...inlineStyle, // Inline styles override referenced styles
+              },
             });
             page.addButton(button);
           });
@@ -246,6 +304,59 @@ class GridsetProcessor extends BaseProcessor {
       return;
     }
 
+    // Collect all unique styles from pages and buttons
+    const uniqueStyles = new Map<string, any>();
+    let styleIdCounter = 1;
+
+    // Helper function to add style and return its ID
+    const addStyle = (style: any): string => {
+      if (!style || Object.keys(style).length === 0) return "";
+
+      const styleKey = JSON.stringify(style);
+      if (!uniqueStyles.has(styleKey)) {
+        const styleId = `Style${styleIdCounter++}`;
+        uniqueStyles.set(styleKey, { id: styleId, style });
+        return styleId;
+      }
+      return uniqueStyles.get(styleKey)!.id;
+    };
+
+    // Collect styles from all pages and buttons
+    Object.values(tree.pages).forEach(page => {
+      if (page.style) addStyle(page.style);
+      page.buttons.forEach(button => {
+        if (button.style) addStyle(button.style);
+      });
+    });
+
+    // Create style.xml if there are styles
+    if (uniqueStyles.size > 0) {
+      const stylesArray = Array.from(uniqueStyles.values()).map(({ id, style }) => ({
+        "@_ID": id,
+        BackColour: style.backgroundColor,
+        TileColour: style.backgroundColor,
+        BorderColour: style.borderColor,
+        FontColour: style.fontColor,
+        FontName: style.fontFamily,
+        FontSize: style.fontSize?.toString(),
+      }));
+
+      const styleData = {
+        "?xml": { "@_version": "1.0", "@_encoding": "UTF-8" },
+        Styles: {
+          Style: stylesArray,
+        },
+      };
+
+      const builder = new XMLBuilder({
+        ignoreAttributes: false,
+        format: true,
+        indentBy: "  ",
+      });
+      const styleXmlContent = builder.build(styleData);
+      zip.addFile("style.xml", Buffer.from(styleXmlContent, "utf8"));
+    }
+
     // Create a grid for each page
     Object.values(tree.pages).forEach((page, index) => {
       const gridData = {
@@ -254,6 +365,7 @@ class GridsetProcessor extends BaseProcessor {
           "@_xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
           GridGuid: page.id,
           Name: page.name || `Grid ${index + 1}`,
+          BackgroundColour: page.style?.backgroundColor,
           // Add basic row/column definitions (assume 4x4 grid)
           ColumnDefinitions: {
             ColumnDefinition: Array(4).fill({}),
@@ -264,10 +376,13 @@ class GridsetProcessor extends BaseProcessor {
           Cells:
             page.buttons.length > 0
               ? {
-                  Cell: page.buttons.map((button, btnIndex) => ({
-                    "@_X": btnIndex % 4, // Column position
-                    "@_Y": Math.floor(btnIndex / 4), // Row position
-                    Content: {
+                  Cell: page.buttons.map((button, btnIndex) => {
+                    const buttonStyleId = button.style ? addStyle(button.style) : "";
+                    return {
+                      "@_X": btnIndex % 4, // Column position
+                      "@_Y": Math.floor(btnIndex / 4), // Row position
+                      "@_StyleID": buttonStyleId,
+                      Content: {
                       Commands:
                         button.type === "NAVIGATE" && button.targetPageId
                           ? {
@@ -288,11 +403,12 @@ class GridsetProcessor extends BaseProcessor {
                                 },
                               },
                             },
-                      CaptionAndImage: {
-                        Caption: button.label || "",
+                        CaptionAndImage: {
+                          Caption: button.label || "",
+                        },
                       },
-                    },
-                  })),
+                    };
+                  }),
                 }
               : { Cell: [] },
         },

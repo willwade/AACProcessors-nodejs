@@ -23,6 +23,7 @@ A comprehensive **TypeScript library** for processing AAC (Augmentative and Alte
 
 - 🔄 **Cross-format conversion** - Convert between any supported formats
 - 🌍 **Translation workflows** - Built-in i18n support with `processTexts()`
+- 🎨 **Comprehensive styling support** - Preserve visual appearance across formats
 - 🧪 **Property-based testing** - Robust validation with 140+ tests
 - ⚡ **Performance optimized** - Memory-efficient processing of large files
 - 🛡️ **Error recovery** - Graceful handling of corrupted data
@@ -234,6 +235,127 @@ try {
   console.error("Failed to load file:", error.message);
   // Processor handles corruption gracefully and provides meaningful errors
 }
+```
+
+### Styling Support
+
+The library now provides comprehensive styling support across all AAC formats, preserving visual appearance when converting between formats.
+
+#### Supported Styling Properties
+
+```typescript
+interface AACStyle {
+  backgroundColor?: string;    // Button/page background color
+  fontColor?: string;         // Text color
+  borderColor?: string;       // Border color
+  borderWidth?: number;       // Border thickness
+  fontSize?: number;          // Font size in pixels
+  fontFamily?: string;        // Font family name
+  fontWeight?: string;        // "normal" | "bold"
+  fontStyle?: string;         // "normal" | "italic"
+  textUnderline?: boolean;    // Text underline
+  labelOnTop?: boolean;       // Label position (TouchChat)
+  transparent?: boolean;      // Transparent background
+}
+```
+
+#### Creating Styled AAC Content
+
+```typescript
+import { AACTree, AACPage, AACButton } from "aac-processors";
+
+// Create a page with styling
+const page = new AACPage({
+  id: "main-page",
+  name: "Main Communication Board",
+  grid: [],
+  buttons: [],
+  parentId: null,
+  style: {
+    backgroundColor: "#f0f8ff",
+    fontFamily: "Arial",
+    fontSize: 16,
+  },
+});
+
+// Create buttons with comprehensive styling
+const speakButton = new AACButton({
+  id: "speak-btn-1",
+  label: "Hello",
+  message: "Hello, how are you?",
+  type: "SPEAK",
+  action: null,
+  style: {
+    backgroundColor: "#4CAF50",
+    fontColor: "#ffffff",
+    borderColor: "#45a049",
+    borderWidth: 2,
+    fontSize: 18,
+    fontFamily: "Helvetica",
+    fontWeight: "bold",
+    labelOnTop: true,
+  },
+});
+
+const navButton = new AACButton({
+  id: "nav-btn-1",
+  label: "More",
+  message: "Navigate to more options",
+  type: "NAVIGATE",
+  targetPageId: "more-page",
+  action: {
+    type: "NAVIGATE",
+    targetPageId: "more-page",
+  },
+  style: {
+    backgroundColor: "#2196F3",
+    fontColor: "#ffffff",
+    borderColor: "#1976D2",
+    borderWidth: 1,
+    fontSize: 16,
+    fontStyle: "italic",
+    transparent: false,
+  },
+});
+
+page.addButton(speakButton);
+page.addButton(navButton);
+
+const tree = new AACTree();
+tree.addPage(page);
+
+// Save with styling preserved
+import { SnapProcessor } from "aac-processors";
+const processor = new SnapProcessor();
+processor.saveFromTree(tree, "styled-board.spb");
+```
+
+#### Format-Specific Styling Support
+
+| Format | Background | Font | Border | Advanced |
+|--------|------------|------|--------|----------|
+| **Snap/SPS** | ✅ Full | ✅ Full | ✅ Full | ✅ All properties |
+| **TouchChat** | ✅ Full | ✅ Full | ✅ Full | ✅ Label position, transparency |
+| **OBF/OBZ** | ✅ Yes | ❌ No | ✅ Yes | ❌ Basic only |
+| **Grid3** | ✅ Yes | ✅ Yes | ✅ Yes | ✅ Style references |
+| **Asterics Grid** | ✅ Yes | ✅ Yes | ✅ Yes | ✅ Metadata-based |
+| **Apple Panels** | ✅ Yes | ✅ Size only | ❌ No | ✅ Display weight |
+
+#### Cross-Format Styling Conversion
+
+```typescript
+import { getProcessor } from "aac-processors";
+
+// Load styled content from TouchChat
+const touchChatProcessor = getProcessor("input.ce");
+const styledTree = touchChatProcessor.loadIntoTree("input.ce");
+
+// Convert to Snap format while preserving styling
+const snapProcessor = getProcessor("output.spb");
+snapProcessor.saveFromTree(styledTree, "output.spb");
+
+// Styling information is automatically mapped between formats
+console.log("Styling preserved across formats!");
 ```
 
 ### CLI Usage
@@ -490,7 +612,7 @@ Inspired by the Python AACProcessors project and built for the AAC community.
 ## More enhancements
 
 - Action types on buttons. We have SPEAK, NAVIGATE, but we could also have things like "PLAY_AUDIO", "SEND_MESSAGE", "OPEN_URL", etc. This would allow us to have a more flexible structure for actions, especially if we want to support different types of actions or additional metadata in the future. This needs to be very flexible. eaach system has a very different set of actions. We could have a set of core actions that are supported by all systems, and then allow each system to define its own additional actions. This could be done by having a set of core action types that are defined in the AACSystem type, and then allowing each system to define its own additional action types in the AACPageSet or AACPage types.
-- Styling information for buttons, background colors, and text colors etc
+- ✅ **Styling information for buttons, background colors, and text colors etc** - Comprehensive styling support implemented across all formats
 - Current language and locale information of aac pageset
 - Symbols and their associated data. Now we have an optional part but I think this might need rethinking. I wonder if "Symbols" should be a separate type - alongside AACPageSet and AACPage. that then AACPageSet and AACPage can reference. This would allow us to have a more flexible structure for symbols, especially if we want to support different types of symbols or additional metadata in the future. Symbols would have: Library name, ID, Text name, Reference (URL, DB ID, etc.), and an optional part for additional metadata. We could have synoynms, antonyms, also and for different languages somehow.
 - Somehow we need to deal with access. Switch scanning: Blocks probably being the main aspect. But also - we need to identify somewhere a set of core rules for each aac system. Like for example - what access methods are supported, what languages are supported, what symbols are supported, etc. This could be a set of rules that can be referenced by AACSystem - a different type altogether maybe? It could be in a JSON format maybe. (use case here being for a MCP).
