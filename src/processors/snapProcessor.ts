@@ -105,51 +105,37 @@ class SnapProcessor extends BaseProcessor {
       // Load buttons per page, using UniqueId for page id
       for (const pageRow of pages) {
         let buttons: any[] = [];
+
+        // Create a map to track page grid layouts
+        const pageGrids = new Map<string, Array<Array<AACButton | null>>>();
+
         try {
+          // Simplified query focusing on ElementReference relationship
           const buttonQuery = this.loadAudio
             ? `
             SELECT b.Id, b.Label, b.Message, b.LibrarySymbolId, b.PageSetImageId,
                    b.MessageRecordingId, b.UseMessageRecording, b.SerializedMessageSoundMetadata,
-                   b.LabelColor, b.BackgroundColor, b.BorderColor, b.BorderThickness,
-                   b.FontSize, b.FontFamily, b.FontStyle,
-                   ep.GridPosition, bpl.PageUniqueId, b.NavigatePageId, er.PageId as ButtonPageId
+                   b.BorderColor, b.BorderThickness, b.FontSize, b.FontFamily, b.FontStyle,
+                   ep.GridPosition, er.PageId as ButtonPageId
             FROM Button b
-            LEFT JOIN ElementReference er ON b.ElementReferenceId = er.Id
+            INNER JOIN ElementReference er ON b.ElementReferenceId = er.Id
             LEFT JOIN ElementPlacement ep ON ep.ElementReferenceId = er.Id
-            LEFT JOIN PageLayout pl ON ep.PageLayoutId = pl.Id
-            LEFT JOIN ButtonPageLink bpl ON bpl.ButtonId = b.Id
-            WHERE er.PageId = ? OR b.ElementReferenceId IN (SELECT Id FROM ElementReference WHERE PageId = ?)
+            WHERE er.PageId = ?
           `
             : `
             SELECT b.Id, b.Label, b.Message, b.LibrarySymbolId, b.PageSetImageId,
-                   b.LabelColor, b.BackgroundColor, b.BorderColor, b.BorderThickness,
-                   b.FontSize, b.FontFamily, b.FontStyle,
-                   ep.GridPosition, bpl.PageUniqueId, b.NavigatePageId, er.PageId as ButtonPageId
+                   b.BorderColor, b.BorderThickness, b.FontSize, b.FontFamily, b.FontStyle,
+                   ep.GridPosition, er.PageId as ButtonPageId
             FROM Button b
-            LEFT JOIN ElementReference er ON b.ElementReferenceId = er.Id
+            INNER JOIN ElementReference er ON b.ElementReferenceId = er.Id
             LEFT JOIN ElementPlacement ep ON ep.ElementReferenceId = er.Id
-            LEFT JOIN PageLayout pl ON ep.PageLayoutId = pl.Id
-            LEFT JOIN ButtonPageLink bpl ON bpl.ButtonId = b.Id
-            WHERE er.PageId = ? OR b.ElementReferenceId IN (SELECT Id FROM ElementReference WHERE PageId = ?)
+            WHERE er.PageId = ?
           `;
-          buttons = db.prepare(buttonQuery).all(pageRow.Id, pageRow.Id);
+          buttons = db.prepare(buttonQuery).all(pageRow.Id);
         } catch (err) {
-          try {
-            // Try lowercase 'page_id'
-            buttons = db
-              .prepare(`SELECT * FROM Button WHERE page_id = ?`)
-              .all(pageRow.Id);
-          } catch (e1) {
-            try {
-              // Try uppercase 'PageId'
-              buttons = db
-                .prepare(`SELECT * FROM Button WHERE PageId = ?`)
-                .all(pageRow.Id);
-            } catch (e2) {
-              // Fallback: select all buttons
-              buttons = db.prepare(`SELECT * FROM Button`).all();
-            }
-          }
+          console.warn(`Failed to load buttons for page ${pageRow.Id}: ${err instanceof Error ? err.message : String(err)}`);
+          // Skip this page instead of loading all buttons
+          buttons = [];
         }
 
         const uniqueId = String(pageRow.UniqueId || pageRow.Id);
@@ -157,6 +143,18 @@ class SnapProcessor extends BaseProcessor {
         if (!page) {
           continue;
         }
+
+        // Initialize page grid if not exists (assume max 10x10 grid)
+        if (!pageGrids.has(uniqueId)) {
+          const grid: Array<Array<AACButton | null>> = [];
+          for (let r = 0; r < 10; r++) {
+            grid[r] = new Array(10).fill(null);
+          }
+          pageGrids.set(uniqueId, grid);
+        }
+
+        const pageGrid = pageGrids.get(uniqueId);
+        if (!pageGrid) continue;
 
         buttons.forEach((btnRow) => {
           // Determine navigation target UniqueId, if possible
@@ -247,7 +245,23 @@ class SnapProcessor extends BaseProcessor {
           const parentPage = tree.getPage(parentUniqueId);
           if (parentPage) {
             parentPage.addButton(button);
-          } else {
+
+            // Add button to grid layout if position data is available
+            const gridPositionStr = String(btnRow.GridPosition || '');
+            if (gridPositionStr && gridPositionStr.includes(',')) {
+              // Parse comma-separated coordinates "x,y"
+              const [xStr, yStr] = gridPositionStr.split(',');
+              const gridX = parseInt(xStr, 10);
+              const gridY = parseInt(yStr, 10);
+
+              // Place button in grid if within bounds and coordinates are valid
+              if (!isNaN(gridX) && !isNaN(gridY) &&
+                  gridX >= 0 && gridY >= 0 &&
+                  gridY < 10 && gridX < 10 &&
+                  pageGrid[gridY] && pageGrid[gridY][gridX] === null) {
+                pageGrid[gridY][gridX] = button;
+              }
+            }
           }
 
           // If this is a navigation button, update the target page's parentId
@@ -258,6 +272,12 @@ class SnapProcessor extends BaseProcessor {
             }
           }
         });
+
+        // Set grid layout for the current page
+        const currentPage = tree.getPage(uniqueId);
+        if (currentPage && pageGrid) {
+          currentPage.grid = pageGrid;
+        }
       }
 
       return tree;
@@ -402,6 +422,22 @@ class SnapProcessor extends BaseProcessor {
         const numericPageId = pageIdMap.get(page.id)!;
 
         page.buttons.forEach((button, index) => {
+          // Find button position in grid layout
+          let gridPosition = `${index % 4},${Math.floor(index / 4)}`; // Default fallback
+
+          if (page.grid && page.grid.length > 0) {
+            // Search for button in grid layout
+            for (let y = 0; y < page.grid.length; y++) {
+              for (let x = 0; x < page.grid[y].length; x++) {
+                const gridButton = page.grid[y][x];
+                if (gridButton && gridButton.id === button.id) {
+                  // Convert grid coordinates to comma-separated format
+                  gridPosition = `${x},${y}`;
+                  break;
+                }
+              }
+            }
+          }
           const elementRefId = elementRefIdCounter++;
 
           // Insert ElementReference
@@ -444,7 +480,7 @@ class SnapProcessor extends BaseProcessor {
           const insertPlacement = db.prepare(
             "INSERT INTO ElementPlacement (Id, ElementReferenceId, GridPosition) VALUES (?, ?, ?)",
           );
-          insertPlacement.run(elementRefIdCounter++, elementRefId, index);
+          insertPlacement.run(elementRefIdCounter++, elementRefId, gridPosition);
         });
       });
     } finally {

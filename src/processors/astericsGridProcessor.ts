@@ -231,12 +231,35 @@ class AstericsGridProcessor extends BaseProcessor {
       const page = tree.getPage(grid.id);
       if (!page) return;
 
+      // Create a 2D grid to track button positions
+      const gridLayout: (AACButton | null)[][] = [];
+      const maxRows = Math.max(10, grid.rowCount || 10);
+      const maxCols = Math.max(10, grid.minColumnCount || 10);
+      for (let r = 0; r < maxRows; r++) {
+        gridLayout[r] = new Array(maxCols).fill(null);
+      }
+
       grid.gridElements.forEach((element: GridElement) => {
         const button = this.createButtonFromElement(
           element,
           grdFile.metadata?.colorConfig,
         );
         page.addButton(button);
+
+        // Place button in grid layout using its x,y coordinates
+        const buttonX = element.x || 0;
+        const buttonY = element.y || 0;
+        const buttonWidth = element.width || 1;
+        const buttonHeight = element.height || 1;
+
+        // Place button in grid (handle width/height span)
+        for (let r = buttonY; r < buttonY + buttonHeight && r < maxRows; r++) {
+          for (let c = buttonX; c < buttonX + buttonWidth && c < maxCols; c++) {
+            if (gridLayout[r] && gridLayout[r][c] === null) {
+              gridLayout[r][c] = button;
+            }
+          }
+        }
 
         // Handle navigation relationships
         const navAction = element.actions.find(
@@ -249,6 +272,9 @@ class AstericsGridProcessor extends BaseProcessor {
           }
         }
       });
+
+      // Set the page's grid layout
+      page.grid = gridLayout;
     });
 
     return tree;
