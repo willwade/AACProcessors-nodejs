@@ -92,6 +92,43 @@ const tree = processor.loadIntoTree("board.dot");
 console.log(tree);
 ```
 
+### Button Filtering System
+
+AACProcessors includes an intelligent filtering system to handle navigation bars and system buttons that are common in AAC applications but may not be appropriate when converting between formats.
+
+#### **Default Behavior**
+
+By default, the following buttons are filtered out during conversion:
+
+- **Navigation buttons**: Home, Back (toolbar navigation)
+- **System buttons**: Delete, Clear, Copy (text editing functions)
+- **Label-based filtering**: Buttons with common navigation terms
+
+#### **Configuration Options**
+
+```typescript
+import { GridsetProcessor } from "aac-processors";
+
+// Default: exclude navigation/system buttons (recommended)
+const processor = new GridsetProcessor();
+
+// Preserve all buttons (legacy behavior)
+const processor = new GridsetProcessor({ preserveAllButtons: true });
+
+// Custom filtering
+const processor = new GridsetProcessor({
+  excludeNavigationButtons: true,
+  excludeSystemButtons: false,
+  customButtonFilter: (button) => !button.label.includes("Settings"),
+});
+```
+
+#### **Why Filter Buttons?**
+
+- **Cleaner conversions**: Navigation bars don't clutter converted vocabularies
+- **Format-appropriate**: Each AAC app handles navigation/system functions in their own UI
+- **Semantic-aware**: Uses proper semantic action detection, not just label matching
+
 ### Translation Workflows
 
 All processors support built-in translation via the `processTexts()` method:
@@ -380,6 +417,11 @@ npx aac-processors convert input.sps output.obf --format obf
 
 # Convert TouchChat to Snap format
 npx aac-processors convert communication.ce backup.spb --format snap
+
+# Convert with button filtering options
+npx aac-processors convert input.gridset output.grd --format grd --preserve-all-buttons
+npx aac-processors convert input.ce output.spb --format snap --exclude-buttons "settings,menu"
+npx aac-processors convert input.obf output.gridset --format gridset --no-exclude-system
 ```
 
 #### **Analyze File Structure**
@@ -394,10 +436,32 @@ npx aac-processors analyze examples/example.gridset --pretty
 
 #### **Available Options**
 
+**General Options:**
+
 - `--format <format>` - Specify format type (auto-detected if not provided)
 - `--pretty` - Human-readable output (analyze command)
 - `--verbose` - Detailed output (extract command)
 - `--quiet` - Minimal output (extract command)
+
+**Button Filtering Options:**
+
+- `--preserve-all-buttons` - Preserve all buttons including navigation/system buttons
+- `--no-exclude-navigation` - Don't exclude navigation buttons (Home, Back)
+- `--no-exclude-system` - Don't exclude system buttons (Delete, Clear, etc.)
+- `--exclude-buttons <list>` - Comma-separated list of button labels/terms to exclude
+
+**Examples:**
+
+```bash
+# Extract text with all buttons preserved
+npx aac-processors extract input.ce --preserve-all-buttons --verbose
+
+# Convert excluding only custom buttons
+npx aac-processors convert input.gridset output.grd --format grd --exclude-buttons "settings,help,menu"
+
+# Analyze with navigation buttons excluded but system buttons preserved
+npx aac-processors analyze input.spb --no-exclude-system --pretty
+```
 
 ---
 

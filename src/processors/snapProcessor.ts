@@ -1,4 +1,4 @@
-import { BaseProcessor } from "../core/baseProcessor";
+import { BaseProcessor, ProcessorOptions } from "../core/baseProcessor";
 import {
   AACTree,
   AACPage,
@@ -45,9 +45,9 @@ class SnapProcessor extends BaseProcessor {
 
   constructor(
     symbolResolver: unknown | null = null,
-    options: { loadAudio?: boolean } = {},
+    options: ProcessorOptions & { loadAudio?: boolean } = {},
   ) {
-    super();
+    super(options);
     this.symbolResolver = symbolResolver;
     this.loadAudio = options.loadAudio || false;
   }

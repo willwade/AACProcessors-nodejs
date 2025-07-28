@@ -1,4 +1,4 @@
-import { BaseProcessor } from "../core/baseProcessor";
+import { BaseProcessor, ProcessorOptions } from "../core/baseProcessor";
 import {
   AACTree,
   AACPage,
@@ -35,6 +35,9 @@ interface ObfBoard {
 }
 
 class ObfProcessor extends BaseProcessor {
+  constructor(options?: ProcessorOptions) {
+    super(options);
+  }
   private processBoard(boardData: ObfBoard, _boardPath: string): AACPage {
     const buttons: AACButton[] = (boardData.buttons || []).map(
       (btn: ObfButton): AACButton => {

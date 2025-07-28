@@ -1,4 +1,4 @@
-import { BaseProcessor } from "../core/baseProcessor";
+import { BaseProcessor, ProcessorOptions } from "../core/baseProcessor";
 import {
   AACTree,
   AACPage,
@@ -76,8 +76,8 @@ interface AstericsGridFile {
 class AstericsGridProcessor extends BaseProcessor {
   private loadAudio: boolean = false;
 
-  constructor(options: { loadAudio?: boolean } = {}) {
-    super();
+  constructor(options: ProcessorOptions & { loadAudio?: boolean } = {}) {
+    super(options);
     this.loadAudio = options.loadAudio || false;
   }
 
@@ -739,161 +739,168 @@ class AstericsGridProcessor extends BaseProcessor {
         });
       }
 
-      const gridElements: GridElement[] = page.buttons.map((button, index) => {
-        // Use grid position if available, otherwise arrange in rows of 4
-        const gridWidth = 4;
-        const position = buttonPositions.get(button.id);
-        const calculatedX = position ? position.x : index % gridWidth;
-        const calculatedY = position
-          ? position.y
-          : Math.floor(index / gridWidth);
-        const actions: GridAction[] = [];
+      // Filter out navigation/system buttons if configured
+      const filteredButtons = this.filterPageButtons(page.buttons);
 
-        // Add appropriate actions - prefer semantic actions
-        if (button.semanticAction?.platformData?.astericsGrid) {
-          // Use original AstericsGrid action data
-          const astericsData = button.semanticAction.platformData.astericsGrid;
-          actions.push({
-            id: `grid-action-${button.id}`,
-            ...astericsData.properties,
-            modelName: astericsData.modelName,
-            modelVersion:
-              astericsData.properties.modelVersion ||
-              '{"major": 5, "minor": 0, "patch": 0}',
-          });
-        } else if (
-          button.semanticAction?.intent === AACSemanticIntent.NAVIGATE_TO
-        ) {
-          // Create navigation action from semantic data
-          const targetId =
-            button.semanticAction.targetId || button.targetPageId;
-          actions.push({
-            id: `grid-action-navigate-${button.id}`,
-            modelName: "GridActionNavigate",
-            modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
-            navType: "navigateToGrid",
-            toGridId: targetId,
-          });
-        } else if (
-          button.semanticAction?.intent === AACSemanticIntent.GO_BACK
-        ) {
-          // Create back navigation action
-          actions.push({
-            id: `grid-action-navigate-back-${button.id}`,
-            modelName: "GridActionNavigate",
-            modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
-            navType: "TO_LAST",
-          });
-        } else if (
-          button.semanticAction?.intent === AACSemanticIntent.GO_HOME
-        ) {
-          // Create home navigation action
-          actions.push({
-            id: `grid-action-navigate-home-${button.id}`,
-            modelName: "GridActionNavigate",
-            modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
-            navType: "TO_HOME",
-          });
-        } else if (
-          button.semanticAction?.intent === AACSemanticIntent.DELETE_WORD
-        ) {
-          // Create delete word action
-          actions.push({
-            id: `grid-action-delete-word-${button.id}`,
-            modelName: "GridActionCollectElement",
-            modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
-            action: "COLLECT_ACTION_REMOVE_WORD",
-          });
-        } else if (
-          button.semanticAction?.intent === AACSemanticIntent.DELETE_CHARACTER
-        ) {
-          // Create delete character action
-          actions.push({
-            id: `grid-action-delete-char-${button.id}`,
-            modelName: "GridActionCollectElement",
-            modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
-            action: "COLLECT_ACTION_REMOVE_CHAR",
-          });
-        } else if (
-          button.semanticAction?.intent === AACSemanticIntent.CLEAR_TEXT
-        ) {
-          // Create clear text action
-          actions.push({
-            id: `grid-action-clear-${button.id}`,
-            modelName: "GridActionCollectElement",
-            modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
-            action: "COLLECT_ACTION_CLEAR",
-          });
-        } else if (
-          button.semanticAction?.intent === AACSemanticIntent.SPEAK_TEXT
-        ) {
-          // Create speak action from semantic data
-          if (
-            button.semanticAction.text &&
-            button.semanticAction.text !== button.label
-          ) {
+      const gridElements: GridElement[] = filteredButtons.map(
+        (button, index) => {
+          // Use grid position if available, otherwise arrange in rows of 4
+          const gridWidth = 4;
+          const position = buttonPositions.get(button.id);
+          const calculatedX = position ? position.x : index % gridWidth;
+          const calculatedY = position
+            ? position.y
+            : Math.floor(index / gridWidth);
+          const actions: GridAction[] = [];
+
+          // Add appropriate actions - prefer semantic actions
+          if (button.semanticAction?.platformData?.astericsGrid) {
+            // Use original AstericsGrid action data
+            const astericsData =
+              button.semanticAction.platformData.astericsGrid;
             actions.push({
-              id: `grid-action-speak-${button.id}`,
-              modelName: "GridActionSpeakCustom",
-              modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
-              speakText: { en: button.semanticAction.text },
+              id: `grid-action-${button.id}`,
+              ...astericsData.properties,
+              modelName: astericsData.modelName,
+              modelVersion:
+                astericsData.properties.modelVersion ||
+                '{"major": 5, "minor": 0, "patch": 0}',
             });
+          } else if (
+            button.semanticAction?.intent === AACSemanticIntent.NAVIGATE_TO
+          ) {
+            // Create navigation action from semantic data
+            const targetId =
+              button.semanticAction.targetId || button.targetPageId;
+            actions.push({
+              id: `grid-action-navigate-${button.id}`,
+              modelName: "GridActionNavigate",
+              modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
+              navType: "navigateToGrid",
+              toGridId: targetId,
+            });
+          } else if (
+            button.semanticAction?.intent === AACSemanticIntent.GO_BACK
+          ) {
+            // Create back navigation action
+            actions.push({
+              id: `grid-action-navigate-back-${button.id}`,
+              modelName: "GridActionNavigate",
+              modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
+              navType: "TO_LAST",
+            });
+          } else if (
+            button.semanticAction?.intent === AACSemanticIntent.GO_HOME
+          ) {
+            // Create home navigation action
+            actions.push({
+              id: `grid-action-navigate-home-${button.id}`,
+              modelName: "GridActionNavigate",
+              modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
+              navType: "TO_HOME",
+            });
+          } else if (
+            button.semanticAction?.intent === AACSemanticIntent.DELETE_WORD
+          ) {
+            // Create delete word action
+            actions.push({
+              id: `grid-action-delete-word-${button.id}`,
+              modelName: "GridActionCollectElement",
+              modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
+              action: "COLLECT_ACTION_REMOVE_WORD",
+            });
+          } else if (
+            button.semanticAction?.intent === AACSemanticIntent.DELETE_CHARACTER
+          ) {
+            // Create delete character action
+            actions.push({
+              id: `grid-action-delete-char-${button.id}`,
+              modelName: "GridActionCollectElement",
+              modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
+              action: "COLLECT_ACTION_REMOVE_CHAR",
+            });
+          } else if (
+            button.semanticAction?.intent === AACSemanticIntent.CLEAR_TEXT
+          ) {
+            // Create clear text action
+            actions.push({
+              id: `grid-action-clear-${button.id}`,
+              modelName: "GridActionCollectElement",
+              modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
+              action: "COLLECT_ACTION_CLEAR",
+            });
+          } else if (
+            button.semanticAction?.intent === AACSemanticIntent.SPEAK_TEXT
+          ) {
+            // Create speak action from semantic data
+            if (
+              button.semanticAction.text &&
+              button.semanticAction.text !== button.label
+            ) {
+              actions.push({
+                id: `grid-action-speak-${button.id}`,
+                modelName: "GridActionSpeakCustom",
+                modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
+                speakText: { en: button.semanticAction.text },
+              });
+            } else {
+              actions.push({
+                id: `grid-action-speak-${button.id}`,
+                modelName: "GridActionSpeak",
+                modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
+              });
+            }
           } else {
+            // Default to speak action if no semantic action
             actions.push({
               id: `grid-action-speak-${button.id}`,
               modelName: "GridActionSpeak",
               modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
             });
           }
-        } else {
-          // Default to speak action if no semantic action
-          actions.push({
-            id: `grid-action-speak-${button.id}`,
-            modelName: "GridActionSpeak",
-            modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
-          });
-        }
 
-        // Add audio action if present
-        if (button.audioRecording && button.audioRecording.data) {
-          const metadata = JSON.parse(button.audioRecording.metadata || "{}");
-          actions.push({
-            id:
-              button.audioRecording.id?.toString() ||
-              `grid-action-audio-${button.id}`,
-            modelName: "GridActionAudio",
-            modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
-            dataBase64: button.audioRecording.data.toString("base64"),
-            mimeType: metadata.mimeType || "audio/wav",
-            durationMs: metadata.durationMs || 0,
-            filename: button.audioRecording.identifier || `audio-${button.id}`,
-          });
-        }
+          // Add audio action if present
+          if (button.audioRecording && button.audioRecording.data) {
+            const metadata = JSON.parse(button.audioRecording.metadata || "{}");
+            actions.push({
+              id:
+                button.audioRecording.id?.toString() ||
+                `grid-action-audio-${button.id}`,
+              modelName: "GridActionAudio",
+              modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
+              dataBase64: button.audioRecording.data.toString("base64"),
+              mimeType: metadata.mimeType || "audio/wav",
+              durationMs: metadata.durationMs || 0,
+              filename:
+                button.audioRecording.identifier || `audio-${button.id}`,
+            });
+          }
 
-        return {
-          id: button.id,
-          modelName: "GridElement",
-          modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
-          width: 1,
-          height: 1,
-          x: calculatedX,
-          y: calculatedY,
-          label: { en: button.label },
-          wordForms: [],
-          image: {
-            data: null,
-            author: undefined,
-            authorURL: undefined,
-          },
-          actions: actions,
-          type: "ELEMENT_TYPE_NORMAL",
-          additionalProps: {},
-          backgroundColor:
-            button.style?.backgroundColor ||
-            page.style?.backgroundColor ||
-            defaultPageStyle.backgroundColor,
-        };
-      });
+          return {
+            id: button.id,
+            modelName: "GridElement",
+            modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
+            width: 1,
+            height: 1,
+            x: calculatedX,
+            y: calculatedY,
+            label: { en: button.label },
+            wordForms: [],
+            image: {
+              data: null,
+              author: undefined,
+              authorURL: undefined,
+            },
+            actions: actions,
+            type: "ELEMENT_TYPE_NORMAL",
+            additionalProps: {},
+            backgroundColor:
+              button.style?.backgroundColor ||
+              page.style?.backgroundColor ||
+              defaultPageStyle.backgroundColor,
+          };
+        },
+      );
 
       // Calculate grid dimensions based on button count
       const gridWidth = 4;

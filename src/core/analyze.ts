@@ -7,34 +7,37 @@ import { SnapProcessor } from "../processors/snapProcessor";
 import { DotProcessor } from "../processors/dotProcessor";
 import { ApplePanelsProcessor } from "../processors/applePanelsProcessor";
 import { AACTree } from "./treeStructure";
-import { BaseProcessor } from "./baseProcessor";
+import { BaseProcessor, ProcessorOptions } from "./baseProcessor";
 import fs from "fs";
 
-export function getProcessor(format: string): BaseProcessor {
+export function getProcessor(
+  format: string,
+  options?: ProcessorOptions,
+): BaseProcessor {
   const normalizedFormat = (format || "").toLowerCase();
 
   switch (normalizedFormat) {
     case "opml":
-      return new OpmlProcessor();
+      return new OpmlProcessor(options);
     case "obf":
-      return new ObfProcessor();
+      return new ObfProcessor(options);
     case "touchchat":
     case "ce": // TouchChat file extension
-      return new TouchChatProcessor();
+      return new TouchChatProcessor(options);
     case "gridset":
-      return new GridsetProcessor(); // Grid3 format
+      return new GridsetProcessor(options); // Grid3 format
     case "grd": // Asterics Grid file extension
-      return new AstericsGridProcessor();
+      return new AstericsGridProcessor(options);
     case "snap":
     case "sps": // Snap file extension
     case "spb": // Snap backup file extension
-      return new SnapProcessor();
+      return new SnapProcessor(options);
     case "dot":
-      return new DotProcessor();
+      return new DotProcessor(options);
     case "applepanels":
     case "panels": // Apple Panels file extension
     case "ascconfig": // Apple Panels folder format
-      return new ApplePanelsProcessor();
+      return new ApplePanelsProcessor(options);
     default:
       throw new Error("Unknown format: " + format);
   }

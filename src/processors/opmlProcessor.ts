@@ -1,4 +1,4 @@
-import { BaseProcessor } from "../core/baseProcessor";
+import { BaseProcessor, ProcessorOptions } from "../core/baseProcessor";
 import {
   AACTree,
   AACPage,
@@ -27,6 +27,9 @@ interface OpmlDocument {
 }
 
 class OpmlProcessor extends BaseProcessor {
+  constructor(options?: ProcessorOptions) {
+    super(options);
+  }
   private processOutline(
     outline: OpmlOutline,
     parentId: string | null = null,

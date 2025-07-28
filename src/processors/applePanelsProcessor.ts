@@ -1,4 +1,4 @@
-import { BaseProcessor } from "../core/baseProcessor";
+import { BaseProcessor, ProcessorOptions } from "../core/baseProcessor";
 import {
   AACTree,
   AACPage,
@@ -33,6 +33,9 @@ interface ApplePanelsDocument {
 }
 
 class ApplePanelsProcessor extends BaseProcessor {
+  constructor(options?: ProcessorOptions) {
+    super(options);
+  }
   // Helper function to parse Apple Panels Rect format "{{x, y}, {width, height}}"
   private parseRect(
     rectString: string,

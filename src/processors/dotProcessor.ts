@@ -1,4 +1,4 @@
-import { BaseProcessor } from "../core/baseProcessor";
+import { BaseProcessor, ProcessorOptions } from "../core/baseProcessor";
 import {
   AACTree,
   AACPage,
@@ -20,6 +20,9 @@ interface DotEdge {
 }
 
 class DotProcessor extends BaseProcessor {
+  constructor(options?: ProcessorOptions) {
+    super(options);
+  }
   private parseDotFile(content: string): {
     nodes: Array<DotNode & { id: string; label: string }>;
     edges: Array<DotEdge & { from: string; to: string }>;

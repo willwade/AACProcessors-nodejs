@@ -1,4 +1,4 @@
-import { BaseProcessor } from "../core/baseProcessor";
+import { BaseProcessor, ProcessorOptions } from "../core/baseProcessor";
 import {
   AACTree,
   AACPage,
@@ -24,6 +24,9 @@ interface _GridsetGrid {
 }
 
 class GridsetProcessor extends BaseProcessor {
+  constructor(options?: ProcessorOptions) {
+    super(options);
+  }
   // Helper function to generate Grid3 commands from semantic actions
   private generateCommandsFromSemanticAction(
     button: AACButton,
@@ -1027,43 +1030,45 @@ class GridsetProcessor extends BaseProcessor {
           Cells:
             page.buttons.length > 0
               ? {
-                  Cell: page.buttons.map((button, btnIndex) => {
-                    const buttonStyleId = button.style
-                      ? addStyle(button.style)
-                      : "";
+                  Cell: this.filterPageButtons(page.buttons).map(
+                    (button, btnIndex) => {
+                      const buttonStyleId = button.style
+                        ? addStyle(button.style)
+                        : "";
 
-                    // Find button position in grid layout
-                    const position = this.findButtonPosition(
-                      page,
-                      button,
-                      btnIndex,
-                    );
+                      // Find button position in grid layout
+                      const position = this.findButtonPosition(
+                        page,
+                        button,
+                        btnIndex,
+                      );
 
-                    const cellData: any = {
-                      "@_X": position.x,
-                      "@_Y": position.y,
-                      "@_ColumnSpan": position.columnSpan,
-                      "@_RowSpan": position.rowSpan,
-                      Content: {
-                        Commands: this.generateCommandsFromSemanticAction(
-                          button,
-                          tree,
-                        ),
-                        CaptionAndImage: {
-                          Caption: button.label || "",
+                      const cellData: any = {
+                        "@_X": position.x,
+                        "@_Y": position.y,
+                        "@_ColumnSpan": position.columnSpan,
+                        "@_RowSpan": position.rowSpan,
+                        Content: {
+                          Commands: this.generateCommandsFromSemanticAction(
+                            button,
+                            tree,
+                          ),
+                          CaptionAndImage: {
+                            Caption: button.label || "",
+                          },
                         },
-                      },
-                    };
-
-                    // Add style reference if available
-                    if (buttonStyleId) {
-                      cellData.Content.Style = {
-                        BasedOnStyle: buttonStyleId,
                       };
-                    }
 
-                    return cellData;
-                  }),
+                      // Add style reference if available
+                      if (buttonStyleId) {
+                        cellData.Content.Style = {
+                          BasedOnStyle: buttonStyleId,
+                        };
+                      }
+
+                      return cellData;
+                    },
+                  ),
                 }
               : { Cell: [] },
         },

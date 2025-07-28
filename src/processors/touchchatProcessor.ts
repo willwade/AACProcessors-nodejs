@@ -1,4 +1,4 @@
-import { BaseProcessor } from "../core/baseProcessor";
+import { BaseProcessor, ProcessorOptions } from "../core/baseProcessor";
 import {
   AACTree,
   AACPage,
@@ -46,6 +46,10 @@ function intToHex(colorInt: number | null | undefined): string | undefined {
 class TouchChatProcessor extends BaseProcessor {
   private tree: AACTree | null = null;
   private sourceFile: string | Buffer | null = null;
+
+  constructor(options?: ProcessorOptions) {
+    super(options);
+  }
 
   extractTexts(filePathOrBuffer: string | Buffer): string[] {
     // Extracts all button labels/texts from TouchChat .ce file
