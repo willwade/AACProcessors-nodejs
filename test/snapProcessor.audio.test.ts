@@ -1,21 +1,21 @@
-import { SnapProcessor } from '../src/processors/snapProcessor';
-import { AACTree, AACPage } from '../src/core/treeStructure';
-import path from 'path';
-import fs from 'fs';
+import { SnapProcessor } from "../src/processors/snapProcessor";
+import { AACTree, AACPage } from "../src/core/treeStructure";
+import path from "path";
+import fs from "fs";
 
-describe('SnapProcessor Audio Support', () => {
+describe("SnapProcessor Audio Support", () => {
   const exampleSPSFile: string = path.join(
     __dirname,
-    '../examples/Aphasia Page Set With Sound.sps'
+    "../examples/Aphasia Page Set With Sound.sps",
   );
   const enhancedSPSFile: string = path.join(
     __dirname,
-    '../Aphasia_Page_Set_With_Punjabi_Audio.sps'
+    "../Aphasia_Page_Set_With_Punjabi_Audio.sps",
   );
 
-  it('should load pageset without audio by default', () => {
+  it("should load pageset without audio by default", () => {
     if (!fs.existsSync(exampleSPSFile)) {
-      console.log('Skipping test - audio example file not found');
+      console.log("Skipping test - audio example file not found");
       return;
     }
 
@@ -36,9 +36,9 @@ describe('SnapProcessor Audio Support', () => {
     }
   });
 
-  it('should load pageset with audio when requested', () => {
+  it("should load pageset with audio when requested", () => {
     if (!fs.existsSync(exampleSPSFile)) {
-      console.log('Skipping test - audio example file not found');
+      console.log("Skipping test - audio example file not found");
       return;
     }
 
@@ -65,9 +65,9 @@ describe('SnapProcessor Audio Support', () => {
     expect(foundAudioButton).toBe(true);
   });
 
-  it('should extract buttons for audio processing', () => {
+  it("should extract buttons for audio processing", () => {
     if (!fs.existsSync(exampleSPSFile)) {
-      console.log('Skipping test - audio example file not found');
+      console.log("Skipping test - audio example file not found");
       return;
     }
 
@@ -84,53 +84,53 @@ describe('SnapProcessor Audio Support', () => {
         if (pageWithButtons) {
           const buttons = (processor as any).extractButtonsForAudio(
             exampleSPSFile,
-            pageWithButtons.id
+            pageWithButtons.id,
           );
           expect(Array.isArray(buttons)).toBe(true);
 
           if (buttons.length > 0) {
             const firstButton = buttons[0];
-            expect(firstButton).toHaveProperty('id');
-            expect(firstButton).toHaveProperty('label');
-            expect(firstButton).toHaveProperty('message');
-            expect(firstButton).toHaveProperty('hasAudio');
-            expect(typeof firstButton.hasAudio).toBe('boolean');
+            expect(firstButton).toHaveProperty("id");
+            expect(firstButton).toHaveProperty("label");
+            expect(firstButton).toHaveProperty("message");
+            expect(firstButton).toHaveProperty("hasAudio");
+            expect(typeof firstButton.hasAudio).toBe("boolean");
           }
         }
       }
     } catch (error: any) {
-      console.log('Could not test button extraction:', error.message);
+      console.log("Could not test button extraction:", error.message);
     }
   });
 
-  it('should add audio to buttons', () => {
+  it("should add audio to buttons", () => {
     if (!fs.existsSync(exampleSPSFile)) {
-      console.log('Skipping test - audio example file not found');
+      console.log("Skipping test - audio example file not found");
       return;
     }
 
     const processor = new SnapProcessor();
-    const testDbPath: string = path.join(__dirname, 'test_audio_temp.sps');
+    const testDbPath: string = path.join(__dirname, "test_audio_temp.sps");
 
     try {
       // Copy the example file for testing
       fs.copyFileSync(exampleSPSFile, testDbPath);
 
       // Create some test audio data
-      const testAudioData: Buffer = Buffer.from('RIFF....WAVE....', 'ascii'); // Minimal WAV-like data
+      const testAudioData: Buffer = Buffer.from("RIFF....WAVE....", "ascii"); // Minimal WAV-like data
 
       // Add audio to a button (using button ID 1 as a test)
       const audioId: number = processor.addAudioToButton(
         testDbPath,
         1,
         testAudioData,
-        'Test Audio'
+        "Test Audio",
       );
 
-      expect(typeof audioId).toBe('number');
+      expect(typeof audioId).toBe("number");
       expect(audioId).toBeGreaterThan(0);
     } catch (error: any) {
-      console.log('Could not test audio addition:', error.message);
+      console.log("Could not test audio addition:", error.message);
     } finally {
       // Clean up
       if (fs.existsSync(testDbPath)) {
@@ -139,9 +139,9 @@ describe('SnapProcessor Audio Support', () => {
     }
   });
 
-  it('should load enhanced pageset with Punjabi audio', () => {
+  it("should load enhanced pageset with Punjabi audio", () => {
     if (!fs.existsSync(enhancedSPSFile)) {
-      console.log('Skipping test - enhanced pageset not found');
+      console.log("Skipping test - enhanced pageset not found");
       return;
     }
 
@@ -153,15 +153,17 @@ describe('SnapProcessor Audio Support', () => {
 
     // Look for the QuickFires page
     const quickFiresPage = Object.values(tree.pages).find(
-      (page) => page.name && page.name.includes('QuickFires')
+      (page) => page.name && page.name.includes("QuickFires"),
     );
 
     if (quickFiresPage) {
-      console.log(`Found QuickFires page with ${quickFiresPage.buttons.length} buttons`);
+      console.log(
+        `Found QuickFires page with ${quickFiresPage.buttons.length} buttons`,
+      );
 
       // Count buttons with audio
       const buttonsWithAudio = quickFiresPage.buttons.filter(
-        (button) => button.audioRecording && button.audioRecording.data
+        (button) => button.audioRecording && button.audioRecording.data,
       );
 
       console.log(`Buttons with audio: ${buttonsWithAudio.length}`);
@@ -184,37 +186,47 @@ describe('SnapProcessor Audio Support', () => {
         }
       });
     } else {
-      console.log('QuickFires page not found in enhanced pageset');
+      console.log("QuickFires page not found in enhanced pageset");
     }
   });
 });
 
-describe('SnapProcessor Audio Integration', () => {
-  it('should demonstrate complete audio workflow', () => {
-    console.log('\n=== SnapProcessor Audio Integration Demo ===');
-    console.log('1. Basic usage (no audio):');
-    console.log('   const processor = new SnapProcessor();');
+describe("SnapProcessor Audio Integration", () => {
+  it("should demonstrate complete audio workflow", () => {
+    console.log("\n=== SnapProcessor Audio Integration Demo ===");
+    console.log("1. Basic usage (no audio):");
+    console.log("   const processor = new SnapProcessor();");
     console.log('   const tree = processor.loadIntoTree("pageset.sps");');
 
-    console.log('\n2. With audio support:');
-    console.log('   const processor = new SnapProcessor(null, { loadAudio: true });');
+    console.log("\n2. With audio support:");
+    console.log(
+      "   const processor = new SnapProcessor(null, { loadAudio: true });",
+    );
     console.log('   const tree = processor.loadIntoTree("pageset.sps");');
-    console.log('   // Buttons will have audioRecording property if available');
+    console.log("   // Buttons will have audioRecording property if available");
 
-    console.log('\n3. Adding audio to buttons:');
+    console.log("\n3. Adding audio to buttons:");
     console.log('   const audioData = fs.readFileSync("audio.wav");');
     console.log(
-      '   const audioId = processor.addAudioToButton(dbPath, buttonId, audioData, "metadata");'
+      '   const audioId = processor.addAudioToButton(dbPath, buttonId, audioData, "metadata");',
     );
 
-    console.log('\n4. Creating enhanced pageset:');
-    console.log('   const audioMappings = new Map();');
-    console.log('   audioMappings.set(buttonId, { audioData, metadata: "Punjabi audio" });');
-    console.log('   processor.createAudioEnhancedPageset(source, target, audioMappings);');
+    console.log("\n4. Creating enhanced pageset:");
+    console.log("   const audioMappings = new Map();");
+    console.log(
+      '   audioMappings.set(buttonId, { audioData, metadata: "Punjabi audio" });',
+    );
+    console.log(
+      "   processor.createAudioEnhancedPageset(source, target, audioMappings);",
+    );
 
-    console.log('\n5. Extracting buttons for processing:');
-    console.log('   const buttons = processor.extractButtonsForAudio(dbPath, pageUniqueId);');
-    console.log('   // Returns array with id, label, message, hasAudio properties');
+    console.log("\n5. Extracting buttons for processing:");
+    console.log(
+      "   const buttons = processor.extractButtonsForAudio(dbPath, pageUniqueId);",
+    );
+    console.log(
+      "   // Returns array with id, label, message, hasAudio properties",
+    );
 
     expect(true).toBe(true); // This is just a demo test
   });

@@ -1,20 +1,20 @@
-import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
-import fs from 'fs';
-import path from 'path';
-import os from 'os';
-import { ObfProcessor } from '../src/processors/obfProcessor';
-import { SnapProcessor } from '../src/processors/snapProcessor';
-import { TouchChatProcessor } from '../src/processors/touchchatProcessor';
-import { AstericsGridProcessor } from '../src/processors/astericsGridProcessor';
-import { GridsetProcessor } from '../src/processors/gridsetProcessor';
-import { ApplePanelsProcessor } from '../src/processors/applePanelsProcessor';
-import { AACTree, AACPage, AACButton } from '../src/core/treeStructure';
+import { describe, it, expect, beforeEach, afterEach } from "@jest/globals";
+import fs from "fs";
+import path from "path";
+import os from "os";
+import { ObfProcessor } from "../src/processors/obfProcessor";
+import { SnapProcessor } from "../src/processors/snapProcessor";
+import { TouchChatProcessor } from "../src/processors/touchchatProcessor";
+import { AstericsGridProcessor } from "../src/processors/astericsGridProcessor";
+import { GridsetProcessor } from "../src/processors/gridsetProcessor";
+import { ApplePanelsProcessor } from "../src/processors/applePanelsProcessor";
+import { AACTree, AACPage, AACButton } from "../src/core/treeStructure";
 
-describe('Styling Support Tests', () => {
+describe("Styling Support Tests", () => {
   let tempDir: string;
 
   beforeEach(() => {
-    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'styling-test-'));
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "styling-test-"));
   });
 
   afterEach(() => {
@@ -28,34 +28,34 @@ describe('Styling Support Tests', () => {
     const tree = new AACTree();
 
     const page = new AACPage({
-      id: 'test-page-1',
-      name: 'Test Page',
+      id: "test-page-1",
+      name: "Test Page",
       grid: [],
       buttons: [],
       parentId: null,
       style: {
-        backgroundColor: '#f0f0f0',
-        borderColor: '#cccccc',
-        fontFamily: 'Arial',
+        backgroundColor: "#f0f0f0",
+        borderColor: "#cccccc",
+        fontFamily: "Arial",
         fontSize: 16,
       },
     });
 
     const button1 = new AACButton({
-      id: 'btn-1',
-      label: 'Hello',
-      message: 'Hello World',
-      type: 'SPEAK',
+      id: "btn-1",
+      label: "Hello",
+      message: "Hello World",
+      type: "SPEAK",
       action: null,
       style: {
-        backgroundColor: '#ff0000',
-        fontColor: '#ffffff',
-        borderColor: '#990000',
+        backgroundColor: "#ff0000",
+        fontColor: "#ffffff",
+        borderColor: "#990000",
         borderWidth: 2,
         fontSize: 18,
-        fontFamily: 'Helvetica',
-        fontWeight: 'bold',
-        fontStyle: 'normal',
+        fontFamily: "Helvetica",
+        fontWeight: "bold",
+        fontStyle: "normal",
         textUnderline: false,
         labelOnTop: true,
         transparent: false,
@@ -63,24 +63,24 @@ describe('Styling Support Tests', () => {
     });
 
     const button2 = new AACButton({
-      id: 'btn-2',
-      label: 'Navigate',
-      message: 'Go to page 2',
-      type: 'NAVIGATE',
-      targetPageId: 'test-page-2',
+      id: "btn-2",
+      label: "Navigate",
+      message: "Go to page 2",
+      type: "NAVIGATE",
+      targetPageId: "test-page-2",
       action: {
-        type: 'NAVIGATE',
-        targetPageId: 'test-page-2',
+        type: "NAVIGATE",
+        targetPageId: "test-page-2",
       },
       style: {
-        backgroundColor: '#00ff00',
-        fontColor: '#000000',
-        borderColor: '#009900',
+        backgroundColor: "#00ff00",
+        fontColor: "#000000",
+        borderColor: "#009900",
         borderWidth: 1,
         fontSize: 14,
-        fontFamily: 'Times',
-        fontWeight: 'normal',
-        fontStyle: 'italic',
+        fontFamily: "Times",
+        fontWeight: "normal",
+        fontStyle: "italic",
         textUnderline: true,
         labelOnTop: false,
         transparent: true,
@@ -94,11 +94,11 @@ describe('Styling Support Tests', () => {
     return tree;
   };
 
-  describe('OBF Processor Styling', () => {
-    it('should preserve background and border colors in round-trip', () => {
+  describe("OBF Processor Styling", () => {
+    it("should preserve background and border colors in round-trip", () => {
       const processor = new ObfProcessor();
       const tree = createStyledTestTree();
-      const outputPath = path.join(tempDir, 'test.obf');
+      const outputPath = path.join(tempDir, "test.obf");
 
       // Save tree to OBF
       processor.saveFromTree(tree, outputPath);
@@ -110,16 +110,16 @@ describe('Styling Support Tests', () => {
       const loadedButton = loadedPage.buttons[0];
 
       // Verify styling is preserved
-      expect(loadedButton.style?.backgroundColor).toBe('#ff0000');
-      expect(loadedButton.style?.borderColor).toBe('#990000');
+      expect(loadedButton.style?.backgroundColor).toBe("#ff0000");
+      expect(loadedButton.style?.borderColor).toBe("#990000");
     });
   });
 
-  describe('Snap Processor Styling', () => {
-    it('should preserve comprehensive styling in round-trip', () => {
+  describe("Snap Processor Styling", () => {
+    it("should preserve comprehensive styling in round-trip", () => {
       const processor = new SnapProcessor();
       const tree = createStyledTestTree();
-      const outputPath = path.join(tempDir, 'test.spb');
+      const outputPath = path.join(tempDir, "test.spb");
 
       // Save tree to Snap
       processor.saveFromTree(tree, outputPath);
@@ -131,21 +131,21 @@ describe('Styling Support Tests', () => {
       const loadedButton = loadedPage.buttons[0];
 
       // Verify comprehensive styling is preserved
-      expect(loadedButton.style?.backgroundColor).toBe('#ff0000');
-      expect(loadedButton.style?.fontColor).toBe('#ffffff');
-      expect(loadedButton.style?.borderColor).toBe('#990000');
+      expect(loadedButton.style?.backgroundColor).toBe("#ff0000");
+      expect(loadedButton.style?.fontColor).toBe("#ffffff");
+      expect(loadedButton.style?.borderColor).toBe("#990000");
       expect(loadedButton.style?.borderWidth).toBe(2);
       expect(loadedButton.style?.fontSize).toBe(18);
-      expect(loadedButton.style?.fontFamily).toBe('Helvetica');
-      expect(loadedPage.style?.backgroundColor).toBe('#f0f0f0');
+      expect(loadedButton.style?.fontFamily).toBe("Helvetica");
+      expect(loadedPage.style?.backgroundColor).toBe("#f0f0f0");
     });
   });
 
-  describe('TouchChat Processor Styling', () => {
-    it('should preserve button and page styles in round-trip', () => {
+  describe("TouchChat Processor Styling", () => {
+    it("should preserve button and page styles in round-trip", () => {
       const processor = new TouchChatProcessor();
       const tree = createStyledTestTree();
-      const outputPath = path.join(tempDir, 'test.ce');
+      const outputPath = path.join(tempDir, "test.ce");
 
       // Save tree to TouchChat
       processor.saveFromTree(tree, outputPath);
@@ -166,11 +166,11 @@ describe('Styling Support Tests', () => {
     });
   });
 
-  describe('Asterics Grid Processor Styling', () => {
-    it('should preserve background colors and metadata styling', () => {
+  describe("Asterics Grid Processor Styling", () => {
+    it("should preserve background colors and metadata styling", () => {
       const processor = new AstericsGridProcessor();
       const tree = createStyledTestTree();
-      const outputPath = path.join(tempDir, 'test.grd');
+      const outputPath = path.join(tempDir, "test.grd");
 
       // Save tree to Asterics Grid
       processor.saveFromTree(tree, outputPath);
@@ -187,11 +187,11 @@ describe('Styling Support Tests', () => {
     });
   });
 
-  describe('Grid 3 Processor Styling', () => {
-    it('should create and reference styles correctly', () => {
+  describe("Grid 3 Processor Styling", () => {
+    it("should create and reference styles correctly", () => {
       const processor = new GridsetProcessor();
       const tree = createStyledTestTree();
-      const outputPath = path.join(tempDir, 'test.gridset');
+      const outputPath = path.join(tempDir, "test.gridset");
 
       // Save tree to Grid 3
       processor.saveFromTree(tree, outputPath);
@@ -199,19 +199,21 @@ describe('Styling Support Tests', () => {
 
       // Verify the zip contains style.xml
       // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const AdmZip = require('adm-zip');
+      const AdmZip = require("adm-zip");
       const zip = new AdmZip(outputPath);
       const entries = zip.getEntries();
-      const hasStyleXml = entries.some((entry: any) => entry.entryName === 'style.xml');
+      const hasStyleXml = entries.some(
+        (entry: any) => entry.entryName === "style.xml",
+      );
       expect(hasStyleXml).toBe(true);
     });
   });
 
-  describe('Apple Panels Processor Styling', () => {
-    it('should preserve DisplayColor, FontSize, and DisplayImageWeight', () => {
+  describe("Apple Panels Processor Styling", () => {
+    it("should preserve DisplayColor, FontSize, and DisplayImageWeight", () => {
       const processor = new ApplePanelsProcessor();
       const tree = createStyledTestTree();
-      const outputPath = path.join(tempDir, 'test.ascconfig');
+      const outputPath = path.join(tempDir, "test.ascconfig");
 
       // Save tree to Apple Panels
       processor.saveFromTree(tree, outputPath);
@@ -229,19 +231,19 @@ describe('Styling Support Tests', () => {
     });
   });
 
-  describe('Cross-Format Styling Compatibility', () => {
-    it('should maintain basic styling when converting between formats', () => {
+  describe("Cross-Format Styling Compatibility", () => {
+    it("should maintain basic styling when converting between formats", () => {
       const obfProcessor = new ObfProcessor();
       const snapProcessor = new SnapProcessor();
       const tree = createStyledTestTree();
 
       // Save as OBF
-      const obfPath = path.join(tempDir, 'test.obf');
+      const obfPath = path.join(tempDir, "test.obf");
       obfProcessor.saveFromTree(tree, obfPath);
 
       // Load from OBF and save as Snap
       const loadedFromObf = obfProcessor.loadIntoTree(obfPath);
-      const snapPath = path.join(tempDir, 'test.spb');
+      const snapPath = path.join(tempDir, "test.spb");
       snapProcessor.saveFromTree(loadedFromObf, snapPath);
 
       // Load from Snap and verify styling is maintained

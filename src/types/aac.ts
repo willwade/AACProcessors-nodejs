@@ -1,5 +1,5 @@
 export interface AACButtonAction {
-  type: 'SPEAK' | 'NAVIGATE';
+  type: "SPEAK" | "NAVIGATE";
   targetPageId?: string;
 }
 
@@ -21,7 +21,7 @@ export interface AACButton {
   id: string;
   label: string;
   message: string;
-  type: AACButtonAction['type'];
+  type: AACButtonAction["type"];
   action: AACButtonAction | null;
   targetPageId?: string;
   style?: AACStyle;

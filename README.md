@@ -363,6 +363,7 @@ console.log("Styling preserved across formats!");
 The CLI provides three main commands for working with AAC files:
 
 #### **Extract Text Content**
+
 ```bash
 # Extract all text from an AAC file
 npx aac-processors extract examples/example.dot
@@ -372,6 +373,7 @@ npx aac-processors extract examples/example.sps --format snap --verbose
 ```
 
 #### **Convert Between Formats**
+
 ```bash
 # Convert from one format to another (format auto-detected from input extension)
 npx aac-processors convert input.sps output.obf --format obf
@@ -381,6 +383,7 @@ npx aac-processors convert communication.ce backup.spb --format snap
 ```
 
 #### **Analyze File Structure**
+
 ```bash
 # Get detailed file information in JSON format
 npx aac-processors analyze examples/example.ce
@@ -390,6 +393,7 @@ npx aac-processors analyze examples/example.gridset --pretty
 ```
 
 #### **Available Options**
+
 - `--format <format>` - Specify format type (auto-detected if not provided)
 - `--pretty` - Human-readable output (analyze command)
 - `--verbose` - Detailed output (extract command)

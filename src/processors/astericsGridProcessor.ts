@@ -1,6 +1,6 @@
-import { BaseProcessor } from '../core/baseProcessor';
-import { AACTree, AACPage, AACButton } from '../core/treeStructure';
-import fs from 'fs';
+import { BaseProcessor } from "../core/baseProcessor";
+import { AACTree, AACPage, AACButton } from "../core/treeStructure";
+import fs from "fs";
 
 // Asterics Grid data model interfaces
 interface GridData {
@@ -101,8 +101,8 @@ class AstericsGridProcessor extends BaseProcessor {
 
   private extractRawTexts(filePathOrBuffer: string | Buffer): string[] {
     let content = Buffer.isBuffer(filePathOrBuffer)
-      ? filePathOrBuffer.toString('utf-8')
-      : fs.readFileSync(filePathOrBuffer, 'utf-8');
+      ? filePathOrBuffer.toString("utf-8")
+      : fs.readFileSync(filePathOrBuffer, "utf-8");
 
     // Remove BOM if present
     if (content.charCodeAt(0) === 0xfeff) {
@@ -117,14 +117,14 @@ class AstericsGridProcessor extends BaseProcessor {
       grdFile.grids.forEach((grid: GridData) => {
         // Extract grid labels
         Object.values(grid.label || {}).forEach((label) => {
-          if (label && typeof label === 'string') texts.push(label);
+          if (label && typeof label === "string") texts.push(label);
         });
 
         // Extract element texts
         grid.gridElements.forEach((element: GridElement) => {
           // Element labels
           Object.values(element.label || {}).forEach((label) => {
-            if (label && typeof label === 'string') texts.push(label);
+            if (label && typeof label === "string") texts.push(label);
           });
 
           // Word forms
@@ -147,36 +147,36 @@ class AstericsGridProcessor extends BaseProcessor {
 
   private extractActionTexts(action: GridAction, texts: string[]): void {
     switch (action.modelName) {
-      case 'GridActionSpeakCustom':
-        if (action.speakText && typeof action.speakText === 'object') {
+      case "GridActionSpeakCustom":
+        if (action.speakText && typeof action.speakText === "object") {
           Object.values(action.speakText).forEach((text: unknown) => {
-            if (text && typeof text === 'string') texts.push(text);
+            if (text && typeof text === "string") texts.push(text);
           });
         }
         break;
-      case 'GridActionChangeLang':
-        if (action.language && typeof action.language === 'string') {
+      case "GridActionChangeLang":
+        if (action.language && typeof action.language === "string") {
           texts.push(action.language);
         }
-        if (action.voice && typeof action.voice === 'string') {
+        if (action.voice && typeof action.voice === "string") {
           texts.push(action.voice);
         }
         break;
-      case 'GridActionHTTP':
-        if (action.restUrl && typeof action.restUrl === 'string') {
+      case "GridActionHTTP":
+        if (action.restUrl && typeof action.restUrl === "string") {
           texts.push(action.restUrl);
         }
-        if (action.body && typeof action.body === 'string') {
+        if (action.body && typeof action.body === "string") {
           texts.push(action.body);
         }
         break;
-      case 'GridActionOpenWebpage':
-        if (action.openURL && typeof action.openURL === 'string') {
+      case "GridActionOpenWebpage":
+        if (action.openURL && typeof action.openURL === "string") {
           texts.push(action.openURL);
         }
         break;
-      case 'GridActionMatrix':
-        if (action.sendText && typeof action.sendText === 'string') {
+      case "GridActionMatrix":
+        if (action.sendText && typeof action.sendText === "string") {
           texts.push(action.sendText);
         }
         break;
@@ -187,8 +187,8 @@ class AstericsGridProcessor extends BaseProcessor {
   loadIntoTree(filePathOrBuffer: string | Buffer): AACTree {
     const tree = new AACTree();
     let content = Buffer.isBuffer(filePathOrBuffer)
-      ? filePathOrBuffer.toString('utf-8')
-      : fs.readFileSync(filePathOrBuffer, 'utf-8');
+      ? filePathOrBuffer.toString("utf-8")
+      : fs.readFileSync(filePathOrBuffer, "utf-8");
 
     // Remove BOM if present
     if (content.charCodeAt(0) === 0xfeff) {
@@ -211,11 +211,15 @@ class AstericsGridProcessor extends BaseProcessor {
         buttons: [],
         parentId: null,
         style: {
-          backgroundColor: colorConfig?.gridBackgroundColor || colorConfig?.elementBackgroundColor,
+          backgroundColor:
+            colorConfig?.gridBackgroundColor ||
+            colorConfig?.elementBackgroundColor,
           borderColor: colorConfig?.elementBorderColor,
           borderWidth: colorConfig?.borderWidth,
           fontFamily: colorConfig?.fontFamily,
-          fontSize: colorConfig?.fontSizePct ? colorConfig.fontSizePct * 16 : undefined, // Convert percentage to pixels
+          fontSize: colorConfig?.fontSizePct
+            ? colorConfig.fontSizePct * 16
+            : undefined, // Convert percentage to pixels
           fontColor: colorConfig?.fontColor,
         },
       });
@@ -228,12 +232,15 @@ class AstericsGridProcessor extends BaseProcessor {
       if (!page) return;
 
       grid.gridElements.forEach((element: GridElement) => {
-        const button = this.createButtonFromElement(element, grdFile.metadata?.colorConfig);
+        const button = this.createButtonFromElement(
+          element,
+          grdFile.metadata?.colorConfig,
+        );
         page.addButton(button);
 
         // Handle navigation relationships
         const navAction = element.actions.find(
-          (a: GridAction) => a.modelName === 'GridActionNavigate'
+          (a: GridAction) => a.modelName === "GridActionNavigate",
         );
         if (navAction && navAction.toGridId) {
           const targetPage = tree.getPage(navAction.toGridId);
@@ -247,23 +254,34 @@ class AstericsGridProcessor extends BaseProcessor {
     return tree;
   }
 
-  private getLocalizedLabel(labelMap: { [lang: string]: string } | undefined): string {
-    if (!labelMap) return '';
+  private getLocalizedLabel(
+    labelMap: { [lang: string]: string } | undefined,
+  ): string {
+    if (!labelMap) return "";
 
     // Prefer English, then any available language
-    return labelMap.en || labelMap.de || labelMap.es || Object.values(labelMap)[0] || '';
+    return (
+      labelMap.en ||
+      labelMap.de ||
+      labelMap.es ||
+      Object.values(labelMap)[0] ||
+      ""
+    );
   }
 
-  private createButtonFromElement(element: GridElement, colorConfig?: any): AACButton {
+  private createButtonFromElement(
+    element: GridElement,
+    colorConfig?: any,
+  ): AACButton {
     let audioRecording;
     if (this.loadAudio) {
       const audioAction = element.actions.find(
-        (a: GridAction) => a.modelName === 'GridActionAudio'
+        (a: GridAction) => a.modelName === "GridActionAudio",
       );
       if (audioAction && audioAction.dataBase64) {
         audioRecording = {
           id: parseInt(audioAction.id) || undefined,
-          data: Buffer.from(audioAction.dataBase64, 'base64'),
+          data: Buffer.from(audioAction.dataBase64, "base64"),
           identifier: audioAction.filename,
           metadata: JSON.stringify({
             mimeType: audioAction.mimeType,
@@ -273,13 +291,15 @@ class AstericsGridProcessor extends BaseProcessor {
       }
     }
 
-    const navAction = element.actions.find((a: GridAction) => a.modelName === 'GridActionNavigate');
+    const navAction = element.actions.find(
+      (a: GridAction) => a.modelName === "GridActionNavigate",
+    );
     const targetPageId = navAction ? navAction.toGridId : null;
 
     // Determine button type based on actions
-    let buttonType: 'SPEAK' | 'NAVIGATE' = 'SPEAK';
+    let buttonType: "SPEAK" | "NAVIGATE" = "SPEAK";
     if (targetPageId) {
-      buttonType = 'NAVIGATE';
+      buttonType = "NAVIGATE";
     }
 
     const label = this.getLocalizedLabel(element.label);
@@ -292,17 +312,20 @@ class AstericsGridProcessor extends BaseProcessor {
       targetPageId: targetPageId,
       action: targetPageId
         ? {
-            type: 'NAVIGATE',
+            type: "NAVIGATE",
             targetPageId: targetPageId,
           }
         : null,
       audioRecording: audioRecording,
       style: {
-        backgroundColor: element.backgroundColor || colorConfig?.elementBackgroundColor,
+        backgroundColor:
+          element.backgroundColor || colorConfig?.elementBackgroundColor,
         borderColor: colorConfig?.elementBorderColor,
         borderWidth: colorConfig?.borderWidth,
         fontFamily: colorConfig?.fontFamily,
-        fontSize: colorConfig?.fontSizePct ? colorConfig.fontSizePct * 16 : undefined,
+        fontSize: colorConfig?.fontSizePct
+          ? colorConfig.fontSizePct * 16
+          : undefined,
         fontColor: colorConfig?.fontColor,
       },
     });
@@ -311,12 +334,12 @@ class AstericsGridProcessor extends BaseProcessor {
   processTexts(
     filePathOrBuffer: string | Buffer,
     translations: Map<string, string>,
-    outputPath: string
+    outputPath: string,
   ): Buffer {
     // Load and parse the original file
     let content = Buffer.isBuffer(filePathOrBuffer)
-      ? filePathOrBuffer.toString('utf-8')
-      : fs.readFileSync(filePathOrBuffer, 'utf-8');
+      ? filePathOrBuffer.toString("utf-8")
+      : fs.readFileSync(filePathOrBuffer, "utf-8");
 
     // Remove BOM if present
     if (content.charCodeAt(0) === 0xfeff) {
@@ -335,7 +358,7 @@ class AstericsGridProcessor extends BaseProcessor {
 
   private applyTranslationsToGridFile(
     grdFile: AstericsGridFile,
-    translations: Map<string, string>
+    translations: Map<string, string>,
   ): void {
     grdFile.grids.forEach((grid: GridData) => {
       // Translate grid labels
@@ -377,13 +400,19 @@ class AstericsGridProcessor extends BaseProcessor {
     });
   }
 
-  private applyTranslationsToAction(action: GridAction, translations: Map<string, string>): void {
+  private applyTranslationsToAction(
+    action: GridAction,
+    translations: Map<string, string>,
+  ): void {
     switch (action.modelName) {
-      case 'GridActionSpeakCustom':
-        if (action.speakText && typeof action.speakText === 'object') {
+      case "GridActionSpeakCustom":
+        if (action.speakText && typeof action.speakText === "object") {
           Object.keys(action.speakText).forEach((lang) => {
             const originalText = action.speakText[lang];
-            if (typeof originalText === 'string' && translations.has(originalText)) {
+            if (
+              typeof originalText === "string" &&
+              translations.has(originalText)
+            ) {
               const translation = translations.get(originalText);
               if (translation) {
                 action.speakText[lang] = translation;
@@ -392,44 +421,59 @@ class AstericsGridProcessor extends BaseProcessor {
           });
         }
         break;
-      case 'GridActionChangeLang':
-        if (typeof action.language === 'string' && translations.has(action.language)) {
+      case "GridActionChangeLang":
+        if (
+          typeof action.language === "string" &&
+          translations.has(action.language)
+        ) {
           const translation = translations.get(action.language);
           if (translation) {
             action.language = translation;
           }
         }
-        if (typeof action.voice === 'string' && translations.has(action.voice)) {
+        if (
+          typeof action.voice === "string" &&
+          translations.has(action.voice)
+        ) {
           const translation = translations.get(action.voice);
           if (translation) {
             action.voice = translation;
           }
         }
         break;
-      case 'GridActionHTTP':
-        if (typeof action.restUrl === 'string' && translations.has(action.restUrl)) {
+      case "GridActionHTTP":
+        if (
+          typeof action.restUrl === "string" &&
+          translations.has(action.restUrl)
+        ) {
           const translation = translations.get(action.restUrl);
           if (translation) {
             action.restUrl = translation;
           }
         }
-        if (typeof action.body === 'string' && translations.has(action.body)) {
+        if (typeof action.body === "string" && translations.has(action.body)) {
           const translation = translations.get(action.body);
           if (translation) {
             action.body = translation;
           }
         }
         break;
-      case 'GridActionOpenWebpage':
-        if (typeof action.openURL === 'string' && translations.has(action.openURL)) {
+      case "GridActionOpenWebpage":
+        if (
+          typeof action.openURL === "string" &&
+          translations.has(action.openURL)
+        ) {
           const translation = translations.get(action.openURL);
           if (translation) {
             action.openURL = translation;
           }
         }
         break;
-      case 'GridActionMatrix':
-        if (typeof action.sendText === 'string' && translations.has(action.sendText)) {
+      case "GridActionMatrix":
+        if (
+          typeof action.sendText === "string" &&
+          translations.has(action.sendText)
+        ) {
           const translation = translations.get(action.sendText);
           if (translation) {
             action.sendText = translation;
@@ -465,35 +509,39 @@ class AstericsGridProcessor extends BaseProcessor {
         const gridWidth = 4;
         const position = buttonPositions.get(button.id);
         const calculatedX = position ? position.x : index % gridWidth;
-        const calculatedY = position ? position.y : Math.floor(index / gridWidth);
+        const calculatedY = position
+          ? position.y
+          : Math.floor(index / gridWidth);
         const actions: GridAction[] = [];
 
         // Add appropriate actions based on button type
-        if (button.type === 'NAVIGATE' && button.targetPageId) {
+        if (button.type === "NAVIGATE" && button.targetPageId) {
           actions.push({
             id: `grid-action-navigate-${button.id}`,
-            modelName: 'GridActionNavigate',
+            modelName: "GridActionNavigate",
             modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
-            navType: 'navigateToGrid',
+            navType: "navigateToGrid",
             toGridId: button.targetPageId,
           });
         } else {
           actions.push({
             id: `grid-action-speak-${button.id}`,
-            modelName: 'GridActionSpeak',
+            modelName: "GridActionSpeak",
             modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
           });
         }
 
         // Add audio action if present
         if (button.audioRecording && button.audioRecording.data) {
-          const metadata = JSON.parse(button.audioRecording.metadata || '{}');
+          const metadata = JSON.parse(button.audioRecording.metadata || "{}");
           actions.push({
-            id: button.audioRecording.id?.toString() || `grid-action-audio-${button.id}`,
-            modelName: 'GridActionAudio',
+            id:
+              button.audioRecording.id?.toString() ||
+              `grid-action-audio-${button.id}`,
+            modelName: "GridActionAudio",
             modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
-            dataBase64: button.audioRecording.data.toString('base64'),
-            mimeType: metadata.mimeType || 'audio/wav',
+            dataBase64: button.audioRecording.data.toString("base64"),
+            mimeType: metadata.mimeType || "audio/wav",
             durationMs: metadata.durationMs || 0,
             filename: button.audioRecording.identifier || `audio-${button.id}`,
           });
@@ -501,7 +549,7 @@ class AstericsGridProcessor extends BaseProcessor {
 
         return {
           id: button.id,
-          modelName: 'GridElement',
+          modelName: "GridElement",
           modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
           width: 1,
           height: 1,
@@ -515,9 +563,10 @@ class AstericsGridProcessor extends BaseProcessor {
             authorURL: undefined,
           },
           actions: actions,
-          type: 'ELEMENT_TYPE_NORMAL',
+          type: "ELEMENT_TYPE_NORMAL",
           additionalProps: {},
-          backgroundColor: button.style?.backgroundColor || pageStyle?.backgroundColor,
+          backgroundColor:
+            button.style?.backgroundColor || pageStyle?.backgroundColor,
         };
       });
 
@@ -529,7 +578,7 @@ class AstericsGridProcessor extends BaseProcessor {
 
       return {
         id: page.id,
-        modelName: 'GridData',
+        modelName: "GridData",
         modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
         label: { en: page.name },
         rowCount: calculatedRows,
@@ -547,16 +596,18 @@ class AstericsGridProcessor extends BaseProcessor {
           elementBorderColor: pageStyle?.borderColor,
           borderWidth: pageStyle?.borderWidth,
           fontFamily: pageStyle?.fontFamily,
-          fontSizePct: pageStyle?.fontSize ? pageStyle.fontSize / 16 : undefined, // Convert pixels to percentage
+          fontSizePct: pageStyle?.fontSize
+            ? pageStyle.fontSize / 16
+            : undefined, // Convert pixels to percentage
           fontColor: pageStyle?.fontColor,
           // Add additional properties that might be useful
           elementMargin: 2, // Default margin
           borderRadius: 4, // Default border radius
-          colorMode: 'default',
+          colorMode: "default",
           lineHeight: 1.2,
           maxLines: 2,
-          textPosition: 'center',
-          fittingMode: 'fit',
+          textPosition: "center",
+          fittingMode: "fit",
         },
       },
     };
@@ -571,9 +622,9 @@ class AstericsGridProcessor extends BaseProcessor {
     filePath: string,
     elementId: string,
     audioData: Buffer,
-    metadata?: string
+    metadata?: string,
   ): void {
-    let content = fs.readFileSync(filePath, 'utf-8');
+    let content = fs.readFileSync(filePath, "utf-8");
 
     // Remove BOM if present
     if (content.charCodeAt(0) === 0xfeff) {
@@ -590,15 +641,17 @@ class AstericsGridProcessor extends BaseProcessor {
           elementFound = true;
 
           // Remove existing audio action if present
-          element.actions = element.actions.filter((a) => a.modelName !== 'GridActionAudio');
+          element.actions = element.actions.filter(
+            (a) => a.modelName !== "GridActionAudio",
+          );
 
           // Add new audio action
           const audioAction: GridAction = {
             id: `grid-action-audio-${elementId}`,
-            modelName: 'GridActionAudio',
+            modelName: "GridActionAudio",
             modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
-            dataBase64: audioData.toString('base64'),
-            mimeType: 'audio/wav',
+            dataBase64: audioData.toString("base64"),
+            mimeType: "audio/wav",
             durationMs: 0, // Could be calculated from audio data
             filename: `audio-${elementId}.wav`,
           };
@@ -606,9 +659,12 @@ class AstericsGridProcessor extends BaseProcessor {
           if (metadata) {
             try {
               const parsedMetadata = JSON.parse(metadata);
-              audioAction.mimeType = parsedMetadata.mimeType || audioAction.mimeType;
-              audioAction.durationMs = parsedMetadata.durationMs || audioAction.durationMs;
-              audioAction.filename = parsedMetadata.filename || audioAction.filename;
+              audioAction.mimeType =
+                parsedMetadata.mimeType || audioAction.mimeType;
+              audioAction.durationMs =
+                parsedMetadata.durationMs || audioAction.durationMs;
+              audioAction.filename =
+                parsedMetadata.filename || audioAction.filename;
             } catch (e) {
               // Use defaults if metadata parsing fails
             }
@@ -633,7 +689,7 @@ class AstericsGridProcessor extends BaseProcessor {
   createAudioEnhancedGridFile(
     sourceFilePath: string,
     targetFilePath: string,
-    audioMappings: Map<string, { audioData: Buffer; metadata?: string }>
+    audioMappings: Map<string, { audioData: Buffer; metadata?: string }>,
   ): void {
     // Copy the source file to target
     fs.copyFileSync(sourceFilePath, targetFilePath);
@@ -641,7 +697,12 @@ class AstericsGridProcessor extends BaseProcessor {
     // Add audio recordings to the copy
     audioMappings.forEach((audioInfo, elementId) => {
       try {
-        this.addAudioToElement(targetFilePath, elementId, audioInfo.audioData, audioInfo.metadata);
+        this.addAudioToElement(
+          targetFilePath,
+          elementId,
+          audioInfo.audioData,
+          audioInfo.metadata,
+        );
       } catch (error) {
         // Failed to add audio to element - continue with others
         console.warn(`Failed to add audio to element ${elementId}:`, error);
@@ -654,8 +715,8 @@ class AstericsGridProcessor extends BaseProcessor {
    */
   getElementIds(filePathOrBuffer: string | Buffer): string[] {
     let content = Buffer.isBuffer(filePathOrBuffer)
-      ? filePathOrBuffer.toString('utf-8')
-      : fs.readFileSync(filePathOrBuffer, 'utf-8');
+      ? filePathOrBuffer.toString("utf-8")
+      : fs.readFileSync(filePathOrBuffer, "utf-8");
 
     // Remove BOM if present
     if (content.charCodeAt(0) === 0xfeff) {
@@ -682,10 +743,13 @@ class AstericsGridProcessor extends BaseProcessor {
   /**
    * Check if an element has audio recording
    */
-  hasAudioRecording(filePathOrBuffer: string | Buffer, elementId: string): boolean {
+  hasAudioRecording(
+    filePathOrBuffer: string | Buffer,
+    elementId: string,
+  ): boolean {
     let content = Buffer.isBuffer(filePathOrBuffer)
-      ? filePathOrBuffer.toString('utf-8')
-      : fs.readFileSync(filePathOrBuffer, 'utf-8');
+      ? filePathOrBuffer.toString("utf-8")
+      : fs.readFileSync(filePathOrBuffer, "utf-8");
 
     // Remove BOM if present
     if (content.charCodeAt(0) === 0xfeff) {
@@ -698,7 +762,9 @@ class AstericsGridProcessor extends BaseProcessor {
       for (const grid of grdFile.grids) {
         for (const element of grid.gridElements) {
           if (element.id === elementId) {
-            return element.actions.some((action) => action.modelName === 'GridActionAudio');
+            return element.actions.some(
+              (action) => action.modelName === "GridActionAudio",
+            );
           }
         }
       }
