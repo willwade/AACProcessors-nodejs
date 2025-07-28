@@ -26,7 +26,7 @@ interface SnapButton {
 
 interface SnapPage {
   Id: number;
-  Name:string;
+  Name: string;
   Buttons: SnapButton[];
   ParentId: number | null;
   BackgroundColor?: number;
@@ -437,9 +437,7 @@ class SnapProcessor extends BaseProcessor {
             button.style?.borderWidth,
             button.style?.fontSize,
             button.style?.fontFamily,
-            button.style?.fontStyle
-              ? parseInt(button.style.fontStyle)
-              : null,
+            button.style?.fontStyle ? parseInt(button.style.fontStyle) : null,
           );
 
           // Insert ElementPlacement

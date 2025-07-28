@@ -211,11 +211,15 @@ class AstericsGridProcessor extends BaseProcessor {
         buttons: [],
         parentId: null,
         style: {
-          backgroundColor: colorConfig?.gridBackgroundColor || colorConfig?.elementBackgroundColor,
+          backgroundColor:
+            colorConfig?.gridBackgroundColor ||
+            colorConfig?.elementBackgroundColor,
           borderColor: colorConfig?.elementBorderColor,
           borderWidth: colorConfig?.borderWidth,
           fontFamily: colorConfig?.fontFamily,
-          fontSize: colorConfig?.fontSizePct ? colorConfig.fontSizePct * 16 : undefined, // Convert percentage to pixels
+          fontSize: colorConfig?.fontSizePct
+            ? colorConfig.fontSizePct * 16
+            : undefined, // Convert percentage to pixels
           fontColor: colorConfig?.fontColor,
         },
       });
@@ -228,7 +232,10 @@ class AstericsGridProcessor extends BaseProcessor {
       if (!page) return;
 
       grid.gridElements.forEach((element: GridElement) => {
-        const button = this.createButtonFromElement(element, grdFile.metadata?.colorConfig);
+        const button = this.createButtonFromElement(
+          element,
+          grdFile.metadata?.colorConfig,
+        );
         page.addButton(button);
 
         // Handle navigation relationships
@@ -262,7 +269,10 @@ class AstericsGridProcessor extends BaseProcessor {
     );
   }
 
-  private createButtonFromElement(element: GridElement, colorConfig?: any): AACButton {
+  private createButtonFromElement(
+    element: GridElement,
+    colorConfig?: any,
+  ): AACButton {
     let audioRecording;
     if (this.loadAudio) {
       const audioAction = element.actions.find(
@@ -308,11 +318,14 @@ class AstericsGridProcessor extends BaseProcessor {
         : null,
       audioRecording: audioRecording,
       style: {
-        backgroundColor: element.backgroundColor || colorConfig?.elementBackgroundColor,
+        backgroundColor:
+          element.backgroundColor || colorConfig?.elementBackgroundColor,
         borderColor: colorConfig?.elementBorderColor,
         borderWidth: colorConfig?.borderWidth,
         fontFamily: colorConfig?.fontFamily,
-        fontSize: colorConfig?.fontSizePct ? colorConfig.fontSizePct * 16 : undefined,
+        fontSize: colorConfig?.fontSizePct
+          ? colorConfig.fontSizePct * 16
+          : undefined,
         fontColor: colorConfig?.fontColor,
       },
     });
@@ -527,7 +540,8 @@ class AstericsGridProcessor extends BaseProcessor {
           actions: actions,
           type: "ELEMENT_TYPE_NORMAL",
           additionalProps: {},
-          backgroundColor: button.style?.backgroundColor || pageStyle?.backgroundColor,
+          backgroundColor:
+            button.style?.backgroundColor || pageStyle?.backgroundColor,
         };
       });
 
@@ -555,7 +569,9 @@ class AstericsGridProcessor extends BaseProcessor {
           elementBorderColor: pageStyle?.borderColor,
           borderWidth: pageStyle?.borderWidth,
           fontFamily: pageStyle?.fontFamily,
-          fontSizePct: pageStyle?.fontSize ? pageStyle.fontSize / 16 : undefined, // Convert pixels to percentage
+          fontSizePct: pageStyle?.fontSize
+            ? pageStyle.fontSize / 16
+            : undefined, // Convert pixels to percentage
           fontColor: pageStyle?.fontColor,
           // Add additional properties that might be useful
           elementMargin: 2, // Default margin

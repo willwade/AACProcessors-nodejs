@@ -522,7 +522,7 @@ class TouchChatProcessor extends BaseProcessor {
       // Helper function to convert hex color to integer
       const hexToInt = (hexColor?: string): number | null => {
         if (!hexColor) return null;
-        const hex = hexColor.replace('#', '');
+        const hex = hexColor.replace("#", "");
         return parseInt(hex, 16);
       };
 
@@ -582,7 +582,12 @@ class TouchChatProcessor extends BaseProcessor {
         const insertPage = db.prepare(
           "INSERT INTO pages (id, resource_id, name, page_style_id) VALUES (?, ?, ?, ?)",
         );
-        insertPage.run(numericPageId, pageResourceId, page.name || "Page", pageStyleId);
+        insertPage.run(
+          numericPageId,
+          pageResourceId,
+          page.name || "Page",
+          pageStyleId,
+        );
 
         // Store ID mapping
         const insertIdMapping = db.prepare(
@@ -685,7 +690,7 @@ class TouchChatProcessor extends BaseProcessor {
               buttonStyleId,
               button.label || "",
               button.message || button.label || "",
-              index
+              index,
             );
 
             // Handle navigation actions

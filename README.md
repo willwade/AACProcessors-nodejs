@@ -245,17 +245,17 @@ The library now provides comprehensive styling support across all AAC formats, p
 
 ```typescript
 interface AACStyle {
-  backgroundColor?: string;    // Button/page background color
-  fontColor?: string;         // Text color
-  borderColor?: string;       // Border color
-  borderWidth?: number;       // Border thickness
-  fontSize?: number;          // Font size in pixels
-  fontFamily?: string;        // Font family name
-  fontWeight?: string;        // "normal" | "bold"
-  fontStyle?: string;         // "normal" | "italic"
-  textUnderline?: boolean;    // Text underline
-  labelOnTop?: boolean;       // Label position (TouchChat)
-  transparent?: boolean;      // Transparent background
+  backgroundColor?: string; // Button/page background color
+  fontColor?: string; // Text color
+  borderColor?: string; // Border color
+  borderWidth?: number; // Border thickness
+  fontSize?: number; // Font size in pixels
+  fontFamily?: string; // Font family name
+  fontWeight?: string; // "normal" | "bold"
+  fontStyle?: string; // "normal" | "italic"
+  textUnderline?: boolean; // Text underline
+  labelOnTop?: boolean; // Label position (TouchChat)
+  transparent?: boolean; // Transparent background
 }
 ```
 
@@ -332,14 +332,14 @@ processor.saveFromTree(tree, "styled-board.spb");
 
 #### Format-Specific Styling Support
 
-| Format | Background | Font | Border | Advanced |
-|--------|------------|------|--------|----------|
-| **Snap/SPS** | ✅ Full | ✅ Full | ✅ Full | ✅ All properties |
-| **TouchChat** | ✅ Full | ✅ Full | ✅ Full | ✅ Label position, transparency |
-| **OBF/OBZ** | ✅ Yes | ❌ No | ✅ Yes | ❌ Basic only |
-| **Grid3** | ✅ Yes | ✅ Yes | ✅ Yes | ✅ Style references |
-| **Asterics Grid** | ✅ Yes | ✅ Yes | ✅ Yes | ✅ Metadata-based |
-| **Apple Panels** | ✅ Yes | ✅ Size only | ❌ No | ✅ Display weight |
+| Format            | Background | Font         | Border  | Advanced                        |
+| ----------------- | ---------- | ------------ | ------- | ------------------------------- |
+| **Snap/SPS**      | ✅ Full    | ✅ Full      | ✅ Full | ✅ All properties               |
+| **TouchChat**     | ✅ Full    | ✅ Full      | ✅ Full | ✅ Label position, transparency |
+| **OBF/OBZ**       | ✅ Yes     | ❌ No        | ✅ Yes  | ❌ Basic only                   |
+| **Grid3**         | ✅ Yes     | ✅ Yes       | ✅ Yes  | ✅ Style references             |
+| **Asterics Grid** | ✅ Yes     | ✅ Yes       | ✅ Yes  | ✅ Metadata-based               |
+| **Apple Panels**  | ✅ Yes     | ✅ Size only | ❌ No   | ✅ Display weight               |
 
 #### Cross-Format Styling Conversion
 

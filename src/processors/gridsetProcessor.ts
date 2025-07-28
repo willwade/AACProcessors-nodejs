@@ -10,7 +10,7 @@ interface GridsetButton {
   navigationTarget?: string;
 }
 
-interface GridsetGrid {
+interface _GridsetGrid {
   id: string;
   name: string;
   buttons: GridsetButton[];
@@ -70,22 +70,26 @@ class GridsetProcessor extends BaseProcessor {
 
     // First, load styles from style.xml if it exists
     const styles = new Map<string, any>();
-    const styleEntry = zip.getEntries().find(entry => entry.entryName.endsWith('style.xml'));
+    const styleEntry = zip
+      .getEntries()
+      .find((entry) => entry.entryName.endsWith("style.xml"));
     if (styleEntry) {
       try {
         const styleXmlContent = styleEntry.getData().toString("utf8");
         const styleData = parser.parse(styleXmlContent);
         // Parse styles and store them in the map
         if (styleData.Styles?.Style) {
-          const styleArray = Array.isArray(styleData.Styles.Style) ? styleData.Styles.Style : [styleData.Styles.Style];
+          const styleArray = Array.isArray(styleData.Styles.Style)
+            ? styleData.Styles.Style
+            : [styleData.Styles.Style];
           styleArray.forEach((style: any) => {
-            if (style['@_ID']) {
-              styles.set(style['@_ID'], style);
+            if (style["@_ID"]) {
+              styles.set(style["@_ID"], style);
             }
           });
         }
       } catch (e) {
-        console.warn('Failed to parse style.xml:', e);
+        console.warn("Failed to parse style.xml:", e);
       }
     }
 
@@ -209,14 +213,17 @@ class GridsetProcessor extends BaseProcessor {
             }
 
             // Get style information from cell attributes
-            const cellStyleId = cell['@_StyleID'] || cell['@_styleid'];
+            const cellStyleId = cell["@_StyleID"] || cell["@_styleid"];
             const cellStyle = this.getStyleById(styles, cellStyleId);
 
             // Also check for inline style overrides
             const inlineStyle: any = {};
-            if (cell['@_BackColour']) inlineStyle.backgroundColor = cell['@_BackColour'];
-            if (cell['@_FontColour']) inlineStyle.fontColor = cell['@_FontColour'];
-            if (cell['@_BorderColour']) inlineStyle.borderColor = cell['@_BorderColour'];
+            if (cell["@_BackColour"])
+              inlineStyle.backgroundColor = cell["@_BackColour"];
+            if (cell["@_FontColour"])
+              inlineStyle.fontColor = cell["@_FontColour"];
+            if (cell["@_BorderColour"])
+              inlineStyle.borderColor = cell["@_BorderColour"];
 
             const button = new AACButton({
               id: `${gridId}_btn_${idx}`,
@@ -322,24 +329,26 @@ class GridsetProcessor extends BaseProcessor {
     };
 
     // Collect styles from all pages and buttons
-    Object.values(tree.pages).forEach(page => {
+    Object.values(tree.pages).forEach((page) => {
       if (page.style) addStyle(page.style);
-      page.buttons.forEach(button => {
+      page.buttons.forEach((button) => {
         if (button.style) addStyle(button.style);
       });
     });
 
     // Create style.xml if there are styles
     if (uniqueStyles.size > 0) {
-      const stylesArray = Array.from(uniqueStyles.values()).map(({ id, style }) => ({
-        "@_ID": id,
-        BackColour: style.backgroundColor,
-        TileColour: style.backgroundColor,
-        BorderColour: style.borderColor,
-        FontColour: style.fontColor,
-        FontName: style.fontFamily,
-        FontSize: style.fontSize?.toString(),
-      }));
+      const stylesArray = Array.from(uniqueStyles.values()).map(
+        ({ id, style }) => ({
+          "@_ID": id,
+          BackColour: style.backgroundColor,
+          TileColour: style.backgroundColor,
+          BorderColour: style.borderColor,
+          FontColour: style.fontColor,
+          FontName: style.fontFamily,
+          FontSize: style.fontSize?.toString(),
+        }),
+      );
 
       const styleData = {
         "?xml": { "@_version": "1.0", "@_encoding": "UTF-8" },
@@ -377,32 +386,35 @@ class GridsetProcessor extends BaseProcessor {
             page.buttons.length > 0
               ? {
                   Cell: page.buttons.map((button, btnIndex) => {
-                    const buttonStyleId = button.style ? addStyle(button.style) : "";
+                    const buttonStyleId = button.style
+                      ? addStyle(button.style)
+                      : "";
                     return {
                       "@_X": btnIndex % 4, // Column position
                       "@_Y": Math.floor(btnIndex / 4), // Row position
                       "@_StyleID": buttonStyleId,
                       Content: {
-                      Commands:
-                        button.type === "NAVIGATE" && button.targetPageId
-                          ? {
-                              Command: {
-                                "@_ID": "Jump.To",
-                                Parameter: {
-                                  "@_Key": "grid",
-                                  "#text": button.targetPageId,
+                        Commands:
+                          button.type === "NAVIGATE" && button.targetPageId
+                            ? {
+                                Command: {
+                                  "@_ID": "Jump.To",
+                                  Parameter: {
+                                    "@_Key": "grid",
+                                    "#text": button.targetPageId,
+                                  },
+                                },
+                              }
+                            : {
+                                Command: {
+                                  "@_ID": "Action.InsertText",
+                                  Parameter: {
+                                    "@_Key": "text",
+                                    "#text":
+                                      button.message || button.label || "",
+                                  },
                                 },
                               },
-                            }
-                          : {
-                              Command: {
-                                "@_ID": "Action.InsertText",
-                                Parameter: {
-                                  "@_Key": "text",
-                                  "#text": button.message || button.label || "",
-                                },
-                              },
-                            },
                         CaptionAndImage: {
                           Caption: button.label || "",
                         },
