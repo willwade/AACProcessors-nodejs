@@ -260,7 +260,7 @@ class ApplePanelsProcessor extends BaseProcessor {
 
       const panelObjects = page.buttons.map((button, buttonIndex) => {
         // Find button position in grid layout and convert to Rect format
-        let rect = `{{${buttonIndex * 105}, {0}}, {100, 25}}`; // Default fallback
+        let rect = `{{${buttonIndex * 105}, 0}, {100, 25}}`; // Default fallback
 
         if (page.grid && page.grid.length > 0) {
           // Search for button in grid layout
