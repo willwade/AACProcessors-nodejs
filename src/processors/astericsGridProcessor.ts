@@ -441,6 +441,10 @@ class AstericsGridProcessor extends BaseProcessor {
   }
 
   saveFromTree(tree: AACTree, outputPath: string): void {
+    // Get styling information from the first page (assuming consistent styling)
+    const firstPage = Object.values(tree.pages)[0];
+    const pageStyle = firstPage?.style;
+
     const grids: GridData[] = Object.values(tree.pages).map((page) => {
       const gridElements: GridElement[] = page.buttons.map((button) => {
         const actions: GridAction[] = [];
@@ -508,10 +512,6 @@ class AstericsGridProcessor extends BaseProcessor {
         gridElements: gridElements,
       };
     });
-
-    // Get styling information from the first page (assuming consistent styling)
-    const firstPage = Object.values(tree.pages)[0];
-    const pageStyle = firstPage?.style;
 
     const grdFile: AstericsGridFile = {
       grids: grids,

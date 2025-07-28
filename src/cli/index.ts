@@ -76,8 +76,9 @@ program
       const inputFormat = path.extname(input).slice(1);
       const inputProcessor = getProcessor(inputFormat);
 
-      // Load the tree from input (handle Buffer vs string requirements)
-      const tree = inputProcessor.loadIntoTree(input as any);
+      // Read the input file and load the tree
+      const inputBuffer = fs.readFileSync(input);
+      const tree = inputProcessor.loadIntoTree(inputBuffer);
 
       // Save using output format
       const outputProcessor = getProcessor(options.format);

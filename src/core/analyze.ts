@@ -2,6 +2,7 @@ import { OpmlProcessor } from '../processors/opmlProcessor';
 import { ObfProcessor } from '../processors/obfProcessor';
 import { TouchChatProcessor } from '../processors/touchchatProcessor';
 import { GridsetProcessor } from '../processors/gridsetProcessor';
+import { AstericsGridProcessor } from '../processors/astericsGridProcessor';
 import { SnapProcessor } from '../processors/snapProcessor';
 import { DotProcessor } from '../processors/dotProcessor';
 import { ApplePanelsProcessor } from '../processors/applePanelsProcessor';
@@ -21,8 +22,9 @@ export function getProcessor(format: string): BaseProcessor {
     case 'ce': // TouchChat file extension
       return new TouchChatProcessor();
     case 'gridset':
-    case 'grd': // Gridset file extension
-      return new GridsetProcessor();
+      return new GridsetProcessor(); // Grid3 format
+    case 'grd': // Asterics Grid file extension
+      return new AstericsGridProcessor();
     case 'snap':
     case 'sps': // Snap file extension
     case 'spb': // Snap backup file extension
