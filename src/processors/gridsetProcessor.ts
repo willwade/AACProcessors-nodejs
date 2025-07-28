@@ -606,6 +606,19 @@ class GridsetProcessor extends BaseProcessor {
               }
             }
 
+            // Create default semantic action if none was created from commands
+            if (!semanticAction) {
+              semanticAction = {
+                category: AACSemanticCategory.COMMUNICATION,
+                intent: AACSemanticIntent.SPEAK_TEXT,
+                text: String(message),
+                fallback: {
+                  type: 'SPEAK',
+                  message: String(message),
+                },
+              };
+            }
+
             // Get style information from cell attributes
             const cellStyleId = cell["@_StyleID"] || cell["@_styleid"];
             const cellStyle = this.getStyleById(styles, cellStyleId);

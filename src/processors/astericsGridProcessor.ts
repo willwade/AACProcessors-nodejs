@@ -1,5 +1,12 @@
 import { BaseProcessor } from "../core/baseProcessor";
-import { AACTree, AACPage, AACButton } from "../core/treeStructure";
+import {
+  AACTree,
+  AACPage,
+  AACButton,
+  AACSemanticAction,
+  AACSemanticCategory,
+  AACSemanticIntent
+} from "../core/treeStructure";
 import fs from "fs";
 
 // Asterics Grid data model interfaces
@@ -295,6 +302,14 @@ class AstericsGridProcessor extends BaseProcessor {
     );
   }
 
+  private getLocalizedText(text: any): string {
+    if (typeof text === "string") return text;
+    if (typeof text === "object" && text) {
+      return text.en || text.de || text.es || Object.values(text)[0] || "";
+    }
+    return "";
+  }
+
   private createButtonFromElement(
     element: GridElement,
     colorConfig?: any,
@@ -330,18 +345,87 @@ class AstericsGridProcessor extends BaseProcessor {
 
     const label = this.getLocalizedLabel(element.label);
 
+    // Create semantic action from AstericsGrid element
+    let semanticAction: AACSemanticAction | undefined;
+    let legacyAction: any = null;
+
+    // Find the primary action
+    const primaryAction = element.actions[0]; // AstericsGrid typically has one primary action
+
+    if (navAction && targetPageId) {
+      semanticAction = {
+        category: AACSemanticCategory.NAVIGATION,
+        intent: AACSemanticIntent.NAVIGATE_TO,
+        targetId: targetPageId,
+        platformData: {
+          astericsGrid: {
+            modelName: navAction.modelName,
+            properties: navAction
+          }
+        },
+        fallback: {
+          type: "NAVIGATE",
+          targetPageId: targetPageId
+        }
+      };
+      legacyAction = {
+        type: "NAVIGATE",
+        targetPageId: targetPageId
+      };
+    } else {
+      // Check for other action types
+      const speakAction = element.actions.find(a =>
+        a.modelName === "GridActionSpeakCustom" || a.modelName === "GridActionSpeak"
+      );
+
+      if (speakAction) {
+        const speakText = speakAction.modelName === "GridActionSpeakCustom"
+          ? this.getLocalizedText(speakAction.speakText)
+          : label;
+
+        semanticAction = {
+          category: AACSemanticCategory.COMMUNICATION,
+          intent: AACSemanticIntent.SPEAK_TEXT,
+          text: speakText,
+          platformData: {
+            astericsGrid: {
+              modelName: speakAction.modelName,
+              properties: speakAction
+            }
+          },
+          fallback: {
+            type: "SPEAK",
+            message: speakText
+          }
+        };
+      } else {
+        // Default speak action
+        semanticAction = {
+          category: AACSemanticCategory.COMMUNICATION,
+          intent: AACSemanticIntent.SPEAK_TEXT,
+          text: label,
+          platformData: {
+            astericsGrid: {
+              modelName: "GridActionSpeak",
+              properties: {}
+            }
+          },
+          fallback: {
+            type: "SPEAK",
+            message: label
+          }
+        };
+      }
+    }
+
     return new AACButton({
       id: element.id,
       label: label,
       message: label,
       type: buttonType,
       targetPageId: targetPageId,
-      action: targetPageId
-        ? {
-            type: "NAVIGATE",
-            targetPageId: targetPageId,
-          }
-        : null,
+      action: legacyAction,
+      semanticAction: semanticAction,
       audioRecording: audioRecording,
       style: {
         backgroundColor:
@@ -540,21 +624,58 @@ class AstericsGridProcessor extends BaseProcessor {
           : Math.floor(index / gridWidth);
         const actions: GridAction[] = [];
 
-        // Add appropriate actions based on button type
-        if (button.type === "NAVIGATE" && button.targetPageId) {
+        // Add appropriate actions - prefer semantic actions
+        if (button.semanticAction?.platformData?.astericsGrid) {
+          // Use original AstericsGrid action data
+          const astericsData = button.semanticAction.platformData.astericsGrid;
+          actions.push({
+            id: `grid-action-${button.id}`,
+            ...astericsData.properties,
+            modelName: astericsData.modelName,
+            modelVersion: astericsData.properties.modelVersion || '{"major": 5, "minor": 0, "patch": 0}'
+          });
+        } else if (button.semanticAction?.intent === AACSemanticIntent.NAVIGATE_TO) {
+          // Create navigation action from semantic data
           actions.push({
             id: `grid-action-navigate-${button.id}`,
             modelName: "GridActionNavigate",
             modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
             navType: "navigateToGrid",
-            toGridId: button.targetPageId,
+            toGridId: button.semanticAction.targetId || button.targetPageId,
           });
+        } else if (button.semanticAction?.intent === AACSemanticIntent.SPEAK_TEXT) {
+          // Create speak action from semantic data
+          if (button.semanticAction.text && button.semanticAction.text !== button.label) {
+            actions.push({
+              id: `grid-action-speak-${button.id}`,
+              modelName: "GridActionSpeakCustom",
+              modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
+              speakText: { en: button.semanticAction.text }
+            });
+          } else {
+            actions.push({
+              id: `grid-action-speak-${button.id}`,
+              modelName: "GridActionSpeak",
+              modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
+            });
+          }
         } else {
-          actions.push({
-            id: `grid-action-speak-${button.id}`,
-            modelName: "GridActionSpeak",
-            modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
-          });
+          // Fallback to legacy action handling
+          if (button.type === "NAVIGATE" && button.targetPageId) {
+            actions.push({
+              id: `grid-action-navigate-${button.id}`,
+              modelName: "GridActionNavigate",
+              modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
+              navType: "navigateToGrid",
+              toGridId: button.targetPageId,
+            });
+          } else {
+            actions.push({
+              id: `grid-action-speak-${button.id}`,
+              modelName: "GridActionSpeak",
+              modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
+            });
+          }
         }
 
         // Add audio action if present
