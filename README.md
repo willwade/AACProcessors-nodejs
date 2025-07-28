@@ -360,16 +360,40 @@ console.log("Styling preserved across formats!");
 
 ### CLI Usage
 
+The CLI provides three main commands for working with AAC files:
+
+#### **Extract Text Content**
 ```bash
-# Extract text from any AAC file
+# Extract all text from an AAC file
 npx aac-processors extract examples/example.dot
 
-# Convert between formats
-npx aac-processors convert input.sps output.obf
-
-# Get file information
-npx aac-processors info examples/example.gridset
+# With format specification and verbose output
+npx aac-processors extract examples/example.sps --format snap --verbose
 ```
+
+#### **Convert Between Formats**
+```bash
+# Convert from one format to another (format auto-detected from input extension)
+npx aac-processors convert input.sps output.obf --format obf
+
+# Convert TouchChat to Snap format
+npx aac-processors convert communication.ce backup.spb --format snap
+```
+
+#### **Analyze File Structure**
+```bash
+# Get detailed file information in JSON format
+npx aac-processors analyze examples/example.ce
+
+# Get human-readable file information
+npx aac-processors analyze examples/example.gridset --pretty
+```
+
+#### **Available Options**
+- `--format <format>` - Specify format type (auto-detected if not provided)
+- `--pretty` - Human-readable output (analyze command)
+- `--verbose` - Detailed output (extract command)
+- `--quiet` - Minimal output (extract command)
 
 ---
 

@@ -11,14 +11,24 @@ program.version(packageJson.version);
 
 program
   .command('analyze <file>')
-  .option('--format <format>', 'Format type')
+  .option('--format <format>', 'Format type (auto-detected if not specified)')
   .option('--pretty', 'Pretty print output')
-  .action(async (file: string, options: { format?: string; pretty?: boolean }) => {
-    const result = await analyze(file, options.format || '');
-    if (options.pretty) {
-      console.log(prettyPrintTree(result.tree));
-    } else {
-      console.log(JSON.stringify(result, null, 2));
+  .action((file: string, options: { format?: string; pretty?: boolean }) => {
+    try {
+      // Auto-detect format if not specified
+      const format = options.format || path.extname(file).slice(1);
+      const result = analyze(file, format);
+      if (options.pretty) {
+        console.log(prettyPrintTree(result.tree));
+      } else {
+        console.log(JSON.stringify(result, null, 2));
+      }
+    } catch (error) {
+      console.error(
+        'Error analyzing file:',
+        error instanceof Error ? error.message : String(error)
+      );
+      process.exit(1);
     }
   });
 
@@ -27,7 +37,7 @@ program
   .option('--format <format>', 'Format type (auto-detected if not specified)')
   .option('--verbose', 'Verbose output')
   .option('--quiet', 'Quiet output')
-  .action(async (file: string, options: { format?: string; verbose?: boolean; quiet?: boolean }) => {
+  .action((file: string, options: { format?: string; verbose?: boolean; quiet?: boolean }) => {
     try {
       // Auto-detect format if not specified
       const format = options.format || path.extname(file).slice(1);
@@ -55,7 +65,7 @@ program
 program
   .command('convert <input> <output>')
   .option('--format <format>', 'Output format (required)')
-  .action(async (input: string, output: string, options: { format?: string }) => {
+  .action((input: string, output: string, options: { format?: string }) => {
     try {
       if (!options.format) {
         console.error('Error: --format option is required for convert command');
