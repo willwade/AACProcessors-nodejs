@@ -1,20 +1,18 @@
 #!/usr/bin/env node
-import { program } from "commander";
-import { prettyPrintTree } from "./prettyPrint";
-import { analyze, getProcessor } from "../core/analyze";
-import path from "path";
-import fs from "fs";
+import { program } from 'commander';
+import { prettyPrintTree } from './prettyPrint';
+import { analyze, getProcessor } from '../core/analyze';
+import path from 'path';
+import fs from 'fs';
 
 // Set version from package.json
-const packageJson = JSON.parse(
-  fs.readFileSync(path.join(__dirname, "../../package.json"), "utf8"),
-);
+const packageJson = JSON.parse(fs.readFileSync(path.join(__dirname, '../../package.json'), 'utf8'));
 program.version(packageJson.version);
 
 program
-  .command("analyze <file>")
-  .option("--format <format>", "Format type")
-  .option("--pretty", "Pretty print output")
+  .command('analyze <file>')
+  .option('--format <format>', 'Format type')
+  .option('--pretty', 'Pretty print output')
   .action(async (file, options) => {
     const result = await analyze(file, options.format);
     if (options.pretty) {
@@ -25,10 +23,10 @@ program
   });
 
 program
-  .command("extract <file>")
-  .option("--format <format>", "Format type (auto-detected if not specified)")
-  .option("--verbose", "Verbose output")
-  .option("--quiet", "Quiet output")
+  .command('extract <file>')
+  .option('--format <format>', 'Format type (auto-detected if not specified)')
+  .option('--verbose', 'Verbose output')
+  .option('--quiet', 'Quiet output')
   .action(async (file, options) => {
     try {
       // Auto-detect format if not specified
@@ -47,20 +45,20 @@ program
       texts.forEach((text) => console.log(text));
     } catch (error) {
       console.error(
-        "Error extracting texts:",
-        error instanceof Error ? error.message : String(error),
+        'Error extracting texts:',
+        error instanceof Error ? error.message : String(error)
       );
       process.exit(1);
     }
   });
 
 program
-  .command("convert <input> <output>")
-  .option("--format <format>", "Output format (required)")
+  .command('convert <input> <output>')
+  .option('--format <format>', 'Output format (required)')
   .action(async (input, output, options) => {
     try {
       if (!options.format) {
-        console.error("Error: --format option is required for convert command");
+        console.error('Error: --format option is required for convert command');
         process.exit(1);
       }
 
@@ -75,13 +73,11 @@ program
       const outputProcessor = getProcessor(options.format);
       outputProcessor.saveFromTree(tree, output);
 
-      console.log(
-        `Successfully converted ${input} to ${output} (${options.format} format)`,
-      );
+      console.log(`Successfully converted ${input} to ${output} (${options.format} format)`);
     } catch (error) {
       console.error(
-        "Error converting file:",
-        error instanceof Error ? error.message : String(error),
+        'Error converting file:',
+        error instanceof Error ? error.message : String(error)
       );
       process.exit(1);
     }

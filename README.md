@@ -553,13 +553,14 @@ Inspired by the Python AACProcessors project and built for the AAC community.
 
 ### 🔥 Critical Priority (Immediate Action Required)
 
+- [ ] **Fix audio metadata test failures** (21 tests failing) - Resolve non-null assertion errors in audio comprehensive tests, particularly in snapProcessor.audio.comprehensive.test.ts
+- [ ] **Fix linting issues** (177 remaining issues) - Address TypeScript eslint errors and warnings, particularly non-null assertions and require statements
 - [ ] **Fix CLI test infrastructure** (currently 0% coverage, 3 failing tests) - Update test expectations to match actual CLI output format and achieve >80% CLI coverage
-- [ ] **Complete SnapProcessor coverage** (currently 48.32% - lowest processor) - Add comprehensive audio handling, database corruption tests, and SQLite schema validation to reach >75% coverage
-- [ ] **Add core functionality tests** (analyze.ts: 0%, fileProcessor.ts: 0%) - Test core utilities to achieve >80% coverage in src/core/ directory
 
 ### 🚨 High Priority (Next Sprint)
 
-- [ ] **Fix TouchChatProcessor regressions** (currently 86.44% but 4 tests failing) - Resolve comprehensive test failures while maintaining >85% coverage
+- [ ] **Complete SnapProcessor coverage** (currently 48.32% - lowest processor) - Add comprehensive audio handling, database corruption tests, and SQLite schema validation to reach >75% coverage
+- [ ] **Add core functionality tests** (analyze.ts: 0%, fileProcessor.ts: 0%) - Test core utilities to achieve >80% coverage in src/core/ directory
 - [ ] **Resolve database constraint violations** - Fix UNIQUE constraint failures in Page.Id and buttons.id when processing real-world data files (blocks production usage)
 
 ### ⚠️ Medium Priority (Following Sprint)
@@ -571,6 +572,7 @@ Inspired by the Python AACProcessors project and built for the AAC community.
 
 ### Recently Completed ✅
 
+- [x] **Comprehensive styling support** - Complete implementation across all AAC formats with cross-format preservation (Added: AACStyle interface, enhanced all processors, 7 new test cases, complete documentation)
 - [x] **TouchChatProcessor save/load functionality** - Fixed button persistence and ID mapping (coverage improved from 57.62% to 86.44%)
 - [x] **Build integration** - Ensure `npm run build` is executed before CLI tests (Fixed: All test scripts now automatically build before running)
 - [x] **CLI test infrastructure** - Fixed "Cannot find module" errors in CLI integration tests
@@ -601,8 +603,9 @@ Inspired by the Python AACProcessors project and built for the AAC community.
 
 ### Known Issues
 
+- ⚠️ **Audio Tests**: 21 tests failing due to non-null assertion errors in audio metadata processing (critical fix needed)
+- ⚠️ **Linting**: 177 ESLint issues including non-null assertions and require statements (code quality impact)
 - ⚠️ **CLI Tests**: 3 tests failing due to output format expectations (immediate fix needed)
-- ⚠️ **TouchChatProcessor**: 4 comprehensive tests failing after recent merge
 - ⚠️ **SnapProcessor**: Lowest coverage at 48.32%, missing audio handling tests
 - ⚠️ **Core Utilities**: Zero test coverage for analyze.ts and fileProcessor.ts
 - ⚠️ **Real-world data**: UNIQUE constraint violations with example files

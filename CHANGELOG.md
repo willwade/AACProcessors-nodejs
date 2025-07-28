@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2025-01-28
+
+### 🎨 Major Feature - Comprehensive Styling Support
+
+This release adds comprehensive styling support across all AAC file formats, enabling preservation of visual appearance when converting between formats.
+
+### Added
+
+#### Styling Features
+- **AACStyle Interface** - Unified styling model supporting colors, fonts, borders, and layout properties
+- **Cross-format styling preservation** - Styling information maintained when converting between formats
+- **Comprehensive styling properties** - Support for background colors, font colors, borders, font families, sizes, weights, and more
+- **Format-specific styling capabilities** - Each format supports styling to the extent of its technical capabilities
+
+#### Enhanced Processors
+- **TouchChat Processor** - Complete button_styles and page_styles table support with dynamic style creation
+- **Asterics Grid Processor** - Enhanced MetaData and ColorConfig styling support for comprehensive visual properties
+- **Grid 3 Processor** - Full style.xml generation and style referencing system
+- **Apple Panels Processor** - DisplayColor, FontSize, and DisplayImageWeight property support
+- **OBF/Snap Processors** - Enhanced styling preservation (already had good support)
+
+#### Testing & Documentation
+- **Comprehensive test suite** - 7 new styling test cases covering all processors and cross-format scenarios
+- **Complete documentation** - Detailed styling guide with examples and format capability matrix
+- **Practical examples** - Working styling example demonstrating all features
+
+### Technical Details
+- All processors now support the unified AACStyle interface
+- Styling information is intelligently mapped between different format capabilities
+- Backward compatibility maintained - existing code continues to work unchanged
+- Production-ready implementation with comprehensive test coverage
+
 ## [2.0.0] - 2024-12-19
 
 ### 🚀 Major Release - Complete TypeScript Rewrite

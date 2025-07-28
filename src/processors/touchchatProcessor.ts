@@ -1,10 +1,10 @@
-import { BaseProcessor } from "../core/baseProcessor";
-import { AACTree, AACPage, AACButton } from "../core/treeStructure";
-import AdmZip from "adm-zip";
-import Database from "better-sqlite3";
-import path from "path";
-import fs from "fs";
-import os from "os";
+import { BaseProcessor } from '../core/baseProcessor';
+import { AACTree, AACPage, AACButton } from '../core/treeStructure';
+import AdmZip from 'adm-zip';
+import Database from 'better-sqlite3';
+import path from 'path';
+import fs from 'fs';
+import os from 'os';
 
 interface TouchChatButton {
   id: number;
@@ -29,11 +29,11 @@ interface TouchChatPage {
 }
 
 function intToHex(colorInt: number | null | undefined): string | undefined {
-  if (colorInt === null || typeof colorInt === "undefined") {
+  if (colorInt === null || typeof colorInt === 'undefined') {
     return undefined;
   }
   // Assuming the color is in ARGB format, we mask out the alpha channel
-  return `#${(colorInt & 0x00ffffff).toString(16).padStart(6, "0")}`;
+  return `#${(colorInt & 0x00ffffff).toString(16).padStart(6, '0')}`;
 }
 
 class TouchChatProcessor extends BaseProcessor {
@@ -46,7 +46,7 @@ class TouchChatProcessor extends BaseProcessor {
       this.tree = this.loadIntoTree(filePathOrBuffer);
     }
     if (!this.tree) {
-      throw new Error("No tree available - call loadIntoTree first");
+      throw new Error('No tree available - call loadIntoTree first');
     }
     const texts: string[] = [];
     for (const pageId in this.tree.pages) {
@@ -69,19 +69,17 @@ class TouchChatProcessor extends BaseProcessor {
       this.sourceFile = filePathOrBuffer;
 
       // Step 1: Unzip
-      tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "touchchat-"));
+      tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'touchchat-'));
       const zip = new AdmZip(
-        typeof filePathOrBuffer === "string"
-          ? filePathOrBuffer
-          : Buffer.from(filePathOrBuffer),
+        typeof filePathOrBuffer === 'string' ? filePathOrBuffer : Buffer.from(filePathOrBuffer)
       );
       zip.extractAllTo(tmpDir, true);
 
       // Step 2: Find and open SQLite DB
       const files = fs.readdirSync(tmpDir);
-      const vocabFile = files.find((f) => f.endsWith(".c4v"));
+      const vocabFile = files.find((f) => f.endsWith('.c4v'));
       if (!vocabFile) {
-        throw new Error("No .c4v vocab DB found in TouchChat export");
+        throw new Error('No .c4v vocab DB found in TouchChat export');
       }
 
       const dbPath = path.join(tmpDir, vocabFile);
@@ -96,8 +94,7 @@ class TouchChatProcessor extends BaseProcessor {
       // Load ID mappings first
       const idMappings = new Map<number, string>();
       try {
-        const mappingQuery =
-          "SELECT numeric_id, string_id FROM page_id_mapping";
+        const mappingQuery = 'SELECT numeric_id, string_id FROM page_id_mapping';
         const mappings = db.prepare(mappingQuery).all() as {
           numeric_id: number;
           string_id: string;
@@ -113,11 +110,11 @@ class TouchChatProcessor extends BaseProcessor {
       const buttonStyles = new Map();
       const pageStyles = new Map();
       try {
-        const buttonStyleRows = db.prepare("SELECT * FROM button_styles").all();
+        const buttonStyleRows = db.prepare('SELECT * FROM button_styles').all();
         buttonStyleRows.forEach((style: any) => {
           buttonStyles.set(style.id, style);
         });
-        const pageStyleRows = db.prepare("SELECT * FROM page_styles").all();
+        const pageStyleRows = db.prepare('SELECT * FROM page_styles').all();
         pageStyleRows.forEach((style: any) => {
           pageStyles.set(style.id, style);
         });
@@ -141,7 +138,7 @@ class TouchChatProcessor extends BaseProcessor {
 
         const page = new AACPage({
           id: pageId,
-          name: pageRow.name || "",
+          name: pageRow.name || '',
           grid: [],
           buttons: [],
           parentId: null,
@@ -165,9 +162,7 @@ class TouchChatProcessor extends BaseProcessor {
         JOIN button_boxes bb ON bb.id = bbc.button_box_id
       `;
       try {
-        const buttonBoxCells = db
-          .prepare(buttonBoxQuery)
-          .all() as (TouchChatButton & {
+        const buttonBoxCells = db.prepare(buttonBoxQuery).all() as (TouchChatButton & {
           box_id: number;
         })[];
         const buttonBoxes = new Map<
@@ -187,9 +182,9 @@ class TouchChatProcessor extends BaseProcessor {
           const style = buttonStyles.get(cell.button_style_id);
           const button = new AACButton({
             id: String(cell.id),
-            label: cell.label || "",
-            message: cell.message || "",
-            type: "SPEAK",
+            label: cell.label || '',
+            message: cell.message || '',
+            type: 'SPEAK',
             action: null,
             style: {
               backgroundColor: intToHex(style?.body_color),
@@ -198,8 +193,8 @@ class TouchChatProcessor extends BaseProcessor {
               fontColor: intToHex(style?.font_color),
               fontSize: style?.font_height,
               fontFamily: style?.font_name,
-              fontWeight: style?.font_bold ? "bold" : "normal",
-              fontStyle: style?.font_italic ? "italic" : "normal",
+              fontWeight: style?.font_bold ? 'bold' : 'normal',
+              fontStyle: style?.font_italic ? 'italic' : 'normal',
               textUnderline: style?.font_underline,
               transparent: style?.transparent,
               labelOnTop: style?.label_on_top,
@@ -214,9 +209,7 @@ class TouchChatProcessor extends BaseProcessor {
         });
 
         // Map button boxes to pages
-        const boxInstances = db
-          .prepare("SELECT * FROM button_box_instances")
-          .all() as {
+        const boxInstances = db.prepare('SELECT * FROM button_box_instances').all() as {
           id: number;
           page_id: number;
           button_box_id: number;
@@ -228,8 +221,7 @@ class TouchChatProcessor extends BaseProcessor {
 
         boxInstances.forEach((instance) => {
           // Use mapped string ID if available, otherwise use numeric ID as string
-          const pageId =
-            idMappings.get(instance.page_id) || String(instance.page_id);
+          const pageId = idMappings.get(instance.page_id) || String(instance.page_id);
           const page = tree.getPage(pageId);
           const buttons = buttonBoxes.get(instance.button_box_id);
           if (page && buttons) {
@@ -250,18 +242,16 @@ class TouchChatProcessor extends BaseProcessor {
         WHERE r.type = 7
       `;
       try {
-        const pageButtons = db
-          .prepare(pageButtonsQuery)
-          .all() as (TouchChatButton & {
+        const pageButtons = db.prepare(pageButtonsQuery).all() as (TouchChatButton & {
           type: number;
         })[];
         pageButtons.forEach((btnRow) => {
           const style = buttonStyles.get(btnRow.button_style_id);
           const button = new AACButton({
             id: String(btnRow.id),
-            label: btnRow.label || "",
-            message: btnRow.message || "",
-            type: "SPEAK",
+            label: btnRow.label || '',
+            message: btnRow.message || '',
+            type: 'SPEAK',
             action: null,
             style: {
               backgroundColor: intToHex(style?.body_color),
@@ -270,17 +260,15 @@ class TouchChatProcessor extends BaseProcessor {
               fontColor: intToHex(style?.font_color),
               fontSize: style?.font_height,
               fontFamily: style?.font_name,
-              fontWeight: style?.font_bold ? "bold" : "normal",
-              fontStyle: style?.font_italic ? "italic" : "normal",
+              fontWeight: style?.font_bold ? 'bold' : 'normal',
+              fontStyle: style?.font_italic ? 'italic' : 'normal',
               textUnderline: style?.font_underline,
               transparent: style?.transparent,
               labelOnTop: style?.label_on_top,
             },
           });
           // Find the page that references this resource
-          const page = Object.values(tree.pages).find(
-            (p) => p.id === String(btnRow.id),
-          );
+          const page = Object.values(tree.pages).find((p) => p.id === String(btnRow.id));
           if (page) page.addButton(button);
         });
       } catch (e) {
@@ -304,15 +292,12 @@ class TouchChatProcessor extends BaseProcessor {
           // Find button in any page
           for (const pageId in tree.pages) {
             const page = tree.pages[pageId];
-            const button = page.buttons.find(
-              (b) => b.id === String(nav.button_id),
-            );
+            const button = page.buttons.find((b) => b.id === String(nav.button_id));
             if (button) {
-              button.type = "NAVIGATE";
+              button.type = 'NAVIGATE';
               // Use mapped string ID for target page if available
               const targetPageId =
-                idMappings.get(parseInt(nav.target_page_id)) ||
-                nav.target_page_id;
+                idMappings.get(parseInt(nav.target_page_id)) || nav.target_page_id;
               button.targetPageId = String(targetPageId);
               break;
             }
@@ -324,11 +309,8 @@ class TouchChatProcessor extends BaseProcessor {
 
       // Try to load root ID from metadata, fallback to first page
       try {
-        const metadataQuery =
-          "SELECT value FROM tree_metadata WHERE key = 'rootId'";
-        const rootIdRow = db.prepare(metadataQuery).get() as
-          | { value: string }
-          | undefined;
+        const metadataQuery = "SELECT value FROM tree_metadata WHERE key = 'rootId'";
+        const rootIdRow = db.prepare(metadataQuery).get() as { value: string } | undefined;
         if (rootIdRow && tree.getPage(rootIdRow.value)) {
           tree.rootId = rootIdRow.value;
         } else if (rootPageId) {
@@ -351,7 +333,7 @@ class TouchChatProcessor extends BaseProcessor {
         try {
           fs.rmSync(tmpDir, { recursive: true, force: true });
         } catch (e) {
-          console.warn("Failed to clean up temp directory:", e);
+          console.warn('Failed to clean up temp directory:', e);
         }
       }
     }
@@ -360,7 +342,7 @@ class TouchChatProcessor extends BaseProcessor {
   processTexts(
     filePathOrBuffer: string | Buffer,
     translations: Map<string, string>,
-    outputPath: string,
+    outputPath: string
   ): Buffer {
     // Load the tree, apply translations, and save to new file
     const tree = this.loadIntoTree(filePathOrBuffer);
@@ -390,8 +372,8 @@ class TouchChatProcessor extends BaseProcessor {
 
   saveFromTree(tree: AACTree, outputPath: string): void {
     // Create a TouchChat database that matches the expected schema for loading
-    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "touchchat-export-"));
-    const dbPath = path.join(tmpDir, "vocab.c4v");
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'touchchat-export-'));
+    const dbPath = path.join(tmpDir, 'vocab.c4v');
 
     try {
       const db = new Database(dbPath);
@@ -516,13 +498,13 @@ class TouchChatProcessor extends BaseProcessor {
       `);
 
       // Insert default styles
-      db.prepare("INSERT INTO button_styles (id) VALUES (1)").run();
-      db.prepare("INSERT INTO page_styles (id) VALUES (1)").run();
+      db.prepare('INSERT INTO button_styles (id) VALUES (1)').run();
+      db.prepare('INSERT INTO page_styles (id) VALUES (1)').run();
 
       // Helper function to convert hex color to integer
       const hexToInt = (hexColor?: string): number | null => {
         if (!hexColor) return null;
-        const hex = hexColor.replace("#", "");
+        const hex = hexColor.replace('#', '');
         return parseInt(hex, 16);
       };
 
@@ -545,9 +527,7 @@ class TouchChatProcessor extends BaseProcessor {
       // First pass: create pages and map IDs
       Object.values(tree.pages).forEach((page) => {
         // Try to use numeric ID if possible, otherwise assign sequential ID
-        const numericPageId = /^\d+$/.test(page.id)
-          ? parseInt(page.id)
-          : pageIdCounter++;
+        const numericPageId = /^\d+$/.test(page.id) ? parseInt(page.id) : pageIdCounter++;
         pageIdMap.set(page.id, numericPageId);
 
         // Create page style if needed
@@ -559,12 +539,12 @@ class TouchChatProcessor extends BaseProcessor {
             pageStyleMap.set(styleKey, pageStyleId);
 
             const insertPageStyle = db.prepare(
-              "INSERT INTO page_styles (id, bg_color, force_bg_color) VALUES (?, ?, ?)",
+              'INSERT INTO page_styles (id, bg_color, force_bg_color) VALUES (?, ?, ?)'
             );
             insertPageStyle.run(
               pageStyleId,
               hexToInt(page.style.backgroundColor),
-              page.style.backgroundColor ? 1 : 0,
+              page.style.backgroundColor ? 1 : 0
             );
           } else {
             pageStyleId = pageStyleMap.get(styleKey)!;
@@ -574,24 +554,19 @@ class TouchChatProcessor extends BaseProcessor {
         // Insert resource for page name
         const pageResourceId = resourceIdCounter++;
         const insertResource = db.prepare(
-          "INSERT INTO resources (id, name, type) VALUES (?, ?, ?)",
+          'INSERT INTO resources (id, name, type) VALUES (?, ?, ?)'
         );
-        insertResource.run(pageResourceId, page.name || "Page", 0);
+        insertResource.run(pageResourceId, page.name || 'Page', 0);
 
         // Insert page with original ID preserved and style
         const insertPage = db.prepare(
-          "INSERT INTO pages (id, resource_id, name, page_style_id) VALUES (?, ?, ?, ?)",
+          'INSERT INTO pages (id, resource_id, name, page_style_id) VALUES (?, ?, ?, ?)'
         );
-        insertPage.run(
-          numericPageId,
-          pageResourceId,
-          page.name || "Page",
-          pageStyleId,
-        );
+        insertPage.run(numericPageId, pageResourceId, page.name || 'Page', pageStyleId);
 
         // Store ID mapping
         const insertIdMapping = db.prepare(
-          "INSERT INTO page_id_mapping (numeric_id, string_id) VALUES (?, ?)",
+          'INSERT INTO page_id_mapping (numeric_id, string_id) VALUES (?, ?)'
         );
         insertIdMapping.run(numericPageId, page.id);
       });
@@ -603,14 +578,12 @@ class TouchChatProcessor extends BaseProcessor {
         if (page.buttons.length > 0) {
           // Create a button box for this page's buttons
           const buttonBoxId = buttonBoxIdCounter++;
-          const insertButtonBox = db.prepare(
-            "INSERT INTO button_boxes (id) VALUES (?)",
-          );
+          const insertButtonBox = db.prepare('INSERT INTO button_boxes (id) VALUES (?)');
           insertButtonBox.run(buttonBoxId);
 
           // Create button box instance
           const insertButtonBoxInstance = db.prepare(
-            "INSERT INTO button_box_instances (id, page_id, button_box_id, position_x, position_y, size_x, size_y) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            'INSERT INTO button_box_instances (id, page_id, button_box_id, position_x, position_y, size_x, size_y) VALUES (?, ?, ?, ?, ?, ?, ?)'
           );
           insertButtonBoxInstance.run(
             buttonBoxInstanceIdCounter++,
@@ -619,16 +592,16 @@ class TouchChatProcessor extends BaseProcessor {
             0,
             0,
             1,
-            1,
+            1
           );
 
           // Insert buttons
           page.buttons.forEach((button, index) => {
             const buttonResourceId = resourceIdCounter++;
             const insertResource = db.prepare(
-              "INSERT INTO resources (id, name, type) VALUES (?, ?, ?)",
+              'INSERT INTO resources (id, name, type) VALUES (?, ?, ?)'
             );
-            insertResource.run(buttonResourceId, button.label || "Button", 7);
+            insertResource.run(buttonResourceId, button.label || 'Button', 7);
 
             const numericButtonId = parseInt(button.id) || buttonIdCounter++;
 
@@ -641,7 +614,7 @@ class TouchChatProcessor extends BaseProcessor {
                 buttonStyleMap.set(styleKey, buttonStyleId);
 
                 const insertButtonStyle = db.prepare(
-                  "INSERT INTO button_styles (id, label_on_top, transparent, font_color, body_color, border_color, border_width, font_name, font_bold, font_underline, font_italic, font_height) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                  'INSERT INTO button_styles (id, label_on_top, transparent, font_color, body_color, border_color, border_width, font_name, font_bold, font_underline, font_italic, font_height) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
                 );
                 insertButtonStyle.run(
                   buttonStyleId,
@@ -652,10 +625,10 @@ class TouchChatProcessor extends BaseProcessor {
                   hexToInt(button.style.borderColor),
                   button.style.borderWidth,
                   button.style.fontFamily,
-                  button.style.fontWeight === "bold" ? 1 : 0,
+                  button.style.fontWeight === 'bold' ? 1 : 0,
                   button.style.textUnderline ? 1 : 0,
-                  button.style.fontStyle === "italic" ? 1 : 0,
-                  button.style.fontSize,
+                  button.style.fontStyle === 'italic' ? 1 : 0,
+                  button.style.fontSize
                 );
               } else {
                 buttonStyleId = buttonStyleMap.get(styleKey)!;
@@ -664,22 +637,22 @@ class TouchChatProcessor extends BaseProcessor {
 
             if (!insertedButtonIds.has(numericButtonId)) {
               const insertButton = db.prepare(
-                "INSERT INTO buttons (id, resource_id, label, message, visible, button_style_id) VALUES (?, ?, ?, ?, ?, ?)",
+                'INSERT INTO buttons (id, resource_id, label, message, visible, button_style_id) VALUES (?, ?, ?, ?, ?, ?)'
               );
               insertButton.run(
                 numericButtonId,
                 buttonResourceId,
-                button.label || "",
-                button.message || button.label || "",
+                button.label || '',
+                button.message || button.label || '',
                 1,
-                buttonStyleId,
+                buttonStyleId
               );
               insertedButtonIds.add(numericButtonId);
             }
 
             // Insert button box cell with styling
             const insertButtonBoxCell = db.prepare(
-              "INSERT INTO button_box_cells (button_box_id, resource_id, location, span_x, span_y, button_style_id, label, message, box_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+              'INSERT INTO button_box_cells (button_box_id, resource_id, location, span_x, span_y, button_style_id, label, message, box_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
             );
             insertButtonBoxCell.run(
               buttonBoxId,
@@ -688,24 +661,24 @@ class TouchChatProcessor extends BaseProcessor {
               1,
               1,
               buttonStyleId,
-              button.label || "",
-              button.message || button.label || "",
-              index,
+              button.label || '',
+              button.message || button.label || '',
+              index
             );
 
             // Handle navigation actions
-            if (button.type === "NAVIGATE" && button.targetPageId) {
+            if (button.type === 'NAVIGATE' && button.targetPageId) {
               const targetPageId = pageIdMap.get(button.targetPageId);
               if (targetPageId) {
                 // Insert action
                 const insertAction = db.prepare(
-                  "INSERT INTO actions (id, resource_id, code) VALUES (?, ?, ?)",
+                  'INSERT INTO actions (id, resource_id, code) VALUES (?, ?, ?)'
                 );
                 insertAction.run(actionIdCounter, buttonResourceId, 1); // code 1 = navigation
 
                 // Insert action data
                 const insertActionData = db.prepare(
-                  "INSERT INTO action_data (action_id, value) VALUES (?, ?)",
+                  'INSERT INTO action_data (action_id, value) VALUES (?, ?)'
                 );
                 insertActionData.run(actionIdCounter, String(targetPageId));
                 actionIdCounter++;
@@ -717,17 +690,15 @@ class TouchChatProcessor extends BaseProcessor {
 
       // Save tree metadata (root ID)
       if (tree.rootId) {
-        const insertMetadata = db.prepare(
-          "INSERT INTO tree_metadata (key, value) VALUES (?, ?)",
-        );
-        insertMetadata.run("rootId", tree.rootId);
+        const insertMetadata = db.prepare('INSERT INTO tree_metadata (key, value) VALUES (?, ?)');
+        insertMetadata.run('rootId', tree.rootId);
       }
 
       db.close();
 
       // Create zip file with the database
       const zip = new AdmZip();
-      zip.addLocalFile(dbPath, "", "vocab.c4v");
+      zip.addLocalFile(dbPath, '', 'vocab.c4v');
       zip.writeZip(outputPath);
     } finally {
       // Clean up

@@ -3,14 +3,14 @@ import {
   AACPage as IAACPage,
   AACTree as IAACTree,
   AACStyle,
-} from "../types/aac";
+} from '../types/aac';
 
 export class AACButton implements IAACButton {
   id: string;
   label: string;
   message: string;
-  type: "SPEAK" | "NAVIGATE";
-  action: { type: "SPEAK" | "NAVIGATE"; targetPageId?: string } | null;
+  type: 'SPEAK' | 'NAVIGATE';
+  action: { type: 'SPEAK' | 'NAVIGATE'; targetPageId?: string } | null;
   targetPageId?: string;
   style?: AACStyle;
   audioRecording?: {
@@ -22,9 +22,9 @@ export class AACButton implements IAACButton {
 
   constructor({
     id,
-    label = "",
-    message = "",
-    type = "SPEAK",
+    label = '',
+    message = '',
+    type = 'SPEAK',
     targetPageId,
     action = null,
     audioRecording,
@@ -33,9 +33,9 @@ export class AACButton implements IAACButton {
     id: string;
     label?: string;
     message?: string;
-    type?: "SPEAK" | "NAVIGATE";
+    type?: 'SPEAK' | 'NAVIGATE';
     targetPageId?: string;
-    action?: { type: "SPEAK" | "NAVIGATE"; targetPageId?: string } | null;
+    action?: { type: 'SPEAK' | 'NAVIGATE'; targetPageId?: string } | null;
     audioRecording?: {
       id?: number;
       data?: Buffer;
@@ -65,7 +65,7 @@ export class AACPage implements IAACPage {
 
   constructor({
     id,
-    name = "",
+    name = '',
     grid = [],
     buttons = [],
     parentId = null,
@@ -130,7 +130,7 @@ export class AACTree implements IAACTree {
         callback(page);
         // Add child pages to queue
         page.buttons
-          .filter((b) => b.type === "NAVIGATE" && b.targetPageId)
+          .filter((b) => b.type === 'NAVIGATE' && b.targetPageId)
           .forEach((b) => {
             if (b.targetPageId) queue.push(b.targetPageId);
           });
