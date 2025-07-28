@@ -258,24 +258,76 @@ class ApplePanelsProcessor extends BaseProcessor {
     Object.values(tree.pages).forEach((page, pageIndex) => {
       const panelId = `USER.${page.id}`;
 
+      // Detect actual grid dimensions from the source data
+      let gridCols = 4; // Default fallback
+      let gridRows = Math.ceil(page.buttons.length / gridCols);
+
+      if (page.grid && page.grid.length > 0) {
+        // Use actual grid dimensions from source
+        gridRows = page.grid.length;
+        gridCols = page.grid[0] ? page.grid[0].length : 4;
+
+        // Find the actual used area to avoid empty space
+        let maxUsedX = 0, maxUsedY = 0;
+        for (let y = 0; y < page.grid.length; y++) {
+          for (let x = 0; x < page.grid[y].length; x++) {
+            if (page.grid[y][x]) {
+              maxUsedX = Math.max(maxUsedX, x);
+              maxUsedY = Math.max(maxUsedY, y);
+            }
+          }
+        }
+        // Use the actual used dimensions if they're reasonable
+        if (maxUsedX > 0 && maxUsedY > 0) {
+          gridCols = maxUsedX + 1;
+          gridRows = maxUsedY + 1;
+        }
+      } else {
+        // Intelligent auto-layout: try to make a reasonable grid
+        const buttonCount = page.buttons.length;
+        if (buttonCount <= 6) {
+          gridCols = Math.min(buttonCount, 3); // 1-3 columns for small sets
+        } else if (buttonCount <= 12) {
+          gridCols = 4; // 4 columns for medium sets
+        } else if (buttonCount <= 24) {
+          gridCols = 6; // 6 columns for larger sets
+        } else {
+          gridCols = 8; // 8 columns for very large sets
+        }
+        gridRows = Math.ceil(buttonCount / gridCols);
+      }
+
       const panelObjects = page.buttons.map((button, buttonIndex) => {
         // Find button position in grid layout and convert to Rect format
-        let rect = `{{${buttonIndex * 105}, 0}, {100, 25}}`; // Default fallback
+        let rect: string;
 
         if (page.grid && page.grid.length > 0) {
-          // Search for button in grid layout
-          for (let y = 0; y < page.grid.length; y++) {
-            for (let x = 0; x < page.grid[y].length; x++) {
+          // Search for button in actual grid layout
+          let found = false;
+          for (let y = 0; y < page.grid.length && !found; y++) {
+            for (let x = 0; x < page.grid[y].length && !found; x++) {
               const gridButton = page.grid[y][x];
               if (gridButton && gridButton.id === button.id) {
                 // Convert grid coordinates to pixel coordinates
-                const pixelX = x * 25;
-                const pixelY = y * 25;
+                const pixelX = x * 105; // 105px per column (100px button + 5px spacing)
+                const pixelY = y * 30;  // 30px per row (25px button + 5px spacing)
                 rect = `{{${pixelX}, ${pixelY}}, {100, 25}}`;
-                break;
+                found = true;
               }
             }
           }
+
+          if (!found) {
+            // Button not found in grid, use auto-layout
+            const autoX = (buttonIndex % gridCols) * 105;
+            const autoY = Math.floor(buttonIndex / gridCols) * 30;
+            rect = `{{${autoX}, ${autoY}}, {100, 25}}`;
+          }
+        } else {
+          // Use auto-layout with detected grid dimensions
+          const autoX = (buttonIndex % gridCols) * 105;
+          const autoY = Math.floor(buttonIndex / gridCols) * 30;
+          rect = `{{${autoX}, ${autoY}}, {100, 25}}`;
         }
 
         const buttonObj: any = {
