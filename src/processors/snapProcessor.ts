@@ -5,7 +5,7 @@ import {
   AACButton,
   AACSemanticAction,
   AACSemanticCategory,
-  AACSemanticIntent
+  AACSemanticIntent,
 } from "../core/treeStructure";
 // Removed unused import: FileProcessor
 import Database from "better-sqlite3";
@@ -140,7 +140,9 @@ class SnapProcessor extends BaseProcessor {
           `;
           buttons = db.prepare(buttonQuery).all(pageRow.Id);
         } catch (err) {
-          console.warn(`Failed to load buttons for page ${pageRow.Id}: ${err instanceof Error ? err.message : String(err)}`);
+          console.warn(
+            `Failed to load buttons for page ${pageRow.Id}: ${err instanceof Error ? err.message : String(err)}`,
+          );
           // Skip this page instead of loading all buttons
           buttons = [];
         }
@@ -230,17 +232,17 @@ class SnapProcessor extends BaseProcessor {
               platformData: {
                 snap: {
                   navigatePageId: btnRow.NavigatePageId,
-                  elementReferenceId: btnRow.Id
-                }
+                  elementReferenceId: btnRow.Id,
+                },
               },
               fallback: {
                 type: "NAVIGATE",
-                targetPageId: targetPageUniqueId
-              }
+                targetPageId: targetPageUniqueId,
+              },
             };
             legacyAction = {
               type: "NAVIGATE",
-              targetPageId: targetPageUniqueId
+              targetPageId: targetPageUniqueId,
             };
           } else {
             semanticAction = {
@@ -249,13 +251,13 @@ class SnapProcessor extends BaseProcessor {
               text: btnRow.Message || btnRow.Label || "",
               platformData: {
                 snap: {
-                  elementReferenceId: btnRow.Id
-                }
+                  elementReferenceId: btnRow.Id,
+                },
               },
               fallback: {
                 type: "SPEAK",
-                message: btnRow.Message || btnRow.Label || ""
-              }
+                message: btnRow.Message || btnRow.Label || "",
+              },
             };
           }
 
@@ -263,9 +265,7 @@ class SnapProcessor extends BaseProcessor {
             id: String(btnRow.Id),
             label: btnRow.Label || "",
             message: btnRow.Message || btnRow.Label || "",
-            type: targetPageUniqueId ? "NAVIGATE" : "SPEAK",
             targetPageId: targetPageUniqueId,
-            action: legacyAction,
             semanticAction: semanticAction,
             audioRecording: audioRecording,
             style: {
@@ -291,18 +291,24 @@ class SnapProcessor extends BaseProcessor {
             parentPage.addButton(button);
 
             // Add button to grid layout if position data is available
-            const gridPositionStr = String(btnRow.GridPosition || '');
-            if (gridPositionStr && gridPositionStr.includes(',')) {
+            const gridPositionStr = String(btnRow.GridPosition || "");
+            if (gridPositionStr && gridPositionStr.includes(",")) {
               // Parse comma-separated coordinates "x,y"
-              const [xStr, yStr] = gridPositionStr.split(',');
+              const [xStr, yStr] = gridPositionStr.split(",");
               const gridX = parseInt(xStr, 10);
               const gridY = parseInt(yStr, 10);
 
               // Place button in grid if within bounds and coordinates are valid
-              if (!isNaN(gridX) && !isNaN(gridY) &&
-                  gridX >= 0 && gridY >= 0 &&
-                  gridY < 10 && gridX < 10 &&
-                  pageGrid[gridY] && pageGrid[gridY][gridX] === null) {
+              if (
+                !isNaN(gridX) &&
+                !isNaN(gridY) &&
+                gridX >= 0 &&
+                gridY >= 0 &&
+                gridY < 10 &&
+                gridX < 10 &&
+                pageGrid[gridY] &&
+                pageGrid[gridY][gridX] === null
+              ) {
                 pageGrid[gridY][gridX] = button;
               }
             }
@@ -495,10 +501,9 @@ class SnapProcessor extends BaseProcessor {
 
           // Use semantic action if available
           if (button.semanticAction?.intent === AACSemanticIntent.NAVIGATE_TO) {
-            const targetId = button.semanticAction.targetId || button.targetPageId;
+            const targetId =
+              button.semanticAction.targetId || button.targetPageId;
             navigatePageId = targetId ? pageIdMap.get(targetId) || null : null;
-          } else if (button.type === "NAVIGATE" && button.targetPageId) {
-            navigatePageId = pageIdMap.get(button.targetPageId) || null;
           }
 
           const insertButton = db.prepare(
@@ -529,7 +534,11 @@ class SnapProcessor extends BaseProcessor {
           const insertPlacement = db.prepare(
             "INSERT INTO ElementPlacement (Id, ElementReferenceId, GridPosition) VALUES (?, ?, ?)",
           );
-          insertPlacement.run(elementRefIdCounter++, elementRefId, gridPosition);
+          insertPlacement.run(
+            elementRefIdCounter++,
+            elementRefId,
+            gridPosition,
+          );
         });
       });
     } finally {

@@ -8,8 +8,12 @@ import fs from "fs";
 // Helper function to detect format from file/folder path
 function detectFormat(filePath: string): string {
   // Check if it's a folder ending with .ascconfig
-  if (fs.existsSync(filePath) && fs.statSync(filePath).isDirectory() && filePath.endsWith('.ascconfig')) {
-    return 'ascconfig';
+  if (
+    fs.existsSync(filePath) &&
+    fs.statSync(filePath).isDirectory() &&
+    filePath.endsWith(".ascconfig")
+  ) {
+    return "ascconfig";
   }
 
   // Otherwise use file extension

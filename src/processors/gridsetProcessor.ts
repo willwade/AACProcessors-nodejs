@@ -5,7 +5,7 @@ import {
   AACButton,
   AACSemanticAction,
   AACSemanticCategory,
-  AACSemanticIntent
+  AACSemanticIntent,
 } from "../core/treeStructure";
 import AdmZip from "adm-zip";
 import fs from "fs";
@@ -24,10 +24,12 @@ interface _GridsetGrid {
 }
 
 class GridsetProcessor extends BaseProcessor {
-  // Helper function to generate Grid3 commands from AACAction
-  private generateCommandsFromAction(button: AACButton): any {
-    if (!button.action) {
-      // Default SPEAK action
+  // Helper function to generate Grid3 commands from semantic actions
+  private generateCommandsFromSemanticAction(button: AACButton): any {
+    const semanticAction = button.semanticAction;
+
+    if (!semanticAction) {
+      // Default to insert text action
       return {
         Command: {
           "@_ID": "Action.InsertText",
@@ -39,110 +41,87 @@ class GridsetProcessor extends BaseProcessor {
       };
     }
 
-    const action = button.action;
+    // Use platform-specific Grid3 data if available
+    if (semanticAction.platformData?.grid3) {
+      const grid3Data = semanticAction.platformData.grid3;
+      const params = Object.entries(grid3Data.parameters || {}).map(
+        ([key, value]) => ({
+          "@_Key": key,
+          "#text": String(value),
+        }),
+      );
 
-    switch (action.type) {
-      case "NAVIGATE":
+      return {
+        Command: {
+          "@_ID": grid3Data.commandId,
+          ...(params.length > 0 ? { Parameter: params } : {}),
+        },
+      };
+    }
+
+    // Convert semantic actions to Grid3 commands
+    switch (semanticAction.intent) {
+      case AACSemanticIntent.NAVIGATE_TO:
         return {
           Command: {
             "@_ID": "Jump.To",
             Parameter: {
               "@_Key": "grid",
-              "#text": action.targetPageId || button.targetPageId || "",
+              "#text": semanticAction.targetId || "",
             },
           },
         };
 
-      case "GO_BACK":
+      case AACSemanticIntent.GO_BACK:
         return {
           Command: {
             "@_ID": "Jump.Back",
           },
         };
 
-      case "SPEAK":
-        const speakParams = [];
-        if (action.unit) speakParams.push({ "@_Key": "unit", "#text": action.unit });
-        if (action.moveCaret !== undefined) speakParams.push({ "@_Key": "movecaret", "#text": action.moveCaret.toString() });
-
+      case AACSemanticIntent.SPEAK_TEXT:
+      case AACSemanticIntent.SPEAK_IMMEDIATE:
         return {
           Command: {
             "@_ID": "Action.Speak",
-            ...(speakParams.length > 0 ? { Parameter: speakParams } : {}),
           },
         };
 
-      case "INSERT_TEXT":
+      case AACSemanticIntent.INSERT_TEXT:
         return {
           Command: {
             "@_ID": "Action.InsertText",
             Parameter: {
               "@_Key": "text",
-              "#text": action.text || button.message || button.label || "",
+              "#text":
+                semanticAction.text || button.message || button.label || "",
             },
           },
         };
 
-      case "DELETE_WORD":
+      case AACSemanticIntent.DELETE_WORD:
         return {
           Command: {
             "@_ID": "Action.DeleteWord",
           },
         };
 
-      case "CLEAR":
+      case AACSemanticIntent.CLEAR_TEXT:
         return {
           Command: {
             "@_ID": "Action.Clear",
           },
         };
 
-      case "INSERT_LETTER":
-        return {
-          Command: {
-            "@_ID": "Action.Letter",
-            Parameter: {
-              "@_Key": "letter",
-              "#text": action.letter || "",
-            },
-          },
-        };
-
-      case "SETTINGS":
-        const settingsParams = [];
-        if (action.indicatorEnabled !== undefined) {
-          settingsParams.push({ "@_Key": "indicatorenabled", "#text": action.indicatorEnabled ? "1" : "0" });
-        }
-        if (action.settingsAction) {
-          settingsParams.push({ "@_Key": "action", "#text": action.settingsAction });
-        }
-
-        return {
-          Command: {
-            "@_ID": "Settings.RestAll",
-            ...(settingsParams.length > 0 ? { Parameter: settingsParams } : {}),
-          },
-        };
-
-      case "AUTO_CONTENT":
-        return {
-          Command: {
-            "@_ID": "AutoContent.Activate",
-            Parameter: {
-              "@_Key": "autocontenttype",
-              "#text": action.autoContentType || "",
-            },
-          },
-        };
-
       default:
-        // Fallback to INSERT_TEXT
+        // Fallback to insert text
         return {
           Command: {
             "@_ID": "Action.InsertText",
             Parameter: {
               "@_Key": "text",
-              "#text": button.message || button.label || "",
+              "#text":
+                semanticAction.text || button.message || button.label || "",
             },
           },
         };
@@ -335,20 +314,28 @@ class GridsetProcessor extends BaseProcessor {
             let buttonType: "SPEAK" | "NAVIGATE" | "ACTION" = "SPEAK";
             let navigationTarget: string | undefined;
 
-            const commands = content.Commands?.Command || content.commands?.command;
+            const commands =
+              content.Commands?.Command || content.commands?.command;
             if (commands) {
-              const commandArr = Array.isArray(commands) ? commands : [commands];
+              const commandArr = Array.isArray(commands)
+                ? commands
+                : [commands];
 
               for (const command of commandArr) {
                 const commandId = command.ID || command.id;
                 const parameters = command.Parameter || command.parameter;
-                const paramArr = Array.isArray(parameters) ? parameters : [parameters];
+                const paramArr = Array.isArray(parameters)
+                  ? parameters
+                  : [parameters];
 
                 // Helper to get parameter value
                 const getParam = (key: string) => {
                   if (!parameters) return undefined;
                   for (const param of paramArr) {
-                    if ((param.Key === key || param.key === key) && param["#text"]) {
+                    if (
+                      (param.Key === key || param.key === key) &&
+                      param["#text"]
+                    ) {
                       return param["#text"];
                     }
                   }
@@ -368,17 +355,17 @@ class GridsetProcessor extends BaseProcessor {
                         platformData: {
                           grid3: {
                             commandId,
-                            parameters: { grid: gridTarget }
-                          }
+                            parameters: { grid: gridTarget },
+                          },
                         },
                         fallback: {
                           type: "NAVIGATE",
-                          targetPageId: gridTarget
-                        }
+                          targetPageId: gridTarget,
+                        },
                       };
                       legacyAction = {
                         type: "NAVIGATE",
-                        targetPageId: gridTarget
+                        targetPageId: gridTarget,
                       };
                     }
                     break;
@@ -391,16 +378,16 @@ class GridsetProcessor extends BaseProcessor {
                       platformData: {
                         grid3: {
                           commandId,
-                          parameters: {}
-                        }
+                          parameters: {},
+                        },
                       },
                       fallback: {
                         type: "ACTION",
-                        message: "Go back"
-                      }
+                        message: "Go back",
+                      },
                     };
                     legacyAction = {
-                      type: "GO_BACK"
+                      type: "GO_BACK",
                     };
                     break;
 
@@ -416,19 +403,19 @@ class GridsetProcessor extends BaseProcessor {
                           commandId,
                           parameters: {
                             unit: speakUnit,
-                            movecaret: moveCaret
-                          }
-                        }
+                            movecaret: moveCaret,
+                          },
+                        },
                       },
                       fallback: {
                         type: "SPEAK",
-                        message: "Speak text"
-                      }
+                        message: "Speak text",
+                      },
                     };
                     legacyAction = {
                       type: "SPEAK",
                       unit: speakUnit,
-                      moveCaret: moveCaret ? parseInt(moveCaret) : undefined
+                      moveCaret: moveCaret ? parseInt(moveCaret) : undefined,
                     };
                     break;
 
@@ -442,17 +429,17 @@ class GridsetProcessor extends BaseProcessor {
                       platformData: {
                         grid3: {
                           commandId,
-                          parameters: { text: insertText }
-                        }
+                          parameters: { text: insertText },
+                        },
                       },
                       fallback: {
                         type: "SPEAK",
-                        message: insertText
-                      }
+                        message: insertText,
+                      },
                     };
                     legacyAction = {
                       type: "INSERT_TEXT",
-                      text: insertText
+                      text: insertText,
                     };
                     break;
 
@@ -464,16 +451,16 @@ class GridsetProcessor extends BaseProcessor {
                       platformData: {
                         grid3: {
                           commandId,
-                          parameters: {}
-                        }
+                          parameters: {},
+                        },
                       },
                       fallback: {
                         type: "ACTION",
-                        message: "Delete word"
-                      }
+                        message: "Delete word",
+                      },
                     };
                     legacyAction = {
-                      type: "DELETE_WORD"
+                      type: "DELETE_WORD",
                     };
                     break;
 
@@ -485,16 +472,16 @@ class GridsetProcessor extends BaseProcessor {
                       platformData: {
                         grid3: {
                           commandId,
-                          parameters: {}
-                        }
+                          parameters: {},
+                        },
                       },
                       fallback: {
                         type: "ACTION",
-                        message: "Clear text"
-                      }
+                        message: "Clear text",
+                      },
                     };
                     legacyAction = {
-                      type: "CLEAR"
+                      type: "CLEAR",
                     };
                     break;
 
@@ -508,17 +495,17 @@ class GridsetProcessor extends BaseProcessor {
                       platformData: {
                         grid3: {
                           commandId,
-                          parameters: { letter }
-                        }
+                          parameters: { letter },
+                        },
                       },
                       fallback: {
                         type: "ACTION",
-                        message: letter
-                      }
+                        message: letter,
+                      },
                     };
                     legacyAction = {
                       type: "INSERT_LETTER",
-                      letter
+                      letter,
                     };
                     break;
 
@@ -532,19 +519,19 @@ class GridsetProcessor extends BaseProcessor {
                           commandId,
                           parameters: {
                             indicatorenabled: getParam("indicatorenabled"),
-                            action: getParam("action")
-                          }
-                        }
+                            action: getParam("action"),
+                          },
+                        },
                       },
                       fallback: {
                         type: "ACTION",
-                        message: "Settings action"
-                      }
+                        message: "Settings action",
+                      },
                     };
                     legacyAction = {
                       type: "SETTINGS",
                       indicatorEnabled: getParam("indicatorenabled") === "1",
-                      settingsAction: getParam("action")
+                      settingsAction: getParam("action"),
                     };
                     break;
 
@@ -557,18 +544,18 @@ class GridsetProcessor extends BaseProcessor {
                         grid3: {
                           commandId,
                           parameters: {
-                            autocontenttype: getParam("autocontenttype")
-                          }
-                        }
+                            autocontenttype: getParam("autocontenttype"),
+                          },
+                        },
                       },
                       fallback: {
                         type: "ACTION",
-                        message: "Auto content"
-                      }
+                        message: "Auto content",
+                      },
                     };
                     legacyAction = {
                       type: "AUTO_CONTENT",
-                      autoContentType: getParam("autocontenttype")
+                      autoContentType: getParam("autocontenttype"),
                     };
                     break;
 
@@ -577,7 +564,7 @@ class GridsetProcessor extends BaseProcessor {
                     if (commandId) {
                       buttonType = "ACTION";
                       const allParams = Object.fromEntries(
-                        paramArr.map(p => [(p.Key || p.key), p["#text"]])
+                        paramArr.map((p) => [p.Key || p.key, p["#text"]]),
                       );
                       semanticAction = {
                         category: AACSemanticCategory.CUSTOM,
@@ -585,17 +572,17 @@ class GridsetProcessor extends BaseProcessor {
                         platformData: {
                           grid3: {
                             commandId,
-                            parameters: allParams
-                          }
+                            parameters: allParams,
+                          },
                         },
                         fallback: {
                           type: "ACTION",
-                          message: "Unknown command"
-                        }
+                          message: "Unknown command",
+                        },
                       };
                       legacyAction = {
                         type: "SPEAK",
-                        parameters: { commandId, ...allParams }
+                        parameters: { commandId, ...allParams },
                       };
                     }
                     break;
@@ -613,7 +600,7 @@ class GridsetProcessor extends BaseProcessor {
                 intent: AACSemanticIntent.SPEAK_TEXT,
                 text: String(message),
                 fallback: {
-                  type: 'SPEAK',
+                  type: "SPEAK",
                   message: String(message),
                 },
               };
@@ -636,9 +623,9 @@ class GridsetProcessor extends BaseProcessor {
               id: `${gridId}_btn_${idx}`,
               label: String(label),
               message: String(message),
-              type: buttonType,
-              targetPageId: navigationTarget ? String(navigationTarget) : undefined,
-              action: legacyAction,
+              targetPageId: navigationTarget
+                ? String(navigationTarget)
+                : undefined,
               semanticAction: semanticAction,
               style: {
                 ...cellStyle,
@@ -671,7 +658,10 @@ class GridsetProcessor extends BaseProcessor {
     for (const pageId in tree.pages) {
       const page = tree.pages[pageId];
       page.buttons.forEach((btn: AACButton) => {
-        if (btn.type === "NAVIGATE" && btn.targetPageId) {
+        if (
+          btn.semanticAction?.intent === AACSemanticIntent.NAVIGATE_TO &&
+          btn.targetPageId
+        ) {
           const targetPage = tree.getPage(btn.targetPageId);
           if (targetPage) {
             targetPage.parentId = page.id;
@@ -790,13 +780,9 @@ class GridsetProcessor extends BaseProcessor {
           GridGuid: page.id,
           Name: page.name || `Grid ${index + 1}`,
           BackgroundColour: page.style?.backgroundColor,
-          // Add basic row/column definitions (assume 4x4 grid)
-          ColumnDefinitions: {
-            ColumnDefinition: Array(4).fill({}),
-          },
-          RowDefinitions: {
-            RowDefinition: Array(4).fill({}),
-          },
+          // Calculate grid dimensions based on actual layout
+          ColumnDefinitions: this.calculateColumnDefinitions(page),
+          RowDefinitions: this.calculateRowDefinitions(page),
           Cells:
             page.buttons.length > 0
               ? {
@@ -806,31 +792,21 @@ class GridsetProcessor extends BaseProcessor {
                       : "";
 
                     // Find button position in grid layout
-                    let buttonX = btnIndex % 4; // Default fallback
-                    let buttonY = Math.floor(btnIndex / 4); // Default fallback
-
-                    if (page.grid && page.grid.length > 0) {
-                      // Search for button in grid layout
-                      for (let y = 0; y < page.grid.length; y++) {
-                        for (let x = 0; x < page.grid[y].length; x++) {
-                          if (
-                            page.grid[y][x] &&
-                            page.grid[y][x]!.id === button.id
-                          ) {
-                            buttonX = x;
-                            buttonY = y;
-                            break;
-                          }
-                        }
-                      }
-                    }
+                    const position = this.findButtonPosition(
+                      page,
+                      button,
+                      btnIndex,
+                    );
 
                     return {
-                      "@_X": buttonX,
-                      "@_Y": buttonY,
+                      "@_X": position.x,
+                      "@_Y": position.y,
+                      "@_ColumnSpan": position.columnSpan,
+                      "@_RowSpan": position.rowSpan,
                       "@_StyleID": buttonStyleId,
                       Content: {
-                        Commands: this.generateCommandsFromAction(button),
+                        Commands:
+                          this.generateCommandsFromSemanticAction(button),
                         CaptionAndImage: {
                           Caption: button.label || "",
                         },
@@ -857,6 +833,96 @@ class GridsetProcessor extends BaseProcessor {
 
     // Write the zip file
     zip.writeZip(outputPath);
+  }
+
+  // Helper method to calculate column definitions based on page layout
+  private calculateColumnDefinitions(page: AACPage): {
+    ColumnDefinition: any[];
+  } {
+    let maxCols = 4; // Default minimum
+
+    if (page.grid && page.grid.length > 0) {
+      maxCols = Math.max(maxCols, page.grid[0]?.length || 0);
+    } else {
+      // Fallback: estimate from button count
+      maxCols = Math.max(4, Math.ceil(Math.sqrt(page.buttons.length)));
+    }
+
+    return {
+      ColumnDefinition: Array(maxCols).fill({}),
+    };
+  }
+
+  // Helper method to calculate row definitions based on page layout
+  private calculateRowDefinitions(page: AACPage): { RowDefinition: any[] } {
+    let maxRows = 4; // Default minimum
+
+    if (page.grid && page.grid.length > 0) {
+      maxRows = Math.max(maxRows, page.grid.length);
+    } else {
+      // Fallback: estimate from button count
+      const estimatedCols = Math.ceil(Math.sqrt(page.buttons.length));
+      maxRows = Math.max(4, Math.ceil(page.buttons.length / estimatedCols));
+    }
+
+    return {
+      RowDefinition: Array(maxRows).fill({}),
+    };
+  }
+
+  // Helper method to find button position with span information
+  private findButtonPosition(
+    page: AACPage,
+    button: AACButton,
+    fallbackIndex: number,
+  ): {
+    x: number;
+    y: number;
+    columnSpan: number;
+    rowSpan: number;
+  } {
+    if (page.grid && page.grid.length > 0) {
+      // Search for button in grid layout and calculate span
+      for (let y = 0; y < page.grid.length; y++) {
+        for (let x = 0; x < page.grid[y].length; x++) {
+          if (page.grid[y][x] && page.grid[y][x]!.id === button.id) {
+            // Calculate span by checking how far the same button extends
+            let columnSpan = 1;
+            let rowSpan = 1;
+
+            // Check column span (rightward)
+            while (
+              x + columnSpan < page.grid[y].length &&
+              page.grid[y][x + columnSpan] &&
+              page.grid[y][x + columnSpan]!.id === button.id
+            ) {
+              columnSpan++;
+            }
+
+            // Check row span (downward)
+            while (
+              y + rowSpan < page.grid.length &&
+              page.grid[y + rowSpan][x] &&
+              page.grid[y + rowSpan][x]!.id === button.id
+            ) {
+              rowSpan++;
+            }
+
+            return { x, y, columnSpan, rowSpan };
+          }
+        }
+      }
+    }
+
+    // Fallback positioning
+    const gridCols =
+      page.grid?.[0]?.length || Math.ceil(Math.sqrt(page.buttons.length));
+    return {
+      x: fallbackIndex % gridCols,
+      y: Math.floor(fallbackIndex / gridCols),
+      columnSpan: 1,
+      rowSpan: 1,
+    };
   }
 }
 

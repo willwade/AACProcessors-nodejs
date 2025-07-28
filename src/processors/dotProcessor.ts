@@ -1,5 +1,10 @@
 import { BaseProcessor } from "../core/baseProcessor";
-import { AACTree, AACPage, AACButton } from "../core/treeStructure";
+import {
+  AACTree,
+  AACPage,
+  AACButton,
+  AACSemanticIntent,
+} from "../core/treeStructure";
 // Removed unused import: FileProcessor
 import fs from "fs";
 
@@ -129,12 +134,8 @@ class DotProcessor extends BaseProcessor {
           id: `nav_${edge.from}_${edge.to}`,
           label: edge.label || edge.to,
           message: "",
-          type: "NAVIGATE",
+
           targetPageId: edge.to,
-          action: {
-            type: "NAVIGATE",
-            targetPageId: edge.to,
-          },
         });
         fromPage.addButton(button);
       }
@@ -189,7 +190,11 @@ class DotProcessor extends BaseProcessor {
     for (const pageId in tree.pages) {
       const page = tree.pages[pageId];
       page.buttons
-        .filter((btn: AACButton) => btn.type === "NAVIGATE" && btn.targetPageId)
+        .filter(
+          (btn: AACButton) =>
+            btn.semanticAction?.intent === AACSemanticIntent.NAVIGATE_TO &&
+            btn.targetPageId,
+        )
         .forEach((btn: AACButton) => {
           dotContent += `  "${page.id}" -> "${btn.targetPageId}" [label="${btn.label}"]\n`;
         });

@@ -1,5 +1,10 @@
 import { BaseProcessor } from "../core/baseProcessor";
-import { AACTree, AACPage, AACButton } from "../core/treeStructure";
+import {
+  AACTree,
+  AACPage,
+  AACButton,
+  AACSemanticIntent,
+} from "../core/treeStructure";
 // Removed unused import: FileProcessor
 import { XMLParser } from "fast-xml-parser";
 import fs from "fs";
@@ -61,12 +66,7 @@ class OpmlProcessor extends BaseProcessor {
             id: `nav_${page.id}_${childText}`,
             label: childText,
             message: "",
-            type: "NAVIGATE",
             targetPageId: childText.replace(/[^a-zA-Z0-9]/g, "_"),
-            action: {
-              type: "NAVIGATE",
-              targetPageId: childText.replace(/[^a-zA-Z0-9]/g, "_"),
-            },
           });
           page.addButton(button);
 
@@ -222,7 +222,7 @@ class OpmlProcessor extends BaseProcessor {
       const childOutlines = page.buttons
         .filter(
           (b) =>
-            b.type === "NAVIGATE" &&
+            b.semanticAction?.intent === AACSemanticIntent.NAVIGATE_TO &&
             !!b.targetPageId &&
             !!tree.pages[b.targetPageId],
         )
@@ -236,7 +236,10 @@ class OpmlProcessor extends BaseProcessor {
     const navigatedIds = new Set<string>();
     Object.values(tree.pages).forEach((page) => {
       page.buttons.forEach((b) => {
-        if (b.type === "NAVIGATE" && b.targetPageId)
+        if (
+          b.semanticAction?.intent === AACSemanticIntent.NAVIGATE_TO &&
+          b.targetPageId
+        )
           navigatedIds.add(b.targetPageId);
       });
     });

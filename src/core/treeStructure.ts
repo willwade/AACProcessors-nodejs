@@ -7,13 +7,13 @@ import {
 
 // Semantic action categories for cross-platform compatibility
 export enum AACSemanticCategory {
-  COMMUNICATION = "communication",    // Speech, text output
-  NAVIGATION = "navigation",         // Page/grid navigation
-  TEXT_EDITING = "text_editing",     // Text manipulation
+  COMMUNICATION = "communication", // Speech, text output
+  NAVIGATION = "navigation", // Page/grid navigation
+  TEXT_EDITING = "text_editing", // Text manipulation
   SYSTEM_CONTROL = "system_control", // Device/app control
-  MEDIA = "media",                   // Audio/video playback
-  ACCESSIBILITY = "accessibility",   // Switch scanning, etc.
-  CUSTOM = "custom"                  // Platform-specific extensions
+  MEDIA = "media", // Audio/video playback
+  ACCESSIBILITY = "accessibility", // Switch scanning, etc.
+  CUSTOM = "custom", // Platform-specific extensions
 }
 
 // Semantic intents within each category
@@ -49,11 +49,8 @@ export enum AACSemanticIntent {
   SCAN_SELECT = "scan_select",
 
   // Custom
-  PLATFORM_SPECIFIC = "platform_specific"
+  PLATFORM_SPECIFIC = "platform_specific",
 }
-
-// Legacy action types for backward compatibility
-export type AACActionType = "SPEAK" | "NAVIGATE" | "ACTION";
 
 // New semantic action interface for cross-platform compatibility
 export interface AACSemanticAction {
@@ -61,9 +58,9 @@ export interface AACSemanticAction {
   intent: AACSemanticIntent;
 
   // Core parameters that most platforms understand
-  text?: string;              // Text content
-  targetId?: string;          // Navigation target
-  audioData?: Buffer;         // Audio content
+  text?: string; // Text content
+  targetId?: string; // Navigation target
+  audioData?: Buffer; // Audio content
 
   // Rich content for advanced platforms
   richText?: {
@@ -103,30 +100,19 @@ export interface AACSemanticAction {
 
   // Fallback for unknown platforms
   fallback?: {
-    type: AACActionType;
+    type: "SPEAK" | "NAVIGATE" | "ACTION";
     message?: string;
     targetPageId?: string;
   };
-}
-
-// Legacy action interface for backward compatibility
-export interface AACAction {
-  type: AACActionType;
-  targetPageId?: string;
-  text?: string;
-  // Keep minimal legacy properties
-  parameters?: { [key: string]: any };
 }
 
 export class AACButton implements IAACButton {
   id: string;
   label: string;
   message: string;
-  type: AACActionType; // Simplified to legacy types
 
-  // Dual action system for compatibility
-  action: AACAction | null;              // Legacy action system
-  semanticAction?: AACSemanticAction;    // New semantic action system
+  // Semantic action system
+  semanticAction?: AACSemanticAction;
 
   targetPageId?: string;
   style?: AACStyle;
@@ -148,7 +134,12 @@ export class AACButton implements IAACButton {
   columnSpan?: number;
   rowSpan?: number;
   scanBlocks?: number[];
-  visibility?: "Visible" | "Hidden" | "Disabled" | "PointerAndTouchOnly" | "Empty";
+  visibility?:
+    | "Visible"
+    | "Hidden"
+    | "Disabled"
+    | "PointerAndTouchOnly"
+    | "Empty";
   directActivate?: boolean;
   audioDescription?: string;
   parameters?: { [key: string]: any };
@@ -157,9 +148,7 @@ export class AACButton implements IAACButton {
     id,
     label = "",
     message = "",
-    type = "SPEAK",
     targetPageId,
-    action = null,
     semanticAction,
     audioRecording,
     style,
@@ -173,14 +162,12 @@ export class AACButton implements IAACButton {
     scanBlocks,
     visibility,
     directActivate,
-    parameters
+    parameters,
   }: {
     id: string;
     label?: string;
     message?: string;
-    type?: AACActionType;
     targetPageId?: string;
-    action?: AACAction | null;
     semanticAction?: AACSemanticAction;
     audioRecording?: {
       id?: number;
@@ -197,16 +184,19 @@ export class AACButton implements IAACButton {
     columnSpan?: number;
     rowSpan?: number;
     scanBlocks?: number[];
-    visibility?: "Visible" | "Hidden" | "Disabled" | "PointerAndTouchOnly" | "Empty";
+    visibility?:
+      | "Visible"
+      | "Hidden"
+      | "Disabled"
+      | "PointerAndTouchOnly"
+      | "Empty";
     directActivate?: boolean;
     parameters?: { [key: string]: any };
   }) {
     this.id = id;
     this.label = label;
     this.message = message;
-    this.type = type;
     this.targetPageId = targetPageId;
-    this.action = action;
     this.semanticAction = semanticAction;
     this.audioRecording = audioRecording;
     this.style = style;
@@ -299,7 +289,11 @@ export class AACTree implements IAACTree {
         callback(page);
         // Add child pages to queue
         page.buttons
-          .filter((b) => b.type === "NAVIGATE" && b.targetPageId)
+          .filter(
+            (b) =>
+              b.semanticAction?.intent === AACSemanticIntent.NAVIGATE_TO &&
+              b.targetPageId,
+          )
           .forEach((b) => {
             if (b.targetPageId) queue.push(b.targetPageId);
           });

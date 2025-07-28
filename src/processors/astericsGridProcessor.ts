@@ -5,7 +5,7 @@ import {
   AACButton,
   AACSemanticAction,
   AACSemanticCategory,
-  AACSemanticIntent
+  AACSemanticIntent,
 } from "../core/treeStructure";
 import fs from "fs";
 
@@ -360,28 +360,31 @@ class AstericsGridProcessor extends BaseProcessor {
         platformData: {
           astericsGrid: {
             modelName: navAction.modelName,
-            properties: navAction
-          }
+            properties: navAction,
+          },
         },
         fallback: {
           type: "NAVIGATE",
-          targetPageId: targetPageId
-        }
+          targetPageId: targetPageId,
+        },
       };
       legacyAction = {
         type: "NAVIGATE",
-        targetPageId: targetPageId
+        targetPageId: targetPageId,
       };
     } else {
       // Check for other action types
-      const speakAction = element.actions.find(a =>
-        a.modelName === "GridActionSpeakCustom" || a.modelName === "GridActionSpeak"
+      const speakAction = element.actions.find(
+        (a) =>
+          a.modelName === "GridActionSpeakCustom" ||
+          a.modelName === "GridActionSpeak",
       );
 
       if (speakAction) {
-        const speakText = speakAction.modelName === "GridActionSpeakCustom"
-          ? this.getLocalizedText(speakAction.speakText)
-          : label;
+        const speakText =
+          speakAction.modelName === "GridActionSpeakCustom"
+            ? this.getLocalizedText(speakAction.speakText)
+            : label;
 
         semanticAction = {
           category: AACSemanticCategory.COMMUNICATION,
@@ -390,13 +393,13 @@ class AstericsGridProcessor extends BaseProcessor {
           platformData: {
             astericsGrid: {
               modelName: speakAction.modelName,
-              properties: speakAction
-            }
+              properties: speakAction,
+            },
           },
           fallback: {
             type: "SPEAK",
-            message: speakText
-          }
+            message: speakText,
+          },
         };
       } else {
         // Default speak action
@@ -407,13 +410,13 @@ class AstericsGridProcessor extends BaseProcessor {
           platformData: {
             astericsGrid: {
               modelName: "GridActionSpeak",
-              properties: {}
-            }
+              properties: {},
+            },
           },
           fallback: {
             type: "SPEAK",
-            message: label
-          }
+            message: label,
+          },
         };
       }
     }
@@ -422,9 +425,9 @@ class AstericsGridProcessor extends BaseProcessor {
       id: element.id,
       label: label,
       message: label,
-      type: buttonType,
+
       targetPageId: targetPageId,
-      action: legacyAction,
+
       semanticAction: semanticAction,
       audioRecording: audioRecording,
       style: {
@@ -632,9 +635,13 @@ class AstericsGridProcessor extends BaseProcessor {
             id: `grid-action-${button.id}`,
             ...astericsData.properties,
             modelName: astericsData.modelName,
-            modelVersion: astericsData.properties.modelVersion || '{"major": 5, "minor": 0, "patch": 0}'
+            modelVersion:
+              astericsData.properties.modelVersion ||
+              '{"major": 5, "minor": 0, "patch": 0}',
           });
-        } else if (button.semanticAction?.intent === AACSemanticIntent.NAVIGATE_TO) {
+        } else if (
+          button.semanticAction?.intent === AACSemanticIntent.NAVIGATE_TO
+        ) {
           // Create navigation action from semantic data
           actions.push({
             id: `grid-action-navigate-${button.id}`,
@@ -643,14 +650,19 @@ class AstericsGridProcessor extends BaseProcessor {
             navType: "navigateToGrid",
             toGridId: button.semanticAction.targetId || button.targetPageId,
           });
-        } else if (button.semanticAction?.intent === AACSemanticIntent.SPEAK_TEXT) {
+        } else if (
+          button.semanticAction?.intent === AACSemanticIntent.SPEAK_TEXT
+        ) {
           // Create speak action from semantic data
-          if (button.semanticAction.text && button.semanticAction.text !== button.label) {
+          if (
+            button.semanticAction.text &&
+            button.semanticAction.text !== button.label
+          ) {
             actions.push({
               id: `grid-action-speak-${button.id}`,
               modelName: "GridActionSpeakCustom",
               modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
-              speakText: { en: button.semanticAction.text }
+              speakText: { en: button.semanticAction.text },
             });
           } else {
             actions.push({
@@ -660,22 +672,12 @@ class AstericsGridProcessor extends BaseProcessor {
             });
           }
         } else {
-          // Fallback to legacy action handling
-          if (button.type === "NAVIGATE" && button.targetPageId) {
-            actions.push({
-              id: `grid-action-navigate-${button.id}`,
-              modelName: "GridActionNavigate",
-              modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
-              navType: "navigateToGrid",
-              toGridId: button.targetPageId,
-            });
-          } else {
-            actions.push({
-              id: `grid-action-speak-${button.id}`,
-              modelName: "GridActionSpeak",
-              modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
-            });
-          }
+          // Default to speak action if no semantic action
+          actions.push({
+            id: `grid-action-speak-${button.id}`,
+            modelName: "GridActionSpeak",
+            modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
+          });
         }
 
         // Add audio action if present

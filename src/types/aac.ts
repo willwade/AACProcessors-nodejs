@@ -1,27 +1,5 @@
-// Extended action types to support Grid3 and other AAC formats
-export type AACActionType =
-  | "SPEAK"
-  | "NAVIGATE"
-  | "INSERT_TEXT"
-  | "DELETE_WORD"
-  | "CLEAR"
-  | "INSERT_LETTER"
-  | "GO_BACK"
-  | "SETTINGS"
-  | "AUTO_CONTENT";
-
-export interface AACButtonAction {
-  type: AACActionType;
-  targetPageId?: string;
-  text?: string;
-  letter?: string;
-  unit?: string;
-  moveCaret?: number;
-  indicatorEnabled?: boolean;
-  settingsAction?: string;
-  autoContentType?: string;
-  parameters?: { [key: string]: any };
-}
+// Import semantic action types from core
+import { AACSemanticAction } from "../core/treeStructure";
 
 export interface AACStyle {
   backgroundColor?: string;
@@ -41,8 +19,7 @@ export interface AACButton {
   id: string;
   label: string;
   message: string;
-  type: "SPEAK" | "NAVIGATE" | "ACTION";
-  action: AACButtonAction | null;
+  semanticAction?: AACSemanticAction;
   targetPageId?: string;
   style?: AACStyle;
   audioRecording?: {

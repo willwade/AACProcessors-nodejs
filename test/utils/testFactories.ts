@@ -1,5 +1,10 @@
 // Test data factories and utilities for consistent test object creation
-import { AACTree, AACPage, AACButton } from "../../src/core/treeStructure";
+import {
+  AACTree,
+  AACPage,
+  AACButton,
+  AACSemanticIntent,
+} from "../../src/core/treeStructure";
 
 export interface ButtonConfig {
   id?: string;
@@ -215,7 +220,7 @@ export class TreeFactory {
             id: b.id,
             label: b.label,
             message: b.message,
-            type: b.type,
+
             targetPageId: b.targetPageId,
           })),
         },
@@ -264,7 +269,7 @@ export class TreeFactory {
           id: b.id,
           label: b.label,
           message: b.message,
-          type: b.type,
+
           targetPageId: b.targetPageId,
         })),
       })),
@@ -410,7 +415,10 @@ export class TestDataUtils {
       // Check that all navigation targets exist
       for (const page of Object.values(tree.pages)) {
         for (const button of page.buttons) {
-          if (button.type === "NAVIGATE" && button.targetPageId) {
+          if (
+            button.semanticAction?.intent === AACSemanticIntent.NAVIGATE_TO &&
+            button.targetPageId
+          ) {
             if (!tree.pages[button.targetPageId]) {
               console.warn(`Invalid navigation target: ${button.targetPageId}`);
               // Don't fail validation for this as it might be intentional in tests

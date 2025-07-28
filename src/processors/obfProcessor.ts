@@ -1,5 +1,12 @@
 import { BaseProcessor } from "../core/baseProcessor";
-import { AACTree, AACPage, AACButton } from "../core/treeStructure";
+import {
+  AACTree,
+  AACPage,
+  AACButton,
+  AACSemanticAction,
+  AACSemanticCategory,
+  AACSemanticIntent,
+} from "../core/treeStructure";
 // Removed unused import: FileProcessor
 import AdmZip from "adm-zip";
 import fs from "fs";
@@ -31,26 +38,37 @@ class ObfProcessor extends BaseProcessor {
   private processBoard(boardData: ObfBoard, _boardPath: string): AACPage {
     const buttons: AACButton[] = (boardData.buttons || []).map(
       (btn: ObfButton): AACButton => {
-        const type = btn.load_board ? "NAVIGATE" : "SPEAK";
-        return {
+        const semanticAction: AACSemanticAction = btn.load_board
+          ? {
+              category: AACSemanticCategory.NAVIGATION,
+              intent: AACSemanticIntent.NAVIGATE_TO,
+              targetId: btn.load_board.path,
+              fallback: {
+                type: "NAVIGATE",
+                targetPageId: btn.load_board.path,
+              },
+            }
+          : {
+              category: AACSemanticCategory.COMMUNICATION,
+              intent: AACSemanticIntent.SPEAK_TEXT,
+              text: String(btn?.vocalization || btn?.label || ""),
+              fallback: {
+                type: "SPEAK",
+                message: String(btn?.vocalization || btn?.label || ""),
+              },
+            };
+
+        return new AACButton({
           id: String(btn?.id || ""),
           label: String(btn?.label || ""),
           message: String(btn?.vocalization || btn?.label || ""),
-          type,
           style: {
             backgroundColor: btn.background_color,
             borderColor: btn.border_color,
           },
-          action: btn.load_board
-            ? {
-                type: "NAVIGATE",
-                targetPageId: btn.load_board.path,
-              }
-            : {
-                type: "SPEAK",
-              },
+          semanticAction,
           targetPageId: btn.load_board?.path,
-        };
+        });
       },
     );
 
@@ -245,7 +263,8 @@ class ObfProcessor extends BaseProcessor {
           label: button.label,
           vocalization: button.message || button.label,
           load_board:
-            button.type === "NAVIGATE" && button.targetPageId
+            button.semanticAction?.intent === AACSemanticIntent.NAVIGATE_TO &&
+            button.targetPageId
               ? {
                   path: button.targetPageId,
                 }
@@ -269,7 +288,8 @@ class ObfProcessor extends BaseProcessor {
             label: button.label,
             vocalization: button.message || button.label,
             load_board:
-              button.type === "NAVIGATE" && button.targetPageId
+              button.semanticAction?.intent === AACSemanticIntent.NAVIGATE_TO &&
+              button.targetPageId
                 ? {
                     path: button.targetPageId,
                   }
