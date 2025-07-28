@@ -153,8 +153,23 @@ class GridsetProcessor extends BaseProcessor {
         if (cells) {
           // Cells may be array or single object
           const cellArr = Array.isArray(cells) ? cells : [cells];
+
+          // Create a 2D grid to track button positions
+          const gridLayout: (AACButton | null)[][] = [];
+          const maxRows = 10; // Reasonable maximum
+          const maxCols = 10;
+          for (let r = 0; r < maxRows; r++) {
+            gridLayout[r] = new Array(maxCols).fill(null);
+          }
+
           cellArr.forEach((cell: any, idx: number) => {
             if (!cell || !cell.Content) return;
+
+            // Extract position information from cell attributes
+            const cellX = parseInt(cell['@_X'] || '0', 10);
+            const cellY = parseInt(cell['@_Y'] || '0', 10);
+            const colSpan = parseInt(cell['@_ColumnSpan'] || '1', 10);
+            const rowSpan = parseInt(cell['@_RowSpan'] || '1', 10);
 
             // Extract label from CaptionAndImage/Caption
             const content = cell.Content;
@@ -222,8 +237,22 @@ class GridsetProcessor extends BaseProcessor {
                 ...inlineStyle, // Inline styles override referenced styles
               },
             });
+
+            // Add button to page
             page.addButton(button);
+
+            // Place button in grid layout (handle colspan/rowspan)
+            for (let r = cellY; r < cellY + rowSpan && r < maxRows; r++) {
+              for (let c = cellX; c < cellX + colSpan && c < maxCols; c++) {
+                if (gridLayout[r] && gridLayout[r][c] === null) {
+                  gridLayout[r][c] = button;
+                }
+              }
+            }
           });
+
+          // Set the page's grid layout
+          page.grid = gridLayout;
         }
 
         tree.addPage(page);
@@ -363,9 +392,27 @@ class GridsetProcessor extends BaseProcessor {
               ? {
                   Cell: page.buttons.map((button, btnIndex) => {
                     const buttonStyleId = button.style ? addStyle(button.style) : '';
+
+                    // Find button position in grid layout
+                    let buttonX = btnIndex % 4; // Default fallback
+                    let buttonY = Math.floor(btnIndex / 4); // Default fallback
+
+                    if (page.grid && page.grid.length > 0) {
+                      // Search for button in grid layout
+                      for (let y = 0; y < page.grid.length; y++) {
+                        for (let x = 0; x < page.grid[y].length; x++) {
+                          if (page.grid[y][x] && page.grid[y][x]!.id === button.id) {
+                            buttonX = x;
+                            buttonY = y;
+                            break;
+                          }
+                        }
+                      }
+                    }
+
                     return {
-                      '@_X': btnIndex % 4, // Column position
-                      '@_Y': Math.floor(btnIndex / 4), // Row position
+                      '@_X': buttonX,
+                      '@_Y': buttonY,
                       '@_StyleID': buttonStyleId,
                       Content: {
                         Commands:

@@ -446,7 +446,26 @@ class AstericsGridProcessor extends BaseProcessor {
     const pageStyle = firstPage?.style;
 
     const grids: GridData[] = Object.values(tree.pages).map((page) => {
-      const gridElements: GridElement[] = page.buttons.map((button) => {
+      // Create a map of button positions from the grid layout
+      const buttonPositions = new Map<string, { x: number; y: number }>();
+
+      // Extract positions from the 2D grid if available
+      if (page.grid && page.grid.length > 0) {
+        page.grid.forEach((row, y) => {
+          row.forEach((button, x) => {
+            if (button) {
+              buttonPositions.set(button.id, { x, y });
+            }
+          });
+        });
+      }
+
+      const gridElements: GridElement[] = page.buttons.map((button, index) => {
+        // Use grid position if available, otherwise arrange in rows of 4
+        const gridWidth = 4;
+        const position = buttonPositions.get(button.id);
+        const calculatedX = position ? position.x : index % gridWidth;
+        const calculatedY = position ? position.y : Math.floor(index / gridWidth);
         const actions: GridAction[] = [];
 
         // Add appropriate actions based on button type
@@ -486,8 +505,8 @@ class AstericsGridProcessor extends BaseProcessor {
           modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
           width: 1,
           height: 1,
-          x: 0,
-          y: 0,
+          x: calculatedX,
+          y: calculatedY,
           label: { en: button.label },
           wordForms: [],
           image: {
@@ -502,13 +521,19 @@ class AstericsGridProcessor extends BaseProcessor {
         };
       });
 
+      // Calculate grid dimensions based on button count
+      const gridWidth = 4;
+      const buttonCount = page.buttons.length;
+      const calculatedRows = Math.max(3, Math.ceil(buttonCount / gridWidth));
+      const calculatedCols = Math.max(3, Math.min(gridWidth, buttonCount));
+
       return {
         id: page.id,
         modelName: 'GridData',
         modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
         label: { en: page.name },
-        rowCount: 3,
-        minColumnCount: 3,
+        rowCount: calculatedRows,
+        minColumnCount: calculatedCols,
         gridElements: gridElements,
       };
     });
