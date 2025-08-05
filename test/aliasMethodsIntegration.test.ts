@@ -4,6 +4,12 @@ import path from 'path';
 import { TouchChatProcessor } from '../src/processors/touchchatProcessor';
 import { ObfProcessor } from '../src/processors/obfProcessor';
 import { SnapProcessor } from '../src/processors/snapProcessor';
+import { GridsetProcessor } from '../src/processors/gridsetProcessor';
+import { ApplePanelsProcessor } from '../src/processors/applePanelsProcessor';
+import { AstericsGridProcessor } from '../src/processors/astericsGridProcessor';
+import { ExcelProcessor } from '../src/processors/excelProcessor';
+import { OpmlProcessor } from '../src/processors/opmlProcessor';
+import { DotProcessor } from '../src/processors/dotProcessor';
 import { StringCasing } from '../src/core/stringCasing';
 import { ExtractStringsResult, TranslatedString, SourceString } from '../src/core/baseProcessor';
 
@@ -210,8 +216,18 @@ describe('Alias Methods Integration', () => {
   });
 
   describe('Cross-Format Consistency', () => {
-    it('should provide consistent interface across processors', () => {
-      const processors = [new TouchChatProcessor(), new ObfProcessor(), new SnapProcessor()];
+    it('should provide consistent interface across all processors', () => {
+      const processors = [
+        new TouchChatProcessor(),
+        new ObfProcessor(),
+        new SnapProcessor(),
+        new GridsetProcessor(),
+        new ApplePanelsProcessor(),
+        new AstericsGridProcessor(),
+        new ExcelProcessor(),
+        new OpmlProcessor(),
+        new DotProcessor(),
+      ];
 
       processors.forEach((processor) => {
         // All processors should have the alias methods

@@ -1,6 +1,11 @@
 import fs from 'fs';
 import * as ExcelJS from 'exceljs';
-import { BaseProcessor } from '../core/baseProcessor';
+import {
+  BaseProcessor,
+  ExtractStringsResult,
+  TranslatedString,
+  SourceString,
+} from '../core/baseProcessor';
 import { AACTree, AACPage, AACButton } from '../core/treeStructure';
 import { AACSemanticIntent } from '../core/treeStructure';
 
@@ -605,5 +610,25 @@ export class ExcelProcessor extends BaseProcessor {
 
     // Save the workbook
     await workbook.xlsx.writeFile(outputPath);
+  }
+
+  /**
+   * Extract strings with metadata for aac-tools-platform compatibility
+   * Uses the generic implementation from BaseProcessor
+   */
+  extractStringsWithMetadata(filePath: string): Promise<ExtractStringsResult> {
+    return this.extractStringsWithMetadataGeneric(filePath);
+  }
+
+  /**
+   * Generate translated download for aac-tools-platform compatibility
+   * Uses the generic implementation from BaseProcessor
+   */
+  generateTranslatedDownload(
+    filePath: string,
+    translatedStrings: TranslatedString[],
+    sourceStrings: SourceString[]
+  ): Promise<string> {
+    return this.generateTranslatedDownloadGeneric(filePath, translatedStrings, sourceStrings);
   }
 }

@@ -5,11 +5,16 @@
  * Shows how all processors now support consistent method signatures
  */
 
-import { 
-  TouchChatProcessor, 
-  ObfProcessor, 
-  SnapProcessor, 
+import {
+  TouchChatProcessor,
+  ObfProcessor,
+  SnapProcessor,
   DotProcessor,
+  GridsetProcessor,
+  ApplePanelsProcessor,
+  AstericsGridProcessor,
+  ExcelProcessor,
+  OpmlProcessor,
   StringCasing,
   detectCasing,
   ExtractStringsResult,
@@ -26,6 +31,11 @@ async function demonstrateUnifiedInterface() {
     { name: "TouchChat", processor: new TouchChatProcessor(), extension: ".ce" },
     { name: "OBF", processor: new ObfProcessor(), extension: ".obf" },
     { name: "Snap", processor: new SnapProcessor(), extension: ".spb" },
+    { name: "Grid3", processor: new GridsetProcessor(), extension: ".gridset" },
+    { name: "Apple Panels", processor: new ApplePanelsProcessor(), extension: ".ascconfig" },
+    { name: "Asterics Grid", processor: new AstericsGridProcessor(), extension: ".grd" },
+    { name: "Excel", processor: new ExcelProcessor(), extension: ".xlsx" },
+    { name: "OPML", processor: new OpmlProcessor(), extension: ".opml" },
     { name: "DOT", processor: new DotProcessor(), extension: ".dot" }
   ];
 
@@ -130,7 +140,7 @@ async function demonstrateUnifiedInterface() {
   console.log();
 
   console.log("🔄 Mock Translation Mapping:");
-  mockTranslatedStrings.forEach((translation, index) => {
+  mockTranslatedStrings.forEach((translation) => {
     const sourceString = mockSourceStrings.find(s => s.id === translation.sourcestringid);
     const finalTranslation = translation.overridestring || translation.translatedstring;
     console.log(`  "${sourceString?.sourcestring}" → "${finalTranslation}"`);

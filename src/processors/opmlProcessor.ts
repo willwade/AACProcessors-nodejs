@@ -1,4 +1,10 @@
-import { BaseProcessor, ProcessorOptions } from '../core/baseProcessor';
+import {
+  BaseProcessor,
+  ProcessorOptions,
+  ExtractStringsResult,
+  TranslatedString,
+  SourceString,
+} from '../core/baseProcessor';
 import { AACTree, AACPage, AACButton, AACSemanticIntent } from '../core/treeStructure';
 // Removed unused import: FileProcessor
 import { XMLParser } from 'fast-xml-parser';
@@ -252,6 +258,26 @@ class OpmlProcessor extends BaseProcessor {
     });
     const xml = '<?xml version="1.0" encoding="UTF-8"?>\n' + builder.build(opmlObj);
     fs.writeFileSync(outputPath, xml, 'utf8');
+  }
+
+  /**
+   * Extract strings with metadata for aac-tools-platform compatibility
+   * Uses the generic implementation from BaseProcessor
+   */
+  extractStringsWithMetadata(filePath: string): Promise<ExtractStringsResult> {
+    return this.extractStringsWithMetadataGeneric(filePath);
+  }
+
+  /**
+   * Generate translated download for aac-tools-platform compatibility
+   * Uses the generic implementation from BaseProcessor
+   */
+  generateTranslatedDownload(
+    filePath: string,
+    translatedStrings: TranslatedString[],
+    sourceStrings: SourceString[]
+  ): Promise<string> {
+    return this.generateTranslatedDownloadGeneric(filePath, translatedStrings, sourceStrings);
   }
 }
 

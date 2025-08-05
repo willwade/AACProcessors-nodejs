@@ -1,4 +1,10 @@
-import { BaseProcessor, ProcessorOptions } from '../core/baseProcessor';
+import {
+  BaseProcessor,
+  ProcessorOptions,
+  ExtractStringsResult,
+  TranslatedString,
+  SourceString,
+} from '../core/baseProcessor';
 import {
   AACTree,
   AACPage,
@@ -517,6 +523,26 @@ class ApplePanelsProcessor extends BaseProcessor {
       ActionType: 'ActionPressKeyCharSequence',
       ID: `Action.${button.id}`,
     };
+  }
+
+  /**
+   * Extract strings with metadata for aac-tools-platform compatibility
+   * Uses the generic implementation from BaseProcessor
+   */
+  extractStringsWithMetadata(filePath: string): Promise<ExtractStringsResult> {
+    return this.extractStringsWithMetadataGeneric(filePath);
+  }
+
+  /**
+   * Generate translated download for aac-tools-platform compatibility
+   * Uses the generic implementation from BaseProcessor
+   */
+  generateTranslatedDownload(
+    filePath: string,
+    translatedStrings: TranslatedString[],
+    sourceStrings: SourceString[]
+  ): Promise<string> {
+    return this.generateTranslatedDownloadGeneric(filePath, translatedStrings, sourceStrings);
   }
 }
 
