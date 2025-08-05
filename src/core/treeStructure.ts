@@ -3,53 +3,53 @@ import {
   AACPage as IAACPage,
   AACTree as IAACTree,
   AACStyle,
-} from "../types/aac";
+} from '../types/aac';
 
 // Semantic action categories for cross-platform compatibility
 export enum AACSemanticCategory {
-  COMMUNICATION = "communication", // Speech, text output
-  NAVIGATION = "navigation", // Page/grid navigation
-  TEXT_EDITING = "text_editing", // Text manipulation
-  SYSTEM_CONTROL = "system_control", // Device/app control
-  MEDIA = "media", // Audio/video playback
-  ACCESSIBILITY = "accessibility", // Switch scanning, etc.
-  CUSTOM = "custom", // Platform-specific extensions
+  COMMUNICATION = 'communication', // Speech, text output
+  NAVIGATION = 'navigation', // Page/grid navigation
+  TEXT_EDITING = 'text_editing', // Text manipulation
+  SYSTEM_CONTROL = 'system_control', // Device/app control
+  MEDIA = 'media', // Audio/video playback
+  ACCESSIBILITY = 'accessibility', // Switch scanning, etc.
+  CUSTOM = 'custom', // Platform-specific extensions
 }
 
 // Semantic intents within each category
 export enum AACSemanticIntent {
   // Communication
-  SPEAK_TEXT = "speak_text",
-  SPEAK_IMMEDIATE = "speak_immediate",
-  STOP_SPEECH = "stop_speech",
-  INSERT_TEXT = "insert_text",
+  SPEAK_TEXT = 'speak_text',
+  SPEAK_IMMEDIATE = 'speak_immediate',
+  STOP_SPEECH = 'stop_speech',
+  INSERT_TEXT = 'insert_text',
 
   // Navigation
-  NAVIGATE_TO = "navigate_to",
-  GO_BACK = "go_back",
-  GO_HOME = "go_home",
+  NAVIGATE_TO = 'navigate_to',
+  GO_BACK = 'go_back',
+  GO_HOME = 'go_home',
 
   // Text Editing
-  DELETE_WORD = "delete_word",
-  DELETE_CHARACTER = "delete_character",
-  CLEAR_TEXT = "clear_text",
-  COPY_TEXT = "copy_text",
-  PASTE_TEXT = "paste_text",
+  DELETE_WORD = 'delete_word',
+  DELETE_CHARACTER = 'delete_character',
+  CLEAR_TEXT = 'clear_text',
+  COPY_TEXT = 'copy_text',
+  PASTE_TEXT = 'paste_text',
 
   // System Control
-  SEND_KEYS = "send_keys",
-  MOUSE_CLICK = "mouse_click",
+  SEND_KEYS = 'send_keys',
+  MOUSE_CLICK = 'mouse_click',
 
   // Media
-  PLAY_SOUND = "play_sound",
-  PLAY_VIDEO = "play_video",
+  PLAY_SOUND = 'play_sound',
+  PLAY_VIDEO = 'play_video',
 
   // Accessibility
-  SCAN_NEXT = "scan_next",
-  SCAN_SELECT = "scan_select",
+  SCAN_NEXT = 'scan_next',
+  SCAN_SELECT = 'scan_select',
 
   // Custom
-  PLATFORM_SPECIFIC = "platform_specific",
+  PLATFORM_SPECIFIC = 'platform_specific',
 }
 
 // New semantic action interface for cross-platform compatibility
@@ -100,7 +100,7 @@ export interface AACSemanticAction {
 
   // Fallback for unknown platforms
   fallback?: {
-    type: "SPEAK" | "NAVIGATE" | "ACTION";
+    type: 'SPEAK' | 'NAVIGATE' | 'ACTION';
     message?: string;
     targetPageId?: string;
   };
@@ -124,7 +124,7 @@ export class AACButton implements IAACButton {
   };
 
   // Extended properties for advanced platforms
-  contentType?: "Normal" | "AutoContent" | "Workspace" | "LiveCell";
+  contentType?: 'Normal' | 'AutoContent' | 'Workspace' | 'LiveCell';
   contentSubType?: string;
   image?: string;
   symbolLibrary?: string;
@@ -134,20 +134,15 @@ export class AACButton implements IAACButton {
   columnSpan?: number;
   rowSpan?: number;
   scanBlocks?: number[];
-  visibility?:
-    | "Visible"
-    | "Hidden"
-    | "Disabled"
-    | "PointerAndTouchOnly"
-    | "Empty";
+  visibility?: 'Visible' | 'Hidden' | 'Disabled' | 'PointerAndTouchOnly' | 'Empty';
   directActivate?: boolean;
   audioDescription?: string;
   parameters?: { [key: string]: any };
 
   constructor({
     id,
-    label = "",
-    message = "",
+    label = '',
+    message = '',
     targetPageId,
     semanticAction,
     audioRecording,
@@ -176,7 +171,7 @@ export class AACButton implements IAACButton {
       metadata?: string;
     };
     style?: AACStyle;
-    contentType?: "Normal" | "AutoContent" | "Workspace" | "LiveCell";
+    contentType?: 'Normal' | 'AutoContent' | 'Workspace' | 'LiveCell';
     contentSubType?: string;
     image?: string;
     x?: number;
@@ -184,12 +179,7 @@ export class AACButton implements IAACButton {
     columnSpan?: number;
     rowSpan?: number;
     scanBlocks?: number[];
-    visibility?:
-      | "Visible"
-      | "Hidden"
-      | "Disabled"
-      | "PointerAndTouchOnly"
-      | "Empty";
+    visibility?: 'Visible' | 'Hidden' | 'Disabled' | 'PointerAndTouchOnly' | 'Empty';
     directActivate?: boolean;
     parameters?: { [key: string]: any };
   }) {
@@ -224,7 +214,7 @@ export class AACPage implements IAACPage {
 
   constructor({
     id,
-    name = "",
+    name = '',
     grid = [],
     buttons = [],
     parentId = null,
@@ -290,9 +280,7 @@ export class AACTree implements IAACTree {
         // Add child pages to queue
         page.buttons
           .filter(
-            (b) =>
-              b.semanticAction?.intent === AACSemanticIntent.NAVIGATE_TO &&
-              b.targetPageId,
+            (b) => b.semanticAction?.intent === AACSemanticIntent.NAVIGATE_TO && b.targetPageId
           )
           .forEach((b) => {
             if (b.targetPageId) queue.push(b.targetPageId);

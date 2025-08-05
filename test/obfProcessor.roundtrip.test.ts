@@ -1,14 +1,14 @@
 // Round-trip test for OBFProcessor: load, save, reload, and compare structure
-import fs from "fs";
-import path from "path";
-import { ObfProcessor } from "../src/processors/obfProcessor";
-import { AACTree } from "../src/core/treeStructure";
+import fs from 'fs';
+import path from 'path';
+import { ObfProcessor } from '../src/processors/obfProcessor';
+import { AACTree } from '../src/core/treeStructure';
 
-describe("OBFProcessor round-trip", () => {
-  const obfPath: string = path.join(__dirname, "../examples/example.obf");
-  const obzPath: string = path.join(__dirname, "../examples/example.obz");
-  const outObfPath: string = path.join(__dirname, "out.obf");
-  const outObzPath: string = path.join(__dirname, "out.obz");
+describe('OBFProcessor round-trip', () => {
+  const obfPath: string = path.join(__dirname, '../examples/example.obf');
+  const obzPath: string = path.join(__dirname, '../examples/example.obz');
+  const outObfPath: string = path.join(__dirname, 'out.obf');
+  const outObzPath: string = path.join(__dirname, 'out.obz');
 
   afterAll(() => {
     [outObfPath, outObzPath].forEach((file) => {
@@ -16,9 +16,9 @@ describe("OBFProcessor round-trip", () => {
     });
   });
 
-  it("round-trips OBF JSON without losing pages or navigation", () => {
+  it('round-trips OBF JSON without losing pages or navigation', () => {
     if (!fs.existsSync(obfPath)) {
-      console.log("Skipping OBF test - example file not found");
+      console.log('Skipping OBF test - example file not found');
       return;
     }
 
@@ -31,9 +31,7 @@ describe("OBFProcessor round-trip", () => {
     const tree2: AACTree = processor.loadIntoTree(outObfPath);
 
     // Compare basic structure
-    expect(Object.keys(tree1.pages).length).toBe(
-      Object.keys(tree2.pages).length,
-    );
+    expect(Object.keys(tree1.pages).length).toBe(Object.keys(tree2.pages).length);
 
     // Compare page content
     for (const pageId in tree1.pages) {
@@ -51,9 +49,9 @@ describe("OBFProcessor round-trip", () => {
     }
   });
 
-  it("round-trips OBZ (zip) format without losing data", () => {
+  it('round-trips OBZ (zip) format without losing data', () => {
     if (!fs.existsSync(obzPath)) {
-      console.log("Skipping OBZ test - example file not found");
+      console.log('Skipping OBZ test - example file not found');
       return;
     }
 
@@ -67,27 +65,25 @@ describe("OBFProcessor round-trip", () => {
 
     // Compare structure
     expect(Object.keys(tree2.pages).length).toBeGreaterThan(0);
-    expect(Object.keys(tree1.pages).length).toBe(
-      Object.keys(tree2.pages).length,
-    );
+    expect(Object.keys(tree1.pages).length).toBe(Object.keys(tree2.pages).length);
   });
 
-  it("can save and load a simple constructed tree", () => {
+  it('can save and load a simple constructed tree', () => {
     const processor = new ObfProcessor();
 
     // Create a simple tree programmatically
     const tree1 = new AACTree();
-    const page = new (require("../src/core/treeStructure").AACPage)({
-      id: "test-page",
-      name: "Test Page",
+    const page = new (require('../src/core/treeStructure').AACPage)({
+      id: 'test-page',
+      name: 'Test Page',
       buttons: [],
     });
 
-    const button = new (require("../src/core/treeStructure").AACButton)({
-      id: "test-button",
-      label: "Test Button",
-      message: "Hello World",
-      type: "SPEAK",
+    const button = new (require('../src/core/treeStructure').AACButton)({
+      id: 'test-button',
+      label: 'Test Button',
+      message: 'Hello World',
+      type: 'SPEAK',
     });
 
     page.addButton(button);
@@ -99,10 +95,10 @@ describe("OBFProcessor round-trip", () => {
 
     // Verify structure
     expect(Object.keys(tree2.pages)).toHaveLength(1);
-    const reloadedPage = tree2.pages["test-page"];
+    const reloadedPage = tree2.pages['test-page'];
     expect(reloadedPage).toBeDefined();
-    expect(reloadedPage.name).toBe("Test Page");
+    expect(reloadedPage.name).toBe('Test Page');
     expect(reloadedPage.buttons).toHaveLength(1);
-    expect(reloadedPage.buttons[0].label).toBe("Test Button");
+    expect(reloadedPage.buttons[0].label).toBe('Test Button');
   });
 });

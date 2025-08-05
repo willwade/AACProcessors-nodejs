@@ -1,15 +1,15 @@
 // Concurrent access and thread safety tests
-import fs from "fs";
-import path from "path";
-import { Worker } from "worker_threads";
-import { DotProcessor } from "../src/processors/dotProcessor";
-import { SnapProcessor } from "../src/processors/snapProcessor";
-import { TouchChatProcessor } from "../src/processors/touchchatProcessor";
-import { ObfProcessor } from "../src/processors/obfProcessor";
-import { AACTree, AACPage, AACButton } from "../src/core/treeStructure";
+import fs from 'fs';
+import path from 'path';
+import { Worker } from 'worker_threads';
+import { DotProcessor } from '../src/processors/dotProcessor';
+import { SnapProcessor } from '../src/processors/snapProcessor';
+import { TouchChatProcessor } from '../src/processors/touchchatProcessor';
+import { ObfProcessor } from '../src/processors/obfProcessor';
+import { AACTree, AACPage, AACButton } from '../src/core/treeStructure';
 
-describe("Concurrency and Thread Safety Tests", () => {
-  const tempDir = path.join(__dirname, "temp_concurrency");
+describe('Concurrency and Thread Safety Tests', () => {
+  const tempDir = path.join(__dirname, 'temp_concurrency');
 
   beforeAll(() => {
     if (!fs.existsSync(tempDir)) {
@@ -23,8 +23,8 @@ describe("Concurrency and Thread Safety Tests", () => {
     }
   });
 
-  describe("Concurrent File Access", () => {
-    it("should handle multiple processors reading the same file simultaneously", async () => {
+  describe('Concurrent File Access', () => {
+    it('should handle multiple processors reading the same file simultaneously', async () => {
       const testContent = `
         digraph G {
           home [label="Home"];
@@ -35,7 +35,7 @@ describe("Concurrency and Thread Safety Tests", () => {
         }
       `;
 
-      const testFile = path.join(tempDir, "concurrent_read.dot");
+      const testFile = path.join(tempDir, 'concurrent_read.dot');
       fs.writeFileSync(testFile, testContent);
 
       // Create multiple processors
@@ -79,7 +79,7 @@ describe("Concurrency and Thread Safety Tests", () => {
       });
     });
 
-    it("should handle concurrent write operations safely", async () => {
+    it('should handle concurrent write operations safely', async () => {
       const processor = new DotProcessor();
 
       // Create test trees
@@ -97,7 +97,7 @@ describe("Concurrency and Thread Safety Tests", () => {
             id: `btn_${index}`,
             label: `Button ${index}`,
             message: `Message ${index}`,
-            type: "SPEAK",
+            type: 'SPEAK',
           });
 
           page.addButton(button);
@@ -135,15 +135,15 @@ describe("Concurrency and Thread Safety Tests", () => {
     });
   });
 
-  describe("Database Concurrency", () => {
-    it("should handle concurrent SQLite database access", async () => {
+  describe('Database Concurrency', () => {
+    it('should handle concurrent SQLite database access', async () => {
       const processor = new SnapProcessor();
 
       // Create a test database
       const tree = new AACTree();
       const page = new AACPage({
-        id: "test_page",
-        name: "Test Page",
+        id: 'test_page',
+        name: 'Test Page',
         buttons: [],
       });
 
@@ -152,14 +152,14 @@ describe("Concurrency and Thread Safety Tests", () => {
           id: `btn_${i}`,
           label: `Button ${i}`,
           message: `Message ${i}`,
-          type: "SPEAK",
+          type: 'SPEAK',
         });
         page.addButton(button);
       }
 
       tree.addPage(page);
 
-      const dbPath = path.join(tempDir, "concurrent_test.spb");
+      const dbPath = path.join(tempDir, 'concurrent_test.spb');
       processor.saveFromTree(tree, dbPath);
 
       // Read from the same database concurrently
@@ -195,7 +195,7 @@ describe("Concurrency and Thread Safety Tests", () => {
       });
     });
 
-    it("should handle database creation race conditions", async () => {
+    it('should handle database creation race conditions', async () => {
       const createPromises = Array(3)
         .fill(0)
         .map(async (_, index) => {
@@ -214,7 +214,7 @@ describe("Concurrency and Thread Safety Tests", () => {
                   id: `race_btn_${index}`,
                   label: `Race Button ${index}`,
                   message: `Race Message ${index}`,
-                  type: "SPEAK",
+                  type: 'SPEAK',
                 });
 
                 page.addButton(button);
@@ -245,8 +245,8 @@ describe("Concurrency and Thread Safety Tests", () => {
     });
   });
 
-  describe("Resource Contention", () => {
-    it("should handle high-frequency operations without resource exhaustion", async () => {
+  describe('Resource Contention', () => {
+    it('should handle high-frequency operations without resource exhaustion', async () => {
       const processor = new DotProcessor();
       const testContent = 'digraph G { test [label="High Frequency Test"]; }';
 
@@ -285,10 +285,10 @@ describe("Concurrency and Thread Safety Tests", () => {
       });
     });
 
-    it("should handle mixed read/write operations", async () => {
+    it('should handle mixed read/write operations', async () => {
       const processor = new DotProcessor();
       const baseContent = 'digraph G { base [label="Base Content"]; }';
-      const baseFile = path.join(tempDir, "mixed_base.dot");
+      const baseFile = path.join(tempDir, 'mixed_base.dot');
 
       fs.writeFileSync(baseFile, baseContent);
 
@@ -305,7 +305,7 @@ describe("Concurrency and Thread Safety Tests", () => {
 
                   resolve({
                     index,
-                    operation: "read",
+                    operation: 'read',
                     pageCount: Object.keys(tree.pages).length,
                     textCount: texts.length,
                   });
@@ -322,21 +322,18 @@ describe("Concurrency and Thread Safety Tests", () => {
                     id: `mixed_btn_${index}`,
                     label: `Mixed Button ${index}`,
                     message: `Mixed Message ${index}`,
-                    type: "SPEAK",
+                    type: 'SPEAK',
                   });
 
                   page.addButton(button);
                   tree.addPage(page);
 
-                  const outputPath = path.join(
-                    tempDir,
-                    `mixed_write_${index}.dot`,
-                  );
+                  const outputPath = path.join(tempDir, `mixed_write_${index}.dot`);
                   processor.saveFromTree(tree, outputPath);
 
                   resolve({
                     index,
-                    operation: "write",
+                    operation: 'write',
                     outputPath,
                     exists: fs.existsSync(outputPath),
                   });
@@ -352,8 +349,8 @@ describe("Concurrency and Thread Safety Tests", () => {
 
       expect(results).toHaveLength(10);
 
-      const readResults = results.filter((r: any) => r.operation === "read");
-      const writeResults = results.filter((r: any) => r.operation === "write");
+      const readResults = results.filter((r: any) => r.operation === 'read');
+      const writeResults = results.filter((r: any) => r.operation === 'write');
 
       expect(readResults.length).toBe(5);
       expect(writeResults.length).toBe(5);
@@ -369,8 +366,8 @@ describe("Concurrency and Thread Safety Tests", () => {
     });
   });
 
-  describe("Error Handling Under Concurrency", () => {
-    it("should handle concurrent errors gracefully", async () => {
+  describe('Error Handling Under Concurrency', () => {
+    it('should handle concurrent errors gracefully', async () => {
       const processor = new ObfProcessor();
 
       // Mix of valid and invalid operations
@@ -383,9 +380,7 @@ describe("Concurrency and Thread Safety Tests", () => {
                 if (index % 2 === 0) {
                   // Valid operation
                   const validContent = '{"id": "test", "buttons": []}';
-                  const tree = processor.loadIntoTree(
-                    Buffer.from(validContent),
-                  );
+                  const tree = processor.loadIntoTree(Buffer.from(validContent));
                   resolve({
                     index,
                     success: true,
@@ -405,8 +400,7 @@ describe("Concurrency and Thread Safety Tests", () => {
                 resolve({
                   index,
                   success: false,
-                  error:
-                    error instanceof Error ? error.message : "Unknown error",
+                  error: error instanceof Error ? error.message : 'Unknown error',
                 });
               }
             }, Math.random() * 50);
@@ -426,11 +420,11 @@ describe("Concurrency and Thread Safety Tests", () => {
       // Errors should be handled gracefully
       errorResults.forEach((result: any) => {
         expect(result.error).toBeDefined();
-        expect(typeof result.error).toBe("string");
+        expect(typeof result.error).toBe('string');
       });
     });
 
-    it("should maintain data integrity under concurrent stress", async () => {
+    it('should maintain data integrity under concurrent stress', async () => {
       const processor = new DotProcessor();
 
       // Create a reference file
@@ -444,7 +438,7 @@ describe("Concurrency and Thread Safety Tests", () => {
         }
       `;
 
-      const referenceFile = path.join(tempDir, "integrity_reference.dot");
+      const referenceFile = path.join(tempDir, 'integrity_reference.dot');
       fs.writeFileSync(referenceFile, referenceContent);
 
       // Get reference data
@@ -463,8 +457,7 @@ describe("Concurrency and Thread Safety Tests", () => {
 
                 // Verify data integrity
                 const pageCountMatch =
-                  Object.keys(tree.pages).length ===
-                  Object.keys(referenceTree.pages).length;
+                  Object.keys(tree.pages).length === Object.keys(referenceTree.pages).length;
                 const textCountMatch = texts.length === referenceTexts.length;
 
                 resolve({

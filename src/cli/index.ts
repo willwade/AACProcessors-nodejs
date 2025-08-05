@@ -1,10 +1,10 @@
 #!/usr/bin/env node
-import { program } from "commander";
-import { prettyPrintTree } from "./prettyPrint";
-import { analyze, getProcessor } from "../core/analyze";
-import { ProcessorOptions } from "../core/baseProcessor";
-import path from "path";
-import fs from "fs";
+import { program } from 'commander';
+import { prettyPrintTree } from './prettyPrint';
+import { analyze, getProcessor } from '../core/analyze';
+import { ProcessorOptions } from '../core/baseProcessor';
+import path from 'path';
+import fs from 'fs';
 
 // Helper function to detect format from file/folder path
 function detectFormat(filePath: string): string {
@@ -12,9 +12,9 @@ function detectFormat(filePath: string): string {
   if (
     fs.existsSync(filePath) &&
     fs.statSync(filePath).isDirectory() &&
-    filePath.endsWith(".ascconfig")
+    filePath.endsWith('.ascconfig')
   ) {
-    return "ascconfig";
+    return 'ascconfig';
   }
 
   // Otherwise use file extension
@@ -47,19 +47,17 @@ function parseFilteringOptions(options: {
   // Handle custom button exclusion list
   if (options.excludeButtons) {
     const excludeList = options.excludeButtons
-      .split(",")
+      .split(',')
       .map((s) => s.trim().toLowerCase())
       .filter((s) => s.length > 0);
 
     if (excludeList.length > 0) {
       processorOptions.customButtonFilter = (button) => {
-        const label = button.label?.toLowerCase() || "";
-        const message = button.message?.toLowerCase() || "";
+        const label = button.label?.toLowerCase() || '';
+        const message = button.message?.toLowerCase() || '';
 
         // Exclude if button label or message contains any of the excluded terms
-        return !excludeList.some(
-          (term) => label.includes(term) || message.includes(term),
-        );
+        return !excludeList.some((term) => label.includes(term) || message.includes(term));
       };
     }
   }
@@ -69,30 +67,18 @@ function parseFilteringOptions(options: {
 
 // Set version from package.json
 const packageJson = JSON.parse(
-  fs.readFileSync(path.join(__dirname, "../../package.json"), "utf8"),
+  fs.readFileSync(path.join(__dirname, '../../package.json'), 'utf8')
 ) as { version: string };
 program.version(packageJson.version);
 
 program
-  .command("analyze <file>")
-  .option("--format <format>", "Format type (auto-detected if not specified)")
-  .option("--pretty", "Pretty print output")
-  .option(
-    "--preserve-all-buttons",
-    "Preserve all buttons including navigation/system buttons",
-  )
-  .option(
-    "--no-exclude-navigation",
-    "Don't exclude navigation buttons (Home, Back)",
-  )
-  .option(
-    "--no-exclude-system",
-    "Don't exclude system buttons (Delete, Clear, etc.)",
-  )
-  .option(
-    "--exclude-buttons <list>",
-    "Comma-separated list of button labels/terms to exclude",
-  )
+  .command('analyze <file>')
+  .option('--format <format>', 'Format type (auto-detected if not specified)')
+  .option('--pretty', 'Pretty print output')
+  .option('--preserve-all-buttons', 'Preserve all buttons including navigation/system buttons')
+  .option('--no-exclude-navigation', "Don't exclude navigation buttons (Home, Back)")
+  .option('--no-exclude-system', "Don't exclude system buttons (Delete, Clear, etc.)")
+  .option('--exclude-buttons <list>', 'Comma-separated list of button labels/terms to exclude')
   .action(
     (
       file: string,
@@ -103,7 +89,7 @@ program
         excludeNavigation?: boolean;
         excludeSystem?: boolean;
         excludeButtons?: string;
-      },
+      }
     ) => {
       try {
         // Parse filtering options
@@ -127,35 +113,23 @@ program
         }
       } catch (error) {
         console.error(
-          "Error analyzing file:",
-          error instanceof Error ? error.message : String(error),
+          'Error analyzing file:',
+          error instanceof Error ? error.message : String(error)
         );
         process.exit(1);
       }
-    },
+    }
   );
 
 program
-  .command("extract <file>")
-  .option("--format <format>", "Format type (auto-detected if not specified)")
-  .option("--verbose", "Verbose output")
-  .option("--quiet", "Quiet output")
-  .option(
-    "--preserve-all-buttons",
-    "Preserve all buttons including navigation/system buttons",
-  )
-  .option(
-    "--no-exclude-navigation",
-    "Don't exclude navigation buttons (Home, Back)",
-  )
-  .option(
-    "--no-exclude-system",
-    "Don't exclude system buttons (Delete, Clear, etc.)",
-  )
-  .option(
-    "--exclude-buttons <list>",
-    "Comma-separated list of button labels/terms to exclude",
-  )
+  .command('extract <file>')
+  .option('--format <format>', 'Format type (auto-detected if not specified)')
+  .option('--verbose', 'Verbose output')
+  .option('--quiet', 'Quiet output')
+  .option('--preserve-all-buttons', 'Preserve all buttons including navigation/system buttons')
+  .option('--no-exclude-navigation', "Don't exclude navigation buttons (Home, Back)")
+  .option('--no-exclude-system', "Don't exclude system buttons (Delete, Clear, etc.)")
+  .option('--exclude-buttons <list>', 'Comma-separated list of button labels/terms to exclude')
   .action(
     (
       file: string,
@@ -167,7 +141,7 @@ program
         excludeNavigation?: boolean;
         excludeSystem?: boolean;
         excludeButtons?: string;
-      },
+      }
     ) => {
       try {
         // Parse filtering options
@@ -185,18 +159,14 @@ program
 
             // Show filtering info in verbose mode
             if (filteringOptions.preserveAllButtons) {
-              console.log("Filtering: All buttons preserved");
+              console.log('Filtering: All buttons preserved');
             } else {
               const filters = [];
-              if (filteringOptions.excludeNavigationButtons !== false)
-                filters.push("navigation");
-              if (filteringOptions.excludeSystemButtons !== false)
-                filters.push("system");
-              if (filteringOptions.customButtonFilter) filters.push("custom");
+              if (filteringOptions.excludeNavigationButtons !== false) filters.push('navigation');
+              if (filteringOptions.excludeSystemButtons !== false) filters.push('system');
+              if (filteringOptions.customButtonFilter) filters.push('custom');
               if (filters.length > 0) {
-                console.log(
-                  `Filtering: Excluding ${filters.join(", ")} buttons`,
-                );
+                console.log(`Filtering: Excluding ${filters.join(', ')} buttons`);
               }
             }
           }
@@ -206,33 +176,21 @@ program
         texts.forEach((text) => console.log(text));
       } catch (error) {
         console.error(
-          "Error extracting texts:",
-          error instanceof Error ? error.message : String(error),
+          'Error extracting texts:',
+          error instanceof Error ? error.message : String(error)
         );
         process.exit(1);
       }
-    },
+    }
   );
 
 program
-  .command("convert <input> <output>")
-  .option("--format <format>", "Output format (required)")
-  .option(
-    "--preserve-all-buttons",
-    "Preserve all buttons including navigation/system buttons",
-  )
-  .option(
-    "--no-exclude-navigation",
-    "Don't exclude navigation buttons (Home, Back)",
-  )
-  .option(
-    "--no-exclude-system",
-    "Don't exclude system buttons (Delete, Clear, etc.)",
-  )
-  .option(
-    "--exclude-buttons <list>",
-    "Comma-separated list of button labels/terms to exclude",
-  )
+  .command('convert <input> <output>')
+  .option('--format <format>', 'Output format (required)')
+  .option('--preserve-all-buttons', 'Preserve all buttons including navigation/system buttons')
+  .option('--no-exclude-navigation', "Don't exclude navigation buttons (Home, Back)")
+  .option('--no-exclude-system', "Don't exclude system buttons (Delete, Clear, etc.)")
+  .option('--exclude-buttons <list>', 'Comma-separated list of button labels/terms to exclude')
   .action(
     (
       input: string,
@@ -243,13 +201,11 @@ program
         excludeNavigation?: boolean;
         excludeSystem?: boolean;
         excludeButtons?: string;
-      },
+      }
     ) => {
       try {
         if (!options.format) {
-          console.error(
-            "Error: --format option is required for convert command",
-          );
+          console.error('Error: --format option is required for convert command');
           process.exit(1);
         }
 
@@ -268,32 +224,30 @@ program
         outputProcessor.saveFromTree(tree, output);
 
         // Show filtering summary
-        let filteringSummary = "";
+        let filteringSummary = '';
         if (filteringOptions.preserveAllButtons) {
-          filteringSummary = " (all buttons preserved)";
+          filteringSummary = ' (all buttons preserved)';
         } else {
           const filters = [];
-          if (filteringOptions.excludeNavigationButtons !== false)
-            filters.push("navigation");
-          if (filteringOptions.excludeSystemButtons !== false)
-            filters.push("system");
-          if (filteringOptions.customButtonFilter) filters.push("custom");
+          if (filteringOptions.excludeNavigationButtons !== false) filters.push('navigation');
+          if (filteringOptions.excludeSystemButtons !== false) filters.push('system');
+          if (filteringOptions.customButtonFilter) filters.push('custom');
           if (filters.length > 0) {
-            filteringSummary = ` (filtered: ${filters.join(", ")} buttons)`;
+            filteringSummary = ` (filtered: ${filters.join(', ')} buttons)`;
           }
         }
 
         console.log(
-          `Successfully converted ${input} to ${output} (${options.format} format)${filteringSummary}`,
+          `Successfully converted ${input} to ${output} (${options.format} format)${filteringSummary}`
         );
       } catch (error) {
         console.error(
-          "Error converting file:",
-          error instanceof Error ? error.message : String(error),
+          'Error converting file:',
+          error instanceof Error ? error.message : String(error)
         );
         process.exit(1);
       }
-    },
+    }
   );
 
 // Show help if no command provided

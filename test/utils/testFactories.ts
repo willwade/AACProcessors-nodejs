@@ -1,16 +1,11 @@
 // Test data factories and utilities for consistent test object creation
-import {
-  AACTree,
-  AACPage,
-  AACButton,
-  AACSemanticIntent,
-} from "../../src/core/treeStructure";
+import { AACTree, AACPage, AACButton, AACSemanticIntent } from '../../src/core/treeStructure';
 
 export interface ButtonConfig {
   id?: string;
   label?: string;
   message?: string;
-  type?: "SPEAK" | "NAVIGATE";
+  type?: 'SPEAK' | 'NAVIGATE';
   targetPageId?: string;
 }
 
@@ -39,7 +34,7 @@ export class ButtonFactory {
       id,
       label: config.label || `Button ${id}`,
       message: config.message || `Message for ${id}`,
-      type: config.type || "SPEAK",
+      type: config.type || 'SPEAK',
       targetPageId: config.targetPageId,
     });
   }
@@ -48,7 +43,7 @@ export class ButtonFactory {
     return this.create({
       label,
       message: message || label,
-      type: "SPEAK",
+      type: 'SPEAK',
     });
   }
 
@@ -56,7 +51,7 @@ export class ButtonFactory {
     return this.create({
       label,
       message: `Navigate to ${targetPageId}`,
-      type: "NAVIGATE",
+      type: 'NAVIGATE',
       targetPageId,
     });
   }
@@ -65,19 +60,16 @@ export class ButtonFactory {
     return this.create({
       label,
       message: message || `Action: ${label}`,
-      type: "SPEAK", // Use SPEAK instead of ACTION since ACTION is not supported
+      type: 'SPEAK', // Use SPEAK instead of ACTION since ACTION is not supported
     });
   }
 
-  static createBatch(
-    count: number,
-    type: "SPEAK" | "NAVIGATE" = "SPEAK",
-  ): AACButton[] {
+  static createBatch(count: number, type: 'SPEAK' | 'NAVIGATE' = 'SPEAK'): AACButton[] {
     return Array.from({ length: count }, (_, i) =>
       this.create({
         label: `${type} Button ${i + 1}`,
         type,
-      }),
+      })
     );
   }
 }
@@ -109,10 +101,7 @@ export class PageFactory {
     return page;
   }
 
-  static createWithButtons(
-    name: string,
-    buttonConfigs: ButtonConfig[],
-  ): AACPage {
+  static createWithButtons(name: string, buttonConfigs: ButtonConfig[]): AACPage {
     return this.create({
       name,
       buttons: buttonConfigs,
@@ -121,13 +110,13 @@ export class PageFactory {
 
   static createHome(): AACPage {
     return this.create({
-      id: "home",
-      name: "Home",
+      id: 'home',
+      name: 'Home',
       buttons: [
-        { label: "Hello", message: "Hello!", type: "SPEAK" },
-        { label: "Food", message: "I want food", type: "SPEAK" },
-        { label: "Drink", message: "I want a drink", type: "SPEAK" },
-        { label: "More", targetPageId: "more", type: "NAVIGATE" },
+        { label: 'Hello', message: 'Hello!', type: 'SPEAK' },
+        { label: 'Food', message: 'I want food', type: 'SPEAK' },
+        { label: 'Drink', message: 'I want a drink', type: 'SPEAK' },
+        { label: 'More', targetPageId: 'more', type: 'NAVIGATE' },
       ],
     });
   }
@@ -136,11 +125,11 @@ export class PageFactory {
     const buttons = items.map((item) => ({
       label: item,
       message: `I want ${item.toLowerCase()}`,
-      type: "SPEAK" as const,
+      type: 'SPEAK' as const,
     }));
 
     return this.create({
-      id: categoryName.toLowerCase().replace(/\s+/g, "_"),
+      id: categoryName.toLowerCase().replace(/\s+/g, '_'),
       name: categoryName,
       buttons,
     });
@@ -149,12 +138,12 @@ export class PageFactory {
   static createNavigation(pageName: string, destinations: string[]): AACPage {
     const buttons = destinations.map((dest) => ({
       label: `Go to ${dest}`,
-      targetPageId: dest.toLowerCase().replace(/\s+/g, "_"),
-      type: "NAVIGATE" as const,
+      targetPageId: dest.toLowerCase().replace(/\s+/g, '_'),
+      type: 'NAVIGATE' as const,
     }));
 
     return this.create({
-      id: pageName.toLowerCase().replace(/\s+/g, "_"),
+      id: pageName.toLowerCase().replace(/\s+/g, '_'),
       name: pageName,
       buttons,
     });
@@ -189,12 +178,12 @@ export class TreeFactory {
   static createSimple(): AACTree {
     const homePage = PageFactory.createHome();
     const morePage = PageFactory.create({
-      id: "more",
-      name: "More Options",
+      id: 'more',
+      name: 'More Options',
       buttons: [
-        { label: "Please", message: "Please", type: "SPEAK" },
-        { label: "Thank you", message: "Thank you", type: "SPEAK" },
-        { label: "Home", targetPageId: "home", type: "NAVIGATE" },
+        { label: 'Please', message: 'Please', type: 'SPEAK' },
+        { label: 'Thank you', message: 'Thank you', type: 'SPEAK' },
+        { label: 'Home', targetPageId: 'home', type: 'NAVIGATE' },
       ],
     });
 
@@ -225,40 +214,17 @@ export class TreeFactory {
           })),
         },
       ],
-      rootId: "home",
+      rootId: 'home',
     });
   }
 
   static createCommunicationBoard(): AACTree {
     const pages = [
       PageFactory.createHome(),
-      PageFactory.createCategory("Food", [
-        "Apple",
-        "Banana",
-        "Bread",
-        "Water",
-        "Milk",
-      ]),
-      PageFactory.createCategory("Activities", [
-        "Play",
-        "Read",
-        "Music",
-        "TV",
-        "Walk",
-      ]),
-      PageFactory.createCategory("People", [
-        "Mom",
-        "Dad",
-        "Friend",
-        "Teacher",
-        "Doctor",
-      ]),
-      PageFactory.createNavigation("Navigation", [
-        "Home",
-        "Food",
-        "Activities",
-        "People",
-      ]),
+      PageFactory.createCategory('Food', ['Apple', 'Banana', 'Bread', 'Water', 'Milk']),
+      PageFactory.createCategory('Activities', ['Play', 'Read', 'Music', 'TV', 'Walk']),
+      PageFactory.createCategory('People', ['Mom', 'Dad', 'Friend', 'Teacher', 'Doctor']),
+      PageFactory.createNavigation('Navigation', ['Home', 'Food', 'Activities', 'People']),
     ];
 
     return this.create({
@@ -273,14 +239,11 @@ export class TreeFactory {
           targetPageId: b.targetPageId,
         })),
       })),
-      rootId: "home",
+      rootId: 'home',
     });
   }
 
-  static createLarge(
-    pageCount: number = 10,
-    buttonsPerPage: number = 8,
-  ): AACTree {
+  static createLarge(pageCount: number = 10, buttonsPerPage: number = 8): AACTree {
     const pages: PageConfig[] = [];
 
     for (let i = 0; i < pageCount; i++) {
@@ -290,9 +253,8 @@ export class TreeFactory {
         buttons.push({
           label: `Button ${j + 1}`,
           message: `Message ${j + 1} on page ${i + 1}`,
-          type: j % 3 === 0 ? "NAVIGATE" : "SPEAK",
-          targetPageId:
-            j % 3 === 0 ? `page_${((i + 1) % pageCount) + 1}` : undefined,
+          type: j % 3 === 0 ? 'NAVIGATE' : 'SPEAK',
+          targetPageId: j % 3 === 0 ? `page_${((i + 1) % pageCount) + 1}` : undefined,
         });
       }
 
@@ -305,7 +267,7 @@ export class TreeFactory {
 
     return this.create({
       pages,
-      rootId: "page_1",
+      rootId: 'page_1',
     });
   }
 
@@ -313,18 +275,18 @@ export class TreeFactory {
     return this.create({
       pages: [
         {
-          id: "single",
-          name: "Single Page",
+          id: 'single',
+          name: 'Single Page',
           buttons: [
             {
-              label: "Hello",
-              message: "Hello World",
-              type: "SPEAK",
+              label: 'Hello',
+              message: 'Hello World',
+              type: 'SPEAK',
             },
           ],
         },
       ],
-      rootId: "single",
+      rootId: 'single',
     });
   }
 
@@ -338,9 +300,8 @@ export class TreeFactory {
  */
 export class TestDataUtils {
   static generateRandomString(length: number = 10): string {
-    const chars =
-      "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    let result = "";
+    const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
     for (let i = 0; i < length; i++) {
       result += chars.charAt(Math.floor(Math.random() * chars.length));
     }
@@ -352,46 +313,44 @@ export class TestDataUtils {
   }
 
   static generateUnicodeString(): string {
-    const unicodeChars = ["😀", "🎉", "🌟", "你好", "مرحبا", "Café", "∑∞≠"];
+    const unicodeChars = ['😀', '🎉', '🌟', '你好', 'مرحبا', 'Café', '∑∞≠'];
     return (
-      unicodeChars[Math.floor(Math.random() * unicodeChars.length)] +
-      this.generateRandomString(5)
+      unicodeChars[Math.floor(Math.random() * unicodeChars.length)] + this.generateRandomString(5)
     );
   }
 
   static createTranslationMap(
     originalTexts: string[],
-    targetLanguage: string = "es",
+    targetLanguage: string = 'es'
   ): Map<string, string> {
     const translations = new Map<string, string>();
 
     const commonTranslations: Record<string, Record<string, string>> = {
       es: {
-        Hello: "Hola",
-        Food: "Comida",
-        Drink: "Bebida",
-        Home: "Casa",
-        More: "Más",
-        Please: "Por favor",
-        "Thank you": "Gracias",
-        Yes: "Sí",
-        No: "No",
+        Hello: 'Hola',
+        Food: 'Comida',
+        Drink: 'Bebida',
+        Home: 'Casa',
+        More: 'Más',
+        Please: 'Por favor',
+        'Thank you': 'Gracias',
+        Yes: 'Sí',
+        No: 'No',
       },
       fr: {
-        Hello: "Bonjour",
-        Food: "Nourriture",
-        Drink: "Boisson",
-        Home: "Maison",
-        More: "Plus",
+        Hello: 'Bonjour',
+        Food: 'Nourriture',
+        Drink: 'Boisson',
+        Home: 'Maison',
+        More: 'Plus',
         Please: "S'il vous plaît",
-        "Thank you": "Merci",
-        Yes: "Oui",
-        No: "Non",
+        'Thank you': 'Merci',
+        Yes: 'Oui',
+        No: 'Non',
       },
     };
 
-    const targetTranslations =
-      commonTranslations[targetLanguage] || commonTranslations.es;
+    const targetTranslations = commonTranslations[targetLanguage] || commonTranslations.es;
 
     originalTexts.forEach((text) => {
       if (targetTranslations[text]) {
@@ -429,7 +388,7 @@ export class TestDataUtils {
 
       return true;
     } catch (error) {
-      console.error("Tree validation error:", error);
+      console.error('Tree validation error:', error);
       return false;
     }
   }

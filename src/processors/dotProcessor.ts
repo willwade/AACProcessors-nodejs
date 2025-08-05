@@ -1,12 +1,13 @@
-import { BaseProcessor, ProcessorOptions } from "../core/baseProcessor";
 import {
-  AACTree,
-  AACPage,
-  AACButton,
-  AACSemanticIntent,
-} from "../core/treeStructure";
+  BaseProcessor,
+  ProcessorOptions,
+  ExtractStringsResult,
+  TranslatedString,
+  SourceString,
+} from '../core/baseProcessor';
+import { AACTree, AACPage, AACButton, AACSemanticIntent } from '../core/treeStructure';
 // Removed unused import: FileProcessor
-import fs from "fs";
+import fs from 'fs';
 
 interface DotNode {
   id: string;
@@ -31,8 +32,7 @@ class DotProcessor extends BaseProcessor {
     const edges: DotEdge[] = [];
 
     // Extract all edge statements using regex to handle single-line DOT files
-    const edgeRegex =
-      /"?([^"\s]+)"?\s*->\s*"?([^"\s]+)"?(?:\s*\[label="([^"]+)"\])?/g;
+    const edgeRegex = /"?([^"\s]+)"?\s*->\s*"?([^"\s]+)"?(?:\s*\[label="([^"]+)"\])?/g;
     const nodeRegex = /"?([^"\s]+)"?\s*\[label="([^"]+)"\]/g;
 
     // Find all explicit node definitions
@@ -62,9 +62,9 @@ class DotProcessor extends BaseProcessor {
 
   extractTexts(filePathOrBuffer: string | Buffer): string[] {
     const content =
-      typeof filePathOrBuffer === "string"
-        ? fs.readFileSync(filePathOrBuffer, "utf8")
-        : filePathOrBuffer.toString("utf8");
+      typeof filePathOrBuffer === 'string'
+        ? fs.readFileSync(filePathOrBuffer, 'utf8')
+        : filePathOrBuffer.toString('utf8');
 
     const { nodes, edges } = this.parseDotFile(content);
     const texts: string[] = [];
@@ -89,12 +89,12 @@ class DotProcessor extends BaseProcessor {
 
     try {
       content =
-        typeof filePathOrBuffer === "string"
-          ? fs.readFileSync(filePathOrBuffer, "utf8")
-          : filePathOrBuffer.toString("utf8");
+        typeof filePathOrBuffer === 'string'
+          ? fs.readFileSync(filePathOrBuffer, 'utf8')
+          : filePathOrBuffer.toString('utf8');
     } catch (error) {
       // Re-throw file system errors (like file not found)
-      if (typeof filePathOrBuffer === "string") {
+      if (typeof filePathOrBuffer === 'string') {
         throw error;
       }
       // For buffer errors, return empty tree
@@ -107,10 +107,7 @@ class DotProcessor extends BaseProcessor {
     }
 
     // Check for binary data (contains null bytes or non-printable characters)
-    if (
-      content.includes("\0") ||
-      /[\x00-\x08\x0E-\x1F\x7F-\xFF]/.test(content.substring(0, 100))
-    ) {
+    if (content.includes('\0') || /[\x00-\x08\x0E-\x1F\x7F-\xFF]/.test(content.substring(0, 100))) {
       return new AACTree();
     }
 
@@ -136,7 +133,7 @@ class DotProcessor extends BaseProcessor {
         const button = new AACButton({
           id: `nav_${edge.from}_${edge.to}`,
           label: edge.label || edge.to,
-          message: "",
+          message: '',
 
           targetPageId: edge.to,
         });
@@ -150,29 +147,29 @@ class DotProcessor extends BaseProcessor {
   processTexts(
     filePathOrBuffer: string | Buffer,
     translations: Map<string, string>,
-    outputPath: string,
+    outputPath: string
   ): Buffer {
     const safeBuffer = Buffer.isBuffer(filePathOrBuffer)
       ? filePathOrBuffer
       : fs.readFileSync(filePathOrBuffer);
 
-    const content = safeBuffer.toString("utf8");
+    const content = safeBuffer.toString('utf8');
     let translatedContent = content;
 
     translations.forEach((translation, text) => {
-      if (typeof text === "string" && typeof translation === "string") {
+      if (typeof text === 'string' && typeof translation === 'string') {
         // Escape special regex characters in the text
-        const escapedText = text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-        const escapedTranslation = translation.replace(/\$/g, "$$$$"); // Escape $ in replacement
+        const escapedText = text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const escapedTranslation = translation.replace(/\$/g, '$$$$'); // Escape $ in replacement
 
         translatedContent = translatedContent.replace(
-          new RegExp(`label="${escapedText}"`, "g"),
-          `label="${escapedTranslation}"`,
+          new RegExp(`label="${escapedText}"`, 'g'),
+          `label="${escapedTranslation}"`
         );
       }
     });
 
-    const resultBuffer = Buffer.from(translatedContent || "", "utf8");
+    const resultBuffer = Buffer.from(translatedContent || '', 'utf8');
 
     // Save to output path
     fs.writeFileSync(outputPath, resultBuffer);
@@ -181,7 +178,7 @@ class DotProcessor extends BaseProcessor {
   }
 
   saveFromTree(tree: AACTree, _outputPath: string): void {
-    let dotContent = "digraph AACBoard {\n";
+    let dotContent = 'digraph AACBoard {\n';
 
     // Add nodes
     for (const pageId in tree.pages) {
@@ -195,16 +192,35 @@ class DotProcessor extends BaseProcessor {
       page.buttons
         .filter(
           (btn: AACButton) =>
-            btn.semanticAction?.intent === AACSemanticIntent.NAVIGATE_TO &&
-            btn.targetPageId,
+            btn.semanticAction?.intent === AACSemanticIntent.NAVIGATE_TO && btn.targetPageId
         )
         .forEach((btn: AACButton) => {
           dotContent += `  "${page.id}" -> "${btn.targetPageId}" [label="${btn.label}"]\n`;
         });
     }
 
-    dotContent += "}\n";
+    dotContent += '}\n';
     fs.writeFileSync(_outputPath, dotContent);
+  }
+
+  /**
+   * Extract strings with metadata for aac-tools-platform compatibility
+   * Uses the generic implementation from BaseProcessor
+   */
+  async extractStringsWithMetadata(filePath: string): Promise<ExtractStringsResult> {
+    return this.extractStringsWithMetadataGeneric(filePath);
+  }
+
+  /**
+   * Generate translated download for aac-tools-platform compatibility
+   * Uses the generic implementation from BaseProcessor
+   */
+  async generateTranslatedDownload(
+    filePath: string,
+    translatedStrings: TranslatedString[],
+    sourceStrings: SourceString[]
+  ): Promise<string> {
+    return this.generateTranslatedDownloadGeneric(filePath, translatedStrings, sourceStrings);
   }
 }
 

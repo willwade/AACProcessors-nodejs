@@ -1,4 +1,4 @@
-import { BaseProcessor, ProcessorOptions } from "../core/baseProcessor";
+import { BaseProcessor, ProcessorOptions } from '../core/baseProcessor';
 import {
   AACTree,
   AACPage,
@@ -6,11 +6,11 @@ import {
   AACSemanticAction,
   AACSemanticCategory,
   AACSemanticIntent,
-} from "../core/treeStructure";
+} from '../core/treeStructure';
 // Removed unused import: FileProcessor
-import plist from "plist";
-import fs from "fs";
-import path from "path";
+import plist from 'plist';
+import fs from 'fs';
+import path from 'path';
 
 interface ApplePanelsButton {
   label: string;
@@ -38,14 +38,12 @@ class ApplePanelsProcessor extends BaseProcessor {
   }
   // Helper function to parse Apple Panels Rect format "{{x, y}, {width, height}}"
   private parseRect(
-    rectString: string,
+    rectString: string
   ): { x: number; y: number; width: number; height: number } | null {
     if (!rectString) return null;
 
     // Parse format like "{{0, 0}, {100, 25}}"
-    const match = rectString.match(
-      /\{\{(\d+),\s*(\d+)\},\s*\{(\d+),\s*(\d+)\}\}/,
-    );
+    const match = rectString.match(/\{\{(\d+),\s*(\d+)\},\s*\{(\d+),\s*(\d+)\}\}/);
     if (!match) return null;
 
     return {
@@ -60,7 +58,7 @@ class ApplePanelsProcessor extends BaseProcessor {
   private pixelToGrid(
     pixelX: number,
     pixelY: number,
-    cellSize: number = 25,
+    cellSize: number = 25
   ): { gridX: number; gridY: number } {
     return {
       gridX: Math.floor(pixelX / cellSize),
@@ -87,23 +85,23 @@ class ApplePanelsProcessor extends BaseProcessor {
     let content: string;
 
     if (Buffer.isBuffer(filePathOrBuffer)) {
-      content = filePathOrBuffer.toString("utf8");
-    } else if (typeof filePathOrBuffer === "string") {
+      content = filePathOrBuffer.toString('utf8');
+    } else if (typeof filePathOrBuffer === 'string') {
       // Check if it's a .ascconfig folder or a direct .plist file
-      if (filePathOrBuffer.endsWith(".ascconfig")) {
+      if (filePathOrBuffer.endsWith('.ascconfig')) {
         // Read from proper Apple Panels structure: *.ascconfig/Contents/Resources/PanelDefinitions.plist
         const panelDefsPath = `${filePathOrBuffer}/Contents/Resources/PanelDefinitions.plist`;
         if (fs.existsSync(panelDefsPath)) {
-          content = fs.readFileSync(panelDefsPath, "utf8");
+          content = fs.readFileSync(panelDefsPath, 'utf8');
         } else {
           throw new Error(`Apple Panels file not found: ${panelDefsPath}`);
         }
       } else {
         // Fallback: treat as direct .plist file
-        content = fs.readFileSync(filePathOrBuffer, "utf8");
+        content = fs.readFileSync(filePathOrBuffer, 'utf8');
       }
     } else {
-      throw new Error("Invalid input: expected string path or Buffer");
+      throw new Error('Invalid input: expected string path or Buffer');
     }
 
     const parsedData = plist.parse(content);
@@ -119,13 +117,13 @@ class ApplePanelsProcessor extends BaseProcessor {
       panelsData = Object.keys(panelsDict).map((panelId) => {
         const panel = panelsDict[panelId];
         return {
-          id: (panel.ID || panelId).replace(/^USER\./, ""), // Strip USER. prefix to maintain original IDs
-          name: panel.Name || "Panel",
+          id: (panel.ID || panelId).replace(/^USER\./, ''), // Strip USER. prefix to maintain original IDs
+          name: panel.Name || 'Panel',
           buttons: (panel.PanelObjects || [])
-            .filter((obj: any) => obj.PanelObjectType === "Button")
+            .filter((obj: any) => obj.PanelObjectType === 'Button')
             .map((btn: any) => ({
-              label: btn.DisplayText || "Button",
-              message: btn.DisplayText || "Button",
+              label: btn.DisplayText || 'Button',
+              message: btn.DisplayText || 'Button',
               DisplayColor: btn.DisplayColor,
               DisplayImageWeight: btn.DisplayImageWeight,
               FontSize: btn.FontSize,
@@ -133,8 +131,8 @@ class ApplePanelsProcessor extends BaseProcessor {
               targetPanel:
                 btn.Actions &&
                 btn.Actions.length > 0 &&
-                btn.Actions[0].ActionType === "ActionOpenPanel"
-                  ? btn.Actions[0].ActionParam?.PanelID?.replace(/^USER\./, "")
+                btn.Actions[0].ActionType === 'ActionOpenPanel'
+                  ? btn.Actions[0].ActionParam?.PanelID?.replace(/^USER\./, '')
                   : undefined,
             })),
         };
@@ -172,12 +170,12 @@ class ApplePanelsProcessor extends BaseProcessor {
             targetId: btn.targetPanel,
             platformData: {
               applePanels: {
-                actionType: "ActionOpenPanel",
+                actionType: 'ActionOpenPanel',
                 parameters: { PanelID: `USER.${btn.targetPanel}` },
               },
             },
             fallback: {
-              type: "NAVIGATE",
+              type: 'NAVIGATE',
               targetPageId: btn.targetPanel,
             },
           };
@@ -188,15 +186,15 @@ class ApplePanelsProcessor extends BaseProcessor {
             text: btn.message || btn.label,
             platformData: {
               applePanels: {
-                actionType: "ActionPressKeyCharSequence",
+                actionType: 'ActionPressKeyCharSequence',
                 parameters: {
-                  CharString: btn.message || btn.label || "",
+                  CharString: btn.message || btn.label || '',
                   isStickyKey: false,
                 },
               },
             },
             fallback: {
-              type: "SPEAK",
+              type: 'SPEAK',
               message: btn.message || btn.label,
             },
           };
@@ -211,7 +209,7 @@ class ApplePanelsProcessor extends BaseProcessor {
           style: {
             backgroundColor: btn.DisplayColor,
             fontSize: btn.FontSize,
-            fontWeight: btn.DisplayImageWeight === "bold" ? "bold" : "normal",
+            fontWeight: btn.DisplayImageWeight === 'bold' ? 'bold' : 'normal',
           },
         });
         page.addButton(button);
@@ -225,16 +223,8 @@ class ApplePanelsProcessor extends BaseProcessor {
             const gridHeight = Math.max(1, Math.ceil(rect.height / 25));
 
             // Place button in grid (handle width/height span)
-            for (
-              let r = gridPos.gridY;
-              r < gridPos.gridY + gridHeight && r < maxRows;
-              r++
-            ) {
-              for (
-                let c = gridPos.gridX;
-                c < gridPos.gridX + gridWidth && c < maxCols;
-                c++
-              ) {
+            for (let r = gridPos.gridY; r < gridPos.gridY + gridHeight && r < maxRows; r++) {
+              for (let c = gridPos.gridX; c < gridPos.gridX + gridWidth && c < maxCols; c++) {
                 if (gridLayout[r] && gridLayout[r][c] === null) {
                   gridLayout[r][c] = button;
                 }
@@ -255,7 +245,7 @@ class ApplePanelsProcessor extends BaseProcessor {
   processTexts(
     filePathOrBuffer: string | Buffer,
     translations: Map<string, string>,
-    outputPath: string,
+    outputPath: string
   ): Buffer {
     // Load the tree, apply translations, and save to new file
     const tree = this.loadIntoTree(filePathOrBuffer);
@@ -285,45 +275,37 @@ class ApplePanelsProcessor extends BaseProcessor {
 
   saveFromTree(tree: AACTree, outputPath: string): void {
     // Ensure outputPath ends with .ascconfig
-    const configPath = outputPath.endsWith(".ascconfig")
-      ? outputPath
-      : `${outputPath}.ascconfig`;
+    const configPath = outputPath.endsWith('.ascconfig') ? outputPath : `${outputPath}.ascconfig`;
 
     // Create the folder structure
-    const contentsPath = path.join(configPath, "Contents");
-    const resourcesPath = path.join(contentsPath, "Resources");
+    const contentsPath = path.join(configPath, 'Contents');
+    const resourcesPath = path.join(contentsPath, 'Resources');
 
     // Create directories
-    if (!fs.existsSync(configPath))
-      fs.mkdirSync(configPath, { recursive: true });
-    if (!fs.existsSync(contentsPath))
-      fs.mkdirSync(contentsPath, { recursive: true });
-    if (!fs.existsSync(resourcesPath))
-      fs.mkdirSync(resourcesPath, { recursive: true });
+    if (!fs.existsSync(configPath)) fs.mkdirSync(configPath, { recursive: true });
+    if (!fs.existsSync(contentsPath)) fs.mkdirSync(contentsPath, { recursive: true });
+    if (!fs.existsSync(resourcesPath)) fs.mkdirSync(resourcesPath, { recursive: true });
 
     // Create Info.plist
     const infoPlist = {
-      ASCConfigurationDisplayName: "AAC Processors Export",
+      ASCConfigurationDisplayName: 'AAC Processors Export',
       ASCConfigurationIdentifier: `com.aacprocessors.${Date.now()}`,
-      ASCConfigurationProductSupportType: "VirtualKeyboard",
-      ASCConfigurationVersion: "7.1",
-      CFBundleDevelopmentRegion: "en",
-      CFBundleIdentifier: "com.aacprocessors.panel.export",
-      CFBundleName: "AAC Processors Panels",
-      CFBundleShortVersionString: "1.0",
-      CFBundleVersion: "1",
-      NSHumanReadableCopyright: "Generated by AAC Processors",
+      ASCConfigurationProductSupportType: 'VirtualKeyboard',
+      ASCConfigurationVersion: '7.1',
+      CFBundleDevelopmentRegion: 'en',
+      CFBundleIdentifier: 'com.aacprocessors.panel.export',
+      CFBundleName: 'AAC Processors Panels',
+      CFBundleShortVersionString: '1.0',
+      CFBundleVersion: '1',
+      NSHumanReadableCopyright: 'Generated by AAC Processors',
     };
 
     const infoPlistContent = plist.build(infoPlist);
-    fs.writeFileSync(path.join(contentsPath, "Info.plist"), infoPlistContent);
+    fs.writeFileSync(path.join(contentsPath, 'Info.plist'), infoPlistContent);
 
     // Create AssetIndex.plist (empty)
     const assetIndexContent = plist.build({});
-    fs.writeFileSync(
-      path.join(resourcesPath, "AssetIndex.plist"),
-      assetIndexContent,
-    );
+    fs.writeFileSync(path.join(resourcesPath, 'AssetIndex.plist'), assetIndexContent);
 
     // Create PanelDefinitions.plist with the actual panel data
     const panelsDict: any = {};
@@ -406,10 +388,10 @@ class ApplePanelsProcessor extends BaseProcessor {
 
         const buttonObj: any = {
           ButtonType: 0,
-          DisplayText: button.label || "Button",
+          DisplayText: button.label || 'Button',
           FontSize: button.style?.fontSize || 12,
           ID: `Button.${button.id}`,
-          PanelObjectType: "Button",
+          PanelObjectType: 'Button',
           Rect: rect!,
         };
 
@@ -417,10 +399,10 @@ class ApplePanelsProcessor extends BaseProcessor {
           buttonObj.DisplayColor = button.style.backgroundColor;
         }
 
-        if (button.style?.fontWeight === "bold") {
-          buttonObj.DisplayImageWeight = "FontWeightBold";
+        if (button.style?.fontWeight === 'bold') {
+          buttonObj.DisplayImageWeight = 'FontWeightBold';
         } else {
-          buttonObj.DisplayImageWeight = "FontWeightRegular";
+          buttonObj.DisplayImageWeight = 'FontWeightRegular';
         }
 
         // Add actions - prefer semantic action if available
@@ -440,12 +422,12 @@ class ApplePanelsProcessor extends BaseProcessor {
         HideSwitchDockContextualButtons: false,
         HideTitlebar: false,
         ID: panelId,
-        Name: page.name || "Panel",
+        Name: page.name || 'Panel',
         PanelObjects: panelObjects,
-        ProductSupportType: "All",
-        Rect: "{{15, 75}, {425, 55}}",
+        ProductSupportType: 'All',
+        Rect: '{{15, 75}, {425, 55}}',
         ScanStyle: 0,
-        ShowPanelLocationString: "CustomPanelList",
+        ShowPanelLocationString: 'CustomPanelList',
         UsesPinnedResizing: false,
       };
     });
@@ -459,10 +441,7 @@ class ApplePanelsProcessor extends BaseProcessor {
     };
 
     const panelDefsContent = plist.build(panelDefinitions);
-    fs.writeFileSync(
-      path.join(resourcesPath, "PanelDefinitions.plist"),
-      panelDefsContent,
-    );
+    fs.writeFileSync(path.join(resourcesPath, 'PanelDefinitions.plist'), panelDefsContent);
   }
 
   private createApplePanelsAction(button: AACButton): any {
@@ -483,10 +462,10 @@ class ApplePanelsProcessor extends BaseProcessor {
         case AACSemanticIntent.NAVIGATE_TO:
           return {
             ActionParam: {
-              PanelID: `USER.${button.semanticAction.targetId || button.targetPageId || ""}`,
+              PanelID: `USER.${button.semanticAction.targetId || button.targetPageId || ''}`,
             },
             ActionRecordedOffset: 0.0,
-            ActionType: "ActionOpenPanel",
+            ActionType: 'ActionOpenPanel',
             ID: `Action.${button.id}`,
           };
 
@@ -494,26 +473,22 @@ class ApplePanelsProcessor extends BaseProcessor {
         case AACSemanticIntent.INSERT_TEXT:
           return {
             ActionParam: {
-              CharString:
-                button.semanticAction.text ||
-                button.message ||
-                button.label ||
-                "",
+              CharString: button.semanticAction.text || button.message || button.label || '',
               isStickyKey: false,
             },
             ActionRecordedOffset: 0.0,
-            ActionType: "ActionPressKeyCharSequence",
+            ActionType: 'ActionPressKeyCharSequence',
             ID: `Action.${button.id}`,
           };
 
         case AACSemanticIntent.SEND_KEYS:
           return {
             ActionParam: {
-              CharString: button.semanticAction.text || "",
+              CharString: button.semanticAction.text || '',
               isStickyKey: false,
             },
             ActionRecordedOffset: 0.0,
-            ActionType: "ActionSendKeys",
+            ActionType: 'ActionSendKeys',
             ID: `Action.${button.id}`,
           };
 
@@ -522,14 +497,11 @@ class ApplePanelsProcessor extends BaseProcessor {
           return {
             ActionParam: {
               CharString:
-                button.semanticAction.fallback?.message ||
-                button.message ||
-                button.label ||
-                "",
+                button.semanticAction.fallback?.message || button.message || button.label || '',
               isStickyKey: false,
             },
             ActionRecordedOffset: 0.0,
-            ActionType: "ActionPressKeyCharSequence",
+            ActionType: 'ActionPressKeyCharSequence',
             ID: `Action.${button.id}`,
           };
       }
@@ -538,11 +510,11 @@ class ApplePanelsProcessor extends BaseProcessor {
     // Default SPEAK action if no semantic action
     return {
       ActionParam: {
-        CharString: button.message || button.label || "",
+        CharString: button.message || button.label || '',
         isStickyKey: false,
       },
       ActionRecordedOffset: 0.0,
-      ActionType: "ActionPressKeyCharSequence",
+      ActionType: 'ActionPressKeyCharSequence',
       ID: `Action.${button.id}`,
     };
   }
