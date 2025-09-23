@@ -174,6 +174,8 @@ class ObfProcessor extends BaseProcessor {
           const page = this.processBoard(boardData, filePathOrBuffer);
           tree.addPage(page);
           return tree;
+        } else {
+          throw new Error('Invalid OBF JSON content');
         }
       } catch (err) {
         console.error('[OBF] Error reading .obf file:', err);
@@ -190,7 +192,19 @@ class ObfProcessor extends BaseProcessor {
       return tree;
     }
 
-    // Otherwise, try as ZIP (.obz)
+    // Otherwise, try as ZIP (.obz). Detect likely zip signature first; throw if neither JSON nor ZIP
+    function isLikelyZip(input: string | Buffer): boolean {
+      if (typeof input === 'string') return input.endsWith('.zip') || input.endsWith('.obz');
+      if (Buffer.isBuffer(input) && input.length >= 2) {
+        return input[0] === 0x50 && input[1] === 0x4b; // 'PK'
+      }
+      return false;
+    }
+
+    if (!isLikelyZip(filePathOrBuffer)) {
+      throw new Error('Invalid OBF content: not JSON and not ZIP');
+    }
+
     let zip: AdmZip;
     try {
       zip = new AdmZip(filePathOrBuffer);

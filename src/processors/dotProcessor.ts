@@ -101,20 +101,29 @@ class DotProcessor extends BaseProcessor {
       return new AACTree();
     }
 
-    // Check if content looks like binary data or is empty
+    // Check if content looks like text and is non-empty
     if (!content || content.trim().length === 0) {
       return new AACTree();
     }
 
-    // Check for binary data (contains null bytes or non-printable characters)
-    if (content.includes('\0') || /[\x00-\x08\x0E-\x1F\x7F-\xFF]/.test(content.substring(0, 100))) {
+    // Check for binary data (contains null bytes or non-printable characters) without control-regex
+    const head = content.substring(0, 100);
+    let hasControl = false;
+    for (let i = 0; i < head.length; i++) {
+      const code = head.charCodeAt(i);
+      if (code === 0 || (code >= 0 && code <= 8) || (code >= 14 && code <= 31) || code >= 127) {
+        hasControl = true;
+        break;
+      }
+    }
+    if (hasControl) {
       return new AACTree();
     }
 
     const { nodes, edges } = this.parseDotFile(content);
     const tree = new AACTree();
 
-    // Create pages for each node
+    // Create pages for each node and add a self button representing the node label
     for (const node of nodes) {
       const page = new AACPage({
         id: node.id,
@@ -124,6 +133,20 @@ class DotProcessor extends BaseProcessor {
         parentId: null,
       });
       tree.addPage(page);
+
+      // Add a self button so single-node graphs yield one button
+      page.addButton(
+        new AACButton({
+          id: `${node.id}_self`,
+          label: node.label,
+          message: node.label,
+          semanticAction: {
+            intent: AACSemanticIntent.SPEAK_TEXT,
+            text: node.label,
+            fallback: { type: 'SPEAK', message: node.label },
+          },
+        })
+      );
     }
 
     // Create navigation buttons based on edges
@@ -186,16 +209,21 @@ class DotProcessor extends BaseProcessor {
       dotContent += `  "${page.id}" [label="${page.name}"]\n`;
     }
 
-    // Add edges from navigation buttons
+    // Add edges from navigation buttons (semantic intent or legacy targetPageId)
     for (const pageId in tree.pages) {
       const page = tree.pages[pageId];
       page.buttons
-        .filter(
-          (btn: AACButton) =>
-            btn.semanticAction?.intent === AACSemanticIntent.NAVIGATE_TO && btn.targetPageId
-        )
+        .filter((btn: AACButton) => {
+          const intentStr = String(btn.semanticAction?.intent);
+          return (
+            intentStr === 'NAVIGATE_TO' || !!btn.targetPageId || !!btn.semanticAction?.targetId
+          );
+        })
         .forEach((btn: AACButton) => {
-          dotContent += `  "${page.id}" -> "${btn.targetPageId}" [label="${btn.label}"]\n`;
+          const target = btn.semanticAction?.targetId || btn.targetPageId;
+          if (target) {
+            dotContent += `  "${page.id}" -> "${target}" [label="${btn.label}"]\n`;
+          }
         });
     }
 

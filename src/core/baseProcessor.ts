@@ -123,8 +123,8 @@ abstract class BaseProcessor {
 
       // Filter specific navigation intents (toolbar navigation only)
       if (this.options.excludeNavigationButtons) {
-        const toolbarNavigationIntents = [AACSemanticIntent.GO_BACK, AACSemanticIntent.GO_HOME];
-        if (toolbarNavigationIntents.includes(intent)) {
+        const i = String(intent);
+        if (i === 'GO_BACK' || i === 'GO_HOME') {
           return true;
         }
       }
@@ -136,13 +136,13 @@ abstract class BaseProcessor {
 
       // Filter specific system intents
       if (this.options.excludeSystemButtons) {
-        const systemIntents = [
-          AACSemanticIntent.DELETE_WORD,
-          AACSemanticIntent.DELETE_CHARACTER,
-          AACSemanticIntent.CLEAR_TEXT,
-          AACSemanticIntent.COPY_TEXT,
-        ];
-        if (systemIntents.includes(intent)) {
+        const i = String(intent);
+        if (
+          i === 'DELETE_WORD' ||
+          i === 'DELETE_CHARACTER' ||
+          i === 'CLEAR_TEXT' ||
+          i === 'COPY_TEXT'
+        ) {
           return true;
         }
       }

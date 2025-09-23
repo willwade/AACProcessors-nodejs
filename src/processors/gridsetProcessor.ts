@@ -16,18 +16,7 @@ import {
 import AdmZip from 'adm-zip';
 import fs from 'fs';
 import { XMLParser, XMLBuilder } from 'fast-xml-parser';
-
-interface GridsetButton {
-  label: string;
-  message?: string;
-  navigationTarget?: string;
-}
-
-interface _GridsetGrid {
-  id: string;
-  name: string;
-  buttons: GridsetButton[];
-}
+import { resolveGrid3CellImage } from './gridset/resolver';
 
 class GridsetProcessor extends BaseProcessor {
   constructor(options?: ProcessorOptions) {
@@ -67,8 +56,9 @@ class GridsetProcessor extends BaseProcessor {
     }
 
     // Convert semantic actions to Grid3 commands
-    switch (semanticAction.intent) {
-      case AACSemanticIntent.NAVIGATE_TO:
+    const intentStr = String(semanticAction.intent);
+    switch (intentStr) {
+      case 'NAVIGATE_TO': {
         // For Grid3, we need to use the grid name, not the ID
         let targetGridName = semanticAction.targetId || '';
         if (tree && semanticAction.targetId) {
@@ -86,51 +76,52 @@ class GridsetProcessor extends BaseProcessor {
             },
           },
         };
+      }
 
-      case AACSemanticIntent.GO_BACK:
+      case 'GO_BACK':
         return {
           Command: {
             '@_ID': 'Jump.Back',
           },
         };
 
-      case AACSemanticIntent.GO_HOME:
+      case 'GO_HOME':
         return {
           Command: {
             '@_ID': 'Jump.Home',
           },
         };
 
-      case AACSemanticIntent.DELETE_WORD:
+      case 'DELETE_WORD':
         return {
           Command: {
             '@_ID': 'Action.DeleteWord',
           },
         };
 
-      case AACSemanticIntent.DELETE_CHARACTER:
+      case 'DELETE_CHARACTER':
         return {
           Command: {
             '@_ID': 'Action.DeleteLetter',
           },
         };
 
-      case AACSemanticIntent.CLEAR_TEXT:
+      case 'CLEAR_TEXT':
         return {
           Command: {
             '@_ID': 'Action.Clear',
           },
         };
 
-      case AACSemanticIntent.SPEAK_TEXT:
-      case AACSemanticIntent.SPEAK_IMMEDIATE:
+      case 'SPEAK_TEXT':
+      case 'SPEAK_IMMEDIATE':
         return {
           Command: {
             '@_ID': 'Action.Speak',
           },
         };
 
-      case AACSemanticIntent.INSERT_TEXT:
+      case 'INSERT_TEXT':
         return {
           Command: {
             '@_ID': 'Action.InsertText',
@@ -138,20 +129,6 @@ class GridsetProcessor extends BaseProcessor {
               '@_Key': 'text',
               '#text': semanticAction.text || button.message || button.label || '',
             },
-          },
-        };
-
-      case AACSemanticIntent.DELETE_WORD:
-        return {
-          Command: {
-            '@_ID': 'Action.DeleteWord',
-          },
-        };
-
-      case AACSemanticIntent.CLEAR_TEXT:
-        return {
-          Command: {
-            '@_ID': 'Action.Clear',
           },
         };
 
@@ -178,7 +155,7 @@ class GridsetProcessor extends BaseProcessor {
       borderColor: grid3Style.BorderColour,
       fontColor: grid3Style.FontColour,
       fontFamily: grid3Style.FontName,
-      fontSize: grid3Style.FontSize ? parseInt(grid3Style.FontSize) : undefined,
+      fontSize: grid3Style.FontSize ? parseInt(String(grid3Style.FontSize)) : undefined,
     };
   }
 
@@ -189,6 +166,14 @@ class GridsetProcessor extends BaseProcessor {
     }
     return this.convertGrid3StyleToAACStyle(styles.get(styleId));
   }
+  // Helper to safely extract text from XML parser values
+  private textOf(val: any): string | undefined {
+    if (!val) return undefined;
+    if (typeof val === 'string') return val;
+    if (typeof val === 'object' && '#text' in val) return String(val['#text']);
+    return undefined;
+  }
+
   extractTexts(filePathOrBuffer: string | Buffer): string[] {
     const buffer = Buffer.isBuffer(filePathOrBuffer)
       ? filePathOrBuffer
@@ -217,8 +202,43 @@ class GridsetProcessor extends BaseProcessor {
     } catch (error: any) {
       throw new Error(`Invalid ZIP file format: ${error.message}`);
     }
-
     const parser = new XMLParser({ ignoreAttributes: false });
+
+    // Parse FileMap.xml if present to index dynamic files per grid
+    const fileMapIndex = new Map<string, string[]>();
+    try {
+      const fmEntry = zip.getEntries().find((e) => e.entryName.endsWith('FileMap.xml'));
+      if (fmEntry) {
+        const fmXml = fmEntry.getData().toString('utf8');
+        const fmData = parser.parse(fmXml);
+        const entries = fmData?.FileMap?.Entries?.Entry || fmData?.fileMap?.entries?.entry;
+        if (entries) {
+          const arr = Array.isArray(entries) ? entries : [entries];
+          for (const ent of arr) {
+            const staticFile = (
+              ent['@_StaticFile'] ||
+              ent.StaticFile ||
+              ent.staticFile ||
+              ''
+            ).replace(/\\/g, '/');
+            if (!staticFile) continue;
+            const df = ent.DynamicFiles || ent.dynamicFiles;
+            const candidates = df?.File || df?.file || df?.Files || df?.files;
+            const list = Array.isArray(candidates) ? candidates : candidates ? [candidates] : [];
+            const files: string[] = [];
+            for (const v of list) {
+              if (!v) continue;
+              if (typeof v === 'string') files.push(v.replace(/\\/g, '/'));
+              else if (typeof v === 'object' && '#text' in v)
+                files.push(String(v['#text']).replace(/\\/g, '/'));
+            }
+            fileMapIndex.set(staticFile, files);
+          }
+        }
+      }
+    } catch (e) {
+      /* ignore: optional FileMap.xml may be missing or malformed */
+    }
 
     // First, load styles from Settings0/Styles/styles.xml (Grid3 format)
     const styles = new Map<string, any>();
@@ -239,7 +259,7 @@ class GridsetProcessor extends BaseProcessor {
             : [styleData.StyleData.Styles.Style];
           styleArray.forEach((style: any) => {
             if (style['@_Key']) {
-              styles.set(style['@_Key'], style);
+              styles.set(String(style['@_Key']), style);
             }
           });
         }
@@ -250,7 +270,7 @@ class GridsetProcessor extends BaseProcessor {
             : [styleData.Styles.Style];
           styleArray.forEach((style: any) => {
             if (style['@_ID']) {
-              styles.set(style['@_ID'], style);
+              styles.set(String(style['@_ID']), style);
             }
           });
         }
@@ -274,16 +294,9 @@ class GridsetProcessor extends BaseProcessor {
           const grid = data.Grid || data.grid;
           if (!grid) return;
 
-          function extractText(val: any): string | undefined {
-            if (!val) return undefined;
-            if (typeof val === 'string') return val;
-            if (typeof val === 'object' && '#text' in val) return val['#text'];
-            return undefined;
-          }
-
-          const gridId = extractText(grid.GridGuid || grid.gridGuid || grid.id);
+          const gridId = this.textOf(grid.GridGuid || grid.gridGuid || grid.id);
           let gridName =
-            extractText(grid.Name) || extractText(grid.name) || extractText(grid['@_Name']);
+            this.textOf(grid.Name) || this.textOf(grid.name) || this.textOf(grid['@_Name']);
           if (!gridName) {
             const match = entry.entryName.match(/^Grids\/([^/]+)\//);
             if (match) gridName = match[1];
@@ -325,15 +338,9 @@ class GridsetProcessor extends BaseProcessor {
           return;
         }
         // Defensive: GridGuid and Name required
-        function extractText(val: any): string | undefined {
-          if (!val) return undefined;
-          if (typeof val === 'string') return val;
-          if (typeof val === 'object' && '#text' in val) return val['#text'];
-          return undefined;
-        }
-        const gridId = extractText(grid.GridGuid || grid.gridGuid || grid.id);
+        const gridId = this.textOf(grid.GridGuid || grid.gridGuid || grid.id);
         let gridName =
-          extractText(grid.Name) || extractText(grid.name) || extractText(grid['@_Name']);
+          this.textOf(grid.Name) || this.textOf(grid.name) || this.textOf(grid['@_Name']);
         if (!gridName) {
           // Fallback: get folder name from entry path
           const match = entry.entryName.match(/^Grids\/([^/]+)\//);
@@ -377,10 +384,10 @@ class GridsetProcessor extends BaseProcessor {
 
             // Extract position information from cell attributes
             // Grid3 uses 1-based coordinates, convert to 0-based for internal use
-            const cellX = Math.max(0, parseInt(cell['@_X'] || '1', 10) - 1);
-            const cellY = Math.max(0, parseInt(cell['@_Y'] || '1', 10) - 1);
-            const colSpan = parseInt(cell['@_ColumnSpan'] || '1', 10);
-            const rowSpan = parseInt(cell['@_RowSpan'] || '1', 10);
+            const cellX = Math.max(0, parseInt(String(cell['@_X'] || '1'), 10) - 1);
+            const cellY = Math.max(0, parseInt(String(cell['@_Y'] || '1'), 10) - 1);
+            const colSpan = parseInt(String(cell['@_ColumnSpan'] || '1'), 10);
+            const rowSpan = parseInt(String(cell['@_RowSpan'] || '1'), 10);
 
             // Extract label from CaptionAndImage/Caption
             const content = cell.Content;
@@ -402,10 +409,32 @@ class GridsetProcessor extends BaseProcessor {
             // Parse all command types from Grid3 and create semantic actions
             let semanticAction: AACSemanticAction | undefined;
             let legacyAction: any = null;
-            let buttonType: 'SPEAK' | 'NAVIGATE' | 'ACTION' = 'SPEAK';
+            // infer action type implicitly from commands; no explicit enum needed
             let navigationTarget: string | undefined;
 
             const commands = content.Commands?.Command || content.commands?.command;
+
+            // Resolve image for this cell using FileMap and coordinate heuristics
+            const imageCandidate =
+              captionAndImage?.Image ||
+              captionAndImage?.image ||
+              captionAndImage?.ImageName ||
+              captionAndImage?.imageName ||
+              captionAndImage?.Symbol ||
+              captionAndImage?.symbol;
+            const declaredImageName = imageCandidate ? this.textOf(imageCandidate) : undefined;
+            const gridEntryPath = entry.entryName.replace(/\\/g, '/');
+            const baseDir = gridEntryPath.replace(/\/grid\.xml$/, '/');
+            const dynamicFiles = fileMapIndex.get(gridEntryPath) || [];
+            const resolvedImageEntry =
+              resolveGrid3CellImage(zip, {
+                baseDir,
+                imageName: declaredImageName,
+                x: cellX + 1,
+                y: cellY + 1,
+                dynamicFiles,
+              }) || undefined;
+
             if (commands) {
               const commandArr = Array.isArray(commands) ? commands : [commands];
 
@@ -420,24 +449,25 @@ class GridsetProcessor extends BaseProcessor {
                   : [];
 
                 // Helper to get parameter value
-                const getParam = (key: string) => {
+                const getParam = (key: string): string | undefined => {
                   if (!parameters) return undefined;
                   for (const param of paramArr) {
                     if (param['@_Key'] === key || param.Key === key || param.key === key) {
-                      return param['#text'] || param.text || param;
+                      const v = param['#text'] ?? param.text ?? param.value ?? param;
+                      return typeof v === 'string' ? v : String(v);
                     }
                   }
                   return undefined;
                 };
 
                 switch (commandId) {
-                  case 'Jump.To':
+                  case 'Jump.To': {
                     const gridTarget = getParam('grid');
                     if (gridTarget) {
                       // Resolve grid name to grid ID for navigation
                       const targetGridId = gridNameToIdMap.get(gridTarget) || gridTarget;
                       navigationTarget = targetGridId;
-                      buttonType = 'NAVIGATE';
+                      // navigate action
                       semanticAction = {
                         category: AACSemanticCategory.NAVIGATION,
                         intent: AACSemanticIntent.NAVIGATE_TO,
@@ -459,9 +489,10 @@ class GridsetProcessor extends BaseProcessor {
                       };
                     }
                     break;
+                  }
 
                   case 'Jump.Back':
-                    buttonType = 'ACTION';
+                    // action
                     semanticAction = {
                       category: AACSemanticCategory.NAVIGATION,
                       intent: AACSemanticIntent.GO_BACK,
@@ -482,7 +513,7 @@ class GridsetProcessor extends BaseProcessor {
                     break;
 
                   case 'Jump.Home':
-                    buttonType = 'ACTION';
+                    // action
                     semanticAction = {
                       category: AACSemanticCategory.NAVIGATION,
                       intent: AACSemanticIntent.GO_HOME,
@@ -502,8 +533,8 @@ class GridsetProcessor extends BaseProcessor {
                     };
                     break;
 
-                  case 'Action.Speak':
-                    buttonType = 'SPEAK';
+                  case 'Action.Speak': {
+                    // speak
                     const speakUnit = getParam('unit');
                     const moveCaret = getParam('movecaret');
                     semanticAction = {
@@ -526,12 +557,13 @@ class GridsetProcessor extends BaseProcessor {
                     legacyAction = {
                       type: 'SPEAK',
                       unit: speakUnit,
-                      moveCaret: moveCaret ? parseInt(moveCaret) : undefined,
+                      moveCaret: moveCaret ? parseInt(String(moveCaret)) : undefined,
                     };
                     break;
+                  }
 
-                  case 'Action.InsertText':
-                    buttonType = 'SPEAK'; // InsertText is primarily communication
+                  case 'Action.InsertText': {
+                    // speak
                     const insertText = getParam('text');
                     semanticAction = {
                       category: AACSemanticCategory.COMMUNICATION,
@@ -553,9 +585,10 @@ class GridsetProcessor extends BaseProcessor {
                       text: insertText,
                     };
                     break;
+                  }
 
                   case 'Action.DeleteWord':
-                    buttonType = 'ACTION';
+                    // action
                     semanticAction = {
                       category: AACSemanticCategory.TEXT_EDITING,
                       intent: AACSemanticIntent.DELETE_WORD,
@@ -576,7 +609,7 @@ class GridsetProcessor extends BaseProcessor {
                     break;
 
                   case 'Action.DeleteLetter':
-                    buttonType = 'ACTION';
+                    // action
                     semanticAction = {
                       category: AACSemanticCategory.TEXT_EDITING,
                       intent: AACSemanticIntent.DELETE_CHARACTER,
@@ -597,7 +630,7 @@ class GridsetProcessor extends BaseProcessor {
                     break;
 
                   case 'Action.Clear':
-                    buttonType = 'ACTION';
+                    // action
                     semanticAction = {
                       category: AACSemanticCategory.TEXT_EDITING,
                       intent: AACSemanticIntent.CLEAR_TEXT,
@@ -617,29 +650,8 @@ class GridsetProcessor extends BaseProcessor {
                     };
                     break;
 
-                  case 'Action.Clear':
-                    buttonType = 'ACTION';
-                    semanticAction = {
-                      category: AACSemanticCategory.TEXT_EDITING,
-                      intent: AACSemanticIntent.CLEAR_TEXT,
-                      platformData: {
-                        grid3: {
-                          commandId,
-                          parameters: {},
-                        },
-                      },
-                      fallback: {
-                        type: 'ACTION',
-                        message: 'Clear text',
-                      },
-                    };
-                    legacyAction = {
-                      type: 'CLEAR',
-                    };
-                    break;
-
-                  case 'Action.Letter':
-                    buttonType = 'ACTION';
+                  case 'Action.Letter': {
+                    // action
                     const letter = getParam('letter');
                     semanticAction = {
                       category: AACSemanticCategory.TEXT_EDITING,
@@ -661,9 +673,10 @@ class GridsetProcessor extends BaseProcessor {
                       letter,
                     };
                     break;
+                  }
 
                   case 'Settings.RestAll':
-                    buttonType = 'ACTION';
+                    // action
                     semanticAction = {
                       category: AACSemanticCategory.CUSTOM,
                       intent: AACSemanticIntent.PLATFORM_SPECIFIC,
@@ -689,7 +702,7 @@ class GridsetProcessor extends BaseProcessor {
                     break;
 
                   case 'AutoContent.Activate':
-                    buttonType = 'ACTION';
+                    // action
                     semanticAction = {
                       category: AACSemanticCategory.CUSTOM,
                       intent: AACSemanticIntent.PLATFORM_SPECIFIC,
@@ -715,7 +728,7 @@ class GridsetProcessor extends BaseProcessor {
                   default:
                     // Unknown command - preserve as generic action
                     if (commandId) {
-                      buttonType = 'ACTION';
+                      // action
                       const allParams = Object.fromEntries(
                         paramArr.map((p) => [p.Key || p.key, p['#text']])
                       );
@@ -767,7 +780,10 @@ class GridsetProcessor extends BaseProcessor {
               cellStyleId = content.Style.BasedOnStyle;
             }
 
-            const cellStyle = this.getStyleById(styles, cellStyleId);
+            const cellStyle = this.getStyleById(
+              styles,
+              cellStyleId ? String(cellStyleId) : undefined
+            );
 
             // Also check for inline style overrides
             const inlineStyle: any = {};
@@ -781,7 +797,8 @@ class GridsetProcessor extends BaseProcessor {
               if (content.Style.FontColour) inlineStyle.fontColor = content.Style.FontColour;
               if (content.Style.BorderColour) inlineStyle.borderColor = content.Style.BorderColour;
               if (content.Style.FontName) inlineStyle.fontFamily = content.Style.FontName;
-              if (content.Style.FontSize) inlineStyle.fontSize = parseInt(content.Style.FontSize);
+              if (content.Style.FontSize)
+                inlineStyle.fontSize = parseInt(String(content.Style.FontSize));
             }
 
             const button = new AACButton({
@@ -790,6 +807,12 @@ class GridsetProcessor extends BaseProcessor {
               message: String(message),
               targetPageId: navigationTarget ? String(navigationTarget) : undefined,
               semanticAction: semanticAction,
+              image: declaredImageName,
+              resolvedImageEntry: resolvedImageEntry,
+              x: cellX,
+              y: cellY,
+              columnSpan: colSpan,
+              rowSpan: rowSpan,
               style: {
                 ...cellStyle,
                 ...inlineStyle, // Inline styles override referenced styles
@@ -848,16 +871,19 @@ class GridsetProcessor extends BaseProcessor {
     Object.values(tree.pages).forEach((page) => {
       // Translate page names
       if (page.name && translations.has(page.name)) {
-        page.name = translations.get(page.name)!;
+        const tPage = translations.get(page.name);
+        if (tPage) page.name = tPage;
       }
 
       // Translate button labels and messages
       page.buttons.forEach((button) => {
         if (button.label && translations.has(button.label)) {
-          button.label = translations.get(button.label)!;
+          const tLabel = translations.get(button.label);
+          if (tLabel) button.label = tLabel;
         }
         if (button.message && translations.has(button.message)) {
-          button.message = translations.get(button.message)!;
+          const tMsg = translations.get(button.message);
+          if (tMsg) button.message = tMsg;
         }
       });
     });
@@ -877,20 +903,22 @@ class GridsetProcessor extends BaseProcessor {
     }
 
     // Collect all unique styles from pages and buttons
-    const uniqueStyles = new Map<string, any>();
+    const uniqueStyles = new Map<string, { id: string; style: Record<string, unknown> }>();
     let styleIdCounter = 1;
 
     // Helper function to add style and return its ID
-    const addStyle = (style: any): string => {
-      if (!style || Object.keys(style).length === 0) return '';
+    const addStyle = (style: unknown): string => {
+      if (!style || typeof style !== 'object') return '';
+      const obj = style as Record<string, unknown>;
+      if (Object.keys(obj).length === 0) return '';
 
-      const styleKey = JSON.stringify(style);
-      if (!uniqueStyles.has(styleKey)) {
-        const styleId = `Style${styleIdCounter++}`;
-        uniqueStyles.set(styleKey, { id: styleId, style });
-        return styleId;
-      }
-      return uniqueStyles.get(styleKey)!.id;
+      const styleKey = JSON.stringify(obj);
+      const existing = uniqueStyles.get(styleKey);
+      if (existing) return existing.id;
+
+      const styleId = `Style${styleIdCounter++}`;
+      uniqueStyles.set(styleKey, { id: styleId, style: obj });
+      return styleId;
     };
 
     // Collect styles from all pages and buttons
@@ -984,7 +1012,7 @@ class GridsetProcessor extends BaseProcessor {
                     // Find button position in grid layout
                     const position = this.findButtonPosition(page, button, btnIndex);
 
-                    const cellData: any = {
+                    const cellData: Record<string, unknown> = {
                       '@_X': position.x,
                       '@_Y': position.y,
                       '@_ColumnSpan': position.columnSpan,
@@ -999,7 +1027,7 @@ class GridsetProcessor extends BaseProcessor {
 
                     // Add style reference if available
                     if (buttonStyleId) {
-                      cellData.Content.Style = {
+                      (cellData as any).Content.Style = {
                         BasedOnStyle: buttonStyleId,
                       };
                     }
@@ -1103,27 +1131,30 @@ class GridsetProcessor extends BaseProcessor {
       // Search for button in grid layout and calculate span
       for (let y = 0; y < page.grid.length; y++) {
         for (let x = 0; x < page.grid[y].length; x++) {
-          if (page.grid[y][x] && page.grid[y][x]!.id === button.id) {
+          const current = page.grid[y][x];
+          if (current && current.id === button.id) {
             // Calculate span by checking how far the same button extends
             let columnSpan = 1;
             let rowSpan = 1;
 
             // Check column span (rightward)
-            while (
-              x + columnSpan < page.grid[y].length &&
-              page.grid[y][x + columnSpan] &&
-              page.grid[y][x + columnSpan]!.id === button.id
-            ) {
-              columnSpan++;
+            while (x + columnSpan < page.grid[y].length) {
+              const right = page.grid[y][x + columnSpan];
+              if (right && right.id === button.id) {
+                columnSpan++;
+              } else {
+                break;
+              }
             }
 
             // Check row span (downward)
-            while (
-              y + rowSpan < page.grid.length &&
-              page.grid[y + rowSpan][x] &&
-              page.grid[y + rowSpan][x]!.id === button.id
-            ) {
-              rowSpan++;
+            while (y + rowSpan < page.grid.length) {
+              const below = page.grid[y + rowSpan][x];
+              if (below && below.id === button.id) {
+                rowSpan++;
+              } else {
+                break;
+              }
             }
 
             return { x, y, columnSpan, rowSpan };

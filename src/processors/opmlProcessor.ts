@@ -7,7 +7,7 @@ import {
 } from '../core/baseProcessor';
 import { AACTree, AACPage, AACButton, AACSemanticIntent } from '../core/treeStructure';
 // Removed unused import: FileProcessor
-import { XMLParser } from 'fast-xml-parser';
+import { XMLParser, XMLValidator } from 'fast-xml-parser';
 import fs from 'fs';
 
 interface OpmlOutline {
@@ -128,8 +128,24 @@ class OpmlProcessor extends BaseProcessor {
         ? fs.readFileSync(filePathOrBuffer, 'utf8')
         : filePathOrBuffer.toString('utf8');
 
+    if (!content || !content.trim()) {
+      throw new Error('Empty OPML content');
+    }
+
+    // Validate XML before parsing, fast-xml-parser is permissive by default
+    const validationResult = XMLValidator.validate(content);
+    if (validationResult !== true) {
+      const reason = (validationResult as any)?.err?.msg || JSON.stringify(validationResult);
+      throw new Error(`Invalid OPML XML: ${reason}`);
+    }
+
     const parser = new XMLParser({ ignoreAttributes: false });
-    const data = parser.parse(content) as OpmlDocument;
+    let data: OpmlDocument;
+    try {
+      data = parser.parse(content) as OpmlDocument;
+    } catch (e: any) {
+      throw new Error(`Invalid OPML XML: ${e?.message || String(e)}`);
+    }
     const tree = new AACTree();
 
     // Handle case where body.outline might not exist or be in different formats
