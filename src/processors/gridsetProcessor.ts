@@ -23,7 +23,6 @@ class GridsetProcessor extends BaseProcessor {
     super(options);
   }
   // Helper function to generate Grid3 commands from semantic actions
-  // TEST 1: Add navigation support
   private generateCommandsFromSemanticAction(button: AACButton, tree?: AACTree): any {
     const semanticAction = button.semanticAction;
 
@@ -45,43 +44,119 @@ class GridsetProcessor extends BaseProcessor {
       };
     }
 
-    // Handle navigation
-    const intentStr = String(semanticAction.intent);
-    if (intentStr === 'NAVIGATE_TO') {
-      // For Grid3, we need to use the grid name, not the ID
-      let targetGridName = semanticAction.targetId || '';
-      if (tree && semanticAction.targetId) {
-        const targetPage = tree.getPage(semanticAction.targetId);
-        if (targetPage) {
-          targetGridName = targetPage.name || targetPage.id;
-        }
-      }
+    // Use platform-specific Grid3 data if available
+    if (semanticAction.platformData?.grid3) {
+      const grid3Data = semanticAction.platformData.grid3;
+      const params = Object.entries(grid3Data.parameters || {}).map(([key, value]) => ({
+        '@_Key': key,
+        '#text': String(value),
+      }));
+
       return {
         Command: {
-          '@_ID': 'Jump.To',
-          Parameter: {
-            '@_Key': 'grid',
-            '#text': targetGridName,
-          },
+          '@_ID': grid3Data.commandId,
+          ...(params.length > 0 ? { Parameter: params } : {}),
         },
       };
     }
 
-    // Default: insert text with structured XML format
-    const text = semanticAction.text || button.message || button.label || '';
-    return {
-      Command: {
-        '@_ID': 'Action.InsertText',
-        Parameter: {
-          '@_Key': 'text',
-          p: {
-            s: {
-              r: text,
+    // Convert semantic actions to Grid3 commands
+    const intentStr = String(semanticAction.intent);
+    switch (intentStr) {
+      case 'NAVIGATE_TO': {
+        // For Grid3, we need to use the grid name, not the ID
+        let targetGridName = semanticAction.targetId || '';
+        if (tree && semanticAction.targetId) {
+          const targetPage = tree.getPage(semanticAction.targetId);
+          if (targetPage) {
+            targetGridName = targetPage.name || targetPage.id;
+          }
+        }
+        return {
+          Command: {
+            '@_ID': 'Jump.To',
+            Parameter: {
+              '@_Key': 'grid',
+              '#text': targetGridName,
             },
           },
-        },
-      },
-    };
+        };
+      }
+
+      case 'GO_BACK':
+        return {
+          Command: {
+            '@_ID': 'Jump.Back',
+          },
+        };
+
+      case 'GO_HOME':
+        return {
+          Command: {
+            '@_ID': 'Jump.Home',
+          },
+        };
+
+      case 'DELETE_WORD':
+        return {
+          Command: {
+            '@_ID': 'Action.DeleteWord',
+          },
+        };
+
+      case 'DELETE_CHARACTER':
+        return {
+          Command: {
+            '@_ID': 'Action.DeleteLetter',
+          },
+        };
+
+      case 'CLEAR_TEXT':
+        return {
+          Command: {
+            '@_ID': 'Action.Clear',
+          },
+        };
+
+      case 'SPEAK_TEXT':
+      case 'SPEAK_IMMEDIATE':
+        return {
+          Command: {
+            '@_ID': 'Action.Speak',
+          },
+        };
+
+      case 'INSERT_TEXT':
+        return {
+          Command: {
+            '@_ID': 'Action.InsertText',
+            Parameter: {
+              '@_Key': 'text',
+              p: {
+                s: {
+                  r: semanticAction.text || button.message || button.label || '',
+                },
+              },
+            },
+          },
+        };
+
+      default:
+        // Fallback to insert text with structured XML format
+        return {
+          Command: {
+            '@_ID': 'Action.InsertText',
+            Parameter: {
+              '@_Key': 'text',
+              p: {
+                s: {
+                  r: semanticAction.text || button.message || button.label || '',
+                },
+              },
+            },
+          },
+        };
+    }
   }
 
   // Helper function to convert Grid 3 style to AACStyle
