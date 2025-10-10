@@ -28,6 +28,7 @@ class GridsetProcessor extends BaseProcessor {
 
     if (!semanticAction) {
       // Default to insert text action with structured XML format
+      // Use two <s> elements: one for the word, one for the space
       const text = button.message || button.label || '';
       return {
         Command: {
@@ -35,9 +36,14 @@ class GridsetProcessor extends BaseProcessor {
           Parameter: {
             '@_Key': 'text',
             p: {
-              s: {
-                r: text,
-              },
+              s: [
+                {
+                  r: text,
+                },
+                {
+                  r: ' ',
+                },
+              ],
             },
           },
         },
@@ -120,42 +126,81 @@ class GridsetProcessor extends BaseProcessor {
 
       case 'SPEAK_TEXT':
       case 'SPEAK_IMMEDIATE':
-        return {
-          Command: {
-            '@_ID': 'Action.Speak',
-          },
-        };
-
-      case 'INSERT_TEXT':
-        return {
-          Command: {
-            '@_ID': 'Action.InsertText',
-            Parameter: {
-              '@_Key': 'text',
-              p: {
-                s: {
-                  r: semanticAction.text || button.message || button.label || '',
+        // For communication buttons, insert text into message bar (sentence building)
+        // Grid3 requires explicit trailing space for automatic word spacing
+        // Use two <s> elements: one for the word, one for the space (like Super Core)
+        // Users can speak the complete sentence with a dedicated Speak button
+        {
+          const text = semanticAction.text || button.message || button.label || '';
+          return {
+            Command: {
+              '@_ID': 'Action.InsertText',
+              Parameter: {
+                '@_Key': 'text',
+                p: {
+                  s: [
+                    {
+                      r: text,
+                    },
+                    {
+                      r: ' ',
+                    },
+                  ],
                 },
               },
             },
-          },
-        };
+          };
+        }
+
+      case 'INSERT_TEXT':
+        // Add trailing space for word buttons to enable sentence building
+        // Use two <s> elements: one for the word, one for the space
+        {
+          const text = semanticAction.text || button.message || button.label || '';
+          return {
+            Command: {
+              '@_ID': 'Action.InsertText',
+              Parameter: {
+                '@_Key': 'text',
+                p: {
+                  s: [
+                    {
+                      r: text,
+                    },
+                    {
+                      r: ' ',
+                    },
+                  ],
+                },
+              },
+            },
+          };
+        }
 
       default:
         // Fallback to insert text with structured XML format
-        return {
-          Command: {
-            '@_ID': 'Action.InsertText',
-            Parameter: {
-              '@_Key': 'text',
-              p: {
-                s: {
-                  r: semanticAction.text || button.message || button.label || '',
+        // Use two <s> elements: one for the word, one for the space
+        {
+          const text = semanticAction.text || button.message || button.label || '';
+          return {
+            Command: {
+              '@_ID': 'Action.InsertText',
+              Parameter: {
+                '@_Key': 'text',
+                p: {
+                  s: [
+                    {
+                      r: text,
+                    },
+                    {
+                      r: ' ',
+                    },
+                  ],
                 },
               },
             },
-          },
-        };
+          };
+        }
     }
   }
 
