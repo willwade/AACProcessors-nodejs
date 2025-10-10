@@ -139,7 +139,6 @@ dist
 *.flac
 *audio_files/
 *audio_files.zip
-.envrc
 test_*.wav
 test_*.mp3
 
