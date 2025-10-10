@@ -283,6 +283,11 @@ class AstericsGridProcessor extends BaseProcessor {
       page.grid = gridLayout;
     });
 
+    // Set the home page from metadata.homeGridId
+    if (grdFile.metadata && grdFile.metadata.homeGridId) {
+      tree.rootId = grdFile.metadata.homeGridId;
+    }
+
     return tree;
   }
 
@@ -853,9 +858,13 @@ class AstericsGridProcessor extends BaseProcessor {
       };
     });
 
+    // Determine the home grid ID from tree.rootId, fallback to first grid
+    const homeGridId = tree.rootId || (grids.length > 0 ? grids[0].id : undefined);
+
     const grdFile: AstericsGridFile = {
       grids: grids,
       metadata: {
+        homeGridId: homeGridId,
         colorConfig: {
           gridBackgroundColor: defaultPageStyle.backgroundColor,
           elementBackgroundColor: defaultPageStyle.backgroundColor,

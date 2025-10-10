@@ -853,6 +853,29 @@ class GridsetProcessor extends BaseProcessor {
       });
     }
 
+    // Read settings.xml to get the StartGrid (home page)
+    try {
+      const settingsEntry = zip.getEntries().find((e) => e.entryName.endsWith('settings.xml'));
+      if (settingsEntry) {
+        const settingsXml = settingsEntry.getData().toString('utf8');
+        const settingsData = parser.parse(settingsXml);
+        const startGridName =
+          settingsData?.GridSetSettings?.StartGrid ||
+          settingsData?.gridSetSettings?.startGrid ||
+          settingsData?.GridsetSettings?.StartGrid;
+
+        if (startGridName && typeof startGridName === 'string') {
+          // Resolve the grid name to grid ID
+          const homeGridId = gridNameToIdMap.get(startGridName);
+          if (homeGridId) {
+            tree.rootId = homeGridId;
+          }
+        }
+      }
+    } catch (e) {
+      // If settings.xml parsing fails, tree.rootId will default to first page
+    }
+
     return tree;
   }
 
@@ -929,9 +952,21 @@ class GridsetProcessor extends BaseProcessor {
       });
     });
 
-    // Get the first page as the home/start grid
+    // Get the home/start grid from tree.rootId, fallback to first page
     const pages = Object.values(tree.pages);
-    const startGrid = pages.length > 0 ? pages[0].name || pages[0].id : '';
+    let startGrid = '';
+
+    if (tree.rootId) {
+      const homePage = tree.getPage(tree.rootId);
+      if (homePage) {
+        startGrid = homePage.name || homePage.id;
+      }
+    }
+
+    // Fallback to first page if no rootId or page not found
+    if (!startGrid && pages.length > 0) {
+      startGrid = pages[0].name || pages[0].id;
+    }
 
     // Create Settings0/settings.xml with proper Grid3 structure
     const settingsData = {
