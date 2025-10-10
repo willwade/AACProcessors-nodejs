@@ -664,7 +664,7 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 Created by **Will Wade** and contributors.
 
-Inspired by the Python AACProcessors project and built for the AAC community.
+Inspired by the Python AACProcessors project
 
 ### Related Projects
 
@@ -759,5 +759,3 @@ Inspired by the Python AACProcessors project and built for the AAC community.
 Want to help with any of these items? See our [Contributing Guidelines](#-contributing) and pick an issue that interests you!
 
 ---
-
-_Built with ❤️ for the AAC community_
