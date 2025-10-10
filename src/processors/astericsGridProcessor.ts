@@ -43,6 +43,7 @@ interface GridElement {
   wordForms?: WordForm[];
   image?: GridImage;
   backgroundColor?: string;
+  colorCategory?: string;
   actions: GridAction[];
   dontCollect?: boolean;
   type?: string;
@@ -78,6 +79,47 @@ interface AstericsGridFile {
   grids: GridData[];
   metadata?: any;
 }
+
+// Asterics Grid Color Scheme Definitions
+// Maps color categories to actual colors for different color schemes
+const COLOR_SCHEMES: Record<string, Record<string, { backgroundColor: string; borderColor: string }>> = {
+  CS_MONTESSORI_VERY_LIGHT: {
+    CC_DEFAULT: { backgroundColor: '#ffffff', borderColor: '#cccccc' },
+    CC_IMPORTANT: { backgroundColor: '#ffcccc', borderColor: '#cc0000' },  // Light red with red border
+    CC_PEOPLE: { backgroundColor: '#ffeecc', borderColor: '#ff9900' },     // Light orange
+    CC_NAMES: { backgroundColor: '#ffddff', borderColor: '#cc00cc' },      // Light purple
+    CC_VERBS: { backgroundColor: '#ddffdd', borderColor: '#00aa00' },      // Light green
+    CC_ADJECTIVES: { backgroundColor: '#ccddff', borderColor: '#0066cc' }, // Light blue
+    CC_QUESTION_WORDS: { backgroundColor: '#ffffcc', borderColor: '#cccc00' }, // Light yellow
+    CC_PRONOUNS: { backgroundColor: '#ffddcc', borderColor: '#ff6600' },   // Light peach
+    CC_CONJUNCTIONS: { backgroundColor: '#e6ccff', borderColor: '#9933ff' }, // Light lavender
+    CC_INTERJECTIONS: { backgroundColor: '#ffccee', borderColor: '#ff0099' }, // Light pink
+  },
+  CS_MONTESSORI: {
+    CC_DEFAULT: { backgroundColor: '#f0f0f0', borderColor: '#999999' },
+    CC_IMPORTANT: { backgroundColor: '#ff9999', borderColor: '#990000' },
+    CC_PEOPLE: { backgroundColor: '#ffcc99', borderColor: '#ff6600' },
+    CC_NAMES: { backgroundColor: '#ffbbff', borderColor: '#990099' },
+    CC_VERBS: { backgroundColor: '#99ff99', borderColor: '#007700' },
+    CC_ADJECTIVES: { backgroundColor: '#99bbff', borderColor: '#004499' },
+    CC_QUESTION_WORDS: { backgroundColor: '#ffff99', borderColor: '#999900' },
+    CC_PRONOUNS: { backgroundColor: '#ffbb99', borderColor: '#cc4400' },
+    CC_CONJUNCTIONS: { backgroundColor: '#cc99ff', borderColor: '#7700cc' },
+    CC_INTERJECTIONS: { backgroundColor: '#ff99dd', borderColor: '#cc0066' },
+  },
+  CS_DEFAULT: {
+    CC_DEFAULT: { backgroundColor: '#ffffff', borderColor: '#808080' },
+    CC_IMPORTANT: { backgroundColor: '#ff6666', borderColor: '#cc0000' },
+    CC_PEOPLE: { backgroundColor: '#ffaa66', borderColor: '#ff6600' },
+    CC_NAMES: { backgroundColor: '#ff99ff', borderColor: '#cc00cc' },
+    CC_VERBS: { backgroundColor: '#66ff66', borderColor: '#00cc00' },
+    CC_ADJECTIVES: { backgroundColor: '#6699ff', borderColor: '#0066cc' },
+    CC_QUESTION_WORDS: { backgroundColor: '#ffff66', borderColor: '#cccc00' },
+    CC_PRONOUNS: { backgroundColor: '#ff9966', borderColor: '#ff3300' },
+    CC_CONJUNCTIONS: { backgroundColor: '#9966ff', borderColor: '#6600cc' },
+    CC_INTERJECTIONS: { backgroundColor: '#ff66cc', borderColor: '#cc0099' },
+  },
+};
 
 class AstericsGridProcessor extends BaseProcessor {
   private loadAudio: boolean = false;
@@ -235,6 +277,9 @@ class AstericsGridProcessor extends BaseProcessor {
       tree.addPage(page);
     });
 
+    // Get active color scheme from metadata
+    const activeColorScheme = grdFile.metadata?.colorConfig?.activeColorScheme;
+
     // Second pass: add buttons and establish navigation
     grdFile.grids.forEach((grid: GridData) => {
       const page = tree.getPage(grid.id);
@@ -249,7 +294,7 @@ class AstericsGridProcessor extends BaseProcessor {
       }
 
       grid.gridElements.forEach((element: GridElement) => {
-        const button = this.createButtonFromElement(element, grdFile.metadata?.colorConfig);
+        const button = this.createButtonFromElement(element, grdFile.metadata?.colorConfig, activeColorScheme);
         page.addButton(button);
 
         // Place button in grid layout using its x,y coordinates
@@ -306,7 +351,7 @@ class AstericsGridProcessor extends BaseProcessor {
     return '';
   }
 
-  private createButtonFromElement(element: GridElement, colorConfig?: any): AACButton {
+  private createButtonFromElement(element: GridElement, colorConfig?: any, activeColorScheme?: string): AACButton {
     let audioRecording;
     if (this.loadAudio) {
       const audioAction = element.actions.find(
@@ -322,6 +367,16 @@ class AstericsGridProcessor extends BaseProcessor {
             durationMs: audioAction.durationMs,
           }),
         };
+      }
+    }
+
+    // Resolve color category to actual colors
+    let resolvedColors: { backgroundColor?: string; borderColor?: string } = {};
+    if (element.colorCategory && activeColorScheme) {
+      const colorScheme = COLOR_SCHEMES[activeColorScheme] || COLOR_SCHEMES['CS_DEFAULT'];
+      const categoryColors = colorScheme[element.colorCategory] || colorScheme['CC_DEFAULT'];
+      if (categoryColors) {
+        resolvedColors = categoryColors;
       }
     }
 
@@ -536,8 +591,14 @@ class AstericsGridProcessor extends BaseProcessor {
       audioRecording: audioRecording,
       style: {
         backgroundColor:
-          element.backgroundColor || colorConfig?.elementBackgroundColor || '#FFFFFF',
-        borderColor: colorConfig?.elementBorderColor || '#CCCCCC',
+          element.backgroundColor ||
+          resolvedColors.backgroundColor ||
+          colorConfig?.elementBackgroundColor ||
+          '#FFFFFF',
+        borderColor:
+          resolvedColors.borderColor ||
+          colorConfig?.elementBorderColor ||
+          '#CCCCCC',
         borderWidth: colorConfig?.borderWidth || 1,
         fontFamily: colorConfig?.fontFamily || 'Arial',
         fontSize: colorConfig?.fontSizePct ? colorConfig.fontSizePct * 16 : 16, // Default to 16px

@@ -22,6 +22,25 @@ class GridsetProcessor extends BaseProcessor {
   constructor(options?: ProcessorOptions) {
     super(options);
   }
+
+  // Helper function to ensure color has alpha channel (Grid3 format)
+  private ensureAlphaChannel(color: string | undefined): string {
+    if (!color) return '#FFFFFFFF';
+    // If already 8 digits (with alpha), return as is
+    if (color.match(/^#[0-9A-Fa-f]{8}$/)) return color;
+    // If 6 digits (no alpha), add FF for fully opaque
+    if (color.match(/^#[0-9A-Fa-f]{6}$/)) return color + 'FF';
+    // If 3 digits (shorthand), expand to 8
+    if (color.match(/^#[0-9A-Fa-f]{3}$/)) {
+      const r = color[1];
+      const g = color[2];
+      const b = color[3];
+      return `#${r}${r}${g}${g}${b}${b}FF`;
+    }
+    // Invalid or unknown format, return white
+    return '#FFFFFFFF';
+  }
+
   // Helper function to generate Grid3 commands from semantic actions
   private generateCommandsFromSemanticAction(button: AACButton, tree?: AACTree): any {
     const semanticAction = button.semanticAction;
@@ -506,13 +525,46 @@ class GridsetProcessor extends BaseProcessor {
                     : [parameters]
                   : [];
 
+                // Helper to extract text from Grid3's structured format <p><s><r>text</r></s></p>
+                const extractStructuredText = (param: any): string | undefined => {
+                  // Try to extract from nested p.s structure
+                  if (param.p) {
+                    const p = param.p;
+                    // Handle p.s array or single s element
+                    const sElements = Array.isArray(p.s) ? p.s : p.s ? [p.s] : [];
+                    // Extract all r values and concatenate
+                    const parts: string[] = [];
+                    for (const s of sElements) {
+                      if (s && s.r !== undefined) {
+                        parts.push(String(s.r));
+                      }
+                    }
+                    if (parts.length > 0) {
+                      return parts.join('');
+                    }
+                  }
+                  return undefined;
+                };
+
                 // Helper to get parameter value
                 const getParam = (key: string): string | undefined => {
                   if (!parameters) return undefined;
                   for (const param of paramArr) {
                     if (param['@_Key'] === key || param.Key === key || param.key === key) {
-                      const v = param['#text'] ?? param.text ?? param.value ?? param;
-                      return typeof v === 'string' ? v : String(v);
+                      // First try simple #text value
+                      const simpleValue = param['#text'] ?? param.text ?? param.value;
+                      if (typeof simpleValue === 'string') {
+                        return simpleValue;
+                      }
+                      // Try to extract from structured format (Grid3's <p><s><r> format)
+                      const structuredValue = extractStructuredText(param);
+                      if (structuredValue !== undefined) {
+                        return structuredValue;
+                      }
+                      // Fallback to string conversion
+                      if (typeof param === 'string') {
+                        return param;
+                      }
                     }
                   }
                   return undefined;
@@ -1055,10 +1107,10 @@ class GridsetProcessor extends BaseProcessor {
     if (uniqueStyles.size > 0) {
       const stylesArray = Array.from(uniqueStyles.values()).map(({ id, style }) => ({
         '@_Key': id,
-        BackColour: style.backgroundColor || '#FFFFFFFF',
-        TileColour: style.backgroundColor || '#FFFFFFFF',
-        BorderColour: style.borderColor || '#000000FF',
-        FontColour: style.fontColor || '#000000FF',
+        BackColour: this.ensureAlphaChannel(style.backgroundColor as string | undefined),
+        TileColour: this.ensureAlphaChannel(style.backgroundColor as string | undefined),
+        BorderColour: this.ensureAlphaChannel(style.borderColor as string | undefined) || '#000000FF',
+        FontColour: this.ensureAlphaChannel(style.fontColor as string | undefined) || '#000000FF',
         FontName: style.fontFamily || 'Arial',
         FontSize: style.fontSize?.toString() || '16',
       }));
@@ -1079,7 +1131,7 @@ class GridsetProcessor extends BaseProcessor {
         indentBy: '  ',
       });
       const styleXmlContent = styleBuilder.build(styleData);
-      zip.addFile('Settings0/Styles/style.xml', Buffer.from(styleXmlContent, 'utf8'));
+      zip.addFile('Settings0/Styles/styles.xml', Buffer.from(styleXmlContent, 'utf8'));
     }
 
     // Collect grid file paths for FileMap.xml
@@ -1123,8 +1175,8 @@ class GridsetProcessor extends BaseProcessor {
                     const yOffset = 1;
 
                     const cellData: Record<string, unknown> = {
-                      '@_X': position.x,
-                      '@_Y': position.y + yOffset,
+                      '@_X': position.x + 1, // Grid3 uses 1-based coordinates
+                      '@_Y': position.y + yOffset + 1, // Grid3 uses 1-based coordinates
                       '@_ColumnSpan': position.columnSpan,
                       '@_RowSpan': position.rowSpan,
                       Content: {
@@ -1135,11 +1187,34 @@ class GridsetProcessor extends BaseProcessor {
                       },
                     };
 
-                    // Add style reference if available
-                    if (buttonStyleId) {
-                      (cellData as any).Content.Style = {
-                        BasedOnStyle: buttonStyleId,
-                      };
+                    // Add style reference and inline color overrides if available
+                    // Some Grid3 versions need inline colors in addition to style references
+                    if (buttonStyleId || button.style) {
+                      const styleObj: any = {};
+
+                      // Add style reference if we have one
+                      if (buttonStyleId) {
+                        styleObj.BasedOnStyle = buttonStyleId;
+                      }
+
+                      // Add inline color overrides for better Grid3 compatibility
+                      if (button.style?.backgroundColor) {
+                        styleObj.BackColour = this.ensureAlphaChannel(button.style.backgroundColor);
+                      }
+                      if (button.style?.borderColor) {
+                        styleObj.BorderColour = this.ensureAlphaChannel(button.style.borderColor);
+                      }
+                      if (button.style?.fontColor) {
+                        styleObj.FontColour = this.ensureAlphaChannel(button.style.fontColor);
+                      }
+                      if (button.style?.fontFamily) {
+                        styleObj.FontName = button.style.fontFamily;
+                      }
+                      if (button.style?.fontSize) {
+                        styleObj.FontSize = button.style.fontSize;
+                      }
+
+                      (cellData as any).Content.Style = styleObj;
                     }
 
                     return cellData;
