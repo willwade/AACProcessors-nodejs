@@ -44,10 +44,6 @@ These scripts are primarily for development and experimentation. They may requir
 - Additional dependencies not in the main package.json
 - Specific configuration files
 
-## Documentation
-
-- `AUDIO_ENHANCEMENT_SUMMARY.md` - Audio feature development notes
-- `LIBRARY_ENHANCEMENT_SUMMARY.md` - Library enhancement documentation
 
 ## Contributing
 
