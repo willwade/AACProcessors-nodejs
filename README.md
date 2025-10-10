@@ -646,6 +646,12 @@ npm run build
 npm test
 ```
 
+### Environment Variables
+
+- Copy the template: `cp .envrc.example .envrc`
+- Fill in your own API keys locally; `.envrc` is ignored to prevent accidental commits
+- If you rotate keys, update only your local `.envrc`—never commit real secrets
+
 ---
 
 ## 📄 License
