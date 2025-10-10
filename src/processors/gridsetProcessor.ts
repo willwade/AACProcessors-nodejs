@@ -28,13 +28,18 @@ class GridsetProcessor extends BaseProcessor {
     const semanticAction = button.semanticAction;
 
     if (!semanticAction) {
-      // Default to insert text action
+      // Default to insert text action with structured XML format
+      const text = button.message || button.label || '';
       return {
         Command: {
           '@_ID': 'Action.InsertText',
           Parameter: {
             '@_Key': 'text',
-            '#text': button.message || button.label || '',
+            p: {
+              s: {
+                r: text,
+              },
+            },
           },
         },
       };
@@ -62,13 +67,18 @@ class GridsetProcessor extends BaseProcessor {
       };
     }
 
-    // Default: insert text
+    // Default: insert text with structured XML format
+    const text = semanticAction.text || button.message || button.label || '';
     return {
       Command: {
         '@_ID': 'Action.InsertText',
         Parameter: {
           '@_Key': 'text',
-          '#text': semanticAction.text || button.message || button.label || '',
+          p: {
+            s: {
+              r: text,
+            },
+          },
         },
       },
     };
@@ -971,6 +981,8 @@ class GridsetProcessor extends BaseProcessor {
                   Cell: [
                     // Add workspace/message bar cell at the top of ALL pages
                     {
+                      '@_X': 1,
+                      '@_Y': 0,
                       '@_ColumnSpan': 4,
                       Content: {
                         ContentType: 'Workspace',
@@ -1012,7 +1024,8 @@ class GridsetProcessor extends BaseProcessor {
 
                     return cellData;
                   }),
-                }
+                ]
+              }
               : { Cell: [] },
         },
       };
