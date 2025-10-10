@@ -23,6 +23,7 @@ class GridsetProcessor extends BaseProcessor {
     super(options);
   }
   // Helper function to generate Grid3 commands from semantic actions
+  // TEST 1: Add navigation support
   private generateCommandsFromSemanticAction(button: AACButton, tree?: AACTree): any {
     const semanticAction = button.semanticAction;
 
@@ -39,111 +40,38 @@ class GridsetProcessor extends BaseProcessor {
       };
     }
 
-    // Use platform-specific Grid3 data if available
-    if (semanticAction.platformData?.grid3) {
-      const grid3Data = semanticAction.platformData.grid3;
-      const params = Object.entries(grid3Data.parameters || {}).map(([key, value]) => ({
-        '@_Key': key,
-        '#text': String(value),
-      }));
-
+    // Handle navigation
+    const intentStr = String(semanticAction.intent);
+    if (intentStr === 'NAVIGATE_TO') {
+      // For Grid3, we need to use the grid name, not the ID
+      let targetGridName = semanticAction.targetId || '';
+      if (tree && semanticAction.targetId) {
+        const targetPage = tree.getPage(semanticAction.targetId);
+        if (targetPage) {
+          targetGridName = targetPage.name || targetPage.id;
+        }
+      }
       return {
         Command: {
-          '@_ID': grid3Data.commandId,
-          ...(params.length > 0 ? { Parameter: params } : {}),
+          '@_ID': 'Jump.To',
+          Parameter: {
+            '@_Key': 'grid',
+            '#text': targetGridName,
+          },
         },
       };
     }
 
-    // Convert semantic actions to Grid3 commands
-    const intentStr = String(semanticAction.intent);
-    switch (intentStr) {
-      case 'NAVIGATE_TO': {
-        // For Grid3, we need to use the grid name, not the ID
-        let targetGridName = semanticAction.targetId || '';
-        if (tree && semanticAction.targetId) {
-          const targetPage = tree.getPage(semanticAction.targetId);
-          if (targetPage) {
-            targetGridName = targetPage.name || targetPage.id;
-          }
-        }
-        return {
-          Command: {
-            '@_ID': 'Jump.To',
-            Parameter: {
-              '@_Key': 'grid',
-              '#text': targetGridName,
-            },
-          },
-        };
-      }
-
-      case 'GO_BACK':
-        return {
-          Command: {
-            '@_ID': 'Jump.Back',
-          },
-        };
-
-      case 'GO_HOME':
-        return {
-          Command: {
-            '@_ID': 'Jump.Home',
-          },
-        };
-
-      case 'DELETE_WORD':
-        return {
-          Command: {
-            '@_ID': 'Action.DeleteWord',
-          },
-        };
-
-      case 'DELETE_CHARACTER':
-        return {
-          Command: {
-            '@_ID': 'Action.DeleteLetter',
-          },
-        };
-
-      case 'CLEAR_TEXT':
-        return {
-          Command: {
-            '@_ID': 'Action.Clear',
-          },
-        };
-
-      case 'SPEAK_TEXT':
-      case 'SPEAK_IMMEDIATE':
-        return {
-          Command: {
-            '@_ID': 'Action.Speak',
-          },
-        };
-
-      case 'INSERT_TEXT':
-        return {
-          Command: {
-            '@_ID': 'Action.InsertText',
-            Parameter: {
-              '@_Key': 'text',
-              '#text': semanticAction.text || button.message || button.label || '',
-            },
-          },
-        };
-
-      default:
-        // Fallback to insert text
-        return {
-          Command: {
-            '@_ID': 'Action.InsertText',
-            Parameter: {
-              '@_Key': 'text',
-              '#text': semanticAction.text || button.message || button.label || '',
-            },
-          },
-        };
-    }
+    // Default: insert text
+    return {
+      Command: {
+        '@_ID': 'Action.InsertText',
+        Parameter: {
+          '@_Key': 'text',
+          '#text': semanticAction.text || button.message || button.label || '',
+        },
+      },
+    };
   }
 
   // Helper function to convert Grid 3 style to AACStyle
@@ -988,6 +916,7 @@ class GridsetProcessor extends BaseProcessor {
       ignoreAttributes: false,
       format: true,
       indentBy: '  ',
+      suppressEmptyNode: true,
     });
     const settingsXmlContent = settingsBuilder.build(settingsData);
     zip.addFile('Settings0/settings.xml', Buffer.from(settingsXmlContent, 'utf8'));
@@ -1029,27 +958,41 @@ class GridsetProcessor extends BaseProcessor {
     // Create a grid for each page
     Object.values(tree.pages).forEach((page, index) => {
       const gridData = {
-        '?xml': { '@_version': '1.0', '@_encoding': 'UTF-8' },
         Grid: {
           '@_xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
           GridGuid: page.id,
-          Name: page.name || `Grid ${index + 1}`,
-          BackgroundColour: page.style?.backgroundColor || '#E2EDF8FF',
           // Calculate grid dimensions based on actual layout
           ColumnDefinitions: this.calculateColumnDefinitions(page),
           RowDefinitions: this.calculateRowDefinitions(page),
+          AutoContentCommands: '',
           Cells:
             page.buttons.length > 0
               ? {
-                  Cell: this.filterPageButtons(page.buttons).map((button, btnIndex) => {
+                  Cell: [
+                    // Add workspace/message bar cell at the top of ALL pages
+                    {
+                      '@_ColumnSpan': 4,
+                      Content: {
+                        ContentType: 'Workspace',
+                        ContentSubType: 'Chat',
+                        Style: {
+                          BasedOnStyle: 'Workspace',
+                        },
+                      },
+                    },
+                    // Regular button cells
+                    ...this.filterPageButtons(page.buttons).map((button, btnIndex) => {
                     const buttonStyleId = button.style ? addStyle(button.style) : '';
 
                     // Find button position in grid layout
                     const position = this.findButtonPosition(page, button, btnIndex);
 
+                    // Shift all buttons down by 1 row to make room for workspace
+                    const yOffset = 1;
+
                     const cellData: Record<string, unknown> = {
                       '@_X': position.x,
-                      '@_Y': position.y,
+                      '@_Y': position.y + yOffset,
                       '@_ColumnSpan': position.columnSpan,
                       '@_RowSpan': position.rowSpan,
                       Content: {
@@ -1079,6 +1022,7 @@ class GridsetProcessor extends BaseProcessor {
         ignoreAttributes: false,
         format: true,
         indentBy: '  ',
+        suppressEmptyNode: true,
       });
       const xmlContent = builder.build(gridData);
 
