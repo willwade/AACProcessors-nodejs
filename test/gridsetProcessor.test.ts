@@ -47,4 +47,45 @@ describe('GridsetProcessor', () => {
       }).toThrow();
     });
   });
+
+  describe('Home Page Preservation', () => {
+    const tempOutputPath = path.join(__dirname, 'temp_gridset_test.gridset');
+
+    afterEach(() => {
+      if (fs.existsSync(tempOutputPath)) {
+        fs.unlinkSync(tempOutputPath);
+      }
+    });
+
+    it('should preserve home page (tree.rootId) through roundtrip', () => {
+      const processor = new GridsetProcessor();
+
+      // Load the original file
+      const fileBuffer = fs.readFileSync(exampleFile);
+      const initialTree = processor.loadIntoTree(fileBuffer);
+
+      // Store the initial rootId (if present)
+      const initialRootId = initialTree.rootId;
+
+      // Save to a new file
+      processor.saveFromTree(initialTree, tempOutputPath);
+
+      // Load the saved file
+      const savedBuffer = fs.readFileSync(tempOutputPath);
+      const finalTree = processor.loadIntoTree(savedBuffer);
+
+      // Verify rootId is preserved
+      expect(finalTree.rootId).toBe(initialRootId);
+
+      // If rootId exists, verify the home page is accessible and matches
+      if (finalTree.rootId && initialTree.rootId) {
+        const initialHomePage = initialTree.getPage(initialTree.rootId);
+        const finalHomePage = finalTree.getPage(finalTree.rootId);
+
+        expect(initialHomePage).toBeDefined();
+        expect(finalHomePage).toBeDefined();
+        expect(finalHomePage?.name).toBe(initialHomePage?.name);
+      }
+    });
+  });
 });

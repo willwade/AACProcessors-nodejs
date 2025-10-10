@@ -203,4 +203,51 @@ describe('AstericsGridProcessor', () => {
     expect(translatedTexts).toContain('Cuadrícula Global');
     expect(translatedTexts).toContain('Inicio');
   });
+
+  it('should preserve home page (tree.rootId) through roundtrip', () => {
+    const processor = new AstericsGridProcessor();
+
+    // Load the file and check if it has a rootId
+    const initialTree = processor.loadIntoTree(exampleGrdFile);
+
+    // Read the original file to check if it has homeGridId in metadata
+    let content = fs.readFileSync(exampleGrdFile, 'utf-8');
+    if (content.charCodeAt(0) === 0xfeff) {
+      content = content.slice(1);
+    }
+    const originalFile = JSON.parse(content);
+    const originalHomeGridId = originalFile.metadata?.homeGridId;
+
+    if (originalHomeGridId) {
+      // If the original file had a homeGridId, verify it was loaded correctly
+      expect(initialTree.rootId).toBe(originalHomeGridId);
+
+      // Verify the home page actually exists
+      const homePage = initialTree.getPage(initialTree.rootId!);
+      expect(homePage).toBeDefined();
+    }
+
+    // Save to a new file
+    processor.saveFromTree(initialTree, tempOutputPath);
+
+    // Load the saved file
+    const finalTree = processor.loadIntoTree(tempOutputPath);
+
+    // Verify rootId is preserved
+    expect(finalTree.rootId).toBe(initialTree.rootId);
+
+    // Verify the saved file has homeGridId in metadata
+    let savedContent = fs.readFileSync(tempOutputPath, 'utf-8');
+    if (savedContent.charCodeAt(0) === 0xfeff) {
+      savedContent = savedContent.slice(1);
+    }
+    const savedFile = JSON.parse(savedContent);
+    expect(savedFile.metadata?.homeGridId).toBe(initialTree.rootId);
+
+    // If rootId exists, verify the home page is accessible
+    if (finalTree.rootId) {
+      const finalHomePage = finalTree.getPage(finalTree.rootId);
+      expect(finalHomePage).toBeDefined();
+    }
+  });
 });
