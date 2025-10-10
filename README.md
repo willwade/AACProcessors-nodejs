@@ -652,6 +652,17 @@ npm test
 - Fill in your own API keys locally; `.envrc` is ignored to prevent accidental commits
 - If you rotate keys, update only your local `.envrc`—never commit real secrets
 
+### Publishing to npm
+
+- The repository keeps `package.json` at `0.0.0-development`; release tags control the published version.
+- Create a GitHub release with a semantic tag (e.g. `v2.1.0`). Publishing only runs for non-prerelease tags.
+- Add an `NPM_TOKEN` repository secret with publish rights. The release workflow uses it to authenticate and calls `npm publish`.
+- The workflow (`.github/workflows/publish.yml`) automatically installs dependencies, rewrites the package version from the tag, and runs the standard publish pipeline.
+
+**Private distribution options**
+- Unscoped packages on npm must be public. To keep this package private, re-scope it (e.g. `@your-org/aac-processors`) and configure `publishConfig.access: "restricted"`—this requires an npm org with paid seats.
+- Alternatively, publish to GitHub Packages by adjusting the workflow’s registry URL and using a `GITHUB_TOKEN` with the `packages: write` permission.
+
 ---
 
 ## 📄 License
