@@ -628,6 +628,8 @@ npm run type-check
 
 ## 🤝 Contributing
 
+We welcome contributions! Please read our [Contributor License Agreement (CLA)](CLA.md) before you get started.
+
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feature/amazing-feature`
 3. Make your changes with tests
