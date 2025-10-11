@@ -43,6 +43,7 @@ interface GridElement {
   wordForms?: WordForm[];
   image?: GridImage;
   backgroundColor?: string;
+  fontColor?: string;
   colorCategory?: string;
   actions: GridAction[];
   dontCollect?: boolean;
@@ -82,44 +83,78 @@ interface AstericsGridFile {
 
 // Asterics Grid Color Scheme Definitions
 // Maps color categories to actual colors for different color schemes
-const COLOR_SCHEMES: Record<string, Record<string, { backgroundColor: string; borderColor: string }>> = {
+const COLOR_SCHEMES: Record<string, Record<string, { backgroundColor: string; borderColor: string; fontColor: string }>> = {
   CS_MONTESSORI_VERY_LIGHT: {
-    CC_DEFAULT: { backgroundColor: '#ffffff', borderColor: '#cccccc' },
-    CC_IMPORTANT: { backgroundColor: '#ffcccc', borderColor: '#cc0000' },  // Light red with red border
-    CC_PEOPLE: { backgroundColor: '#ffeecc', borderColor: '#ff9900' },     // Light orange
-    CC_NAMES: { backgroundColor: '#ffddff', borderColor: '#cc00cc' },      // Light purple
-    CC_VERBS: { backgroundColor: '#ddffdd', borderColor: '#00aa00' },      // Light green
-    CC_ADJECTIVES: { backgroundColor: '#ccddff', borderColor: '#0066cc' }, // Light blue
-    CC_QUESTION_WORDS: { backgroundColor: '#ffffcc', borderColor: '#cccc00' }, // Light yellow
-    CC_PRONOUNS: { backgroundColor: '#ffddcc', borderColor: '#ff6600' },   // Light peach
-    CC_CONJUNCTIONS: { backgroundColor: '#e6ccff', borderColor: '#9933ff' }, // Light lavender
-    CC_INTERJECTIONS: { backgroundColor: '#ffccee', borderColor: '#ff0099' }, // Light pink
+    CC_DEFAULT: { backgroundColor: '#ffffff', borderColor: '#cccccc', fontColor: '#000000' },
+    CC_IMPORTANT: { backgroundColor: '#ffcccc', borderColor: '#cc0000', fontColor: '#660000' },  // Light red with dark red text
+    CC_PEOPLE: { backgroundColor: '#ffeecc', borderColor: '#ff9900', fontColor: '#663300' },     // Light orange with dark brown text
+    CC_NAMES: { backgroundColor: '#ffddff', borderColor: '#cc00cc', fontColor: '#660066' },      // Light purple with dark purple text
+    CC_VERBS: { backgroundColor: '#ddffdd', borderColor: '#00aa00', fontColor: '#004400' },      // Light green with dark green text
+    CC_ADJECTIVES: { backgroundColor: '#ccddff', borderColor: '#0066cc', fontColor: '#003366' }, // Light blue with dark blue text
+    CC_QUESTION_WORDS: { backgroundColor: '#ffffcc', borderColor: '#cccc00', fontColor: '#666600' }, // Light yellow with dark olive text
+    CC_PRONOUNS: { backgroundColor: '#ffddcc', borderColor: '#ff6600', fontColor: '#663300' },   // Light peach with dark brown text
+    CC_CONJUNCTIONS: { backgroundColor: '#e6ccff', borderColor: '#9933ff', fontColor: '#551188' }, // Light lavender with dark purple text
+    CC_INTERJECTIONS: { backgroundColor: '#ffccee', borderColor: '#ff0099', fontColor: '#880055' }, // Light pink with dark pink text
   },
   CS_MONTESSORI: {
-    CC_DEFAULT: { backgroundColor: '#f0f0f0', borderColor: '#999999' },
-    CC_IMPORTANT: { backgroundColor: '#ff9999', borderColor: '#990000' },
-    CC_PEOPLE: { backgroundColor: '#ffcc99', borderColor: '#ff6600' },
-    CC_NAMES: { backgroundColor: '#ffbbff', borderColor: '#990099' },
-    CC_VERBS: { backgroundColor: '#99ff99', borderColor: '#007700' },
-    CC_ADJECTIVES: { backgroundColor: '#99bbff', borderColor: '#004499' },
-    CC_QUESTION_WORDS: { backgroundColor: '#ffff99', borderColor: '#999900' },
-    CC_PRONOUNS: { backgroundColor: '#ffbb99', borderColor: '#cc4400' },
-    CC_CONJUNCTIONS: { backgroundColor: '#cc99ff', borderColor: '#7700cc' },
-    CC_INTERJECTIONS: { backgroundColor: '#ff99dd', borderColor: '#cc0066' },
+    CC_DEFAULT: { backgroundColor: '#f0f0f0', borderColor: '#999999', fontColor: '#000000' },
+    CC_IMPORTANT: { backgroundColor: '#ff9999', borderColor: '#990000', fontColor: '#660000' },
+    CC_PEOPLE: { backgroundColor: '#ffcc99', borderColor: '#ff6600', fontColor: '#663300' },
+    CC_NAMES: { backgroundColor: '#ffbbff', borderColor: '#990099', fontColor: '#660066' },
+    CC_VERBS: { backgroundColor: '#99ff99', borderColor: '#007700', fontColor: '#004400' },
+    CC_ADJECTIVES: { backgroundColor: '#99bbff', borderColor: '#004499', fontColor: '#003366' },
+    CC_QUESTION_WORDS: { backgroundColor: '#ffff99', borderColor: '#999900', fontColor: '#666600' },
+    CC_PRONOUNS: { backgroundColor: '#ffbb99', borderColor: '#cc4400', fontColor: '#663300' },
+    CC_CONJUNCTIONS: { backgroundColor: '#cc99ff', borderColor: '#7700cc', fontColor: '#551188' },
+    CC_INTERJECTIONS: { backgroundColor: '#ff99dd', borderColor: '#cc0066', fontColor: '#880055' },
   },
   CS_DEFAULT: {
-    CC_DEFAULT: { backgroundColor: '#ffffff', borderColor: '#808080' },
-    CC_IMPORTANT: { backgroundColor: '#ff6666', borderColor: '#cc0000' },
-    CC_PEOPLE: { backgroundColor: '#ffaa66', borderColor: '#ff6600' },
-    CC_NAMES: { backgroundColor: '#ff99ff', borderColor: '#cc00cc' },
-    CC_VERBS: { backgroundColor: '#66ff66', borderColor: '#00cc00' },
-    CC_ADJECTIVES: { backgroundColor: '#6699ff', borderColor: '#0066cc' },
-    CC_QUESTION_WORDS: { backgroundColor: '#ffff66', borderColor: '#cccc00' },
-    CC_PRONOUNS: { backgroundColor: '#ff9966', borderColor: '#ff3300' },
-    CC_CONJUNCTIONS: { backgroundColor: '#9966ff', borderColor: '#6600cc' },
-    CC_INTERJECTIONS: { backgroundColor: '#ff66cc', borderColor: '#cc0099' },
+    CC_DEFAULT: { backgroundColor: '#ffffff', borderColor: '#808080', fontColor: '#000000' },
+    CC_IMPORTANT: { backgroundColor: '#ff6666', borderColor: '#cc0000', fontColor: '#660000' },
+    CC_PEOPLE: { backgroundColor: '#ffaa66', borderColor: '#ff6600', fontColor: '#663300' },
+    CC_NAMES: { backgroundColor: '#ff99ff', borderColor: '#cc00cc', fontColor: '#660066' },
+    CC_VERBS: { backgroundColor: '#66ff66', borderColor: '#00cc00', fontColor: '#004400' },
+    CC_ADJECTIVES: { backgroundColor: '#6699ff', borderColor: '#0066cc', fontColor: '#003366' },
+    CC_QUESTION_WORDS: { backgroundColor: '#ffff66', borderColor: '#cccc00', fontColor: '#666600' },
+    CC_PRONOUNS: { backgroundColor: '#ff9966', borderColor: '#ff3300', fontColor: '#663300' },
+    CC_CONJUNCTIONS: { backgroundColor: '#9966ff', borderColor: '#6600cc', fontColor: '#551188' },
+    CC_INTERJECTIONS: { backgroundColor: '#ff66cc', borderColor: '#cc0099', fontColor: '#880055' },
   },
 };
+
+/**
+ * Calculate relative luminance of a color using WCAG formula
+ * @param hexColor - Hex color string (e.g., "#1d90ff")
+ * @returns Relative luminance value between 0 and 1
+ */
+function calculateLuminance(hexColor: string): number {
+  // Remove # if present
+  const hex = hexColor.replace('#', '');
+
+  // Parse RGB values
+  const r = parseInt(hex.substring(0, 2), 16) / 255;
+  const g = parseInt(hex.substring(2, 4), 16) / 255;
+  const b = parseInt(hex.substring(4, 6), 16) / 255;
+
+  // Apply sRGB gamma correction
+  const rsRGB = r <= 0.03928 ? r / 12.92 : Math.pow((r + 0.055) / 1.055, 2.4);
+  const gsRGB = g <= 0.03928 ? g / 12.92 : Math.pow((g + 0.055) / 1.055, 2.4);
+  const bsRGB = b <= 0.03928 ? b / 12.92 : Math.pow((b + 0.055) / 1.055, 2.4);
+
+  // Calculate relative luminance
+  return 0.2126 * rsRGB + 0.7152 * gsRGB + 0.0722 * bsRGB;
+}
+
+/**
+ * Choose white or black text color based on background luminance for optimal contrast
+ * @param backgroundColor - Background color hex string
+ * @returns "#FFFFFF" for dark backgrounds, "#000000" for light backgrounds
+ */
+function getContrastingTextColor(backgroundColor: string): string {
+  const luminance = calculateLuminance(backgroundColor);
+  // WCAG threshold: use white text if luminance < 0.5, black otherwise
+  return luminance < 0.5 ? '#FFFFFF' : '#000000';
+}
 
 class AstericsGridProcessor extends BaseProcessor {
   private loadAudio: boolean = false;
@@ -371,7 +406,7 @@ class AstericsGridProcessor extends BaseProcessor {
     }
 
     // Resolve color category to actual colors
-    let resolvedColors: { backgroundColor?: string; borderColor?: string } = {};
+    let resolvedColors: { backgroundColor?: string; borderColor?: string; fontColor?: string } = {};
     if (element.colorCategory && activeColorScheme) {
       const colorScheme = COLOR_SCHEMES[activeColorScheme] || COLOR_SCHEMES['CS_DEFAULT'];
       const categoryColors = colorScheme[element.colorCategory] || colorScheme['CC_DEFAULT'];
@@ -580,6 +615,33 @@ class AstericsGridProcessor extends BaseProcessor {
       }
     }
 
+    // Determine the final background color
+    const finalBackgroundColor =
+      element.backgroundColor ||
+      resolvedColors.backgroundColor ||
+      colorConfig?.elementBackgroundColor ||
+      '#FFFFFF';
+
+    // Determine font color with priority:
+    // 1. Explicit element.fontColor (highest priority)
+    // 2. Resolved color from color category
+    // 3. Global colorConfig.fontColor
+    // 4. Automatic contrast calculation based on background (lowest priority)
+    let fontColor: string;
+    if (element.fontColor) {
+      // Explicit color in element - use it
+      fontColor = element.fontColor;
+    } else if (resolvedColors.fontColor) {
+      // Color category scheme specifies font color
+      fontColor = resolvedColors.fontColor;
+    } else if (colorConfig?.fontColor) {
+      // Global config specifies font color
+      fontColor = colorConfig.fontColor;
+    } else {
+      // No explicit color - calculate based on background for contrast
+      fontColor = getContrastingTextColor(finalBackgroundColor);
+    }
+
     return new AACButton({
       id: element.id,
       label: label,
@@ -590,11 +652,7 @@ class AstericsGridProcessor extends BaseProcessor {
       semanticAction: semanticAction,
       audioRecording: audioRecording,
       style: {
-        backgroundColor:
-          element.backgroundColor ||
-          resolvedColors.backgroundColor ||
-          colorConfig?.elementBackgroundColor ||
-          '#FFFFFF',
+        backgroundColor: finalBackgroundColor,
         borderColor:
           resolvedColors.borderColor ||
           colorConfig?.elementBorderColor ||
@@ -602,7 +660,7 @@ class AstericsGridProcessor extends BaseProcessor {
         borderWidth: colorConfig?.borderWidth || 1,
         fontFamily: colorConfig?.fontFamily || 'Arial',
         fontSize: colorConfig?.fontSizePct ? colorConfig.fontSizePct * 16 : 16, // Default to 16px
-        fontColor: colorConfig?.fontColor || '#000000',
+        fontColor: fontColor,
       },
     });
   }
