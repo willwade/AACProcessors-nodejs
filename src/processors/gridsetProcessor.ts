@@ -1175,8 +1175,8 @@ class GridsetProcessor extends BaseProcessor {
                     const yOffset = 1;
 
                     const cellData: Record<string, unknown> = {
-                      '@_X': position.x + 1, // Grid3 uses 1-based coordinates
-                      '@_Y': position.y + yOffset + 1, // Grid3 uses 1-based coordinates
+                      '@_X': position.x, // Grid3 uses 0-based X coordinates
+                      '@_Y': position.y + yOffset + 1, // Grid3 uses 1-based Y coordinates
                       '@_ColumnSpan': position.columnSpan,
                       '@_RowSpan': position.rowSpan,
                       Content: {
