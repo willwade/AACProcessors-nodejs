@@ -47,8 +47,12 @@ class GridsetProcessor extends BaseProcessor {
 
     if (!semanticAction) {
       // Default to insert text action with structured XML format
-      // Use two <s> elements: one for the word, one for the space
-      const text = button.message || button.label || '';
+      // Use two <s> elements: one for the word, one for the space (CDATA preserves whitespace)
+      let text = button.message || button.label || '';
+      // Remove trailing space from message if present (we'll add it as separate segment)
+      if (text.endsWith(' ')) {
+        text = text.slice(0, -1);
+      }
       return {
         Command: {
           '@_ID': 'Action.InsertText',
@@ -60,7 +64,7 @@ class GridsetProcessor extends BaseProcessor {
                   r: text,
                 },
                 {
-                  r: ' ',
+                  r: { '__cdata': ' ' },
                 },
               ],
             },
@@ -147,10 +151,14 @@ class GridsetProcessor extends BaseProcessor {
       case 'SPEAK_IMMEDIATE':
         // For communication buttons, insert text into message bar (sentence building)
         // Grid3 requires explicit trailing space for automatic word spacing
-        // Use two <s> elements: one for the word, one for the space (like Super Core)
+        // Use two <s> elements: one for the word, one for the space (CDATA preserves whitespace)
         // Users can speak the complete sentence with a dedicated Speak button
         {
-          const text = semanticAction.text || button.message || button.label || '';
+          let text = semanticAction.text || button.message || button.label || '';
+          // Remove trailing space from message if present (we'll add it as separate segment)
+          if (text.endsWith(' ')) {
+            text = text.slice(0, -1);
+          }
           return {
             Command: {
               '@_ID': 'Action.InsertText',
@@ -162,7 +170,7 @@ class GridsetProcessor extends BaseProcessor {
                       r: text,
                     },
                     {
-                      r: ' ',
+                      r: { '__cdata': ' ' },
                     },
                   ],
                 },
@@ -173,9 +181,13 @@ class GridsetProcessor extends BaseProcessor {
 
       case 'INSERT_TEXT':
         // Add trailing space for word buttons to enable sentence building
-        // Use two <s> elements: one for the word, one for the space
+        // Use two <s> elements: one for the word, one for the space (CDATA preserves whitespace)
         {
-          const text = semanticAction.text || button.message || button.label || '';
+          let text = semanticAction.text || button.message || button.label || '';
+          // Remove trailing space from message if present (we'll add it as separate segment)
+          if (text.endsWith(' ')) {
+            text = text.slice(0, -1);
+          }
           return {
             Command: {
               '@_ID': 'Action.InsertText',
@@ -187,7 +199,7 @@ class GridsetProcessor extends BaseProcessor {
                       r: text,
                     },
                     {
-                      r: ' ',
+                      r: { '__cdata': ' ' },
                     },
                   ],
                 },
@@ -198,9 +210,13 @@ class GridsetProcessor extends BaseProcessor {
 
       default:
         // Fallback to insert text with structured XML format
-        // Use two <s> elements: one for the word, one for the space
+        // Use two <s> elements: one for the word, one for the space (CDATA preserves whitespace)
         {
-          const text = semanticAction.text || button.message || button.label || '';
+          let text = semanticAction.text || button.message || button.label || '';
+          // Remove trailing space from message if present (we'll add it as separate segment)
+          if (text.endsWith(' ')) {
+            text = text.slice(0, -1);
+          }
           return {
             Command: {
               '@_ID': 'Action.InsertText',
@@ -212,7 +228,7 @@ class GridsetProcessor extends BaseProcessor {
                       r: text,
                     },
                     {
-                      r: ' ',
+                      r: { '__cdata': ' ' },
                     },
                   ],
                 },
@@ -1237,6 +1253,7 @@ class GridsetProcessor extends BaseProcessor {
         format: true,
         indentBy: '  ',
         suppressEmptyNode: true,
+        cdataPropName: '__cdata',
       });
       const xmlContent = builder.build(gridData);
 
