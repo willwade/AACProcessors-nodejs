@@ -1,5 +1,5 @@
 import { AstericsGridProcessor } from '../src/processors/astericsGridProcessor';
-import { AACTree, AACButton } from '../src/core/treeStructure';
+import { AACTree, AACButton, AACSemanticCategory } from '../src/core/treeStructure';
 import path from 'path';
 import fs from 'fs';
 
@@ -118,7 +118,8 @@ describe('AstericsGridProcessor', () => {
     let foundNavigationButton = false;
     Object.values(tree.pages).forEach((page) => {
       page.buttons.forEach((button) => {
-        if (button.type === 'NAVIGATE' && button.targetPageId) {
+        // Check using semantic action system instead of button.type
+        if (button.semanticAction?.category === AACSemanticCategory.NAVIGATION && button.targetPageId) {
           foundNavigationButton = true;
           // Verify the target page exists
           const targetPage = tree.getPage(button.targetPageId);
@@ -167,7 +168,10 @@ describe('AstericsGridProcessor', () => {
         expect(typeof button.id).toBe('string');
         expect(typeof button.label).toBe('string');
         expect(typeof button.message).toBe('string');
-        expect(['SPEAK', 'NAVIGATE']).toContain(button.type);
+        // Check semantic action is present (modern approach, not button.type)
+        expect(button.semanticAction).toBeDefined();
+        expect(button.semanticAction?.category).toBeDefined();
+        expect(button.semanticAction?.intent).toBeDefined();
       });
     });
 
