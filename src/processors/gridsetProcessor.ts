@@ -1105,15 +1105,20 @@ class GridsetProcessor extends BaseProcessor {
 
     // Create Settings0/Styles/style.xml if there are styles
     if (uniqueStyles.size > 0) {
-      const stylesArray = Array.from(uniqueStyles.values()).map(({ id, style }) => ({
-        '@_Key': id,
-        BackColour: this.ensureAlphaChannel(style.backgroundColor as string | undefined),
-        TileColour: this.ensureAlphaChannel(style.backgroundColor as string | undefined),
-        BorderColour: this.ensureAlphaChannel(style.borderColor as string | undefined) || '#000000FF',
-        FontColour: this.ensureAlphaChannel(style.fontColor as string | undefined) || '#000000FF',
-        FontName: style.fontFamily || 'Arial',
-        FontSize: style.fontSize?.toString() || '16',
-      }));
+      const stylesArray = Array.from(uniqueStyles.values()).map(({ id, style }) => {
+        const styleObj: any = {
+          '@_Key': id,
+          // When TileColour is present, BackColour is the surround (outer area)
+          // For "None" surround, just use BackColour for the fill (no TileColour)
+          BackColour: this.ensureAlphaChannel(style.backgroundColor as string | undefined),
+          BorderColour: this.ensureAlphaChannel(style.borderColor as string | undefined) || '#000000FF',
+          FontColour: this.ensureAlphaChannel(style.fontColor as string | undefined) || '#000000FF',
+          FontName: style.fontFamily || 'Arial',
+          FontSize: style.fontSize?.toString() || '16',
+        };
+        // Don't add TileColour - just use BackColour as the fill color
+        return styleObj;
+      });
 
       const styleData = {
         '?xml': { '@_version': '1.0', '@_encoding': 'UTF-8' },
@@ -1199,6 +1204,7 @@ class GridsetProcessor extends BaseProcessor {
 
                       // Add inline color overrides for better Grid3 compatibility
                       if (button.style?.backgroundColor) {
+                        // Use BackColour for fill (no TileColour means no surround, just the fill)
                         styleObj.BackColour = this.ensureAlphaChannel(button.style.backgroundColor);
                       }
                       if (button.style?.borderColor) {
