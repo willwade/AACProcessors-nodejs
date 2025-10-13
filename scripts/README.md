@@ -1,54 +1,65 @@
-# Scripts Directory
+# Developer Scripts
 
-This directory contains experimental scripts, analysis tools, and development utilities that are not part of the core AACProcessors library.
+This directory contains small, documented scripts that demonstrate how to use the `aac-processors` library with the sample files in `/examples`. They are intended as quick starters for people exploring the project – every script runs against the checked-in demo assets and avoids external API keys.
 
-## Directory Structure
+## Available scripts
 
-### `/audio/`
-Audio processing and TTS integration scripts:
-- Scripts for Azure TTS integration
-- Audio enhancement tools
-- Audio file generation utilities
+### `analysis/extract-vocabulary.js`
+Generate a JSON and console summary of all vocabulary in a pageset.
 
-### `/punjabi/`
-Punjabi language translation and audio generation scripts:
-- Translation utilities
-- Punjabi-specific audio file generation
-- Language-specific vocabulary processing
+```bash
+npm run build
+node scripts/analysis/extract-vocabulary.js examples/example.sps vocabulary.json
+```
 
-### `/analysis/`
-Analysis and reporting tools:
-- Vocabulary extraction and analysis
-- Communication repairs analysis
-- Validation and testing reports
-- CSV generation utilities
+Sample output (excerpt):
+```text
+Top-level vocabulary sample:
+  - -
+  - -'s
+  - -ed
+  - -en
+  - -er
+  - -est
+```
 
-### `/examples/`
-Example files and test pagesets:
-- Enhanced pagesets with audio
-- Language-specific examples
-- Test files for development
+### `analysis/compare-vocabulary.js`
+Compare the vocabulary used in two files and highlight overlaps and differences.
 
-## Important Notes
+```bash
+npm run build
+node scripts/analysis/compare-vocabulary.js examples/example.sps examples/example2.grd
+```
 
-⚠️ **Security**: These scripts may contain API keys or sensitive configuration. Do not commit:
-- `.envrc` files with API keys
-- Audio files (`.wav`, `.mp3`, etc.)
-- Large binary assets
-- Temporary output files
+Sample output (excerpt):
+```text
+Shared vocabulary (3):
+  - he
+  - I
+  - you
+```
 
-## Usage
+### `analysis/page-layout-to-markdown.js`
+Render a page from a pageset as a Markdown table so you can see button positioning.
 
-These scripts are primarily for development and experimentation. They may require:
-- API keys for translation/TTS services
-- Additional dependencies not in the main package.json
-- Specific configuration files
+```bash
+npm run build
+node scripts/analysis/page-layout-to-markdown.js examples/example.sps "Food & Drink" layout.md
+```
 
+Sample output (excerpt):
+```text
+| **Home** | **breakfast** | **lunch** | **dinner** | **salad** | **soup** | **Breakfast Food** | **Lunch & Dinner** |   |   |
+| **food** | **sandwich** | **pizza** | **bread** | **cheese** |   | **Vegetables** | **Fruit** |   |   |
+```
+
+### `coverage-analysis.js`
+Summarise Jest coverage output. This is mainly for maintainers but remains available.
+
+## Example data
+
+Additional AAC sample files live in `scripts/examples/` and `examples/`. The analysis scripts accept any of these files – feel free to copy them into a temporary location if you want to experiment without changing the originals.
 
 ## Contributing
 
-When adding new scripts:
-1. Place them in the appropriate subdirectory
-2. Update this README with a brief description
-3. Ensure no sensitive data is committed
-4. Add appropriate .gitignore entries if needed
+If you add another script, keep it focused on demonstrating core library features and document a working example command using the repository assets.
