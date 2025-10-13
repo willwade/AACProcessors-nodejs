@@ -1055,6 +1055,10 @@ class GridsetProcessor extends BaseProcessor {
     const uniqueStyles = new Map<string, { id: string; style: Record<string, unknown> }>();
     let styleIdCounter = 1;
 
+    // Track images that need to be written to the ZIP
+    // Maps button ID to image data for buttons with images
+    const buttonImages = new Map<string, { imageData: Buffer; ext: string; pageName: string; x: number; y: number }>();
+
     // Helper function to add style and return its ID
     const addStyle = (style: unknown): string => {
       if (!style || typeof style !== 'object') return '';
@@ -1173,9 +1177,8 @@ class GridsetProcessor extends BaseProcessor {
               ? {
                   Cell: [
                     // Add workspace/message bar cell at the top of ALL pages
+                    // Grid3 uses 0-based coordinates; omit X and Y to use defaults (0, 0)
                     {
-                      '@_X': 1,
-                      '@_Y': 0,
                       '@_ColumnSpan': 4,
                       Content: {
                         ContentType: 'Workspace',
@@ -1195,16 +1198,50 @@ class GridsetProcessor extends BaseProcessor {
                     // Shift all buttons down by 1 row to make room for workspace
                     const yOffset = 1;
 
+                    // Build CaptionAndImage object
+                    const captionAndImage: Record<string, unknown> = {
+                      Caption: button.label || '',
+                    };
+
+                    // Add image reference if button has an image
+                    // Grid3 uses coordinate-based naming: {x}-{y}-0-text-0.{ext}
+                    if (button.image) {
+                      // Try to determine file extension from image name or default to PNG
+                      let imageExt = 'png';
+                      if (button.image.match(/\.(png|jpg|jpeg|gif|svg)$/i)) {
+                        imageExt = button.image.match(/\.(png|jpg|jpeg|gif|svg)$/i)![1].toLowerCase();
+                      }
+
+                      // Grid3 dynamically constructs image filenames by prepending cell coordinates
+                      // The XML should only contain the suffix: -0-text-0.{ext}
+                      // Grid3 automatically adds the X-Y prefix based on the Cell's position
+                      captionAndImage.Image = `-0-text-0.${imageExt}`;
+
+                      // Extract image data from button parameters if available
+                      // (AstericsGridProcessor stores it there during loadIntoTree)
+                      let imageData = Buffer.alloc(0);
+                      if (button.parameters && button.parameters.imageData && Buffer.isBuffer(button.parameters.imageData)) {
+                        imageData = button.parameters.imageData;
+                      }
+
+                      // Store image data for later writing to ZIP
+                      buttonImages.set(button.id, {
+                        imageData: imageData,
+                        ext: imageExt,
+                        pageName: page.name || page.id,
+                        x: position.x,
+                        y: position.y + yOffset,
+                      });
+                    }
+
                     const cellData: Record<string, unknown> = {
-                      '@_X': position.x, // Grid3 uses 0-based X coordinates
-                      '@_Y': position.y + yOffset + 1, // Grid3 uses 1-based Y coordinates
+                      '@_X': position.x, // Grid3 uses 0-based X coordinates (defaults to 0 when omitted)
+                      '@_Y': position.y + yOffset, // Grid3 uses 0-based Y coordinates with workspace offset
                       '@_ColumnSpan': position.columnSpan,
                       '@_RowSpan': position.rowSpan,
                       Content: {
                         Commands: this.generateCommandsFromSemanticAction(button, tree),
-                        CaptionAndImage: {
-                          Caption: button.label || '',
-                        },
+                        CaptionAndImage: captionAndImage,
                       },
                     };
 
@@ -1263,18 +1300,42 @@ class GridsetProcessor extends BaseProcessor {
       zip.addFile(gridPath, Buffer.from(xmlContent, 'utf8'));
     });
 
-    // Create FileMap.xml to map all grid files
+    // Write image files to ZIP
+    buttonImages.forEach((imgData, buttonId) => {
+      if (imgData.imageData && imgData.imageData.length > 0) {
+        // Create image path in the grid's directory
+        const imagePath = `Grids\\${imgData.pageName}\\${imgData.x}-${imgData.y}-0-text-0.${imgData.ext}`;
+        zip.addFile(imagePath, imgData.imageData);
+      }
+    });
+
+    // Create FileMap.xml to map all grid files with their dynamic image files
     const fileMapData = {
       '?xml': { '@_version': '1.0', '@_encoding': 'UTF-8' },
       FileMap: {
         '@_xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
         Entries: {
-          Entry: gridFilePaths.map((gridPath) => ({
-            '@_StaticFile': gridPath,
-            DynamicFiles: {
-              // Empty for now - could be extended for dynamic content
-            },
-          })),
+          Entry: gridFilePaths.map((gridPath) => {
+            // Find all image files for this grid
+            const gridName = gridPath.match(/Grids\\([^\\]+)\\grid\.xml$/)?.[1] || '';
+            const imageFiles: string[] = [];
+
+            // Collect image filenames for buttons on this page
+            // IMPORTANT: FileMap.xml requires full paths like "Grids\PageName\1-5-0-text-0.png"
+            buttonImages.forEach((imgData, buttonId) => {
+              if (imgData.pageName === gridName && imgData.imageData.length > 0) {
+                const imagePath = `Grids\\${gridName}\\${imgData.x}-${imgData.y}-0-text-0.${imgData.ext}`;
+                imageFiles.push(imagePath);
+              }
+            });
+
+            return {
+              '@_StaticFile': gridPath,
+              DynamicFiles: imageFiles.length > 0 ? {
+                File: imageFiles
+              } : {},
+            };
+          }),
         },
       },
     };
