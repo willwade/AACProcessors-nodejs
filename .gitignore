@@ -158,3 +158,5 @@ test/temp*
 azure_*.js
 *_secret.*
 output/conversions
+
+temp-data/**
