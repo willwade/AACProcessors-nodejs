@@ -5,6 +5,12 @@
 
 set -e  # Exit on error
 
+# Clean up previous output
+if [ -f "output/conversions/cs_student_cat.gridset" ]; then
+  echo "Cleaning up previous output..."
+  rm -f output/conversions/cs_student_cat.gridset
+fi
+
 echo "Building TypeScript..."
 npm run build
 
