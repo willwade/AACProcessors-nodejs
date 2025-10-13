@@ -642,6 +642,33 @@ class AstericsGridProcessor extends BaseProcessor {
       fontColor = getContrastingTextColor(finalBackgroundColor);
     }
 
+    // Extract image data if present
+    let imageData: Buffer | undefined;
+    let imageName: string | undefined;
+    if (element.image && element.image.data) {
+      // Asterics Grid stores images as Data URLs (e.g., "data:image/png;base64,...")
+      // We need to strip the Data URL prefix before decoding
+      try {
+        let base64Data = element.image.data;
+        let imageFormat = 'png'; // Default format
+
+        // Check if this is a Data URL and extract the base64 part
+        const dataUrlMatch = base64Data.match(/^data:image\/(png|jpeg|jpg|gif|svg\+xml);base64,(.+)/);
+        if (dataUrlMatch) {
+          imageFormat = dataUrlMatch[1];
+          base64Data = dataUrlMatch[2]; // Use only the base64 part, not the prefix
+        }
+
+        // Decode the base64 data
+        imageData = Buffer.from(base64Data, 'base64');
+
+        // Use detected format for filename
+        imageName = element.image.id || `image.${imageFormat}`;
+      } catch (e) {
+        // Invalid base64 data, skip image
+      }
+    }
+
     return new AACButton({
       id: element.id,
       label: label,
@@ -651,6 +678,10 @@ class AstericsGridProcessor extends BaseProcessor {
 
       semanticAction: semanticAction,
       audioRecording: audioRecording,
+      image: imageName, // Store image filename/reference
+      parameters: imageData ? {
+        ...{ imageData: imageData } // Store actual image data in parameters for conversion
+      } : undefined,
       style: {
         backgroundColor: finalBackgroundColor,
         borderColor:
