@@ -4,6 +4,7 @@ import { OpmlProcessor } from '../../src/processors/opmlProcessor';
 import { ObfProcessor } from '../../src/processors/obfProcessor';
 import { SnapProcessor } from '../../src/processors/snapProcessor';
 import { GridsetProcessor } from '../../src/processors/gridsetProcessor';
+import { AstericsGridProcessor } from '../../src/processors/astericsGridProcessor';
 import { TouchChatProcessor } from '../../src/processors/touchchatProcessor';
 import { ApplePanelsProcessor } from '../../src/processors/applePanelsProcessor';
 import { TreeFactory } from '../utils/testFactories';
@@ -41,8 +42,8 @@ describe('analyze', () => {
       expect(getProcessor('gridset')).toBeInstanceOf(GridsetProcessor);
     });
 
-    it('should return a GridsetProcessor for "grd" extension', () => {
-      expect(getProcessor('grd')).toBeInstanceOf(GridsetProcessor);
+    it('should return an AstericsGridProcessor for "grd" extension', () => {
+      expect(getProcessor('grd')).toBeInstanceOf(AstericsGridProcessor);
     });
 
     it('should return a TouchChatProcessor for "touchchat"', () => {

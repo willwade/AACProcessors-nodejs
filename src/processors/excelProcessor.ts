@@ -1,4 +1,5 @@
 import fs from 'fs';
+import path from 'path';
 import * as ExcelJS from 'exceljs';
 import {
   BaseProcessor,
@@ -498,22 +499,19 @@ export class ExcelProcessor extends BaseProcessor {
    * @returns Sanitized name safe for Excel worksheet
    */
   private sanitizeWorksheetName(name: string): string {
-    if (!name) return 'Sheet1';
-
     // Excel worksheet name restrictions:
     // - Max 31 characters
     // - Cannot contain: \ / ? * [ ] :
     // - Cannot be empty
-    let sanitized = name
+    const cleaned = (name || '')
       .replace(/[\\\/\?\*\[\]:]/g, '_')
-      .substring(0, 31)
-      .toLowerCase(); // Normalize case to avoid Excel case-insensitive duplicates
+      .substring(0, 31);
 
-    if (sanitized.length === 0) {
-      sanitized = 'sheet1';
+    if (cleaned.length === 0) {
+      return 'Sheet1';
     }
 
-    return sanitized;
+    return cleaned;
   }
 
   /**
@@ -524,12 +522,13 @@ export class ExcelProcessor extends BaseProcessor {
    */
   private getUniqueWorksheetName(name: string, usedNames: Set<string>): string {
     const baseName = this.sanitizeWorksheetName(name);
+    const normalize = (value: string) => value.toLowerCase();
     let uniqueName = baseName;
     let counter = 1;
 
     // Keep trying with incrementing numbers until we find a unique name
     // Names are already normalized to lowercase by sanitization
-    while (usedNames.has(uniqueName)) {
+    while (usedNames.has(normalize(uniqueName))) {
       // Calculate how much space we need for the counter suffix
       const suffix = ` (${counter})`;
       const maxBaseLength = 31 - suffix.length;
@@ -547,7 +546,7 @@ export class ExcelProcessor extends BaseProcessor {
     }
 
     // Add the unique name to the set (already normalized to lowercase)
-    usedNames.add(uniqueName);
+    usedNames.add(normalize(uniqueName));
 
     return uniqueName;
   }
@@ -566,17 +565,25 @@ export class ExcelProcessor extends BaseProcessor {
    * Override saveFromTree to handle async nature of Excel operations
    * Note: This method is async but maintains the sync interface for compatibility
    */
-  saveFromTree(tree: AACTree, outputPath: string): void {
-    // For now, we'll use a simpler approach and document that Excel operations are async
-    // In a real implementation, this would need proper async handling
-    this.saveFromTreeAsync(tree, outputPath).catch((error) => {
+  async saveFromTree(tree: AACTree, outputPath: string): Promise<void> {
+    const outputDir = path.dirname(outputPath);
+    fs.mkdirSync(outputDir, { recursive: true });
+
+    try {
+      await this.saveFromTreeAsync(tree, outputPath);
+    } catch (error: any) {
       console.error('Failed to save Excel file:', error);
-      // Write a simple error file instead of throwing
-      fs.writeFileSync(
-        outputPath.replace('.xlsx', '_error.txt'),
-        `Error saving Excel file: ${error.message}`
-      );
-    });
+      try {
+        const fallbackPath = outputPath.replace(/\.xlsx$/i, '_error.txt');
+        fs.mkdirSync(path.dirname(fallbackPath), { recursive: true });
+        fs.writeFileSync(
+          fallbackPath,
+          `Error saving Excel file: ${error?.message || String(error)}`
+        );
+      } catch (writeError) {
+        console.error('Failed to write Excel error file:', writeError);
+      }
+    }
   }
 
   /**
