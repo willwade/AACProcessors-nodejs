@@ -23,6 +23,12 @@ Analysis and reporting tools:
 - Validation and testing reports
 - CSV generation utilities
 
+### `/asterics/`
+Asterics Grid tooling:
+- `convert-gridset.sh` wrapper for running the Node conversion helper
+- `convert-asterics-grid.js` converts `.grd` backups into Grid 3 `.gridset` files
+- Utility scripts for inspecting and working with AsTeRICS exports
+
 ### `/examples/`
 Example files and test pagesets:
 - Enhanced pagesets with audio
@@ -43,6 +49,12 @@ These scripts are primarily for development and experimentation. They may requir
 - API keys for translation/TTS services
 - Additional dependencies not in the main package.json
 - Specific configuration files
+
+To convert an Asterics Grid backup into a Grid 3 `.gridset`, run:
+
+```bash
+scripts/asterics/convert-gridset.sh --input path/to/export.grd
+```
 
 ## Documentation
 
