@@ -1,5 +1,5 @@
 import { AstericsGridProcessor } from '../src/processors/astericsGridProcessor';
-import { AACTree, AACButton } from '../src/core/treeStructure';
+import { AACTree, AACButton, AACSemanticCategory } from '../src/core/treeStructure';
 import path from 'path';
 import fs from 'fs';
 
@@ -118,7 +118,8 @@ describe('AstericsGridProcessor', () => {
     let foundNavigationButton = false;
     Object.values(tree.pages).forEach((page) => {
       page.buttons.forEach((button) => {
-        if (button.type === 'NAVIGATE' && button.targetPageId) {
+        // Check using semantic action system instead of button.type
+        if (button.semanticAction?.category === AACSemanticCategory.NAVIGATION && button.targetPageId) {
           foundNavigationButton = true;
           // Verify the target page exists
           const targetPage = tree.getPage(button.targetPageId);
@@ -167,7 +168,10 @@ describe('AstericsGridProcessor', () => {
         expect(typeof button.id).toBe('string');
         expect(typeof button.label).toBe('string');
         expect(typeof button.message).toBe('string');
-        expect(['SPEAK', 'NAVIGATE']).toContain(button.type);
+        // Check semantic action is present (modern approach, not button.type)
+        expect(button.semanticAction).toBeDefined();
+        expect(button.semanticAction?.category).toBeDefined();
+        expect(button.semanticAction?.intent).toBeDefined();
       });
     });
 
@@ -202,5 +206,52 @@ describe('AstericsGridProcessor', () => {
     expect(translatedTexts).toContain('Elemento Cambiado');
     expect(translatedTexts).toContain('Cuadrícula Global');
     expect(translatedTexts).toContain('Inicio');
+  });
+
+  it('should preserve home page (tree.rootId) through roundtrip', () => {
+    const processor = new AstericsGridProcessor();
+
+    // Load the file and check if it has a rootId
+    const initialTree = processor.loadIntoTree(exampleGrdFile);
+
+    // Read the original file to check if it has homeGridId in metadata
+    let content = fs.readFileSync(exampleGrdFile, 'utf-8');
+    if (content.charCodeAt(0) === 0xfeff) {
+      content = content.slice(1);
+    }
+    const originalFile = JSON.parse(content);
+    const originalHomeGridId = originalFile.metadata?.homeGridId;
+
+    if (originalHomeGridId) {
+      // If the original file had a homeGridId, verify it was loaded correctly
+      expect(initialTree.rootId).toBe(originalHomeGridId);
+
+      // Verify the home page actually exists
+      const homePage = initialTree.getPage(initialTree.rootId!);
+      expect(homePage).toBeDefined();
+    }
+
+    // Save to a new file
+    processor.saveFromTree(initialTree, tempOutputPath);
+
+    // Load the saved file
+    const finalTree = processor.loadIntoTree(tempOutputPath);
+
+    // Verify rootId is preserved
+    expect(finalTree.rootId).toBe(initialTree.rootId);
+
+    // Verify the saved file has homeGridId in metadata
+    let savedContent = fs.readFileSync(tempOutputPath, 'utf-8');
+    if (savedContent.charCodeAt(0) === 0xfeff) {
+      savedContent = savedContent.slice(1);
+    }
+    const savedFile = JSON.parse(savedContent);
+    expect(savedFile.metadata?.homeGridId).toBe(initialTree.rootId);
+
+    // If rootId exists, verify the home page is accessible
+    if (finalTree.rootId) {
+      const finalHomePage = finalTree.getPage(finalTree.rootId);
+      expect(finalHomePage).toBeDefined();
+    }
   });
 });
