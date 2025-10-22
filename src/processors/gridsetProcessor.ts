@@ -22,18 +22,52 @@ class GridsetProcessor extends BaseProcessor {
   constructor(options?: ProcessorOptions) {
     super(options);
   }
+
+  // Helper function to ensure color has alpha channel (Grid3 format)
+  private ensureAlphaChannel(color: string | undefined): string {
+    if (!color) return '#FFFFFFFF';
+    // If already 8 digits (with alpha), return as is
+    if (color.match(/^#[0-9A-Fa-f]{8}$/)) return color;
+    // If 6 digits (no alpha), add FF for fully opaque
+    if (color.match(/^#[0-9A-Fa-f]{6}$/)) return color + 'FF';
+    // If 3 digits (shorthand), expand to 8
+    if (color.match(/^#[0-9A-Fa-f]{3}$/)) {
+      const r = color[1];
+      const g = color[2];
+      const b = color[3];
+      return `#${r}${r}${g}${g}${b}${b}FF`;
+    }
+    // Invalid or unknown format, return white
+    return '#FFFFFFFF';
+  }
+
   // Helper function to generate Grid3 commands from semantic actions
   private generateCommandsFromSemanticAction(button: AACButton, tree?: AACTree): any {
     const semanticAction = button.semanticAction;
 
     if (!semanticAction) {
-      // Default to insert text action
+      // Default to insert text action with structured XML format
+      // Use two <s> elements: one for the word, one for the space (CDATA preserves whitespace)
+      let text = button.message || button.label || '';
+      // Remove trailing space from message if present (we'll add it as separate segment)
+      if (text.endsWith(' ')) {
+        text = text.slice(0, -1);
+      }
       return {
         Command: {
           '@_ID': 'Action.InsertText',
           Parameter: {
             '@_Key': 'text',
-            '#text': button.message || button.label || '',
+            p: {
+              s: [
+                {
+                  r: text,
+                },
+                {
+                  r: { '__cdata': ' ' },
+                },
+              ],
+            },
           },
         },
       };
@@ -115,34 +149,93 @@ class GridsetProcessor extends BaseProcessor {
 
       case 'SPEAK_TEXT':
       case 'SPEAK_IMMEDIATE':
-        return {
-          Command: {
-            '@_ID': 'Action.Speak',
-          },
-        };
+        // For communication buttons, insert text into message bar (sentence building)
+        // Grid3 requires explicit trailing space for automatic word spacing
+        // Use two <s> elements: one for the word, one for the space (CDATA preserves whitespace)
+        // Users can speak the complete sentence with a dedicated Speak button
+        {
+          let text = semanticAction.text || button.message || button.label || '';
+          // Remove trailing space from message if present (we'll add it as separate segment)
+          if (text.endsWith(' ')) {
+            text = text.slice(0, -1);
+          }
+          return {
+            Command: {
+              '@_ID': 'Action.InsertText',
+              Parameter: {
+                '@_Key': 'text',
+                p: {
+                  s: [
+                    {
+                      r: text,
+                    },
+                    {
+                      r: { '__cdata': ' ' },
+                    },
+                  ],
+                },
+              },
+            },
+          };
+        }
 
       case 'INSERT_TEXT':
-        return {
-          Command: {
-            '@_ID': 'Action.InsertText',
-            Parameter: {
-              '@_Key': 'text',
-              '#text': semanticAction.text || button.message || button.label || '',
+        // Add trailing space for word buttons to enable sentence building
+        // Use two <s> elements: one for the word, one for the space (CDATA preserves whitespace)
+        {
+          let text = semanticAction.text || button.message || button.label || '';
+          // Remove trailing space from message if present (we'll add it as separate segment)
+          if (text.endsWith(' ')) {
+            text = text.slice(0, -1);
+          }
+          return {
+            Command: {
+              '@_ID': 'Action.InsertText',
+              Parameter: {
+                '@_Key': 'text',
+                p: {
+                  s: [
+                    {
+                      r: text,
+                    },
+                    {
+                      r: { '__cdata': ' ' },
+                    },
+                  ],
+                },
+              },
             },
-          },
-        };
+          };
+        }
 
       default:
-        // Fallback to insert text
-        return {
-          Command: {
-            '@_ID': 'Action.InsertText',
-            Parameter: {
-              '@_Key': 'text',
-              '#text': semanticAction.text || button.message || button.label || '',
+        // Fallback to insert text with structured XML format
+        // Use two <s> elements: one for the word, one for the space (CDATA preserves whitespace)
+        {
+          let text = semanticAction.text || button.message || button.label || '';
+          // Remove trailing space from message if present (we'll add it as separate segment)
+          if (text.endsWith(' ')) {
+            text = text.slice(0, -1);
+          }
+          return {
+            Command: {
+              '@_ID': 'Action.InsertText',
+              Parameter: {
+                '@_Key': 'text',
+                p: {
+                  s: [
+                    {
+                      r: text,
+                    },
+                    {
+                      r: { '__cdata': ' ' },
+                    },
+                  ],
+                },
+              },
             },
-          },
-        };
+          };
+        }
     }
   }
 
@@ -448,13 +541,46 @@ class GridsetProcessor extends BaseProcessor {
                     : [parameters]
                   : [];
 
+                // Helper to extract text from Grid3's structured format <p><s><r>text</r></s></p>
+                const extractStructuredText = (param: any): string | undefined => {
+                  // Try to extract from nested p.s structure
+                  if (param.p) {
+                    const p = param.p;
+                    // Handle p.s array or single s element
+                    const sElements = Array.isArray(p.s) ? p.s : p.s ? [p.s] : [];
+                    // Extract all r values and concatenate
+                    const parts: string[] = [];
+                    for (const s of sElements) {
+                      if (s && s.r !== undefined) {
+                        parts.push(String(s.r));
+                      }
+                    }
+                    if (parts.length > 0) {
+                      return parts.join('');
+                    }
+                  }
+                  return undefined;
+                };
+
                 // Helper to get parameter value
                 const getParam = (key: string): string | undefined => {
                   if (!parameters) return undefined;
                   for (const param of paramArr) {
                     if (param['@_Key'] === key || param.Key === key || param.key === key) {
-                      const v = param['#text'] ?? param.text ?? param.value ?? param;
-                      return typeof v === 'string' ? v : String(v);
+                      // First try simple #text value
+                      const simpleValue = param['#text'] ?? param.text ?? param.value;
+                      if (typeof simpleValue === 'string') {
+                        return simpleValue;
+                      }
+                      // Try to extract from structured format (Grid3's <p><s><r> format)
+                      const structuredValue = extractStructuredText(param);
+                      if (structuredValue !== undefined) {
+                        return structuredValue;
+                      }
+                      // Fallback to string conversion
+                      if (typeof param === 'string') {
+                        return param;
+                      }
                     }
                   }
                   return undefined;
@@ -853,6 +979,29 @@ class GridsetProcessor extends BaseProcessor {
       });
     }
 
+    // Read settings.xml to get the StartGrid (home page)
+    try {
+      const settingsEntry = zip.getEntries().find((e) => e.entryName.endsWith('settings.xml'));
+      if (settingsEntry) {
+        const settingsXml = settingsEntry.getData().toString('utf8');
+        const settingsData = parser.parse(settingsXml);
+        const startGridName =
+          settingsData?.GridSetSettings?.StartGrid ||
+          settingsData?.gridSetSettings?.startGrid ||
+          settingsData?.GridsetSettings?.StartGrid;
+
+        if (startGridName && typeof startGridName === 'string') {
+          // Resolve the grid name to grid ID
+          const homeGridId = gridNameToIdMap.get(startGridName);
+          if (homeGridId) {
+            tree.rootId = homeGridId;
+          }
+        }
+      }
+    } catch (e) {
+      // If settings.xml parsing fails, tree.rootId will default to first page
+    }
+
     return tree;
   }
 
@@ -906,6 +1055,10 @@ class GridsetProcessor extends BaseProcessor {
     const uniqueStyles = new Map<string, { id: string; style: Record<string, unknown> }>();
     let styleIdCounter = 1;
 
+    // Track images that need to be written to the ZIP
+    // Maps button ID to image data for buttons with images
+    const buttonImages = new Map<string, { imageData: Buffer; ext: string; pageName: string; x: number; y: number }>();
+
     // Helper function to add style and return its ID
     const addStyle = (style: unknown): string => {
       if (!style || typeof style !== 'object') return '';
@@ -929,9 +1082,21 @@ class GridsetProcessor extends BaseProcessor {
       });
     });
 
-    // Get the first page as the home/start grid
+    // Get the home/start grid from tree.rootId, fallback to first page
     const pages = Object.values(tree.pages);
-    const startGrid = pages.length > 0 ? pages[0].name || pages[0].id : '';
+    let startGrid = '';
+
+    if (tree.rootId) {
+      const homePage = tree.getPage(tree.rootId);
+      if (homePage) {
+        startGrid = homePage.name || homePage.id;
+      }
+    }
+
+    // Fallback to first page if no rootId or page not found
+    if (!startGrid && pages.length > 0) {
+      startGrid = pages[0].name || pages[0].id;
+    }
 
     // Create Settings0/settings.xml with proper Grid3 structure
     const settingsData = {
@@ -953,21 +1118,27 @@ class GridsetProcessor extends BaseProcessor {
       ignoreAttributes: false,
       format: true,
       indentBy: '  ',
+      suppressEmptyNode: true,
     });
     const settingsXmlContent = settingsBuilder.build(settingsData);
     zip.addFile('Settings0/settings.xml', Buffer.from(settingsXmlContent, 'utf8'));
 
     // Create Settings0/Styles/style.xml if there are styles
     if (uniqueStyles.size > 0) {
-      const stylesArray = Array.from(uniqueStyles.values()).map(({ id, style }) => ({
-        '@_Key': id,
-        BackColour: style.backgroundColor || '#FFFFFFFF',
-        TileColour: style.backgroundColor || '#FFFFFFFF',
-        BorderColour: style.borderColor || '#000000FF',
-        FontColour: style.fontColor || '#000000FF',
-        FontName: style.fontFamily || 'Arial',
-        FontSize: style.fontSize?.toString() || '16',
-      }));
+      const stylesArray = Array.from(uniqueStyles.values()).map(({ id, style }) => {
+        const styleObj: any = {
+          '@_Key': id,
+          // When TileColour is present, BackColour is the surround (outer area)
+          // For "None" surround, just use BackColour for the fill (no TileColour)
+          BackColour: this.ensureAlphaChannel(style.backgroundColor as string | undefined),
+          BorderColour: this.ensureAlphaChannel(style.borderColor as string | undefined) || '#000000FF',
+          FontColour: this.ensureAlphaChannel(style.fontColor as string | undefined) || '#000000FF',
+          FontName: style.fontFamily || 'Arial',
+          FontSize: style.fontSize?.toString() || '16',
+        };
+        // Don't add TileColour - just use BackColour as the fill color
+        return styleObj;
+      });
 
       const styleData = {
         '?xml': { '@_version': '1.0', '@_encoding': 'UTF-8' },
@@ -985,7 +1156,7 @@ class GridsetProcessor extends BaseProcessor {
         indentBy: '  ',
       });
       const styleXmlContent = styleBuilder.build(styleData);
-      zip.addFile('Settings0/Styles/style.xml', Buffer.from(styleXmlContent, 'utf8'));
+      zip.addFile('Settings0/Styles/styles.xml', Buffer.from(styleXmlContent, 'utf8'));
     }
 
     // Collect grid file paths for FileMap.xml
@@ -994,47 +1165,121 @@ class GridsetProcessor extends BaseProcessor {
     // Create a grid for each page
     Object.values(tree.pages).forEach((page, index) => {
       const gridData = {
-        '?xml': { '@_version': '1.0', '@_encoding': 'UTF-8' },
         Grid: {
           '@_xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
           GridGuid: page.id,
-          Name: page.name || `Grid ${index + 1}`,
-          BackgroundColour: page.style?.backgroundColor || '#E2EDF8FF',
           // Calculate grid dimensions based on actual layout
           ColumnDefinitions: this.calculateColumnDefinitions(page),
           RowDefinitions: this.calculateRowDefinitions(page),
+          AutoContentCommands: '',
           Cells:
             page.buttons.length > 0
               ? {
-                  Cell: this.filterPageButtons(page.buttons).map((button, btnIndex) => {
+                  Cell: [
+                    // Add workspace/message bar cell at the top of ALL pages
+                    // Grid3 uses 0-based coordinates; omit X and Y to use defaults (0, 0)
+                    {
+                      '@_ColumnSpan': 4,
+                      Content: {
+                        ContentType: 'Workspace',
+                        ContentSubType: 'Chat',
+                        Style: {
+                          BasedOnStyle: 'Workspace',
+                        },
+                      },
+                    },
+                    // Regular button cells
+                    ...this.filterPageButtons(page.buttons).map((button, btnIndex) => {
                     const buttonStyleId = button.style ? addStyle(button.style) : '';
 
                     // Find button position in grid layout
                     const position = this.findButtonPosition(page, button, btnIndex);
 
+                    // Shift all buttons down by 1 row to make room for workspace
+                    const yOffset = 1;
+
+                    // Build CaptionAndImage object
+                    const captionAndImage: Record<string, unknown> = {
+                      Caption: button.label || '',
+                    };
+
+                    // Add image reference if button has an image
+                    // Grid3 uses coordinate-based naming: {x}-{y}-0-text-0.{ext}
+                    if (button.image) {
+                      // Try to determine file extension from image name or default to PNG
+                      let imageExt = 'png';
+                      if (button.image.match(/\.(png|jpg|jpeg|gif|svg)$/i)) {
+                        imageExt = button.image.match(/\.(png|jpg|jpeg|gif|svg)$/i)![1].toLowerCase();
+                      }
+
+                      // Grid3 dynamically constructs image filenames by prepending cell coordinates
+                      // The XML should only contain the suffix: -0-text-0.{ext}
+                      // Grid3 automatically adds the X-Y prefix based on the Cell's position
+                      captionAndImage.Image = `-0-text-0.${imageExt}`;
+
+                      // Extract image data from button parameters if available
+                      // (AstericsGridProcessor stores it there during loadIntoTree)
+                      let imageData = Buffer.alloc(0);
+                      if (button.parameters && button.parameters.imageData && Buffer.isBuffer(button.parameters.imageData)) {
+                        imageData = button.parameters.imageData;
+                      }
+
+                      // Store image data for later writing to ZIP
+                      buttonImages.set(button.id, {
+                        imageData: imageData,
+                        ext: imageExt,
+                        pageName: page.name || page.id,
+                        x: position.x,
+                        y: position.y + yOffset,
+                      });
+                    }
+
                     const cellData: Record<string, unknown> = {
-                      '@_X': position.x,
-                      '@_Y': position.y,
+                      '@_X': position.x, // Grid3 uses 0-based X coordinates (defaults to 0 when omitted)
+                      '@_Y': position.y + yOffset, // Grid3 uses 0-based Y coordinates with workspace offset
                       '@_ColumnSpan': position.columnSpan,
                       '@_RowSpan': position.rowSpan,
                       Content: {
                         Commands: this.generateCommandsFromSemanticAction(button, tree),
-                        CaptionAndImage: {
-                          Caption: button.label || '',
-                        },
+                        CaptionAndImage: captionAndImage,
                       },
                     };
 
-                    // Add style reference if available
-                    if (buttonStyleId) {
-                      (cellData as any).Content.Style = {
-                        BasedOnStyle: buttonStyleId,
-                      };
+                    // Add style reference and inline color overrides if available
+                    // Some Grid3 versions need inline colors in addition to style references
+                    if (buttonStyleId || button.style) {
+                      const styleObj: any = {};
+
+                      // Add style reference if we have one
+                      if (buttonStyleId) {
+                        styleObj.BasedOnStyle = buttonStyleId;
+                      }
+
+                      // Add inline color overrides for better Grid3 compatibility
+                      if (button.style?.backgroundColor) {
+                        // Use BackColour for fill (no TileColour means no surround, just the fill)
+                        styleObj.BackColour = this.ensureAlphaChannel(button.style.backgroundColor);
+                      }
+                      if (button.style?.borderColor) {
+                        styleObj.BorderColour = this.ensureAlphaChannel(button.style.borderColor);
+                      }
+                      if (button.style?.fontColor) {
+                        styleObj.FontColour = this.ensureAlphaChannel(button.style.fontColor);
+                      }
+                      if (button.style?.fontFamily) {
+                        styleObj.FontName = button.style.fontFamily;
+                      }
+                      if (button.style?.fontSize) {
+                        styleObj.FontSize = button.style.fontSize;
+                      }
+
+                      (cellData as any).Content.Style = styleObj;
                     }
 
                     return cellData;
                   }),
-                }
+                ]
+              }
               : { Cell: [] },
         },
       };
@@ -1044,6 +1289,8 @@ class GridsetProcessor extends BaseProcessor {
         ignoreAttributes: false,
         format: true,
         indentBy: '  ',
+        suppressEmptyNode: true,
+        cdataPropName: '__cdata',
       });
       const xmlContent = builder.build(gridData);
 
@@ -1053,18 +1300,42 @@ class GridsetProcessor extends BaseProcessor {
       zip.addFile(gridPath, Buffer.from(xmlContent, 'utf8'));
     });
 
-    // Create FileMap.xml to map all grid files
+    // Write image files to ZIP
+    buttonImages.forEach((imgData, buttonId) => {
+      if (imgData.imageData && imgData.imageData.length > 0) {
+        // Create image path in the grid's directory
+        const imagePath = `Grids\\${imgData.pageName}\\${imgData.x}-${imgData.y}-0-text-0.${imgData.ext}`;
+        zip.addFile(imagePath, imgData.imageData);
+      }
+    });
+
+    // Create FileMap.xml to map all grid files with their dynamic image files
     const fileMapData = {
       '?xml': { '@_version': '1.0', '@_encoding': 'UTF-8' },
       FileMap: {
         '@_xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
         Entries: {
-          Entry: gridFilePaths.map((gridPath) => ({
-            '@_StaticFile': gridPath,
-            DynamicFiles: {
-              // Empty for now - could be extended for dynamic content
-            },
-          })),
+          Entry: gridFilePaths.map((gridPath) => {
+            // Find all image files for this grid
+            const gridName = gridPath.match(/Grids\\([^\\]+)\\grid\.xml$/)?.[1] || '';
+            const imageFiles: string[] = [];
+
+            // Collect image filenames for buttons on this page
+            // IMPORTANT: FileMap.xml requires full paths like "Grids\PageName\1-5-0-text-0.png"
+            buttonImages.forEach((imgData, buttonId) => {
+              if (imgData.pageName === gridName && imgData.imageData.length > 0) {
+                const imagePath = `Grids\\${gridName}\\${imgData.x}-${imgData.y}-0-text-0.${imgData.ext}`;
+                imageFiles.push(imagePath);
+              }
+            });
+
+            return {
+              '@_StaticFile': gridPath,
+              DynamicFiles: imageFiles.length > 0 ? {
+                File: imageFiles
+              } : {},
+            };
+          }),
         },
       },
     };
