@@ -285,7 +285,7 @@ export class AACButton implements IAACButton {
     }
     if (this.targetPageId) return 'NAVIGATE';
     if (this.message) return 'SPEAK';
-    return undefined;
+    return 'SPEAK';
   }
 
   get action(): {
@@ -295,6 +295,9 @@ export class AACButton implements IAACButton {
   } | null {
     const t = this.type;
     if (!t) return null;
+    if (t === 'SPEAK' && !this.message && !this.label && !this.semanticAction) {
+      return null;
+    }
     return { type: t, targetPageId: this.targetPageId, message: this.message };
   }
 }

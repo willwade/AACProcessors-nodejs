@@ -281,6 +281,27 @@ class ApplePanelsProcessor extends BaseProcessor {
         if (button.message && translations.has(button.message)) {
           button.message = translations.get(button.message)!;
         }
+
+        if (button.semanticAction) {
+          const intentStr = String(button.semanticAction.intent);
+          if (intentStr === 'SPEAK_TEXT' || intentStr === 'INSERT_TEXT') {
+            const updatedText = button.message || button.label || '';
+            button.semanticAction.text = updatedText;
+            if (button.semanticAction.fallback) {
+              button.semanticAction.fallback.message = updatedText;
+            }
+            const platformParams =
+              button.semanticAction.platformData?.applePanels?.parameters;
+            if (platformParams && typeof platformParams === 'object') {
+              if ('CharString' in platformParams) {
+                platformParams.CharString = updatedText;
+              }
+              if ('PanelID' in platformParams && button.targetPageId) {
+                platformParams.PanelID = `USER.${button.targetPageId}`;
+              }
+            }
+          }
+        }
       });
     });
 

@@ -759,6 +759,19 @@ Inspired by the Python AACProcessors project
 - ⚠️ **Memory usage**: Large files (>50MB) may cause memory pressure
 - ⚠️ **Concurrent access**: Some processors not fully thread-safe for simultaneous writes
 
+### 🧪 Current Test Status & Immediate Follow-Up
+
+As of the latest run (`npm test`), **45 suites pass / 8 fail (11 individual tests)**. The remaining reds are concentrated in the following areas:
+
+1. **SnapProcessor coverage harness** – our in-memory fixture lacks the full Snap schema (`ElementPlacement`, `Message`, etc.), so the loader now rejects it as incomplete. Update the test database (or adjust expectations) to include Grid coordinates and message columns so audio assertions execute again.
+2. **Gridset exports** – round-trip still sheds one button and the styling suite cannot find `style.xml`. Investigate GridsetProcessor save logic to ensure button arrays and style archives are written faithfully.
+3. **Dot round-tripping** – property-based DOT tests collapse navigation for certain generated trees (buttons fall back to `SPEAK`). We need better semantic mapping when recreating `DotProcessor` buttons.
+4. **Edge-case loaders** – corrupted JSON/XML cases no longer throw; align Asterics/OPML/DOT loaders with the test expectations (either rethrow earlier or update the tests to accept soft-fail behaviour).
+5. **Advanced workflow scenario** – translated Spanish content isn’t discovered after the multi-format pipeline (likely Gridset/TMP Snap translation gaps). Trace the pipeline and ensure translated text survives each hop.
+6. **Memory comparison suite** – DOT still reports higher memory delta than TouchChat/Snap. Validate memory measurement or re-tune the processors.
+
+Addressing these will move us much closer to a releasable state; once Snap coverage fixtures and Gridset exports are stabilised we should see a substantial drop in failing suites.
+
 ## More enhancements
 
 - Much more effort put into fixing the layout issues. Grid sizes are not reliably and X, Y positions too. Particularly in the Grid3
