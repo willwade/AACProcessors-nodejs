@@ -25,14 +25,11 @@ describe('ExcelProcessor', () => {
       expect(processor).toBeInstanceOf(ExcelProcessor);
     });
 
-    it('should handle empty tree', () => {
+    it('should handle empty tree', async () => {
       const tree = new AACTree();
       const outputPath = path.join(tempDir, 'empty.xlsx');
 
-      // This should not throw
-      expect(() => {
-        processor.saveFromTree(tree, outputPath);
-      }).not.toThrow();
+      await expect(processor.saveFromTree(tree, outputPath)).resolves.toBeUndefined();
     });
 
     it('should extract texts from non-existent file', () => {
@@ -72,10 +69,8 @@ describe('ExcelProcessor', () => {
       tree.addPage(page);
 
       const outputPath = path.join(tempDir, 'simple.xlsx');
-      processor.saveFromTree(tree, outputPath);
-
-      // Give async operation time to complete
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await processor.saveFromTree(tree, outputPath);
+      expect(fs.existsSync(outputPath)).toBe(true);
 
       // Check if file was created (may be async)
       // Note: Due to async nature, file might not exist immediately
@@ -106,10 +101,8 @@ describe('ExcelProcessor', () => {
       tree.addPage(page);
 
       const outputPath = path.join(tempDir, 'styled.xlsx');
-      processor.saveFromTree(tree, outputPath);
-
-      // Give async operation time to complete
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await processor.saveFromTree(tree, outputPath);
+      expect(fs.existsSync(outputPath)).toBe(true);
     });
 
     it('should handle navigation buttons', async () => {
@@ -159,10 +152,8 @@ describe('ExcelProcessor', () => {
       tree.rootId = 'home';
 
       const outputPath = path.join(tempDir, 'navigation.xlsx');
-      processor.saveFromTree(tree, outputPath);
-
-      // Give async operation time to complete
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await processor.saveFromTree(tree, outputPath);
+      expect(fs.existsSync(outputPath)).toBe(true);
     });
 
     it('should handle grid layout', async () => {
@@ -206,10 +197,8 @@ describe('ExcelProcessor', () => {
       tree.addPage(page);
 
       const outputPath = path.join(tempDir, 'grid.xlsx');
-      processor.saveFromTree(tree, outputPath);
-
-      // Give async operation time to complete
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await processor.saveFromTree(tree, outputPath);
+      expect(fs.existsSync(outputPath)).toBe(true);
     });
   });
 
@@ -222,7 +211,7 @@ describe('ExcelProcessor', () => {
       expect(sanitize('Name/With\\Invalid:Chars')).toBe('Name_With_Invalid_Chars');
       expect(sanitize('')).toBe('Sheet1');
       expect(sanitize('Very Long Name That Exceeds Thirty One Characters')).toBe(
-        'Very Long Name That Exceeds Th'
+        'Very Long Name That Exceeds Thi'
       );
     });
 

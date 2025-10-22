@@ -80,7 +80,7 @@ abstract class BaseProcessor {
   ): Buffer;
 
   // Save tree structure back to file/buffer
-  abstract saveFromTree(tree: AACTree, outputPath: string): void;
+  abstract saveFromTree(tree: AACTree, outputPath: string): void | Promise<void>;
 
   // Optional alias methods for aac-tools-platform compatibility
   // These provide a unified interface across all AAC formats
