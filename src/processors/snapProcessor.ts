@@ -23,7 +23,8 @@ interface SnapButton {
   Id: number;
   Label: string;
   Message: string | null;
-  LibrarySymbolId: number | null;
+  LibrarySymbolId?: number | null;
+  PageSetImageId?: number | null;
   NavigatePageId: number | null;
   MessageRecordingId?: number | null;
   UseMessageRecording?: number | null;
@@ -55,7 +56,7 @@ class SnapProcessor extends BaseProcessor {
   ) {
     super(options);
     this.symbolResolver = symbolResolver;
-    this.loadAudio = options.loadAudio || false;
+    this.loadAudio = options.loadAudio !== undefined ? options.loadAudio : true;
   }
 
   extractTexts(filePathOrBuffer: string | Buffer): string[] {
@@ -92,6 +93,15 @@ class SnapProcessor extends BaseProcessor {
     try {
       db = new Database(filePath, { readonly: true });
 
+      const getTableColumns = (tableName: string): Set<string> => {
+        try {
+          const rows = db.prepare(`PRAGMA table_info(${tableName})`).all() as Array<{ name: string }>;
+          return new Set(rows.map((row) => row.name));
+        } catch {
+          return new Set();
+        }
+      };
+
       // Load pages first, using UniqueId as canonical id
       const pages = db.prepare('SELECT * FROM Page').all() as any[];
       // Map from numeric Id -> UniqueId for later lookup
@@ -123,22 +133,45 @@ class SnapProcessor extends BaseProcessor {
         const pageGrids = new Map<string, Array<Array<AACButton | null>>>();
 
         try {
-          // Simplified query focusing on ElementReference relationship
-          const buttonQuery = this.loadAudio
-            ? `
-            SELECT b.Id, b.Label, b.Message, b.LibrarySymbolId, b.PageSetImageId,
-                   b.MessageRecordingId, b.UseMessageRecording, b.SerializedMessageSoundMetadata,
-                   b.BorderColor, b.BorderThickness, b.FontSize, b.FontFamily, b.FontStyle,
-                   ep.GridPosition, er.PageId as ButtonPageId
-            FROM Button b
-            INNER JOIN ElementReference er ON b.ElementReferenceId = er.Id
-            LEFT JOIN ElementPlacement ep ON ep.ElementReferenceId = er.Id
-            WHERE er.PageId = ?
-          `
-            : `
-            SELECT b.Id, b.Label, b.Message, b.LibrarySymbolId, b.PageSetImageId,
-                   b.BorderColor, b.BorderThickness, b.FontSize, b.FontFamily, b.FontStyle,
-                   ep.GridPosition, er.PageId as ButtonPageId
+          const buttonColumns = getTableColumns('Button');
+          const selectFields = [
+            'b.Id',
+            'b.Label',
+            'b.Message',
+            buttonColumns.has('LibrarySymbolId') ? 'b.LibrarySymbolId' : 'NULL AS LibrarySymbolId',
+            buttonColumns.has('PageSetImageId') ? 'b.PageSetImageId' : 'NULL AS PageSetImageId',
+            buttonColumns.has('BorderColor') ? 'b.BorderColor' : 'NULL AS BorderColor',
+            buttonColumns.has('BorderThickness') ? 'b.BorderThickness' : 'NULL AS BorderThickness',
+            buttonColumns.has('FontSize') ? 'b.FontSize' : 'NULL AS FontSize',
+            buttonColumns.has('FontFamily') ? 'b.FontFamily' : 'NULL AS FontFamily',
+            buttonColumns.has('FontStyle') ? 'b.FontStyle' : 'NULL AS FontStyle',
+            buttonColumns.has('LabelColor') ? 'b.LabelColor' : 'NULL AS LabelColor',
+            buttonColumns.has('BackgroundColor') ? 'b.BackgroundColor' : 'NULL AS BackgroundColor',
+            buttonColumns.has('NavigatePageId') ? 'b.NavigatePageId' : 'NULL AS NavigatePageId',
+          ];
+
+          if (this.loadAudio) {
+            selectFields.push(
+              buttonColumns.has('MessageRecordingId')
+                ? 'b.MessageRecordingId'
+                : 'NULL AS MessageRecordingId'
+            );
+            selectFields.push(
+              buttonColumns.has('UseMessageRecording')
+                ? 'b.UseMessageRecording'
+                : 'NULL AS UseMessageRecording'
+            );
+            selectFields.push(
+              buttonColumns.has('SerializedMessageSoundMetadata')
+                ? 'b.SerializedMessageSoundMetadata'
+                : 'NULL AS SerializedMessageSoundMetadata'
+            );
+          }
+
+          selectFields.push('ep.GridPosition', 'er.PageId as ButtonPageId');
+
+          const buttonQuery = `
+            SELECT ${selectFields.join(', ')}
             FROM Button b
             INNER JOIN ElementReference er ON b.ElementReferenceId = er.Id
             LEFT JOIN ElementPlacement ep ON ep.ElementReferenceId = er.Id
@@ -146,8 +179,18 @@ class SnapProcessor extends BaseProcessor {
           `;
           buttons = db.prepare(buttonQuery).all(pageRow.Id);
         } catch (err) {
+          const errorMessage = err instanceof Error ? err.message : String(err);
+          const errorCode = err && typeof err === 'object' && 'code' in err ? (err as any).code : undefined;
+          if (
+            errorCode === 'SQLITE_CORRUPT' ||
+            errorCode === 'SQLITE_NOTADB' ||
+            /malformed/i.test(errorMessage)
+          ) {
+            throw new Error(`Snap database is corrupted or incomplete: ${errorMessage}`);
+          }
+
           console.warn(
-            `Failed to load buttons for page ${pageRow.Id}: ${err instanceof Error ? err.message : String(err)}`
+            `Failed to load buttons for page ${pageRow.Id}: ${errorMessage}`
           );
           // Skip this page instead of loading all buttons
           buttons = [];
@@ -381,6 +424,10 @@ class SnapProcessor extends BaseProcessor {
   }
 
   saveFromTree(tree: AACTree, outputPath: string): void {
+    const outputDir = path.dirname(outputPath);
+    if (!fs.existsSync(outputDir)) {
+      fs.mkdirSync(outputDir, { recursive: true });
+    }
     if (fs.existsSync(outputPath)) {
       fs.unlinkSync(outputPath);
     }
@@ -404,6 +451,11 @@ class SnapProcessor extends BaseProcessor {
           Message TEXT,
           NavigatePageId INTEGER,
           ElementReferenceId INTEGER,
+          LibrarySymbolId INTEGER,
+          PageSetImageId INTEGER,
+          MessageRecordingId INTEGER,
+          SerializedMessageSoundMetadata TEXT,
+          UseMessageRecording INTEGER,
           LabelColor INTEGER,
           BackgroundColor INTEGER,
           BorderColor INTEGER,
@@ -422,8 +474,15 @@ class SnapProcessor extends BaseProcessor {
         CREATE TABLE IF NOT EXISTS ElementPlacement (
           Id INTEGER PRIMARY KEY,
           ElementReferenceId INTEGER,
-          GridPosition INTEGER,
+          GridPosition TEXT,
           FOREIGN KEY (ElementReferenceId) REFERENCES ElementReference (Id)
+        );
+
+        CREATE TABLE IF NOT EXISTS PageSetData (
+          Id INTEGER PRIMARY KEY,
+          Identifier TEXT UNIQUE,
+          Data BLOB,
+          RefCount INTEGER DEFAULT 1
         );
       `);
 
@@ -431,8 +490,15 @@ class SnapProcessor extends BaseProcessor {
       let pageIdCounter = 1;
       let buttonIdCounter = 1;
       let elementRefIdCounter = 1;
+      let placementIdCounter = 1;
+      let pageSetDataIdCounter = 1;
 
       const pageIdMap = new Map<string, number>();
+      const pageSetDataIdentifierMap = new Map<string, number>();
+      const insertPageSetData = db.prepare(
+        'INSERT INTO PageSetData (Id, Identifier, Data, RefCount) VALUES (?, ?, ?, ?)'
+      );
+      const incrementRefCount = db.prepare('UPDATE PageSetData SET RefCount = RefCount + 1 WHERE Id = ?');
 
       // First pass: create all pages
       Object.values(tree.pages).forEach((page) => {
@@ -492,14 +558,45 @@ class SnapProcessor extends BaseProcessor {
           }
 
           const insertButton = db.prepare(
-            'INSERT INTO Button (Id, Label, Message, NavigatePageId, ElementReferenceId, LabelColor, BackgroundColor, BorderColor, BorderThickness, FontSize, FontFamily, FontStyle) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+            'INSERT INTO Button (Id, Label, Message, NavigatePageId, ElementReferenceId, LibrarySymbolId, PageSetImageId, MessageRecordingId, SerializedMessageSoundMetadata, UseMessageRecording, LabelColor, BackgroundColor, BorderColor, BorderThickness, FontSize, FontFamily, FontStyle) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
           );
+
+          const audio = button.audioRecording;
+          let messageRecordingId: number | null = null;
+          let serializedMetadata: string | null = null;
+          let useMessageRecording = 0;
+
+          if (audio && Buffer.isBuffer(audio.data) && audio.data.length > 0) {
+            const identifier =
+              audio.identifier && audio.identifier.trim().length > 0
+                ? audio.identifier.trim()
+                : `audio_${buttonIdCounter}`;
+
+            let audioId = pageSetDataIdentifierMap.get(identifier);
+            if (!audioId) {
+              audioId = pageSetDataIdCounter++;
+              insertPageSetData.run(audioId, identifier, audio.data, 1);
+              pageSetDataIdentifierMap.set(identifier, audioId);
+            } else {
+              incrementRefCount.run(audioId);
+            }
+
+            messageRecordingId = audioId;
+            serializedMetadata = audio.metadata || null;
+            useMessageRecording = 1;
+          }
+
           insertButton.run(
             buttonIdCounter++,
             button.label || '',
             button.message || button.label || '',
             navigatePageId,
             elementRefId,
+            null,
+            null,
+            messageRecordingId,
+            serializedMetadata,
+            useMessageRecording,
             button.style?.fontColor ? parseInt(button.style.fontColor.replace('#', ''), 16) : null,
             button.style?.backgroundColor
               ? parseInt(button.style.backgroundColor.replace('#', ''), 16)
@@ -517,7 +614,7 @@ class SnapProcessor extends BaseProcessor {
           const insertPlacement = db.prepare(
             'INSERT INTO ElementPlacement (Id, ElementReferenceId, GridPosition) VALUES (?, ?, ?)'
           );
-          insertPlacement.run(elementRefIdCounter++, elementRefId, gridPosition);
+          insertPlacement.run(placementIdCounter++, elementRefId, gridPosition);
         });
       });
     } finally {
