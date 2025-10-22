@@ -81,46 +81,541 @@ interface AstericsGridFile {
   metadata?: any;
 }
 
-// Asterics Grid Color Scheme Definitions
-// Maps color categories to actual colors for different color schemes
-const COLOR_SCHEMES: Record<string, Record<string, { backgroundColor: string; borderColor: string; fontColor: string }>> = {
-  CS_MONTESSORI_VERY_LIGHT: {
-    CC_DEFAULT: { backgroundColor: '#ffffff', borderColor: '#cccccc', fontColor: '#000000' },
-    CC_IMPORTANT: { backgroundColor: '#ffcccc', borderColor: '#cc0000', fontColor: '#660000' },  // Light red with dark red text
-    CC_PEOPLE: { backgroundColor: '#ffeecc', borderColor: '#ff9900', fontColor: '#663300' },     // Light orange with dark brown text
-    CC_NAMES: { backgroundColor: '#ffddff', borderColor: '#cc00cc', fontColor: '#660066' },      // Light purple with dark purple text
-    CC_VERBS: { backgroundColor: '#ddffdd', borderColor: '#00aa00', fontColor: '#004400' },      // Light green with dark green text
-    CC_ADJECTIVES: { backgroundColor: '#ccddff', borderColor: '#0066cc', fontColor: '#003366' }, // Light blue with dark blue text
-    CC_QUESTION_WORDS: { backgroundColor: '#ffffcc', borderColor: '#cccc00', fontColor: '#666600' }, // Light yellow with dark olive text
-    CC_PRONOUNS: { backgroundColor: '#ffddcc', borderColor: '#ff6600', fontColor: '#663300' },   // Light peach with dark brown text
-    CC_CONJUNCTIONS: { backgroundColor: '#e6ccff', borderColor: '#9933ff', fontColor: '#551188' }, // Light lavender with dark purple text
-    CC_INTERJECTIONS: { backgroundColor: '#ffccee', borderColor: '#ff0099', fontColor: '#880055' }, // Light pink with dark pink text
+interface ColorSchemeDefinition {
+  name: string;
+  categories: string[];
+  colors: string[];
+  mappings?: Record<string, string>;
+  customBorders?: Record<string, string>;
+}
+
+const DEFAULT_COLOR_SCHEME_DEFINITIONS: ColorSchemeDefinition[] = [
+  {
+    name: 'CS_MODIFIED_FITZGERALD_KEY_VERY_LIGHT',
+    categories: [
+      'CC_PRONOUN_PERSON_NAME',
+      'CC_NOUN',
+      'CC_VERB',
+      'CC_DESCRIPTOR',
+      'CC_SOCIAL_EXPRESSIONS',
+      'CC_MISC',
+      'CC_PLACE',
+      'CC_CATEGORY',
+      'CC_IMPORTANT',
+      'CC_OTHERS',
+    ],
+    colors: [
+      '#fafad0',
+      '#fbf3e4',
+      '#dff4df',
+      '#eaeffd',
+      '#fff0f6',
+      '#ffffff',
+      '#fbf2ff',
+      '#ddccc1',
+      '#FCE8E8',
+      '#e4e4e4',
+    ],
+    mappings: {
+      CC_ADJECTIVE: 'CC_DESCRIPTOR',
+      CC_ADVERB: 'CC_DESCRIPTOR',
+      CC_ARTICLE: 'CC_MISC',
+      CC_PREPOSITION: 'CC_MISC',
+      CC_CONJUNCTION: 'CC_MISC',
+      CC_INTERJECTION: 'CC_SOCIAL_EXPRESSIONS',
+    },
   },
-  CS_MONTESSORI: {
-    CC_DEFAULT: { backgroundColor: '#f0f0f0', borderColor: '#999999', fontColor: '#000000' },
-    CC_IMPORTANT: { backgroundColor: '#ff9999', borderColor: '#990000', fontColor: '#660000' },
-    CC_PEOPLE: { backgroundColor: '#ffcc99', borderColor: '#ff6600', fontColor: '#663300' },
-    CC_NAMES: { backgroundColor: '#ffbbff', borderColor: '#990099', fontColor: '#660066' },
-    CC_VERBS: { backgroundColor: '#99ff99', borderColor: '#007700', fontColor: '#004400' },
-    CC_ADJECTIVES: { backgroundColor: '#99bbff', borderColor: '#004499', fontColor: '#003366' },
-    CC_QUESTION_WORDS: { backgroundColor: '#ffff99', borderColor: '#999900', fontColor: '#666600' },
-    CC_PRONOUNS: { backgroundColor: '#ffbb99', borderColor: '#cc4400', fontColor: '#663300' },
-    CC_CONJUNCTIONS: { backgroundColor: '#cc99ff', borderColor: '#7700cc', fontColor: '#551188' },
-    CC_INTERJECTIONS: { backgroundColor: '#ff99dd', borderColor: '#cc0066', fontColor: '#880055' },
+  {
+    name: 'CS_MODIFIED_FITZGERALD_KEY_LIGHT',
+    categories: [
+      'CC_PRONOUN_PERSON_NAME',
+      'CC_NOUN',
+      'CC_VERB',
+      'CC_DESCRIPTOR',
+      'CC_SOCIAL_EXPRESSIONS',
+      'CC_MISC',
+      'CC_PLACE',
+      'CC_CATEGORY',
+      'CC_IMPORTANT',
+      'CC_OTHERS',
+    ],
+    colors: [
+      '#fdfd96',
+      '#ffda89',
+      '#c7f3c7',
+      '#84b6f4',
+      '#fdcae1',
+      '#ffffff',
+      '#bc98f3',
+      '#d8af97',
+      '#ff9688',
+      '#bdbfbf',
+    ],
+    mappings: {
+      CC_ADJECTIVE: 'CC_DESCRIPTOR',
+      CC_ADVERB: 'CC_DESCRIPTOR',
+      CC_ARTICLE: 'CC_MISC',
+      CC_PREPOSITION: 'CC_MISC',
+      CC_CONJUNCTION: 'CC_MISC',
+      CC_INTERJECTION: 'CC_SOCIAL_EXPRESSIONS',
+    },
   },
-  CS_DEFAULT: {
-    CC_DEFAULT: { backgroundColor: '#ffffff', borderColor: '#808080', fontColor: '#000000' },
-    CC_IMPORTANT: { backgroundColor: '#ff6666', borderColor: '#cc0000', fontColor: '#660000' },
-    CC_PEOPLE: { backgroundColor: '#ffaa66', borderColor: '#ff6600', fontColor: '#663300' },
-    CC_NAMES: { backgroundColor: '#ff99ff', borderColor: '#cc00cc', fontColor: '#660066' },
-    CC_VERBS: { backgroundColor: '#66ff66', borderColor: '#00cc00', fontColor: '#004400' },
-    CC_ADJECTIVES: { backgroundColor: '#6699ff', borderColor: '#0066cc', fontColor: '#003366' },
-    CC_QUESTION_WORDS: { backgroundColor: '#ffff66', borderColor: '#cccc00', fontColor: '#666600' },
-    CC_PRONOUNS: { backgroundColor: '#ff9966', borderColor: '#ff3300', fontColor: '#663300' },
-    CC_CONJUNCTIONS: { backgroundColor: '#9966ff', borderColor: '#6600cc', fontColor: '#551188' },
-    CC_INTERJECTIONS: { backgroundColor: '#ff66cc', borderColor: '#cc0099', fontColor: '#880055' },
+  {
+    name: 'CS_MODIFIED_FITZGERALD_KEY_MEDIUM',
+    categories: [
+      'CC_PRONOUN_PERSON_NAME',
+      'CC_NOUN',
+      'CC_VERB',
+      'CC_DESCRIPTOR',
+      'CC_SOCIAL_EXPRESSIONS',
+      'CC_MISC',
+      'CC_PLACE',
+      'CC_CATEGORY',
+      'CC_IMPORTANT',
+      'CC_OTHERS',
+    ],
+    colors: [
+      '#ffff6b',
+      '#ffb56b',
+      '#b5ff6b',
+      '#6bb5ff',
+      '#ff6bff',
+      '#ffffff',
+      '#ce6bff',
+      '#bf9075',
+      '#ff704d',
+      '#a3a3a3',
+    ],
+    mappings: {
+      CC_ADJECTIVE: 'CC_DESCRIPTOR',
+      CC_ADVERB: 'CC_DESCRIPTOR',
+      CC_ARTICLE: 'CC_MISC',
+      CC_PREPOSITION: 'CC_MISC',
+      CC_CONJUNCTION: 'CC_MISC',
+      CC_INTERJECTION: 'CC_SOCIAL_EXPRESSIONS',
+    },
   },
+  {
+    name: 'CS_MODIFIED_FITZGERALD_KEY_DARK',
+    categories: [
+      'CC_PRONOUN_PERSON_NAME',
+      'CC_NOUN',
+      'CC_VERB',
+      'CC_DESCRIPTOR',
+      'CC_SOCIAL_EXPRESSIONS',
+      'CC_MISC',
+      'CC_PLACE',
+      'CC_CATEGORY',
+      'CC_IMPORTANT',
+      'CC_OTHERS',
+    ],
+    colors: [
+      '#79791F',
+      '#804c26',
+      '#4c8026',
+      '#264c80',
+      '#802680',
+      '#747474',
+      '#602680',
+      '#52331f',
+      '#80261a',
+      '#464646',
+    ],
+    mappings: {
+      CC_ADJECTIVE: 'CC_DESCRIPTOR',
+      CC_ADVERB: 'CC_DESCRIPTOR',
+      CC_ARTICLE: 'CC_MISC',
+      CC_PREPOSITION: 'CC_MISC',
+      CC_CONJUNCTION: 'CC_MISC',
+      CC_INTERJECTION: 'CC_SOCIAL_EXPRESSIONS',
+    },
+  },
+  {
+    name: 'CS_GOOSENS_VERY_LIGHT',
+    categories: [
+      'CC_VERB',
+      'CC_DESCRIPTOR',
+      'CC_PREPOSITION',
+      'CC_NOUN',
+      'CC_QUESTION_NEGATION_PRONOUN',
+    ],
+    colors: ['#fff0f6', '#eaeffd', '#dff4df', '#fafad0', '#fbf3e4'],
+  },
+  {
+    name: 'CS_GOOSENS_LIGHT',
+    categories: [
+      'CC_VERB',
+      'CC_DESCRIPTOR',
+      'CC_PREPOSITION',
+      'CC_NOUN',
+      'CC_QUESTION_NEGATION_PRONOUN',
+    ],
+    colors: ['#fdcae1', '#84b6f4', '#c7f3c7', '#fdfd96', '#ffda89'],
+  },
+  {
+    name: 'CS_GOOSENS_MEDIUM',
+    categories: [
+      'CC_VERB',
+      'CC_DESCRIPTOR',
+      'CC_PREPOSITION',
+      'CC_NOUN',
+      'CC_QUESTION_NEGATION_PRONOUN',
+    ],
+    colors: ['#ff6bff', '#6bb5ff', '#b5ff6b', '#ffff6b', '#ffb56b'],
+  },
+  {
+    name: 'CS_GOOSENS_DARK',
+    categories: [
+      'CC_VERB',
+      'CC_DESCRIPTOR',
+      'CC_PREPOSITION',
+      'CC_NOUN',
+      'CC_QUESTION_NEGATION_PRONOUN',
+    ],
+    colors: ['#802680', '#264c80', '#4c8026', '#79791F', '#804c26'],
+  },
+  {
+    name: 'CS_MONTESSORI_VERY_LIGHT',
+    categories: [
+      'CC_NOUN',
+      'CC_ARTICLE',
+      'CC_ADJECTIVE',
+      'CC_VERB',
+      'CC_PREPOSITION',
+      'CC_ADVERB',
+      'CC_PRONOUN_PERSON_NAME',
+      'CC_CONJUNCTION',
+      'CC_INTERJECTION',
+      'CC_CATEGORY',
+    ],
+    colors: [
+      '#ffffff',
+      '#e3f5fa',
+      '#eaeffd',
+      '#FCE8E8',
+      '#dff4df',
+      '#fbf3e4',
+      '#fbf2ff',
+      '#fff0f6',
+      '#fbf7e4',
+      '#e4e4e4',
+    ],
+    customBorders: {
+      CC_NOUN: '#353535',
+    },
+  },
+  {
+    name: 'CS_MONTESSORI_LIGHT',
+    categories: [
+      'CC_NOUN',
+      'CC_ARTICLE',
+      'CC_ADJECTIVE',
+      'CC_VERB',
+      'CC_PREPOSITION',
+      'CC_ADVERB',
+      'CC_PRONOUN_PERSON_NAME',
+      'CC_CONJUNCTION',
+      'CC_INTERJECTION',
+      'CC_CATEGORY',
+    ],
+    colors: [
+      '#afafaf',
+      '#a8e0f0',
+      '#a5bbf7',
+      '#f4a8a8',
+      '#ace3ac',
+      '#f2d7a6',
+      '#e4a5ff',
+      '#ffa5c9',
+      '#f2e5a6',
+      '#d1d1d1',
+    ],
+  },
+  {
+    name: 'CS_MONTESSORI_MEDIUM',
+    categories: [
+      'CC_NOUN',
+      'CC_ARTICLE',
+      'CC_ADJECTIVE',
+      'CC_VERB',
+      'CC_PREPOSITION',
+      'CC_ADVERB',
+      'CC_PRONOUN_PERSON_NAME',
+      'CC_CONJUNCTION',
+      'CC_INTERJECTION',
+      'CC_CATEGORY',
+    ],
+    colors: [
+      '#000000',
+      '#4ca6d9',
+      '#1347ae',
+      '#e73a0f',
+      '#04bf82',
+      '#fd9030',
+      '#6118a2',
+      '#f1c9d1',
+      '#aa996b',
+      '#d1d1d1',
+    ],
+  },
+  {
+    name: 'CS_MONTESSORI_DARK',
+    categories: [
+      'CC_NOUN',
+      'CC_ARTICLE',
+      'CC_ADJECTIVE',
+      'CC_VERB',
+      'CC_PREPOSITION',
+      'CC_ADVERB',
+      'CC_PRONOUN_PERSON_NAME',
+      'CC_CONJUNCTION',
+      'CC_INTERJECTION',
+      'CC_CATEGORY',
+    ],
+    colors: [
+      '#464646',
+      '#18728c',
+      '#0d3298',
+      '#931212',
+      '#287728',
+      '#BC5800',
+      '#7500a7',
+      '#a70043',
+      '#807351',
+      '#747474',
+    ],
+  },
+];
+
+const COLOR_SCHEME_ALIASES: Record<string, string> = {
+  CS_DEFAULT: 'CS_MODIFIED_FITZGERALD_KEY_LIGHT',
+  CS_MONTESSORI: 'CS_MONTESSORI_LIGHT',
+  CS_MONTESSORI_LIGHT: 'CS_MONTESSORI_LIGHT',
+  CS_MONTESSORI_MEDIUM: 'CS_MONTESSORI_MEDIUM',
+  CS_MONTESSORI_DARK: 'CS_MONTESSORI_DARK',
+  CS_MONTESSORI_VERY_LIGHT: 'CS_MONTESSORI_VERY_LIGHT',
+  CS_MODIFIED_FITZGERALD_KEY: 'CS_MODIFIED_FITZGERALD_KEY_LIGHT',
+  CS_MODIFIED_FITZGERALD_KEY_LIGHT: 'CS_MODIFIED_FITZGERALD_KEY_LIGHT',
+  CS_MODIFIED_FITZGERALD_KEY_MEDIUM: 'CS_MODIFIED_FITZGERALD_KEY_MEDIUM',
+  CS_MODIFIED_FITZGERALD_KEY_DARK: 'CS_MODIFIED_FITZGERALD_KEY_DARK',
+  CS_MODIFIED_FITZGERALD_KEY_VERY_LIGHT: 'CS_MODIFIED_FITZGERALD_KEY_VERY_LIGHT',
+  CS_GOOSENS: 'CS_GOOSENS_LIGHT',
+  CS_GOOSENS_LIGHT: 'CS_GOOSENS_LIGHT',
+  CS_GOOSENS_MEDIUM: 'CS_GOOSENS_MEDIUM',
+  CS_GOOSENS_DARK: 'CS_GOOSENS_DARK',
+  CS_GOOSENS_VERY_LIGHT: 'CS_GOOSENS_VERY_LIGHT',
 };
+
+function normalizeHexColor(hexColor: string): string | null {
+  if (!hexColor || typeof hexColor !== 'string') return null;
+  let value = hexColor.trim().toLowerCase();
+  if (!value.startsWith('#')) {
+    return null;
+  }
+  value = value.slice(1);
+  if (value.length === 3) {
+    value = value
+      .split('')
+      .map((ch) => ch + ch)
+      .join('');
+  }
+  if (value.length !== 6 || /[^0-9a-f]/.test(value)) {
+    return null;
+  }
+  return `#${value}`;
+}
+
+function adjustHexColor(hexColor: string, amount: number): string {
+  const normalized = normalizeHexColor(hexColor);
+  if (!normalized) return hexColor;
+  const hex = normalized.slice(1);
+  const num = parseInt(hex, 16);
+  const clamp = (value: number) => Math.max(0, Math.min(255, value));
+  const r = clamp(((num >> 16) & 0xff) + amount);
+  const g = clamp(((num >> 8) & 0xff) + amount);
+  const b = clamp((num & 0xff) + amount);
+  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+}
+
+function getHighContrastNeutralColor(backgroundColor: string): string {
+  const normalized = normalizeHexColor(backgroundColor);
+  if (!normalized) {
+    return '#808080';
+  }
+  return calculateLuminance(normalized) < 0.5 ? '#f5f5f5' : '#808080';
+}
+
+function normalizeColorScheme(raw: unknown): ColorSchemeDefinition | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const scheme = raw as Record<string, any>;
+  const nameCandidate = [scheme.name, scheme.key, scheme.id].find(
+    (value) => typeof value === 'string' && value.length > 0
+  );
+  if (!nameCandidate) return null;
+
+  let categories: string[] = [];
+  let colors: string[] = [];
+  if (Array.isArray(scheme.categories) && Array.isArray(scheme.colors)) {
+    categories = scheme.categories.filter((value: unknown): value is string => typeof value === 'string');
+    colors = scheme.colors.filter((value: unknown): value is string => typeof value === 'string');
+  } else if (scheme.colorMap && typeof scheme.colorMap === 'object') {
+    categories = Object.keys(scheme.colorMap);
+    colors = categories.map((category) => {
+      const colorValue = scheme.colorMap[category];
+      return typeof colorValue === 'string' ? colorValue : '#ffffff';
+    });
+  }
+
+  if (!categories.length || !colors.length) {
+    return null;
+  }
+
+  const mappingsCandidate =
+    (typeof scheme.mappings === 'object' && scheme.mappings) ||
+    (typeof scheme.categoryMappings === 'object' && scheme.categoryMappings) ||
+    (typeof scheme.categoryMapping === 'object' && scheme.categoryMapping) ||
+    undefined;
+
+  const customBordersCandidate =
+    typeof scheme.customBorders === 'object' && scheme.customBorders ? scheme.customBorders : undefined;
+
+  return {
+    name: nameCandidate,
+    categories,
+    colors,
+    mappings: mappingsCandidate,
+    customBorders: customBordersCandidate,
+  };
+}
+
+function getAllColorSchemeDefinitions(colorConfig?: any): ColorSchemeDefinition[] {
+  const additional = Array.isArray(colorConfig?.additionalColorSchemes)
+    ? colorConfig.additionalColorSchemes
+        .map((scheme: unknown) => normalizeColorScheme(scheme))
+        .filter((value: ColorSchemeDefinition | null): value is ColorSchemeDefinition => Boolean(value))
+    : [];
+  return [...DEFAULT_COLOR_SCHEME_DEFINITIONS, ...additional];
+}
+
+function getActiveColorSchemeDefinition(colorConfig?: any): ColorSchemeDefinition | null {
+  if (!colorConfig || colorConfig.colorSchemesActivated === false) {
+    return null;
+  }
+  const schemes = getAllColorSchemeDefinitions(colorConfig);
+  if (!schemes.length) {
+    return null;
+  }
+
+  const activeName: string | undefined =
+    (typeof colorConfig.activeColorScheme === 'string' && colorConfig.activeColorScheme) || undefined;
+  const normalizedName = activeName ? COLOR_SCHEME_ALIASES[activeName] || activeName : undefined;
+
+  if (normalizedName) {
+    const match = schemes.find((scheme) => scheme.name === normalizedName);
+    if (match) {
+      return match;
+    }
+  }
+
+  return schemes[0];
+}
+
+function getSchemeColorForCategory(
+  category: string | undefined,
+  scheme: ColorSchemeDefinition | null,
+  fallback?: string
+): string | undefined {
+  if (!scheme || !category) return fallback;
+  let index = scheme.categories.indexOf(category);
+  if (index === -1 && scheme.mappings && scheme.mappings[category]) {
+    index = scheme.categories.indexOf(scheme.mappings[category]);
+  }
+  if (index === -1) {
+    return fallback;
+  }
+  const color = scheme.colors[index];
+  return typeof color === 'string' ? color : fallback;
+}
+
+function resolveBorderColor(
+  element: GridElement,
+  colorConfig: any,
+  scheme: ColorSchemeDefinition | null,
+  backgroundColor: string,
+  schemeColor?: string,
+  fallbackBorder?: string
+): string {
+  const defaultBorderColor = (fallbackBorder || '#808080').toLowerCase();
+  const colorMode: string = colorConfig?.colorMode || 'COLOR_MODE_BACKGROUND';
+
+  if (colorMode === 'COLOR_MODE_BORDER') {
+    return (
+      getSchemeColorForCategory(element.colorCategory, scheme, fallbackBorder || '#808080') || fallbackBorder || '#808080'
+    );
+  }
+
+  if (colorMode === 'COLOR_MODE_BOTH') {
+    if (!element.colorCategory) {
+      return 'transparent';
+    }
+    const customBorder = scheme?.customBorders?.[element.colorCategory];
+    if (typeof customBorder === 'string') {
+      return customBorder;
+    }
+    const baseColor =
+      schemeColor ||
+      getSchemeColorForCategory(element.colorCategory, scheme, backgroundColor) ||
+      backgroundColor;
+    const isDark = calculateLuminance(baseColor) < 0.5;
+    const adjustment = isDark ? 60 : -40;
+    return adjustHexColor(baseColor, adjustment);
+  }
+
+  if (defaultBorderColor !== '#808080') {
+    return fallbackBorder || '#808080';
+  }
+
+  const gridBackground = colorConfig?.gridBackgroundColor || '#ffffff';
+  return getHighContrastNeutralColor(gridBackground);
+}
+
+function resolveButtonColors(
+  element: GridElement,
+  colorConfig?: any,
+  scheme?: ColorSchemeDefinition | null
+): { backgroundColor: string; borderColor: string; fontColor: string } {
+  const fallbackBackground = colorConfig?.elementBackgroundColor || '#FFFFFF';
+  const fallbackBorder = colorConfig?.elementBorderColor || '#808080';
+  const colorMode: string = colorConfig?.colorMode || 'COLOR_MODE_BACKGROUND';
+  const isSchemeActive = colorConfig?.colorSchemesActivated !== false;
+  const schemeColor =
+    isSchemeActive && colorMode !== 'COLOR_MODE_BORDER'
+      ? getSchemeColorForCategory(element.colorCategory, scheme || null)
+      : undefined;
+
+  const backgroundColor =
+    element.backgroundColor || schemeColor || fallbackBackground || '#FFFFFF';
+
+  const borderColor = resolveBorderColor(
+    element,
+    colorConfig || {},
+    scheme || null,
+    backgroundColor,
+    schemeColor,
+    fallbackBorder
+  );
+
+  const fontColor =
+    element.fontColor ||
+    colorConfig?.fontColor ||
+    getContrastingTextColor(backgroundColor);
+
+  return {
+    backgroundColor,
+    borderColor,
+    fontColor,
+  };
+}
 
 /**
  * Calculate relative luminance of a color using WCAG formula
@@ -291,9 +786,11 @@ class AstericsGridProcessor extends BaseProcessor {
       return tree;
     }
 
+    const colorConfig = grdFile.metadata?.colorConfig;
+    const activeColorSchemeDefinition = getActiveColorSchemeDefinition(colorConfig);
+
     // First pass: create all pages
     grdFile.grids.forEach((grid: GridData) => {
-      const colorConfig = grdFile.metadata?.colorConfig;
       const page = new AACPage({
         id: grid.id,
         name: this.getLocalizedLabel(grid.label) || grid.id,
@@ -312,9 +809,6 @@ class AstericsGridProcessor extends BaseProcessor {
       tree.addPage(page);
     });
 
-    // Get active color scheme from metadata
-    const activeColorScheme = grdFile.metadata?.colorConfig?.activeColorScheme;
-
     // Second pass: add buttons and establish navigation
     grdFile.grids.forEach((grid: GridData) => {
       const page = tree.getPage(grid.id);
@@ -329,7 +823,7 @@ class AstericsGridProcessor extends BaseProcessor {
       }
 
       grid.gridElements.forEach((element: GridElement) => {
-        const button = this.createButtonFromElement(element, grdFile.metadata?.colorConfig, activeColorScheme);
+        const button = this.createButtonFromElement(element, colorConfig, activeColorSchemeDefinition);
         page.addButton(button);
 
         // Place button in grid layout using its x,y coordinates
@@ -386,7 +880,11 @@ class AstericsGridProcessor extends BaseProcessor {
     return '';
   }
 
-  private createButtonFromElement(element: GridElement, colorConfig?: any, activeColorScheme?: string): AACButton {
+  private createButtonFromElement(
+    element: GridElement,
+    colorConfig?: any,
+    activeColorScheme?: ColorSchemeDefinition | null
+  ): AACButton {
     let audioRecording;
     if (this.loadAudio) {
       const audioAction = element.actions.find(
@@ -405,15 +903,7 @@ class AstericsGridProcessor extends BaseProcessor {
       }
     }
 
-    // Resolve color category to actual colors
-    let resolvedColors: { backgroundColor?: string; borderColor?: string; fontColor?: string } = {};
-    if (element.colorCategory && activeColorScheme) {
-      const colorScheme = COLOR_SCHEMES[activeColorScheme] || COLOR_SCHEMES['CS_DEFAULT'];
-      const categoryColors = colorScheme[element.colorCategory] || colorScheme['CC_DEFAULT'];
-      if (categoryColors) {
-        resolvedColors = categoryColors;
-      }
-    }
+    const colorStyles = resolveButtonColors(element, colorConfig, activeColorScheme);
 
     const navAction = element.actions.find((a: GridAction) => a.modelName === 'GridActionNavigate');
     const targetPageId = navAction ? navAction.toGridId : null;
@@ -617,30 +1107,18 @@ class AstericsGridProcessor extends BaseProcessor {
 
     // Determine the final background color
     const finalBackgroundColor =
-      element.backgroundColor ||
-      resolvedColors.backgroundColor ||
-      colorConfig?.elementBackgroundColor ||
-      '#FFFFFF';
+      element.backgroundColor || colorStyles.backgroundColor || colorConfig?.elementBackgroundColor || '#FFFFFF';
 
     // Determine font color with priority:
     // 1. Explicit element.fontColor (highest priority)
     // 2. Resolved color from color category
     // 3. Global colorConfig.fontColor
     // 4. Automatic contrast calculation based on background (lowest priority)
-    let fontColor: string;
-    if (element.fontColor) {
-      // Explicit color in element - use it
-      fontColor = element.fontColor;
-    } else if (resolvedColors.fontColor) {
-      // Color category scheme specifies font color
-      fontColor = resolvedColors.fontColor;
-    } else if (colorConfig?.fontColor) {
-      // Global config specifies font color
-      fontColor = colorConfig.fontColor;
-    } else {
-      // No explicit color - calculate based on background for contrast
-      fontColor = getContrastingTextColor(finalBackgroundColor);
-    }
+    const fontColor =
+      element.fontColor ||
+      colorStyles.fontColor ||
+      colorConfig?.fontColor ||
+      getContrastingTextColor(finalBackgroundColor);
 
     // Extract image data if present
     let imageData: Buffer | undefined;
@@ -685,7 +1163,7 @@ class AstericsGridProcessor extends BaseProcessor {
       style: {
         backgroundColor: finalBackgroundColor,
         borderColor:
-          resolvedColors.borderColor ||
+          colorStyles.borderColor ||
           colorConfig?.elementBorderColor ||
           '#CCCCCC',
         borderWidth: colorConfig?.borderWidth || 1,
