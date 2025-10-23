@@ -27,6 +27,16 @@ export {
   type WordListItem,
 } from './gridset/wordlistHelpers';
 
+// Gridset (Grid 3) style helpers
+export {
+  DEFAULT_GRID3_STYLES,
+  CATEGORY_STYLES,
+  ensureAlphaChannel,
+  createDefaultStylesXml,
+  createCategoryStyle,
+  type Grid3Style,
+} from './gridset/styleHelpers';
+
 // Snap helpers (stubs)
 export {
   getPageTokenImageMap as getSnapPageTokenImageMap,
