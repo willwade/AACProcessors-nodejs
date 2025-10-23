@@ -1,4 +1,4 @@
-const TouchChatProcessor = require('../src/processors/touchChatProcessor');
+const TouchChatProcessor = require('../dist/processors/touchChatProcessor');
 
 async function main() {
   const filePath = process.argv[2];

@@ -20,7 +20,7 @@ import {
   ExtractStringsResult,
   TranslatedString,
   SourceString
-} from "../src/index";
+} from "../dist/index";
 
 async function demonstrateUnifiedInterface() {
   console.log("🚀 AAC Processors - Unified Interface Demo");

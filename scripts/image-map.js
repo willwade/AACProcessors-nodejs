@@ -7,7 +7,7 @@ const { GridsetProcessor, getPageTokenImageMap, getAllowedImageEntries, openImag
 
 (async () => {
   try {
-    const file = path.join(__dirname, 'example-images.gridset');
+    const file = path.join(__dirname, '../examples/example-images.gridset');
     console.log('Loading gridset:', file);
 
     const proc = new GridsetProcessor();

@@ -17,6 +17,16 @@ export {
 } from './gridset/helpers';
 export { resolveGrid3CellImage } from './gridset/resolver';
 
+// Gridset (Grid 3) wordlist helpers
+export {
+  createWordlist,
+  extractWordlists,
+  updateWordlist,
+  wordlistToXml,
+  type WordList,
+  type WordListItem,
+} from './gridset/wordlistHelpers';
+
 // Snap helpers (stubs)
 export {
   getPageTokenImageMap as getSnapPageTokenImageMap,

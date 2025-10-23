@@ -160,3 +160,8 @@ azure_*.js
 output/conversions
 
 temp-data/**
+
+# Script output and cache files
+scripts/wordlist-demo-output.gridset
+scripts/gemini_response.txt
+scripts/translation_cache.json
