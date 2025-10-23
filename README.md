@@ -761,16 +761,16 @@ Inspired by the Python AACProcessors project
 
 ### 🧪 Current Test Status & Immediate Follow-Up
 
-As of the latest run (`npm test`), **45 suites pass / 8 fail (11 individual tests)**. The remaining reds are concentrated in the following areas:
+As of the latest run (`npm test`), **47 suites pass / 6 fail (10 individual tests)**. Remaining blockers are:
 
-1. **SnapProcessor coverage harness** – our in-memory fixture lacks the full Snap schema (`ElementPlacement`, `Message`, etc.), so the loader now rejects it as incomplete. Update the test database (or adjust expectations) to include Grid coordinates and message columns so audio assertions execute again.
-2. **Gridset exports** – round-trip still sheds one button and the styling suite cannot find `style.xml`. Investigate GridsetProcessor save logic to ensure button arrays and style archives are written faithfully.
-3. **Dot round-tripping** – property-based DOT tests collapse navigation for certain generated trees (buttons fall back to `SPEAK`). We need better semantic mapping when recreating `DotProcessor` buttons.
-4. **Edge-case loaders** – corrupted JSON/XML cases no longer throw; align Asterics/OPML/DOT loaders with the test expectations (either rethrow earlier or update the tests to accept soft-fail behaviour).
-5. **Advanced workflow scenario** – translated Spanish content isn’t discovered after the multi-format pipeline (likely Gridset/TMP Snap translation gaps). Trace the pipeline and ensure translated text survives each hop.
-6. **Memory comparison suite** – DOT still reports higher memory delta than TouchChat/Snap. Validate memory measurement or re-tune the processors.
+1. **Edge-case loaders** – corrupted JSON/XML fixtures still expect explicit exceptions. Decide whether to restore the old throwing behaviour (Asterics/OPML/DOT) or update the tests to accept the softer error reporting.
+2. **Gridset exports & styling** – round-trip continues to lose a button and the styling suite cannot find `style.xml`. GridsetProcessor needs to preserve button arrays and emit the styling assets Grid 3 expects.
+3. **DOT navigation semantics** – the deterministic DOT test still falls back to `SPEAK`. Improve semantic reconstruction when loading navigation edges so navigation buttons survive round-trips.
+4. **Advanced workflow scenario** – the multi-format pipeline still loses Spanish translations (likely during the Gridset ⇄ Snap steps); trace text propagation and patch the conversion chain.
+5. **Styling suite** – Grid 3 export still lacks `style.xml`; ensure the styling assets are generated alongside the gridset payload.
+6. **Memory comparison suite** – memory delta expectations are still unmet (TouchChat GC + DOT vs others). Either recalibrate the harness or tune the processors before re-enabling the assertions.
 
-Addressing these will move us much closer to a releasable state; once Snap coverage fixtures and Gridset exports are stabilised we should see a substantial drop in failing suites.
+Clearing these items will put the test matrix back in the green and unblock the release.
 
 ## More enhancements
 

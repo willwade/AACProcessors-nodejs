@@ -1,5 +1,5 @@
 import { SnapProcessor } from '../src/processors/snapProcessor';
-import { AACTree, AACPage, AACButton } from '../src/core/treeStructure';
+import { TreeFactory } from './utils/testFactories';
 import path from 'path';
 import fs from 'fs';
 import Database from 'better-sqlite3';
@@ -22,34 +22,24 @@ describe('SnapProcessor Coverage', () => {
 
   describe('Audio Handling', () => {
     it('should load audio data when loadAudio is true', () => {
-      // Setup a dummy database with audio
+      const saveProcessor = new SnapProcessor();
+      const tree = TreeFactory.createSimple();
+      saveProcessor.saveFromTree(tree, tempDbPath);
+
       const db = new Database(tempDbPath);
-      db.exec(`
-        CREATE TABLE Page (Id INTEGER PRIMARY KEY, UniqueId TEXT, Name TEXT);
-        CREATE TABLE Button (Id INTEGER PRIMARY KEY, Label TEXT, MessageRecordingId INTEGER, ElementReferenceId INTEGER);
-        CREATE TABLE ElementReference (Id INTEGER PRIMARY KEY, PageId INTEGER);
-        CREATE TABLE PageSetData (Id INTEGER PRIMARY KEY, Identifier TEXT, Data BLOB);
-      `);
-      db.prepare('INSERT INTO Page (Id, UniqueId, Name) VALUES (?, ?, ?)').run(1, 'page-1', 'Home');
-      db.prepare('INSERT INTO ElementReference (Id, PageId) VALUES (?, ?)').run(1, 1);
-      db.prepare(
-        'INSERT INTO Button (Id, Label, MessageRecordingId, ElementReferenceId) VALUES (?, ?, ?, ?)'
-      ).run(1, 'Test', 1, 1);
-      db.prepare('INSERT INTO PageSetData (Id, Identifier, Data) VALUES (?, ?, ?)').run(
-        1,
-        'SND:123',
-        Buffer.from('audio data')
-      );
+      const firstButton = db.prepare('SELECT Id FROM Button ORDER BY Id LIMIT 1').get() as { Id: number };
       db.close();
 
+      const audioData = Buffer.from('audio data');
+      saveProcessor.addAudioToButton(tempDbPath, firstButton.Id, audioData, 'test.wav');
+
       const processor = new SnapProcessor(null, { loadAudio: true });
-      const tree = processor.loadIntoTree(tempDbPath);
-      const page = tree.getPage('page-1');
+      const loadedTree = processor.loadIntoTree(tempDbPath);
+      const page = Object.values(loadedTree.pages)[0];
       expect(page).toBeDefined();
-      if (page) {
-        expect(page.buttons[0].audioRecording).toBeDefined();
-        expect(page.buttons[0].audioRecording!.data).toEqual(Buffer.from('audio data'));
-      }
+      const buttonWithAudio = page?.buttons.find((button) => button.audioRecording);
+      expect(buttonWithAudio).toBeDefined();
+      expect(buttonWithAudio?.audioRecording?.data).toEqual(audioData);
     });
 
     it('should add audio to a button', () => {
