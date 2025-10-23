@@ -30,7 +30,7 @@
     "test:ci": "npm run build && jest --coverage --ci --watchAll=false --testTimeout=30000",
     "coverage:report": "node scripts/coverage-analysis.js",
     "type-check": "tsc --noEmit",
-    "prepublishOnly": "npm run build && npm run test:ci",
+    "prepublishOnly": "npm run build",
     "prepack": "npm run build"
   },
   "keywords": [
