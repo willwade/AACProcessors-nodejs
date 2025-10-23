@@ -8,11 +8,9 @@ describe("aac-processors CLI (OBF/OBZ)", () => {
   beforeAll(() => {
     const cliPath = path.join(__dirname, "../../dist/cli/index.js");
     if (!fs.existsSync(cliPath)) {
-      console.log("🔨 Building project for CLI tests...");
-      execSync("npm run build", {
-        stdio: "inherit",
-        cwd: path.join(__dirname, "../.."),
-      });
+      throw new Error(
+        "dist/cli/index.js is missing – run `npm run build` before executing the CLI tests."
+      );
     }
   });
   const cliPath = path.join(__dirname, "../../dist/cli/index.js");

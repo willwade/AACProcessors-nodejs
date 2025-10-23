@@ -15,14 +15,10 @@ describe('CLI Comprehensive Tests', () => {
       fs.mkdirSync(tempDir, { recursive: true });
     }
 
-    // Ensure CLI is built
-    try {
-      execSync('npm run build', {
-        cwd: path.join(__dirname, '..'),
-        stdio: 'pipe',
-      });
-    } catch (error) {
-      console.warn('Build failed, CLI tests may not work properly');
+    if (!fs.existsSync(cliPath)) {
+      throw new Error(
+        'dist/cli/index.js is missing – run `npm run build` before executing the CLI tests.'
+      );
     }
   });
 
