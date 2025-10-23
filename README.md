@@ -39,7 +39,7 @@ A comprehensive **TypeScript library** for processing AAC (Augmentative and Alte
 ### From npm (Recommended)
 
 ```bash
-npm install aac-processors
+npm install @willwade/aac-processors
 ```
 
 ### From Source
