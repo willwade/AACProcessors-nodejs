@@ -19,7 +19,7 @@ try {
 // --- DotProcessor ---
 console.log('\n=== DOT Example ===');
 try {
-  const dotFile = path.join(__dirname, 'example.dot');
+  const dotFile = path.join(__dirname, '../examples/example.dot');
   const dotProcessor = new DotProcessor();
   const dotTree = dotProcessor.loadIntoTree(dotFile);
   console.log('DOT tree:', dotTree);
@@ -32,7 +32,7 @@ try {
 // --- OPMLProcessor ---
 console.log('\n=== OPML Example ===');
 try {
-  const opmlFile = path.join(__dirname, 'example.opml');
+  const opmlFile = path.join(__dirname, '../examples/example.opml');
   const opmlProcessor = new OpmlProcessor();
   const opmlTree = opmlProcessor.loadIntoTree(opmlFile);
   console.log('OPML tree:', opmlTree);
@@ -47,7 +47,7 @@ try {
 // --- SnapProcessor (SPB) ---
 console.log('\n=== Snap Example (.spb) ===');
 try {
-  const spbFile = path.join(__dirname, 'example.spb');
+  const spbFile = path.join(__dirname, '../examples/example.spb');
   const snapProcessor = new SnapProcessor();
   const snapTree = snapProcessor.loadIntoTree(spbFile);
   console.log('Snap tree (.spb):', snapTree);
@@ -73,7 +73,7 @@ try {
 // --- GridsetProcessor ---
 console.log('\n=== Gridset Example ===');
 try {
-  const gridsetFile = path.join(__dirname, 'example.gridset');
+  const gridsetFile = path.join(__dirname, '../examples/example.gridset');
   const gridsetProcessor = new GridsetProcessor();
   const gridTree = gridsetProcessor.loadIntoTree(gridsetFile);
   console.log('Gridset tree:', gridTree);
@@ -86,7 +86,7 @@ try {
 // --- TouchChatProcessor ---
 console.log('\n=== TouchChat Example ===');
 try {
-  const touchchatFile = path.join(__dirname, 'example.ce');
+  const touchchatFile = path.join(__dirname, '../examples/example.ce');
   const touchchatProcessor = new TouchChatProcessor();
   const tcTree = touchchatProcessor.loadIntoTree(touchchatFile);
   console.log('TouchChat tree:', tcTree);
@@ -101,7 +101,7 @@ console.log('\n=== OBF/OBZ Example ===');
 try {
   // Use ObfProcessor from dist, matching others
 const obfProcessor = new ObfProcessor();
-  const obzFile = path.join(__dirname, 'example.obz');
+  const obzFile = path.join(__dirname, '../examples/example.obz');
   // If loadIntoTree is async, use then/catch. If not, call directly.
   let obTree;
   try {

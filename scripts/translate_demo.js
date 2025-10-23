@@ -5,9 +5,9 @@ const path = require('path');
 const { program } = require('commander');
 const { v2: { Translate } } = require('@google-cloud/translate');
 const axios = require('axios');
-const SnapProcessor = require('../src/processors/snapProcessor');
-const GridsetProcessor = require('../src/processors/gridsetProcessor');
-const TouchChatProcessor = require('../src/processors/touchChatProcessor');
+const SnapProcessor = require('../dist/processors/snapProcessor');
+const GridsetProcessor = require('../dist/processors/gridsetProcessor');
+const TouchChatProcessor = require('../dist/processors/touchChatProcessor');
 
 // Translation service configurations
 const AZURE_TRANSLATOR_KEY = process.env.AZURE_TRANSLATOR_KEY;

@@ -1,31 +1,43 @@
-# AAC Processors Examples
+# AAC Processors Example Pagesets
 
-This directory contains example scripts demonstrating various uses of the AAC Processors library.
+This directory contains example AAC pagesets in various formats used for testing and demonstration purposes.
 
-## Translation Demo
+## Available Pagesets
 
-Demonstrates how to translate AAC files between languages using various translation services.
+### Grid3 Format (.gridset)
+- **example.gridset** - Main example pageset with multiple grids and wordlists
+- **example-images.gridset** - Example pageset with embedded images
 
-### Setup
+### Snap Format (.spb, .sps)
+- **example.spb** - Snap pageset (binary format)
+- **example.sps** - Snap pageset (alternative format)
 
-```bash
-# Install example-specific dependencies
-cd examples
-npm install
+### TouchChat Format (.ce)
+- **example.ce** - TouchChat pageset
 
-# Set up environment variables
-export AZURE_TRANSLATOR_KEY="your-key"
-export GOOGLE_TRANSLATE_KEY="your-key"
-```
+### OBF/OBZ Format (.obf, .obz)
+- **example.obf** - OBF pageset (JSON-based)
+- **example.obz** - OBZ pageset (compressed)
 
-### Usage
+### Asterics Grid Format (.grd)
+- **example.grd** - Asterics Grid pageset
+- **example2.grd** - Alternative Asterics Grid pageset
 
-```bash
-# Basic usage
-node translate_demo.js ../path/to/input.gridset --endlang fr
+### DOT Format (.dot)
+- **example.dot** - Simple DOT format pageset
+- **communikate.dot** - Communikate DOT format pageset
 
-# With confidence checking
-node translate_demo.js ../path/to/input.gridset --endlang fr --enable-confidence-check
-```
+### OPML Format (.opml)
+- **example.opml** - OPML pageset
 
-Note: These examples are for demonstration purposes only and have their own dependencies separate from the main package.
+### Styled Output
+- **styled-output/** - Directory containing example pagesets with styling applied
+
+## Usage
+
+These pagesets are used by:
+- Unit tests in the main test suite
+- Demo scripts in the `scripts/` directory
+- Integration examples
+
+To run demo scripts that use these pagesets, see the [scripts/README.md](../scripts/README.md).

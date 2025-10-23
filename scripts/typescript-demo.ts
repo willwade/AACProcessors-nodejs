@@ -7,14 +7,14 @@
  * including translation workflows and cross-format conversion.
  */
 
-import { 
-  getProcessor, 
-  DotProcessor, 
+import {
+  getProcessor,
+  DotProcessor,
   ObfProcessor,
-  AACTree, 
-  AACPage, 
-  AACButton 
-} from '../src/index';
+  AACTree,
+  AACPage,
+  AACButton
+} from '../dist/index';
 import fs from 'fs';
 import path from 'path';
 
@@ -24,7 +24,7 @@ async function main() {
   // Example 1: Auto-detect processor by file extension
   console.log('📁 Example 1: Auto-detection');
   try {
-    const dotFile = path.join(__dirname, 'example.dot');
+    const dotFile = path.join(__dirname, '../examples/example.dot');
     if (fs.existsSync(dotFile)) {
       const processor = getProcessor(dotFile);
       console.log(`✅ Detected processor: ${processor.constructor.name}`);

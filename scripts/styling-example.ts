@@ -10,16 +10,16 @@
  * 4. Convert between formats with styling preservation
  */
 
-import { AACTree, AACPage, AACButton } from '../src/core/treeStructure';
-import { SnapProcessor } from '../src/processors/snapProcessor';
-import { TouchChatProcessor } from '../src/processors/touchchatProcessor';
-import { ObfProcessor } from '../src/processors/obfProcessor';
-import { GridsetProcessor } from '../src/processors/gridsetProcessor';
+import { AACTree, AACPage, AACButton } from '../dist/core/treeStructure';
+import { SnapProcessor } from '../dist/processors/snapProcessor';
+import { TouchChatProcessor } from '../dist/processors/touchchatProcessor';
+import { ObfProcessor } from '../dist/processors/obfProcessor';
+import { GridsetProcessor } from '../dist/processors/gridsetProcessor';
 import fs from 'fs';
 import path from 'path';
 
 // Create output directory
-const outputDir = path.join(__dirname, 'styled-output');
+const outputDir = path.join(__dirname, '../examples/styled-output');
 if (!fs.existsSync(outputDir)) {
   fs.mkdirSync(outputDir, { recursive: true });
 }
