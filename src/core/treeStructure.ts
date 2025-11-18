@@ -309,6 +309,10 @@ export class AACPage implements IAACPage {
   buttons: AACButton[];
   parentId: string | null;
   style?: AACStyle;
+  locale?: string;
+  descriptionHtml?: string;
+  images?: any[];
+  sounds?: any[];
 
   constructor({
     id,
@@ -317,6 +321,10 @@ export class AACPage implements IAACPage {
     buttons = [],
     parentId = null,
     style,
+    locale,
+    descriptionHtml,
+    images,
+    sounds,
   }: {
     id: string;
     name?: string;
@@ -324,6 +332,10 @@ export class AACPage implements IAACPage {
     buttons?: AACButton[];
     parentId?: string | null;
     style?: AACStyle;
+    locale?: string;
+    descriptionHtml?: string;
+    images?: any[];
+    sounds?: any[];
   }) {
     this.id = id;
     this.name = name;
@@ -339,6 +351,10 @@ export class AACPage implements IAACPage {
     this.buttons = buttons;
     this.parentId = parentId;
     this.style = style;
+    this.locale = locale;
+    this.descriptionHtml = descriptionHtml;
+    this.images = images;
+    this.sounds = sounds;
   }
 
   addButton(button: AACButton): void {

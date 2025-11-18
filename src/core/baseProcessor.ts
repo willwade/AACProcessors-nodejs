@@ -1,4 +1,4 @@
-import { AACTree, AACButton, AACSemanticCategory, AACSemanticIntent } from './treeStructure';
+import { AACTree, AACButton, AACSemanticCategory } from './treeStructure';
 import { StringCasing, detectCasing, isNumericOrEmpty } from './stringCasing';
 
 // Configuration options for processors

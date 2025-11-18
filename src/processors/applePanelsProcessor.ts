@@ -18,6 +18,20 @@ import plist from 'plist';
 import fs from 'fs';
 import path from 'path';
 
+interface ApplePanelsActionParameters {
+  CharString?: string;
+  PanelID?: string;
+  isStickyKey?: boolean;
+  [key: string]: unknown;
+}
+
+interface ApplePanelsAction {
+  ActionParam: ApplePanelsActionParameters;
+  ActionRecordedOffset: number;
+  ActionType: string;
+  ID: string;
+}
+
 interface ApplePanelsButton {
   label: string;
   message?: string;
@@ -36,6 +50,120 @@ interface ApplePanelsPanel {
 
 interface ApplePanelsDocument {
   panels: ApplePanelsPanel[];
+}
+
+interface ApplePanelsRawAction {
+  ActionType?: string;
+  ActionParam?: {
+    CharString?: string;
+    PanelID?: string;
+    [key: string]: unknown;
+  };
+}
+
+interface ApplePanelsRawButton {
+  PanelObjectType?: string;
+  DisplayText?: string;
+  DisplayColor?: string;
+  DisplayImageWeight?: string;
+  FontSize?: number;
+  Rect?: string;
+  Actions?: ApplePanelsRawAction[];
+}
+
+interface ApplePanelsRawPanel {
+  ID?: string;
+  Name?: string;
+  PanelObjects?: ApplePanelsRawButton[];
+}
+
+interface ApplePanelsParsedDocument {
+  panels?: Array<ApplePanelsPanel | ApplePanelsRawPanel>;
+  Panels?: Record<string, ApplePanelsRawPanel>;
+}
+
+interface ApplePanelsPanelObject {
+  ButtonType: number;
+  DisplayText: string;
+  FontSize: number;
+  ID: string;
+  PanelObjectType: 'Button';
+  Rect: string;
+  DisplayColor?: string;
+  DisplayImageWeight?: string;
+  Actions: ApplePanelsAction[];
+}
+
+interface ApplePanelsPanelDefinition {
+  DisplayOrder: number;
+  GlidingLensSize: number;
+  HasTransientPosition: boolean;
+  HideHome: boolean;
+  HideMinimize: boolean;
+  HidePanelAdjustments: boolean;
+  HideSwitchDock: boolean;
+  HideSwitchDockContextualButtons: boolean;
+  HideTitlebar: boolean;
+  ID: string;
+  Name: string;
+  PanelObjects: ApplePanelsPanelObject[];
+  ProductSupportType: string;
+  Rect: string;
+  ScanStyle: number;
+  ShowPanelLocationString: string;
+  UsesPinnedResizing: boolean;
+}
+
+function isNormalizedPanel(
+  panel: ApplePanelsPanel | ApplePanelsRawPanel
+): panel is ApplePanelsPanel {
+  return typeof (panel as ApplePanelsPanel).id === 'string';
+}
+
+function normalizePanel(panel: ApplePanelsRawPanel, fallbackId: string): ApplePanelsPanel {
+  const rawId = panel.ID || fallbackId;
+  const buttons = Array.isArray(panel.PanelObjects)
+    ? panel.PanelObjects.filter(
+        (obj): obj is ApplePanelsRawButton => obj.PanelObjectType === 'Button'
+      )
+    : [];
+
+  const normalizedButtons: ApplePanelsButton[] = buttons.map((btn) => {
+    const firstAction: ApplePanelsRawAction | undefined =
+      Array.isArray(btn.Actions) && btn.Actions.length > 0 ? btn.Actions[0] : undefined;
+    const isCharSequence =
+      firstAction &&
+      (firstAction.ActionType === 'ActionPressKeyCharSequence' ||
+        firstAction.ActionType === 'ActionSendKeys');
+    const charString = isCharSequence ? firstAction?.ActionParam?.CharString : undefined;
+    const targetPanel =
+      firstAction && firstAction.ActionType === 'ActionOpenPanel'
+        ? firstAction.ActionParam?.PanelID?.replace(/^USER\./, '')
+        : undefined;
+
+    return {
+      label: btn.DisplayText || 'Button',
+      message: charString || btn.DisplayText || 'Button',
+      DisplayColor: btn.DisplayColor,
+      DisplayImageWeight: btn.DisplayImageWeight,
+      FontSize: btn.FontSize,
+      Rect: btn.Rect,
+      targetPanel,
+    };
+  });
+
+  return {
+    id: rawId.replace(/^USER\./, ''),
+    name: panel.Name || 'Panel',
+    buttons: normalizedButtons,
+  };
+}
+
+function normalizeActionParameters(input: unknown): ApplePanelsActionParameters {
+  if (typeof input === 'object' && input !== null) {
+    return { ...(input as Record<string, unknown>) };
+  }
+  return {};
 }
 
 class ApplePanelsProcessor extends BaseProcessor {
@@ -110,52 +238,29 @@ class ApplePanelsProcessor extends BaseProcessor {
       throw new Error('Invalid input: expected string path or Buffer');
     }
 
-    const parsedData = plist.parse(content);
+    const parsedData = plist.parse(content) as ApplePanelsParsedDocument;
 
     // Handle both old format (panels array) and new Apple Panels format (Panels dict)
-    let panelsData: any[] = [];
-    if (Array.isArray((parsedData as any).panels)) {
-      // Old format
-      panelsData = (parsedData as any).panels;
-    } else if ((parsedData as any).Panels) {
-      // Apple Panels format: convert Panels dict to array
-      const panelsDict = (parsedData as any).Panels;
-      panelsData = Object.keys(panelsDict).map((panelId) => {
-        const panel = panelsDict[panelId];
-        return {
-          id: (panel.ID || panelId).replace(/^USER\./, ''), // Strip USER. prefix to maintain original IDs
-          name: panel.Name || 'Panel',
-          buttons: (panel.PanelObjects || [])
-            .filter((obj: any) => obj.PanelObjectType === 'Button')
-            .map((btn: any) => {
-              const firstAction =
-                Array.isArray(btn.Actions) && btn.Actions.length > 0 ? btn.Actions[0] : undefined;
-              const isCharSequence =
-                firstAction &&
-                (firstAction.ActionType === 'ActionPressKeyCharSequence' ||
-                  firstAction.ActionType === 'ActionSendKeys');
-              const charString = isCharSequence
-                ? (firstAction.ActionParam?.CharString ?? undefined)
-                : undefined;
-              const targetPanel =
-                firstAction && firstAction.ActionType === 'ActionOpenPanel'
-                  ? firstAction.ActionParam?.PanelID?.replace(/^USER\./, '')
-                  : undefined;
-              return {
-                label: btn.DisplayText || 'Button',
-                message: charString || btn.DisplayText || 'Button',
-                DisplayColor: btn.DisplayColor,
-                DisplayImageWeight: btn.DisplayImageWeight,
-                FontSize: btn.FontSize,
-                Rect: btn.Rect,
-                targetPanel,
-              };
-            }),
+    let panelsData: ApplePanelsPanel[] = [];
+    if (Array.isArray(parsedData.panels)) {
+      panelsData = parsedData.panels.map((panel, index) => {
+        if (isNormalizedPanel(panel)) {
+          return panel;
+        }
+        const panelData = panel || {
+          PanelObjects: [],
         };
+        return normalizePanel(panelData, `panel_${index}`);
+      });
+    } else if (parsedData.Panels) {
+      const panelsDict = parsedData.Panels;
+      panelsData = Object.keys(panelsDict).map((panelId) => {
+        const rawPanel = panelsDict[panelId] || { PanelObjects: [] };
+        return normalizePanel(rawPanel, panelId);
       });
     }
 
-    const data = { panels: panelsData } as ApplePanelsDocument;
+    const data: ApplePanelsDocument = { panels: panelsData };
     const tree = new AACTree();
 
     data.panels.forEach((panel) => {
@@ -270,16 +375,25 @@ class ApplePanelsProcessor extends BaseProcessor {
     Object.values(tree.pages).forEach((page) => {
       // Translate page names
       if (page.name && translations.has(page.name)) {
-        page.name = translations.get(page.name)!;
+        const translatedName = translations.get(page.name);
+        if (translatedName !== undefined) {
+          page.name = translatedName;
+        }
       }
 
       // Translate button labels and messages
       page.buttons.forEach((button) => {
         if (button.label && translations.has(button.label)) {
-          button.label = translations.get(button.label)!;
+          const translatedLabel = translations.get(button.label);
+          if (translatedLabel !== undefined) {
+            button.label = translatedLabel;
+          }
         }
         if (button.message && translations.has(button.message)) {
-          button.message = translations.get(button.message)!;
+          const translatedMessage = translations.get(button.message);
+          if (translatedMessage !== undefined) {
+            button.message = translatedMessage;
+          }
         }
 
         if (button.semanticAction) {
@@ -290,8 +404,7 @@ class ApplePanelsProcessor extends BaseProcessor {
             if (button.semanticAction.fallback) {
               button.semanticAction.fallback.message = updatedText;
             }
-            const platformParams =
-              button.semanticAction.platformData?.applePanels?.parameters;
+            const platformParams = button.semanticAction.platformData?.applePanels?.parameters;
             if (platformParams && typeof platformParams === 'object') {
               if ('CharString' in platformParams) {
                 platformParams.CharString = updatedText;
@@ -358,18 +471,16 @@ class ApplePanelsProcessor extends BaseProcessor {
     }
 
     // Build PanelDefinitions content from tree
-    const panelsDict: any = {};
+    const panelsDict: Record<string, ApplePanelsPanelDefinition> = {};
 
     Object.values(tree.pages).forEach((page, pageIndex) => {
       const panelId = `USER.${page.id}`;
 
       // Detect actual grid dimensions from the source data
       let gridCols = 4; // Default fallback
-      let gridRows = Math.ceil(page.buttons.length / gridCols);
 
       if (page.grid && page.grid.length > 0) {
         // Use actual grid dimensions from source
-        gridRows = page.grid.length;
         gridCols = page.grid[0] ? page.grid[0].length : 4;
 
         // Find the actual used area to avoid empty space
@@ -386,7 +497,6 @@ class ApplePanelsProcessor extends BaseProcessor {
         // Use the actual used dimensions if they're reasonable
         if (maxUsedX > 0 && maxUsedY > 0) {
           gridCols = maxUsedX + 1;
-          gridRows = maxUsedY + 1;
         }
       } else {
         // Intelligent auto-layout: try to make a reasonable grid
@@ -400,12 +510,11 @@ class ApplePanelsProcessor extends BaseProcessor {
         } else {
           gridCols = 8; // 8 columns for very large sets
         }
-        gridRows = Math.ceil(buttonCount / gridCols);
       }
 
       const panelObjects = page.buttons.map((button, buttonIndex) => {
         // Find button position in grid layout and convert to Rect format
-        let rect: string;
+        let rect: string | undefined;
 
         if (page.grid && page.grid.length > 0) {
           // Search for button in actual grid layout
@@ -436,13 +545,14 @@ class ApplePanelsProcessor extends BaseProcessor {
           rect = `{{${autoX}, ${autoY}}, {100, 25}}`;
         }
 
-        const buttonObj: any = {
+        const buttonObj: ApplePanelsPanelObject = {
           ButtonType: 0,
           DisplayText: button.label || 'Button',
           FontSize: button.style?.fontSize || 12,
           ID: `Button.${button.id}`,
           PanelObjectType: 'Button',
-          Rect: rect!,
+          Rect: rect ?? '{{0, 0}, {100, 25}}',
+          Actions: [],
         };
 
         if (button.style?.backgroundColor) {
@@ -503,12 +613,12 @@ class ApplePanelsProcessor extends BaseProcessor {
     }
   }
 
-  private createApplePanelsAction(button: AACButton): any {
+  private createApplePanelsAction(button: AACButton): ApplePanelsAction {
     // Use semantic action if available
     if (button.semanticAction?.platformData?.applePanels) {
       const applePanelsData = button.semanticAction.platformData.applePanels;
       return {
-        ActionParam: applePanelsData.parameters,
+        ActionParam: normalizeActionParameters(applePanelsData.parameters),
         ActionRecordedOffset: 0.0,
         ActionType: applePanelsData.actionType,
         ID: `Action.${button.id}`,

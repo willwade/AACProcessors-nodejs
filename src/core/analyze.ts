@@ -9,7 +9,6 @@ import { ExcelProcessor } from '../processors/excelProcessor';
 import { ApplePanelsProcessor } from '../processors/applePanelsProcessor';
 import { AACTree } from './treeStructure';
 import { BaseProcessor, ProcessorOptions } from './baseProcessor';
-import fs from 'fs';
 
 export function getProcessor(format: string, options?: ProcessorOptions): BaseProcessor {
   const normalizedFormat = (format || '').toLowerCase();
@@ -44,7 +43,7 @@ export function getProcessor(format: string, options?: ProcessorOptions): BasePr
   }
 }
 
-export function analyze(file: string, format: string) {
+export function analyze(file: string, format: string): { tree: AACTree } {
   const processor = getProcessor(format);
   const tree = processor.loadIntoTree(file);
   return { tree };

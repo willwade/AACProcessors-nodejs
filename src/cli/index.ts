@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { program } from 'commander';
 import { prettyPrintTree } from './prettyPrint';
-import { analyze, getProcessor } from '../core/analyze';
+import { getProcessor } from '../core/analyze';
 import { ProcessorOptions } from '../core/baseProcessor';
 import path from 'path';
 import fs from 'fs';
@@ -192,7 +192,7 @@ program
   .option('--no-exclude-system', "Don't exclude system buttons (Delete, Clear, etc.)")
   .option('--exclude-buttons <list>', 'Comma-separated list of button labels/terms to exclude')
   .action(
-    (
+    async (
       input: string,
       output: string,
       options: {
@@ -221,7 +221,7 @@ program
 
         // Save using output format with same filtering options
         const outputProcessor = getProcessor(options.format, filteringOptions);
-        outputProcessor.saveFromTree(tree, output);
+        await outputProcessor.saveFromTree(tree, output);
 
         // Show filtering summary
         let filteringSummary = '';
