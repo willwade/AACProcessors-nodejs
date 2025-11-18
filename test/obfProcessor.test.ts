@@ -1,8 +1,8 @@
 // Test for OBFProcessor (Open Board Format/Zip)
-import fs from 'fs';
+// Test for OBFProcessor (Open Board Format/Zip)
 import path from 'path';
 import { ObfProcessor } from '../src/processors/obfProcessor';
-import { AACButton, AACPage, AACTree } from '../src/core/treeStructure';
+import { AACTree } from '../src/core/treeStructure';
 
 describe('OBFProcessor', () => {
   const obzPath: string = path.join(__dirname, '../examples/example.obz');
@@ -22,7 +22,8 @@ describe('OBFProcessor', () => {
     });
     expect(navFound).toBe(true);
     // Check image on button if present
-    const rootPage = tree.getPage(tree.rootId!);
+    const rootId = tree.rootId;
+    const rootPage = rootId ? tree.getPage(rootId) : undefined;
     if (rootPage) {
       const imgBtn = rootPage.buttons.find((b: any) => b.image);
       if (imgBtn) {

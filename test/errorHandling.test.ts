@@ -152,6 +152,7 @@ describe('Error Handling', () => {
       const processor = new SnapProcessor();
       const invalidData = Buffer.from('invalid sqlite data');
 
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const tempFilesBefore = fs.readdirSync(require('os').tmpdir()).length;
 
       expect(() => {
@@ -160,6 +161,7 @@ describe('Error Handling', () => {
 
       // Give some time for cleanup
       setTimeout(() => {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
         const tempFilesAfter = fs.readdirSync(require('os').tmpdir()).length;
         expect(tempFilesAfter).toBeLessThanOrEqual(tempFilesBefore + 1); // Allow for some variance
       }, 100);

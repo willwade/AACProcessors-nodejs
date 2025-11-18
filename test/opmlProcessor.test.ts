@@ -13,9 +13,10 @@ describe('OPMLProcessor', () => {
     // Should have at least one page
     expect(Object.keys(tree.pages).length).toBeGreaterThan(0);
     // Super root should have a navigation button to root
-    const superRoot = tree.getPage(tree.rootId!);
+    const rootId = tree.rootId;
+    const superRoot = rootId ? tree.getPage(rootId) : undefined;
     expect(superRoot).toBeDefined();
-    expect(superRoot!.buttons.length).toBeGreaterThan(0);
+    expect(superRoot?.buttons.length).toBeGreaterThan(0);
     // There should be at least one navigation button in the tree
     let navFound = false;
     tree.traverse((page) => {

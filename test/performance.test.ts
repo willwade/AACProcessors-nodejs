@@ -1,15 +1,9 @@
 // Performance tests for all processors
 import fs from 'fs';
 import path from 'path';
-import os from 'os';
 import { performance } from 'perf_hooks';
 import { DotProcessor } from '../src/processors/dotProcessor';
-import { OpmlProcessor } from '../src/processors/opmlProcessor';
-import { ObfProcessor } from '../src/processors/obfProcessor';
-import { GridsetProcessor } from '../src/processors/gridsetProcessor';
 import { SnapProcessor } from '../src/processors/snapProcessor';
-import { TouchChatProcessor } from '../src/processors/touchchatProcessor';
-import { ApplePanelsProcessor } from '../src/processors/applePanelsProcessor';
 import { AACTree, AACPage, AACButton } from '../src/core/treeStructure';
 
 describe('Performance Tests', () => {
@@ -184,8 +178,8 @@ describe('Performance Tests', () => {
 
       // Perform many operations
       for (let i = 0; i < 10; i++) {
-        const tree = processor.loadIntoTree(Buffer.from(testContent));
-        const texts = processor.extractTexts(Buffer.from(testContent));
+        const _tree = processor.loadIntoTree(Buffer.from(testContent));
+        const _texts = processor.extractTexts(Buffer.from(testContent));
 
         // Force garbage collection if available
         if (global.gc) {

@@ -4,7 +4,7 @@ import path from 'path';
 import { TouchChatProcessor } from '../src/processors/touchchatProcessor';
 import { SnapProcessor } from '../src/processors/snapProcessor';
 import { DotProcessor } from '../src/processors/dotProcessor';
-import { TreeFactory, PageFactory, ButtonFactory } from './utils/testFactories';
+import { TreeFactory } from './utils/testFactories';
 
 describe('Memory Performance Tests', () => {
   const tempDir = path.join(__dirname, 'temp_performance');
@@ -221,7 +221,7 @@ describe('Memory Performance Tests', () => {
     it('should maintain memory usage under 100MB for large files', () => {
       const processor = new SnapProcessor();
 
-      const { result: tree, memoryUsedMB } = measureMemoryUsage(() => {
+      const { result: tree, memoryUsedMB: _memoryUsedMB } = measureMemoryUsage(() => {
         const tree = TreeFactory.createLarge(100, 20); // 2000 buttons
 
         // Add moderate audio content
@@ -258,7 +258,7 @@ describe('Memory Performance Tests', () => {
     it('should handle very large hierarchies efficiently', () => {
       const processor = new DotProcessor();
 
-      const { result: tree, memoryUsedMB } = measureMemoryUsage(() => {
+      const { result: tree, memoryUsedMB: _memoryUsedMB } = measureMemoryUsage(() => {
         return TreeFactory.createLarge(200, 10); // 200 pages, 10 buttons each
       });
 

@@ -152,13 +152,19 @@ describe('ProcessTexts functionality', () => {
       // Find the main page (might have different ID after round-trip)
       const mainPage = pages.find((p) => p.name === 'Página Principal');
       expect(mainPage).toBeDefined();
-      expect(mainPage!.name).toBe('Página Principal');
+      if (!mainPage) {
+        return;
+      }
+      expect(mainPage.name).toBe('Página Principal');
 
       // Find the hello button by label
-      const helloButton = mainPage!.buttons.find((b) => b.label === 'Hola');
+      const helloButton = mainPage.buttons.find((b) => b.label === 'Hola');
       expect(helloButton).toBeDefined();
-      expect(helloButton!.label).toBe('Hola');
-      expect(helloButton!.message).toBe('Hola Mundo');
+      if (!helloButton) {
+        return;
+      }
+      expect(helloButton.label).toBe('Hola');
+      expect(helloButton.message).toBe('Hola Mundo');
     });
 
     it('should translate OBF content', () => {

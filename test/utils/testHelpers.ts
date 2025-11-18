@@ -322,19 +322,24 @@ export class ErrorTestHelper {
       thrownError = error as Error;
     }
 
+    expect(thrownError).toBeDefined();
+    if (!thrownError) {
+      throw new Error('Expected an error to be thrown.');
+    }
+
     if (expectedErrorType) {
       expect(thrownError).toBeInstanceOf(expectedErrorType);
     }
 
     if (expectedMessage) {
       if (typeof expectedMessage === 'string') {
-        expect(thrownError!.message).toContain(expectedMessage);
+        expect(thrownError.message).toContain(expectedMessage);
       } else {
-        expect(thrownError!.message).toMatch(expectedMessage);
+        expect(thrownError.message).toMatch(expectedMessage);
       }
     }
 
-    return thrownError!;
+    return thrownError;
   }
 
   static async expectAsyncError<T>(
@@ -351,19 +356,24 @@ export class ErrorTestHelper {
       thrownError = error as Error;
     }
 
+    expect(thrownError).toBeDefined();
+    if (!thrownError) {
+      throw new Error('Expected an error to be thrown.');
+    }
+
     if (expectedErrorType) {
       expect(thrownError).toBeInstanceOf(expectedErrorType);
     }
 
     if (expectedMessage) {
       if (typeof expectedMessage === 'string') {
-        expect(thrownError!.message).toContain(expectedMessage);
+        expect(thrownError.message).toContain(expectedMessage);
       } else {
-        expect(thrownError!.message).toMatch(expectedMessage);
+        expect(thrownError.message).toMatch(expectedMessage);
       }
     }
 
-    return thrownError!;
+    return thrownError;
   }
 }
 

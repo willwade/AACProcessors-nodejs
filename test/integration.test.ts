@@ -69,7 +69,7 @@ describe('Integration Tests', () => {
       const outputFile = path.join(tempDir, 'cli_output.json');
 
       try {
-        const result = execSync(`node ${cliPath} extract-texts ${dotFile} ${outputFile}`, {
+        const _result = execSync(`node ${cliPath} extract-texts ${dotFile} ${outputFile}`, {
           encoding: 'utf8',
           stdio: 'pipe',
         });
@@ -285,7 +285,7 @@ describe('Integration Tests', () => {
       if (translations.size > 0) {
         // Apply translations in DOT format
         const translatedDotPath = path.join(tempDir, 'translated.dot');
-        const translatedDotResult = dotProcessor.processTexts(
+        const _translatedDotResult = dotProcessor.processTexts(
           Buffer.from(dotContent),
           translations,
           translatedDotPath
@@ -352,7 +352,7 @@ describe('Integration Tests', () => {
 
       // Step 4: Apply translations
       const translatedPath = path.join(tempDir, 'workflow_translated.dot');
-      const translatedResult = processor.processTexts(
+      const _translatedResult = processor.processTexts(
         Buffer.from(originalContent),
         translations,
         translatedPath
