@@ -49,5 +49,11 @@ jobs:
         run: |
           npm version "${{ steps.release_version.outputs.version }}" --no-git-tag-version
 
+      - name: Debug npm config
+        run: |
+          npm config list
+          echo "---"
+          cat ~/.npmrc 2>/dev/null || echo "No ~/.npmrc found"
+
       - name: Publish to npm (Trusted Publishing)
         run: npm publish --access public --provenance
