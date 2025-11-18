@@ -24,6 +24,7 @@ jobs:
         with:
           node-version: "20"
           registry-url: "https://registry.npmjs.org"
+          scope: "@willwade"
 
       - name: Install dependencies
         run: npm ci
@@ -49,4 +50,4 @@ jobs:
           npm version "${{ steps.release_version.outputs.version }}" --no-git-tag-version
 
       - name: Publish to npm
-        run: npm publish --access public --provenance
+        run: npm publish --access public --provenance --registry https://registry.npmjs.org/
