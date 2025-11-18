@@ -14,7 +14,7 @@ import {
   AACSemanticIntent,
 } from '../core/treeStructure';
 // Removed unused import: FileProcessor
-import plist from 'plist';
+import plist, { PlistValue } from 'plist';
 import fs from 'fs';
 import path from 'path';
 
@@ -592,8 +592,12 @@ class ApplePanelsProcessor extends BaseProcessor {
       };
     });
 
-    const panelDefinitions = {
-      Panels: panelsDict,
+    const panelsValue: Record<string, PlistValue> = Object.fromEntries(
+      Object.entries(panelsDict).map(([key, value]) => [key, value as unknown as PlistValue])
+    );
+
+    const panelDefinitions: PlistValue = {
+      Panels: panelsValue,
       ToolbarOrdering: {
         ToolbarIdentifiersAfterBasePanel: [],
         ToolbarIdentifiersPriorToBasePanel: [],
