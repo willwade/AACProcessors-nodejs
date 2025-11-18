@@ -87,7 +87,9 @@ describe('ApplePanelsProcessor round-trip', () => {
     // Check navigation
     const navButton = reloadedPage1.buttons.find((b) => b.type === 'NAVIGATE');
     expect(navButton).toBeDefined();
-    expect(navButton!.targetPageId).toBe('panel2');
+    if (navButton) {
+      expect(navButton.targetPageId).toBe('panel2');
+    }
   });
 
   it('handles empty tree gracefully', () => {

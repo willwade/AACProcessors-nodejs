@@ -14,11 +14,18 @@ describe('DotProcessor', () => {
     expect(Object.keys(tree.pages).length).toBeGreaterThan(0);
     // Root should have navigation buttons
     expect(tree.rootId).toBeTruthy();
-    const rootPage = tree.getPage(tree.rootId!);
+    const rootId = tree.rootId;
+    if (!rootId) {
+      return;
+    }
+    const rootPage = tree.getPage(rootId);
     expect(rootPage).toBeDefined();
-    expect(rootPage!.buttons.length).toBeGreaterThan(0);
+    if (!rootPage) {
+      return;
+    }
+    expect(rootPage.buttons.length).toBeGreaterThan(0);
     // Buttons should be NAVIGATE type
-    rootPage!.buttons.forEach((btn) => {
+    rootPage.buttons.forEach((btn) => {
       expect(btn.type).toBe('NAVIGATE');
       expect(btn.targetPageId).toBeTruthy();
     });

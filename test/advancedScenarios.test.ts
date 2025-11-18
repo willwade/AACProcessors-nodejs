@@ -4,12 +4,9 @@ import path from 'path';
 import { DotProcessor } from '../src/processors/dotProcessor';
 import { OpmlProcessor } from '../src/processors/opmlProcessor';
 import { ObfProcessor } from '../src/processors/obfProcessor';
-import { SnapProcessor } from '../src/processors/snapProcessor';
-import { TouchChatProcessor } from '../src/processors/touchchatProcessor';
-import { GridsetProcessor } from '../src/processors/gridsetProcessor';
 import { ApplePanelsProcessor } from '../src/processors/applePanelsProcessor';
 import { getProcessor } from '../src/index';
-import { TreeFactory, PageFactory, ButtonFactory, TestDataUtils } from './utils/testFactories';
+import { TreeFactory, PageFactory, TestDataUtils } from './utils/testFactories';
 import { TestEnvironmentManager, PerformanceHelper, AsyncTestHelper } from './utils/testHelpers';
 
 describe('Advanced Scenario Testing', () => {

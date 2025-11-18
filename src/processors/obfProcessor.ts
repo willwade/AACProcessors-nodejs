@@ -114,11 +114,11 @@ class ObfProcessor extends BaseProcessor {
         typeof boardData.grid.columns === 'number'
           ? boardData.grid.columns
           : boardData.grid.order
-              ? boardData.grid.order.reduce(
-                  (max, row) => Math.max(max, Array.isArray(row) ? row.length : 0),
-                  0
-                )
-              : 0;
+            ? boardData.grid.order.reduce(
+                (max, row) => Math.max(max, Array.isArray(row) ? row.length : 0),
+                0
+              )
+            : 0;
 
       if (rows > 0 && cols > 0) {
         const grid: Array<Array<AACButton | null>> = Array.from({ length: rows }, () =>
@@ -210,7 +210,6 @@ class ObfProcessor extends BaseProcessor {
 
     // If input is a string path and ends with .obf, treat as JSON
     if (typeof filePathOrBuffer === 'string' && filePathOrBuffer.endsWith('.obf')) {
-      const fs = require('fs');
       try {
         const content = fs.readFileSync(filePathOrBuffer, 'utf8');
         const boardData = tryParseObfJson(content);
@@ -283,10 +282,7 @@ class ObfProcessor extends BaseProcessor {
     const totalRows = Array.isArray(page.grid) ? page.grid.length : 0;
     const totalColumns =
       totalRows > 0
-        ? page.grid.reduce(
-            (max, row) => Math.max(max, Array.isArray(row) ? row.length : 0),
-            0
-          )
+        ? page.grid.reduce((max, row) => Math.max(max, Array.isArray(row) ? row.length : 0), 0)
         : 0;
 
     if (totalRows === 0 || totalColumns === 0) {
@@ -368,16 +364,25 @@ class ObfProcessor extends BaseProcessor {
     Object.values(tree.pages).forEach((page) => {
       // Translate page names
       if (page.name && translations.has(page.name)) {
-        page.name = translations.get(page.name)!;
+        const translatedName = translations.get(page.name);
+        if (translatedName !== undefined) {
+          page.name = translatedName;
+        }
       }
 
       // Translate button labels and messages
       page.buttons.forEach((button) => {
         if (button.label && translations.has(button.label)) {
-          button.label = translations.get(button.label)!;
+          const translatedLabel = translations.get(button.label);
+          if (translatedLabel !== undefined) {
+            button.label = translatedLabel;
+          }
         }
         if (button.message && translations.has(button.message)) {
-          button.message = translations.get(button.message)!;
+          const translatedMessage = translations.get(button.message);
+          if (translatedMessage !== undefined) {
+            button.message = translatedMessage;
+          }
         }
       });
     });

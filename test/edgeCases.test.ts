@@ -1,14 +1,12 @@
 // Edge case tests for all processors
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 import { DotProcessor } from '../src/processors/dotProcessor';
 import { OpmlProcessor } from '../src/processors/opmlProcessor';
 import { ObfProcessor } from '../src/processors/obfProcessor';
-import { GridsetProcessor } from '../src/processors/gridsetProcessor';
 import { SnapProcessor } from '../src/processors/snapProcessor';
-import { TouchChatProcessor } from '../src/processors/touchchatProcessor';
-import { ApplePanelsProcessor } from '../src/processors/applePanelsProcessor';
-import { AACTree, AACPage, AACButton } from '../src/core/treeStructure';
+import { AACTree } from '../src/core/treeStructure';
 
 describe('Edge Case Tests', () => {
   const tempDir = path.join(__dirname, 'temp_edge_cases');
@@ -312,7 +310,7 @@ describe('Edge Case Tests', () => {
     it('should clean up temporary files on errors', () => {
       const processor = new SnapProcessor();
 
-      const tempFilesBefore = fs.readdirSync(require('os').tmpdir()).length;
+      const tempFilesBefore = fs.readdirSync(os.tmpdir()).length;
 
       // Try to process invalid SQLite data multiple times
       for (let i = 0; i < 5; i++) {
@@ -325,7 +323,7 @@ describe('Edge Case Tests', () => {
 
       // Give some time for cleanup
       setTimeout(() => {
-        const tempFilesAfter = fs.readdirSync(require('os').tmpdir()).length;
+        const tempFilesAfter = fs.readdirSync(os.tmpdir()).length;
         expect(tempFilesAfter).toBeLessThanOrEqual(tempFilesBefore + 2); // Allow some variance
       }, 100);
     });

@@ -65,12 +65,12 @@ export class ExcelProcessor extends BaseProcessor {
    * @param tree - Full AAC tree for navigation context
    * @param usedNames - Set of already used worksheet names to avoid duplicates
    */
-  private async convertPageToWorksheet(
+  private convertPageToWorksheet(
     workbook: ExcelJS.Workbook,
     page: AACPage,
     tree: AACTree,
     usedNames: Set<string> = new Set()
-  ): Promise<void> {
+  ): void {
     // Create worksheet with page name (sanitized for Excel and unique)
     const worksheetName = this.getUniqueWorksheetName(page.name || page.id, usedNames);
     const worksheet = workbook.addWorksheet(worksheetName);
@@ -81,16 +81,16 @@ export class ExcelProcessor extends BaseProcessor {
     // Add navigation row if enabled (optional feature)
     let startRow = 1;
     if (this.shouldAddNavigationRow()) {
-      await this.addNavigationRow(worksheet, page, tree);
+      this.addNavigationRow(worksheet, page, tree);
       startRow = 2; // Start content after navigation row
     }
 
     // Convert grid layout if available
     if (page.grid && page.grid.length > 0) {
-      await this.convertGridLayout(worksheet, page.grid, startRow);
+      this.convertGridLayout(worksheet, page.grid, startRow);
     } else {
       // Convert button list to grid layout
-      await this.convertButtonsToGrid(worksheet, page.buttons, rows, cols, startRow);
+      this.convertButtonsToGrid(worksheet, page.buttons, rows, cols, startRow);
     }
 
     // Apply worksheet formatting
@@ -133,18 +133,18 @@ export class ExcelProcessor extends BaseProcessor {
    * @param grid - 2D array of AAC buttons
    * @param startRow - Starting row number
    */
-  private async convertGridLayout(
+  private convertGridLayout(
     worksheet: ExcelJS.Worksheet,
     grid: Array<Array<AACButton | null>>,
     startRow: number
-  ): Promise<void> {
+  ): void {
     for (let row = 0; row < grid.length; row++) {
       for (let col = 0; col < grid[row].length; col++) {
         const button = grid[row][col];
         if (button) {
           const excelRow = startRow + row;
           const excelCol = col + 1; // Excel columns are 1-based
-          await this.setButtonCell(worksheet, button, excelRow, excelCol);
+          this.setButtonCell(worksheet, button, excelRow, excelCol);
         }
       }
     }
@@ -158,13 +158,13 @@ export class ExcelProcessor extends BaseProcessor {
    * @param cols - Number of columns in grid
    * @param startRow - Starting row number
    */
-  private async convertButtonsToGrid(
+  private convertButtonsToGrid(
     worksheet: ExcelJS.Worksheet,
     buttons: AACButton[],
     rows: number,
     cols: number,
     startRow: number
-  ): Promise<void> {
+  ): void {
     for (let i = 0; i < buttons.length; i++) {
       const button = buttons[i];
       const row = Math.floor(i / cols);
@@ -173,7 +173,7 @@ export class ExcelProcessor extends BaseProcessor {
       if (row < rows) {
         const excelRow = startRow + row;
         const excelCol = col + 1; // Excel columns are 1-based
-        await this.setButtonCell(worksheet, button, excelRow, excelCol);
+        this.setButtonCell(worksheet, button, excelRow, excelCol);
       }
     }
   }
@@ -185,12 +185,12 @@ export class ExcelProcessor extends BaseProcessor {
    * @param row - Excel row number
    * @param col - Excel column number
    */
-  private async setButtonCell(
+  private setButtonCell(
     worksheet: ExcelJS.Worksheet,
     button: AACButton,
     row: number,
     col: number
-  ): Promise<void> {
+  ): void {
     const cell = worksheet.getCell(row, col);
 
     // Set cell value to button label
@@ -220,10 +220,10 @@ export class ExcelProcessor extends BaseProcessor {
    * @param cell - Excel cell to style
    * @param style - AAC style object
    */
-  private applyCellStyling(cell: ExcelJS.Cell, style: any): void {
-    const fill: any = {};
-    const font: any = {};
-    const border: any = {};
+  private applyCellStyling(cell: ExcelJS.Cell, style: AACStyle): void {
+    const fill: Partial<ExcelJS.Fill> = {};
+    const font: Partial<ExcelJS.Font> = {};
+    const border: Partial<ExcelJS.Borders> = {};
 
     // Background color
     if (style.backgroundColor) {
@@ -299,7 +299,7 @@ export class ExcelProcessor extends BaseProcessor {
    * @param color - Color string (hex, rgb, etc.)
    * @returns ARGB color string
    */
-  private convertColorToArgb(color: string): string {
+  private convertColorToArgb(color?: string): string {
     if (!color) return 'FFFFFFFF'; // Default white
 
     // Remove any whitespace
@@ -380,11 +380,7 @@ export class ExcelProcessor extends BaseProcessor {
    * @param page - Current AAC page
    * @param tree - Full AAC tree for navigation context
    */
-  private async addNavigationRow(
-    worksheet: ExcelJS.Worksheet,
-    page: AACPage,
-    tree: AACTree
-  ): Promise<void> {
+  private addNavigationRow(worksheet: ExcelJS.Worksheet, page: AACPage, tree: AACTree): void {
     const navButtons = ExcelProcessor.NAVIGATION_BUTTONS;
 
     for (let i = 0; i < navButtons.length; i++) {
@@ -469,9 +465,9 @@ export class ExcelProcessor extends BaseProcessor {
     // - Max 31 characters
     // - Cannot contain: \ / ? * [ ] :
     // - Cannot be empty
-    const cleaned = (name || '')
-      .replace(/[\\\/\?\*\[\]:]/g, '_')
-      .substring(0, 31);
+    let cleaned = (name || '').replace(/[\\/?*:]/g, '_');
+    cleaned = cleaned.replace(/\[/g, '_').replace(/\]/g, '_');
+    cleaned = cleaned.substring(0, 31);
 
     if (cleaned.length === 0) {
       return 'Sheet1';
@@ -488,7 +484,7 @@ export class ExcelProcessor extends BaseProcessor {
    */
   private getUniqueWorksheetName(name: string, usedNames: Set<string>): string {
     const baseName = this.sanitizeWorksheetName(name);
-    const normalize = (value: string) => value.toLowerCase();
+    const normalize = (value: string): string => value.toLowerCase();
     let uniqueName = baseName;
     let counter = 1;
 
@@ -537,15 +533,13 @@ export class ExcelProcessor extends BaseProcessor {
 
     try {
       await this.saveFromTreeAsync(tree, outputPath);
-    } catch (error: any) {
-      console.error('Failed to save Excel file:', error);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error('Failed to save Excel file:', message);
       try {
         const fallbackPath = outputPath.replace(/\.xlsx$/i, '_error.txt');
         fs.mkdirSync(path.dirname(fallbackPath), { recursive: true });
-        fs.writeFileSync(
-          fallbackPath,
-          `Error saving Excel file: ${error?.message || String(error)}`
-        );
+        fs.writeFileSync(fallbackPath, `Error saving Excel file: ${message}`);
       } catch (writeError) {
         console.error('Failed to write Excel error file:', writeError);
       }
@@ -578,7 +572,7 @@ export class ExcelProcessor extends BaseProcessor {
     // Convert each AAC page to an Excel worksheet
     for (const pageId in tree.pages) {
       const page = tree.pages[pageId];
-      await this.convertPageToWorksheet(workbook, page, tree, usedNames);
+      this.convertPageToWorksheet(workbook, page, tree, usedNames);
     }
 
     // Save the workbook

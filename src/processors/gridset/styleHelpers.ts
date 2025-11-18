@@ -1,6 +1,6 @@
 /**
  * Grid3 Style Helpers
- * 
+ *
  * Utilities for creating and managing Grid3 styles, including default styles,
  * style XML generation, and style conversion utilities.
  */
@@ -221,10 +221,9 @@ function darkenColor(hexColor: string, amount: number): string {
   const normalized = ensureAlphaChannel(hexColor);
   const hex = normalized.slice(1, 7); // Extract RGB part (skip # and alpha)
   const num = parseInt(hex, 16);
-  const clamp = (value: number) => Math.max(0, Math.min(255, value));
+  const clamp = (value: number): number => Math.max(0, Math.min(255, value));
   const r = clamp(((num >> 16) & 0xff) - amount);
   const g = clamp(((num >> 8) & 0xff) - amount);
   const b = clamp((num & 0xff) - amount);
   return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
 }
-

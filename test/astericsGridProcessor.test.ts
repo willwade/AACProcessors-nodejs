@@ -119,7 +119,10 @@ describe('AstericsGridProcessor', () => {
     Object.values(tree.pages).forEach((page) => {
       page.buttons.forEach((button) => {
         // Check using semantic action system instead of button.type
-        if (button.semanticAction?.category === AACSemanticCategory.NAVIGATION && button.targetPageId) {
+        if (
+          button.semanticAction?.category === AACSemanticCategory.NAVIGATION &&
+          button.targetPageId
+        ) {
           foundNavigationButton = true;
           // Verify the target page exists
           const targetPage = tree.getPage(button.targetPageId);
@@ -227,8 +230,11 @@ describe('AstericsGridProcessor', () => {
       expect(initialTree.rootId).toBe(originalHomeGridId);
 
       // Verify the home page actually exists
-      const homePage = initialTree.getPage(initialTree.rootId!);
-      expect(homePage).toBeDefined();
+      const rootId = initialTree.rootId;
+      if (rootId) {
+        const homePage = initialTree.getPage(rootId);
+        expect(homePage).toBeDefined();
+      }
     }
 
     // Save to a new file

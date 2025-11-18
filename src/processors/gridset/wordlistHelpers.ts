@@ -1,10 +1,10 @@
 /**
  * Grid3 Wordlist Helpers
- * 
+ *
  * This module provides utilities for creating and extracting wordlists
  * from Grid3 gridsets. Wordlists are Grid3-specific data structures
  * used for dynamic vocabulary content.
- * 
+ *
  * Note: Wordlists are only supported in Grid3 format. Other AAC formats
  * do not have equivalent wordlist functionality.
  */
@@ -34,14 +34,14 @@ export interface WordList {
 
 /**
  * Creates a WordList object from an array of words/phrases or a dictionary
- * 
+ *
  * @param input - Either an array of strings or an object with text/image/partOfSpeech properties
  * @returns A WordList object ready to be used in Grid3
- * 
+ *
  * @example
  * // From simple array
  * const wordlist = createWordlist(['hello', 'goodbye', 'thank you']);
- * 
+ *
  * @example
  * // From array of objects
  * const wordlist = createWordlist([
@@ -64,7 +64,7 @@ export function createWordlist(
     });
   } else if (typeof input === 'object') {
     // Handle dictionary/object input
-    items = Object.entries(input).map(([key, value]) => {
+    items = Object.entries(input).map(([, value]) => {
       if (typeof value === 'string') {
         return { text: value };
       }
@@ -77,7 +77,7 @@ export function createWordlist(
 
 /**
  * Converts a WordList object to Grid3 XML format
- * 
+ *
  * @param wordlist - The wordlist to convert
  * @returns XML string representation
  * @internal
@@ -263,7 +263,8 @@ export function updateWordlist(
           zip.updateFile(entry, Buffer.from(updatedXml, 'utf8'));
           found = true;
         } catch (error) {
-          throw new Error(`Failed to update wordlist in grid "${gridName}": ${error}`);
+          const message = error instanceof Error ? error.message : String(error);
+          throw new Error(`Failed to update wordlist in grid "${gridName}": ${message}`);
         }
       }
     }
@@ -275,4 +276,3 @@ export function updateWordlist(
 
   return zip.toBuffer();
 }
-

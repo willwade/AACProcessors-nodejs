@@ -44,6 +44,26 @@ interface TouchChatPage {
   feature: number | null;
 }
 
+interface TouchChatButtonStyle {
+  id: number;
+  body_color?: number | null;
+  border_color?: number | null;
+  border_width?: number | null;
+  font_color?: number | null;
+  font_height?: number | null;
+  font_name?: string | null;
+  font_bold?: number | null;
+  font_italic?: number | null;
+  font_underline?: number | null;
+  transparent?: number | null;
+  label_on_top?: number | null;
+}
+
+interface TouchChatPageStyle {
+  id: number;
+  bg_color?: number | null;
+}
+
 function intToHex(colorInt: number | null | undefined): string | undefined {
   if (colorInt === null || typeof colorInt === 'undefined') {
     return undefined;
@@ -127,15 +147,17 @@ class TouchChatProcessor extends BaseProcessor {
       }
 
       // Load styles
-      const buttonStyles = new Map();
-      const pageStyles = new Map();
+      const buttonStyles = new Map<number, TouchChatButtonStyle>();
+      const pageStyles = new Map<number, TouchChatPageStyle>();
       try {
-        const buttonStyleRows = db.prepare('SELECT * FROM button_styles').all();
-        buttonStyleRows.forEach((style: any) => {
+        const buttonStyleRows = db
+          .prepare('SELECT * FROM button_styles')
+          .all() as TouchChatButtonStyle[];
+        buttonStyleRows.forEach((style) => {
           buttonStyles.set(style.id, style);
         });
-        const pageStyleRows = db.prepare('SELECT * FROM page_styles').all();
-        pageStyleRows.forEach((style: any) => {
+        const pageStyleRows = db.prepare('SELECT * FROM page_styles').all() as TouchChatPageStyle[];
+        pageStyleRows.forEach((style) => {
           pageStyles.set(style.id, style);
         });
       } catch (e) {
@@ -471,16 +493,25 @@ class TouchChatProcessor extends BaseProcessor {
     Object.values(tree.pages).forEach((page) => {
       // Translate page names
       if (page.name && translations.has(page.name)) {
-        page.name = translations.get(page.name)!;
+        const translatedName = translations.get(page.name);
+        if (translatedName !== undefined) {
+          page.name = translatedName;
+        }
       }
 
       // Translate button labels and messages
       page.buttons.forEach((button) => {
         if (button.label && translations.has(button.label)) {
-          button.label = translations.get(button.label)!;
+          const translatedLabel = translations.get(button.label);
+          if (translatedLabel !== undefined) {
+            button.label = translatedLabel;
+          }
         }
         if (button.message && translations.has(button.message)) {
-          button.message = translations.get(button.message)!;
+          const translatedMessage = translations.get(button.message);
+          if (translatedMessage !== undefined) {
+            button.message = translatedMessage;
+          }
         }
       });
     });
@@ -667,7 +698,10 @@ class TouchChatProcessor extends BaseProcessor {
               page.style.backgroundColor ? 1 : 0
             );
           } else {
-            pageStyleId = pageStyleMap.get(styleKey)!;
+            const existingPageStyleId = pageStyleMap.get(styleKey);
+            if (typeof existingPageStyleId === 'number') {
+              pageStyleId = existingPageStyleId;
+            }
           }
         }
 
@@ -693,7 +727,10 @@ class TouchChatProcessor extends BaseProcessor {
 
       // Second pass: create buttons and their relationships
       Object.values(tree.pages).forEach((page) => {
-        const numericPageId = pageIdMap.get(page.id)!;
+        const numericPageId = pageIdMap.get(page.id);
+        if (numericPageId === undefined) {
+          return;
+        }
 
         if (page.buttons.length > 0) {
           // Calculate grid dimensions from page.grid or use fallback
@@ -783,7 +820,10 @@ class TouchChatProcessor extends BaseProcessor {
                   button.style.fontSize
                 );
               } else {
-                buttonStyleId = buttonStyleMap.get(styleKey)!;
+                const existingButtonStyleId = buttonStyleMap.get(styleKey);
+                if (typeof existingButtonStyleId === 'number') {
+                  buttonStyleId = existingButtonStyleId;
+                }
               }
             }
 
