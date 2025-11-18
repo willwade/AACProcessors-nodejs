@@ -49,5 +49,5 @@ jobs:
         run: |
           npm version "${{ steps.release_version.outputs.version }}" --no-git-tag-version
 
-      - name: Publish to npm
-        run: npm publish --access public --provenance --registry https://registry.npmjs.org/
+      - name: Publish to npm (Trusted Publishing)
+        run: npm publish --access public --provenance
