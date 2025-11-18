@@ -463,6 +463,22 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
+function normalizeStringRecord(input: unknown): Record<string, string> | undefined {
+  if (!isRecord(input)) {
+    return undefined;
+  }
+  const entries: [string, string][] = [];
+  Object.entries(input).forEach(([key, value]) => {
+    if (typeof value === 'string') {
+      entries.push([key, value]);
+    }
+  });
+  if (entries.length === 0) {
+    return undefined;
+  }
+  return Object.fromEntries(entries);
+}
+
 function normalizeColorScheme(raw: unknown): ColorSchemeDefinition | null {
   if (!isRecord(raw)) return null;
   const scheme = raw;
@@ -492,13 +508,12 @@ function normalizeColorScheme(raw: unknown): ColorSchemeDefinition | null {
   }
 
   const mappingsCandidate =
-    (isRecord(scheme.mappings) && scheme.mappings) ||
-    (isRecord(scheme.categoryMappings) && scheme.categoryMappings) ||
-    (isRecord(scheme.categoryMapping) && scheme.categoryMapping) ||
+    normalizeStringRecord(scheme.mappings) ||
+    normalizeStringRecord(scheme.categoryMappings) ||
+    normalizeStringRecord(scheme.categoryMapping) ||
     undefined;
 
-  const customBordersCandidate =
-    isRecord(scheme.customBorders) && scheme.customBorders ? scheme.customBorders : undefined;
+  const customBordersCandidate = normalizeStringRecord(scheme.customBorders);
 
   return {
     name: nameCandidate,
@@ -1182,18 +1197,18 @@ class AstericsGridProcessor extends BaseProcessor {
         imageData = Buffer.from(base64Data, 'base64');
 
         // Use detected format for filename
-        imageName = element.image.id || `image.${imageFormat}`;
-      } catch (e) {
-        // Invalid base64 data, skip image
-      }
+      imageName = element.image.id || `image.${imageFormat}`;
+    } catch (e) {
+      // Invalid base64 data, skip image
     }
+  }
 
-    return new AACButton({
-      id: element.id,
-      label: label,
-      message: label,
+  return new AACButton({
+    id: element.id,
+    label: label,
+    message: label,
 
-      targetPageId: targetPageId,
+    targetPageId: targetPageId || undefined,
 
       semanticAction: semanticAction,
       audioRecording: audioRecording,

@@ -12,6 +12,7 @@ import fs from 'fs';
 
 interface OpmlOutline {
   '@_text'?: string;
+  text?: string;
   _attributes?: {
     text: string;
     [key: string]: string;

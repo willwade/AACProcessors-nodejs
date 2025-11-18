@@ -221,15 +221,17 @@ export class ExcelProcessor extends BaseProcessor {
    * @param style - AAC style object
    */
   private applyCellStyling(cell: ExcelJS.Cell, style: AACStyle): void {
-    const fill: Partial<ExcelJS.Fill> = {};
+    let fill: ExcelJS.FillPattern | undefined;
     const font: Partial<ExcelJS.Font> = {};
-    const border: Partial<ExcelJS.Borders> = {};
+    let border: Partial<ExcelJS.Borders> | undefined;
 
     // Background color
     if (style.backgroundColor) {
-      fill.type = 'pattern';
-      fill.pattern = 'solid';
-      fill.fgColor = { argb: this.convertColorToArgb(style.backgroundColor) };
+      fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: this.convertColorToArgb(style.backgroundColor) },
+      };
     }
 
     // Font color
@@ -263,26 +265,29 @@ export class ExcelProcessor extends BaseProcessor {
     }
 
     // Border
-    if (style.borderColor || style.borderWidth) {
-      const borderStyle = style.borderWidth > 1 ? 'thick' : 'thin';
+    if (style.borderColor || typeof style.borderWidth === 'number') {
+      const borderWidth = style.borderWidth ?? 1;
+      const borderStyle = borderWidth > 1 ? 'thick' : 'thin';
       const borderColor = style.borderColor
         ? { argb: this.convertColorToArgb(style.borderColor) }
         : { argb: 'FF000000' }; // Default black
 
-      border.top = { style: borderStyle, color: borderColor };
-      border.left = { style: borderStyle, color: borderColor };
-      border.bottom = { style: borderStyle, color: borderColor };
-      border.right = { style: borderStyle, color: borderColor };
+      border = {
+        top: { style: borderStyle, color: borderColor },
+        left: { style: borderStyle, color: borderColor },
+        bottom: { style: borderStyle, color: borderColor },
+        right: { style: borderStyle, color: borderColor },
+      };
     }
 
     // Apply styling to cell
-    if (Object.keys(fill).length > 0) {
+    if (fill) {
       cell.fill = fill;
     }
     if (Object.keys(font).length > 0) {
       cell.font = font;
     }
-    if (Object.keys(border).length > 0) {
+    if (border) {
       cell.border = border;
     }
 

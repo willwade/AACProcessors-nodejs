@@ -13,6 +13,7 @@ import {
   AACSemanticCategory,
   AACSemanticIntent,
 } from '../core/treeStructure';
+import { AACStyle } from '../types/aac';
 import AdmZip from 'adm-zip';
 import fs from 'fs';
 import { XMLParser, XMLBuilder } from 'fast-xml-parser';
@@ -1042,7 +1043,7 @@ class GridsetProcessor extends BaseProcessor {
     }
 
     // Collect all unique styles from pages and buttons
-    const uniqueStyles = new Map<string, { id: string; style: Record<string, unknown> }>();
+    const uniqueStyles = new Map<string, { id: string; style: AACStyle }>();
     let styleIdCounter = 1;
 
     // Track images that need to be written to the ZIP
@@ -1053,25 +1054,23 @@ class GridsetProcessor extends BaseProcessor {
     >();
 
     // Helper function to add style and return its ID
-    const addStyle = (style: unknown): string => {
-      if (!style || typeof style !== 'object') return '';
-      const obj = style as Record<string, unknown>;
-      if (Object.keys(obj).length === 0) return '';
-
-      const styleKey = JSON.stringify(obj);
+    const addStyle = (style: AACStyle | undefined): string => {
+      if (!style) return '';
+      const normalizedStyle: AACStyle = { ...style };
+      const styleKey = JSON.stringify(normalizedStyle);
       const existing = uniqueStyles.get(styleKey);
       if (existing) return existing.id;
 
       const styleId = `Style${styleIdCounter++}`;
-      uniqueStyles.set(styleKey, { id: styleId, style: obj });
+      uniqueStyles.set(styleKey, { id: styleId, style: normalizedStyle });
       return styleId;
     };
 
     // Collect styles from all pages and buttons
     Object.values(tree.pages).forEach((page) => {
-      if (page.style) addStyle(page.style);
+      addStyle(page.style);
       page.buttons.forEach((button) => {
-        if (button.style) addStyle(button.style);
+        addStyle(button.style);
       });
     });
 
@@ -1119,21 +1118,13 @@ class GridsetProcessor extends BaseProcessor {
     // Create Settings0/Styles/style.xml if there are styles
     if (uniqueStyles.size > 0) {
       const stylesArray = Array.from(uniqueStyles.values()).map(({ id, style }) => {
-        const styleObj: {
-          '@_Key': string;
-          BackColour: string;
-          BorderColour: string;
-          FontColour: string;
-          FontName: string;
-          FontSize: string;
-        } = {
+        const styleObj = {
           '@_Key': id,
           // When TileColour is present, BackColour is the surround (outer area)
           // For "None" surround, just use BackColour for the fill (no TileColour)
-          BackColour: this.ensureAlphaChannel(style.backgroundColor as string | undefined),
-          BorderColour:
-            this.ensureAlphaChannel(style.borderColor as string | undefined) || '#000000FF',
-          FontColour: this.ensureAlphaChannel(style.fontColor as string | undefined) || '#000000FF',
+          BackColour: this.ensureAlphaChannel(style.backgroundColor),
+          BorderColour: this.ensureAlphaChannel(style.borderColor),
+          FontColour: this.ensureAlphaChannel(style.fontColor),
           FontName: style.fontFamily || 'Arial',
           FontSize: style.fontSize?.toString() || '16',
         };

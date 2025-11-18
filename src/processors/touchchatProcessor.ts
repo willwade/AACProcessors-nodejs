@@ -44,6 +44,15 @@ interface TouchChatPage {
   feature: number | null;
 }
 
+const toNumberOrUndefined = (value: number | null | undefined): number | undefined =>
+  typeof value === 'number' ? value : undefined;
+
+const toStringOrUndefined = (value: string | null | undefined): string | undefined =>
+  typeof value === 'string' && value.length > 0 ? value : undefined;
+
+const toBooleanOrUndefined = (value: number | null | undefined): boolean | undefined =>
+  typeof value === 'number' ? value !== 0 : undefined;
+
 interface TouchChatButtonStyle {
   id: number;
   body_color?: number | null;
@@ -247,15 +256,15 @@ class TouchChatProcessor extends BaseProcessor {
             style: {
               backgroundColor: intToHex(style?.body_color),
               borderColor: intToHex(style?.border_color),
-              borderWidth: style?.border_width,
+              borderWidth: toNumberOrUndefined(style?.border_width),
               fontColor: intToHex(style?.font_color),
-              fontSize: style?.font_height,
-              fontFamily: style?.font_name,
-              fontWeight: style?.font_bold ? 'bold' : 'normal',
-              fontStyle: style?.font_italic ? 'italic' : 'normal',
-              textUnderline: style?.font_underline,
-              transparent: style?.transparent,
-              labelOnTop: style?.label_on_top,
+              fontSize: toNumberOrUndefined(style?.font_height),
+              fontFamily: toStringOrUndefined(style?.font_name),
+              fontWeight: style?.font_bold ? 'bold' : undefined,
+              fontStyle: style?.font_italic ? 'italic' : undefined,
+              textUnderline: toBooleanOrUndefined(style?.font_underline),
+              transparent: toBooleanOrUndefined(style?.transparent),
+              labelOnTop: toBooleanOrUndefined(style?.label_on_top),
             },
           });
           buttonBoxes.get(cell.box_id)?.push({
@@ -381,15 +390,15 @@ class TouchChatProcessor extends BaseProcessor {
             style: {
               backgroundColor: intToHex(style?.body_color),
               borderColor: intToHex(style?.border_color),
-              borderWidth: style?.border_width,
+              borderWidth: toNumberOrUndefined(style?.border_width),
               fontColor: intToHex(style?.font_color),
-              fontSize: style?.font_height,
-              fontFamily: style?.font_name,
-              fontWeight: style?.font_bold ? 'bold' : 'normal',
-              fontStyle: style?.font_italic ? 'italic' : 'normal',
-              textUnderline: style?.font_underline,
-              transparent: style?.transparent,
-              labelOnTop: style?.label_on_top,
+              fontSize: toNumberOrUndefined(style?.font_height),
+              fontFamily: toStringOrUndefined(style?.font_name),
+              fontWeight: style?.font_bold ? 'bold' : undefined,
+              fontStyle: style?.font_italic ? 'italic' : undefined,
+              textUnderline: toBooleanOrUndefined(style?.font_underline),
+              transparent: toBooleanOrUndefined(style?.transparent),
+              labelOnTop: toBooleanOrUndefined(style?.label_on_top),
             },
           });
           // Find the page that references this resource
