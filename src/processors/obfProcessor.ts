@@ -18,6 +18,8 @@ import AdmZip from 'adm-zip';
 import fs from 'fs';
 // Removed unused import: path
 
+const OBF_FORMAT_VERSION = 'open-board-0.1';
+
 interface ObfButton {
   id: string;
   label?: string;
@@ -30,14 +32,22 @@ interface ObfButton {
   border_color?: string;
 }
 
+interface ObfGrid {
+  rows: number;
+  columns: number;
+  order?: Array<Array<string | number | null>>;
+}
+
 interface ObfBoard {
+  format?: string;
   id: string;
+  locale?: string;
   name: string;
+  description_html?: string;
   buttons: ObfButton[];
-  grid?: {
-    rows: number;
-    columns: number;
-  };
+  grid?: ObfGrid;
+  images?: any[];
+  sounds?: any[];
 }
 
 class ObfProcessor extends BaseProcessor {
@@ -45,7 +55,8 @@ class ObfProcessor extends BaseProcessor {
     super(options);
   }
   private processBoard(boardData: ObfBoard, _boardPath: string): AACPage {
-    const buttons: AACButton[] = (boardData.buttons || []).map((btn: ObfButton): AACButton => {
+    const sourceButtons = boardData.buttons || [];
+    const buttons: AACButton[] = sourceButtons.map((btn: ObfButton): AACButton => {
       const semanticAction: AACSemanticAction = btn.load_board
         ? {
             category: AACSemanticCategory.NAVIGATION,
@@ -79,36 +90,70 @@ class ObfProcessor extends BaseProcessor {
       });
     });
 
+    const buttonMap = new Map(buttons.map((btn) => [btn.id, btn]));
+
     const page = new AACPage({
       id: String(boardData?.id || ''),
       name: String(boardData?.name || ''),
       grid: [],
       buttons,
       parentId: null,
+      locale: boardData.locale,
+      descriptionHtml: boardData.description_html,
+      images: boardData.images,
+      sounds: boardData.sounds,
     });
 
     // Process grid layout if available
     if (boardData.grid) {
-      const rows = boardData.grid.rows;
-      const cols = boardData.grid.columns;
-      const grid: Array<Array<AACButton | null>> = Array(rows)
-        .fill(null)
-        .map(() => Array(cols).fill(null));
+      const rows =
+        typeof boardData.grid.rows === 'number'
+          ? boardData.grid.rows
+          : boardData.grid.order?.length || 0;
+      const cols =
+        typeof boardData.grid.columns === 'number'
+          ? boardData.grid.columns
+          : boardData.grid.order
+              ? boardData.grid.order.reduce(
+                  (max, row) => Math.max(max, Array.isArray(row) ? row.length : 0),
+                  0
+                )
+              : 0;
 
-      for (const btn of boardData.buttons) {
-        if (typeof btn.box_id === 'number') {
-          const row = Math.floor(btn.box_id / cols);
-          const col = btn.box_id % cols;
-          if (row < rows && col < cols) {
-            const aacBtn = buttons.find((b) => b.id === btn.id);
-            if (aacBtn) {
-              grid[row][col] = aacBtn;
+      if (rows > 0 && cols > 0) {
+        const grid: Array<Array<AACButton | null>> = Array.from({ length: rows }, () =>
+          Array.from({ length: cols }, () => null)
+        );
+
+        if (Array.isArray(boardData.grid.order) && boardData.grid.order.length) {
+          boardData.grid.order.forEach((orderRow, rowIndex) => {
+            if (!Array.isArray(orderRow)) return;
+            orderRow.forEach((cellId, colIndex) => {
+              if (cellId === null || cellId === undefined) return;
+              if (rowIndex >= rows || colIndex >= cols) return;
+              const aacBtn = buttonMap.get(String(cellId));
+              if (aacBtn) {
+                grid[rowIndex][colIndex] = aacBtn;
+              }
+            });
+          });
+        } else {
+          for (const btn of sourceButtons) {
+            if (typeof btn.box_id === 'number') {
+              const row = Math.floor(btn.box_id / cols);
+              const col = btn.box_id % cols;
+              if (row < rows && col < cols) {
+                const aacBtn = buttonMap.get(String(btn.id));
+                if (aacBtn) {
+                  grid[row][col] = aacBtn;
+                }
+              }
             }
           }
         }
-      }
 
-      page.grid = grid;
+        page.grid = grid;
+      }
     }
 
     return page;
@@ -228,6 +273,89 @@ class ObfProcessor extends BaseProcessor {
     return tree;
   }
 
+  private buildGridMetadata(page: AACPage): {
+    rows: number;
+    columns: number;
+    order: (string | null)[][];
+    buttonPositions: Map<string, number>;
+  } {
+    const buttonPositions = new Map<string, number>();
+    const totalRows = Array.isArray(page.grid) ? page.grid.length : 0;
+    const totalColumns =
+      totalRows > 0
+        ? page.grid.reduce(
+            (max, row) => Math.max(max, Array.isArray(row) ? row.length : 0),
+            0
+          )
+        : 0;
+
+    if (totalRows === 0 || totalColumns === 0) {
+      if (!page.buttons.length) {
+        return { rows: 0, columns: 0, order: [], buttonPositions };
+      }
+      const fallbackRow: string[] = page.buttons.map((button, index) => {
+        const id = String(button.id ?? '');
+        buttonPositions.set(id, index);
+        return id;
+      });
+      return { rows: 1, columns: fallbackRow.length, order: [fallbackRow], buttonPositions };
+    }
+
+    const order: (string | null)[][] = [];
+
+    for (let rowIndex = 0; rowIndex < totalRows; rowIndex++) {
+      const sourceRow = page.grid[rowIndex] || [];
+      const orderRow: (string | null)[] = [];
+      for (let colIndex = 0; colIndex < totalColumns; colIndex++) {
+        const cell = sourceRow[colIndex] || null;
+        if (cell) {
+          const id = String(cell.id ?? '');
+          orderRow.push(id);
+          buttonPositions.set(id, rowIndex * totalColumns + colIndex);
+        } else {
+          orderRow.push(null);
+        }
+      }
+      order.push(orderRow);
+    }
+
+    return { rows: totalRows, columns: totalColumns, order, buttonPositions };
+  }
+
+  private createObfBoardFromPage(page: AACPage, fallbackName: string): ObfBoard {
+    const { rows, columns, order, buttonPositions } = this.buildGridMetadata(page);
+    const boardName = page.name || fallbackName;
+
+    return {
+      format: OBF_FORMAT_VERSION,
+      id: page.id,
+      locale: page.locale || 'en',
+      name: boardName,
+      description_html: page.descriptionHtml || boardName,
+      grid: {
+        rows,
+        columns,
+        order,
+      },
+      buttons: page.buttons.map((button) => ({
+        id: button.id,
+        label: button.label,
+        vocalization: button.message || button.label,
+        load_board:
+          button.semanticAction?.intent === AACSemanticIntent.NAVIGATE_TO && button.targetPageId
+            ? {
+                path: button.targetPageId,
+              }
+            : undefined,
+        background_color: button.style?.backgroundColor,
+        border_color: button.style?.borderColor,
+        box_id: buttonPositions.get(String(button.id ?? '')),
+      })),
+      images: Array.isArray(page.images) ? page.images : [],
+      sounds: Array.isArray(page.sounds) ? page.sounds : [],
+    };
+  }
+
   processTexts(
     filePathOrBuffer: string | Buffer,
     translations: Map<string, string>,
@@ -267,48 +395,14 @@ class ObfProcessor extends BaseProcessor {
         throw new Error('No pages to save');
       }
 
-      const obfBoard: ObfBoard = {
-        id: rootPage.id,
-        name: rootPage.name || 'Exported Board',
-        buttons: rootPage.buttons.map((button) => ({
-          id: button.id,
-          label: button.label,
-          vocalization: button.message || button.label,
-          load_board:
-            button.semanticAction?.intent === AACSemanticIntent.NAVIGATE_TO && button.targetPageId
-              ? {
-                  path: button.targetPageId,
-                }
-              : undefined,
-          background_color: button.style?.backgroundColor,
-          border_color: button.style?.borderColor,
-        })),
-      };
-
+      const obfBoard = this.createObfBoardFromPage(rootPage, 'Exported Board');
       fs.writeFileSync(outputPath, JSON.stringify(obfBoard, null, 2));
     } else {
       // Save as OBZ (zip with multiple OBF files)
       const zip = new AdmZip();
 
       Object.values(tree.pages).forEach((page) => {
-        const obfBoard: ObfBoard = {
-          id: page.id,
-          name: page.name || 'Board',
-          buttons: page.buttons.map((button) => ({
-            id: button.id,
-            label: button.label,
-            vocalization: button.message || button.label,
-            load_board:
-              button.semanticAction?.intent === AACSemanticIntent.NAVIGATE_TO && button.targetPageId
-                ? {
-                    path: button.targetPageId,
-                  }
-                : undefined,
-            background_color: button.style?.backgroundColor,
-            border_color: button.style?.borderColor,
-          })),
-        };
-
+        const obfBoard = this.createObfBoardFromPage(page, 'Board');
         const obfContent = JSON.stringify(obfBoard, null, 2);
         zip.addFile(`${page.id}.obf`, Buffer.from(obfContent, 'utf8'));
       });

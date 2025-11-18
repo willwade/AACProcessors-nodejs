@@ -7,8 +7,8 @@ import {
   TranslatedString,
   SourceString,
 } from '../core/baseProcessor';
-import { AACTree, AACPage, AACButton } from '../core/treeStructure';
-import { AACSemanticIntent } from '../core/treeStructure';
+import { AACTree, AACPage, AACButton, AACSemanticIntent } from '../core/treeStructure';
+import { AACStyle } from '../types/aac';
 
 /**
  * Excel Processor for converting AAC grids to Excel format
@@ -23,30 +23,9 @@ export class ExcelProcessor extends BaseProcessor {
    * @param filePathOrBuffer - Path to Excel file or Buffer containing Excel data
    * @returns Array of all text content found in the Excel file
    */
-  extractTexts(filePathOrBuffer: string | Buffer): string[] {
-    const texts: string[] = [];
-
-    try {
-      const workbook = new ExcelJS.Workbook();
-
-      if (Buffer.isBuffer(filePathOrBuffer)) {
-        // For buffer input, we need to read it differently
-        // This is a placeholder - actual implementation would need to handle buffer reading
-        throw new Error('Buffer input not yet implemented for Excel files');
-      } else {
-        // Read from file path
-        if (!fs.existsSync(filePathOrBuffer)) {
-          return texts;
-        }
-
-        // Note: ExcelJS readFile is async, but we need sync for this interface
-        // This is a limitation that would need to be addressed in a real implementation
-        throw new Error('Synchronous Excel reading not yet implemented');
-      }
-    } catch (error) {
-      console.warn(`Failed to extract texts from Excel file: ${error}`);
-      return texts;
-    }
+  extractTexts(_filePathOrBuffer: string | Buffer): string[] {
+    console.warn('ExcelProcessor.extractTexts is not implemented yet.');
+    return [];
   }
 
   /**
@@ -54,18 +33,9 @@ export class ExcelProcessor extends BaseProcessor {
    * @param filePathOrBuffer - Path to Excel file or Buffer containing Excel data
    * @returns AACTree representation of the Excel file
    */
-  loadIntoTree(filePathOrBuffer: string | Buffer): AACTree {
-    const tree = new AACTree();
-
-    try {
-      // For now, return empty tree as Excel -> AAC conversion is not the primary use case
-      // This would be implemented if bidirectional conversion is needed
-      console.warn('Excel to AAC conversion not implemented - returning empty tree');
-      return tree;
-    } catch (error) {
-      console.warn(`Failed to load Excel file into tree: ${error}`);
-      return tree;
-    }
+  loadIntoTree(_filePathOrBuffer: string | Buffer): AACTree {
+    console.warn('ExcelProcessor.loadIntoTree is not implemented yet.');
+    return new AACTree();
   }
 
   /**
@@ -76,20 +46,16 @@ export class ExcelProcessor extends BaseProcessor {
    * @returns Buffer containing the translated Excel file
    */
   processTexts(
-    filePathOrBuffer: string | Buffer,
-    translations: Map<string, string>,
+    _filePathOrBuffer: string | Buffer,
+    _translations: Map<string, string>,
     outputPath: string
   ): Buffer {
-    try {
-      // Load the Excel file, apply translations, and save
-      // This would involve reading the Excel file, finding text cells,
-      // applying translations, and saving to outputPath
-      throw new Error('Excel text processing not yet implemented');
-    } catch (error) {
-      console.warn(`Failed to process Excel texts: ${error}`);
-      // Return empty buffer as fallback
-      return Buffer.alloc(0);
+    console.warn('ExcelProcessor.processTexts is not implemented yet.');
+    const outputDir = path.dirname(outputPath);
+    if (!fs.existsSync(outputDir)) {
+      fs.mkdirSync(outputDir, { recursive: true });
     }
+    return Buffer.alloc(0);
   }
 
   /**

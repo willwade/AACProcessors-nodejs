@@ -101,4 +101,58 @@ describe('OBFProcessor round-trip', () => {
     expect(reloadedPage.buttons).toHaveLength(1);
     expect(reloadedPage.buttons[0].label).toBe('Test Button');
   });
+
+  it('includes required OBF metadata fields when saving a tree', () => {
+    const processor = new ObfProcessor();
+    const tree = new AACTree();
+
+    const page = new (require('../src/core/treeStructure').AACPage)({
+      id: 'meta-page',
+      name: 'Meta Page',
+      grid: [
+        [null, null],
+        [null, null],
+      ],
+      locale: 'en',
+    });
+
+    const AACButtonCtor = require('../src/core/treeStructure').AACButton;
+    const buttonA = new AACButtonCtor({
+      id: 'btn-a',
+      label: 'A',
+      message: 'A',
+    });
+    const buttonB = new AACButtonCtor({
+      id: 'btn-b',
+      label: 'B',
+      message: 'B',
+    });
+
+    page.addButton(buttonA);
+    page.addButton(buttonB);
+    page.grid[0][0] = buttonA;
+    page.grid[0][1] = buttonB;
+    page.images = [];
+    page.sounds = [];
+
+    tree.addPage(page);
+    tree.rootId = page.id;
+
+    processor.saveFromTree(tree, outObfPath);
+    const savedObf = JSON.parse(fs.readFileSync(outObfPath, 'utf8'));
+
+    expect(savedObf.format).toBe('open-board-0.1');
+    expect(savedObf.description_html).toBe('Meta Page');
+    expect(savedObf.locale).toBe('en');
+    expect(savedObf.grid).toEqual({
+      rows: 2,
+      columns: 2,
+      order: [
+        ['btn-a', 'btn-b'],
+        [null, null],
+      ],
+    });
+    expect(savedObf.images).toEqual([]);
+    expect(savedObf.sounds).toEqual([]);
+  });
 });

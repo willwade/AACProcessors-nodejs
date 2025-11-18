@@ -81,6 +81,20 @@ interface AstericsGridFile {
   metadata?: any;
 }
 
+interface AstericsColorConfig {
+  additionalColorSchemes?: unknown[];
+  colorSchemesActivated?: boolean;
+  activeColorScheme?: string;
+  colorMode?: string;
+  gridBackgroundColor?: string;
+  elementBackgroundColor?: string;
+  elementBorderColor?: string;
+  fontColor?: string;
+  borderWidth?: number;
+  fontFamily?: string;
+  fontSizePct?: number;
+}
+
 interface ColorSchemeDefinition {
   name: string;
   categories: string[];
@@ -430,7 +444,7 @@ function adjustHexColor(hexColor: string, amount: number): string {
   if (!normalized) return hexColor;
   const hex = normalized.slice(1);
   const num = parseInt(hex, 16);
-  const clamp = (value: number) => Math.max(0, Math.min(255, value));
+  const clamp = (value: number): number => Math.max(0, Math.min(255, value));
   const r = clamp(((num >> 16) & 0xff) + amount);
   const g = clamp(((num >> 8) & 0xff) + amount);
   const b = clamp((num & 0xff) + amount);
@@ -445,23 +459,30 @@ function getHighContrastNeutralColor(backgroundColor: string): string {
   return calculateLuminance(normalized) < 0.5 ? '#f5f5f5' : '#808080';
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
 function normalizeColorScheme(raw: unknown): ColorSchemeDefinition | null {
-  if (!raw || typeof raw !== 'object') return null;
-  const scheme = raw as Record<string, any>;
+  if (!isRecord(raw)) return null;
+  const scheme = raw;
   const nameCandidate = [scheme.name, scheme.key, scheme.id].find(
-    (value) => typeof value === 'string' && value.length > 0
+    (value): value is string => typeof value === 'string' && value.length > 0
   );
   if (!nameCandidate) return null;
 
   let categories: string[] = [];
   let colors: string[] = [];
   if (Array.isArray(scheme.categories) && Array.isArray(scheme.colors)) {
-    categories = scheme.categories.filter((value: unknown): value is string => typeof value === 'string');
+    categories = scheme.categories.filter(
+      (value: unknown): value is string => typeof value === 'string'
+    );
     colors = scheme.colors.filter((value: unknown): value is string => typeof value === 'string');
-  } else if (scheme.colorMap && typeof scheme.colorMap === 'object') {
-    categories = Object.keys(scheme.colorMap);
+  } else if (isRecord(scheme.colorMap)) {
+    const colorMap = scheme.colorMap;
+    categories = Object.keys(colorMap);
     colors = categories.map((category) => {
-      const colorValue = scheme.colorMap[category];
+      const colorValue = colorMap[category];
       return typeof colorValue === 'string' ? colorValue : '#ffffff';
     });
   }
@@ -471,13 +492,13 @@ function normalizeColorScheme(raw: unknown): ColorSchemeDefinition | null {
   }
 
   const mappingsCandidate =
-    (typeof scheme.mappings === 'object' && scheme.mappings) ||
-    (typeof scheme.categoryMappings === 'object' && scheme.categoryMappings) ||
-    (typeof scheme.categoryMapping === 'object' && scheme.categoryMapping) ||
+    (isRecord(scheme.mappings) && scheme.mappings) ||
+    (isRecord(scheme.categoryMappings) && scheme.categoryMappings) ||
+    (isRecord(scheme.categoryMapping) && scheme.categoryMapping) ||
     undefined;
 
   const customBordersCandidate =
-    typeof scheme.customBorders === 'object' && scheme.customBorders ? scheme.customBorders : undefined;
+    isRecord(scheme.customBorders) && scheme.customBorders ? scheme.customBorders : undefined;
 
   return {
     name: nameCandidate,
@@ -488,16 +509,21 @@ function normalizeColorScheme(raw: unknown): ColorSchemeDefinition | null {
   };
 }
 
-function getAllColorSchemeDefinitions(colorConfig?: any): ColorSchemeDefinition[] {
-  const additional = Array.isArray(colorConfig?.additionalColorSchemes)
+function getAllColorSchemeDefinitions(colorConfig?: AstericsColorConfig): ColorSchemeDefinition[] {
+  const rawAdditional: unknown[] = Array.isArray(colorConfig?.additionalColorSchemes)
     ? colorConfig.additionalColorSchemes
-        .map((scheme: unknown) => normalizeColorScheme(scheme))
-        .filter((value: ColorSchemeDefinition | null): value is ColorSchemeDefinition => Boolean(value))
     : [];
+  const additional = rawAdditional
+    .map((scheme) => normalizeColorScheme(scheme))
+    .filter((value: ColorSchemeDefinition | null): value is ColorSchemeDefinition =>
+      Boolean(value)
+    );
   return [...DEFAULT_COLOR_SCHEME_DEFINITIONS, ...additional];
 }
 
-function getActiveColorSchemeDefinition(colorConfig?: any): ColorSchemeDefinition | null {
+function getActiveColorSchemeDefinition(
+  colorConfig?: AstericsColorConfig
+): ColorSchemeDefinition | null {
   if (!colorConfig || colorConfig.colorSchemesActivated === false) {
     return null;
   }
@@ -507,7 +533,8 @@ function getActiveColorSchemeDefinition(colorConfig?: any): ColorSchemeDefinitio
   }
 
   const activeName: string | undefined =
-    (typeof colorConfig.activeColorScheme === 'string' && colorConfig.activeColorScheme) || undefined;
+    (typeof colorConfig.activeColorScheme === 'string' && colorConfig.activeColorScheme) ||
+    undefined;
   const normalizedName = activeName ? COLOR_SCHEME_ALIASES[activeName] || activeName : undefined;
 
   if (normalizedName) {
@@ -539,18 +566,21 @@ function getSchemeColorForCategory(
 
 function resolveBorderColor(
   element: GridElement,
-  colorConfig: any,
+  colorConfig: AstericsColorConfig = {},
   scheme: ColorSchemeDefinition | null,
   backgroundColor: string,
   schemeColor?: string,
   fallbackBorder?: string
 ): string {
   const defaultBorderColor = (fallbackBorder || '#808080').toLowerCase();
-  const colorMode: string = colorConfig?.colorMode || 'COLOR_MODE_BACKGROUND';
+  const colorMode =
+    typeof colorConfig.colorMode === 'string' ? colorConfig.colorMode : 'COLOR_MODE_BACKGROUND';
 
   if (colorMode === 'COLOR_MODE_BORDER') {
     return (
-      getSchemeColorForCategory(element.colorCategory, scheme, fallbackBorder || '#808080') || fallbackBorder || '#808080'
+      getSchemeColorForCategory(element.colorCategory, scheme, fallbackBorder || '#808080') ||
+      fallbackBorder ||
+      '#808080'
     );
   }
 
@@ -575,30 +605,37 @@ function resolveBorderColor(
     return fallbackBorder || '#808080';
   }
 
-  const gridBackground = colorConfig?.gridBackgroundColor || '#ffffff';
+  const gridBackground =
+    typeof colorConfig.gridBackgroundColor === 'string'
+      ? colorConfig.gridBackgroundColor
+      : '#ffffff';
   return getHighContrastNeutralColor(gridBackground);
 }
 
 function resolveButtonColors(
   element: GridElement,
-  colorConfig?: any,
+  colorConfig: AstericsColorConfig = {},
   scheme?: ColorSchemeDefinition | null
 ): { backgroundColor: string; borderColor: string; fontColor: string } {
-  const fallbackBackground = colorConfig?.elementBackgroundColor || '#FFFFFF';
-  const fallbackBorder = colorConfig?.elementBorderColor || '#808080';
-  const colorMode: string = colorConfig?.colorMode || 'COLOR_MODE_BACKGROUND';
+  const fallbackBackground =
+    typeof colorConfig.elementBackgroundColor === 'string'
+      ? colorConfig.elementBackgroundColor
+      : '#FFFFFF';
+  const fallbackBorder =
+    typeof colorConfig.elementBorderColor === 'string' ? colorConfig.elementBorderColor : '#808080';
+  const colorMode =
+    typeof colorConfig.colorMode === 'string' ? colorConfig.colorMode : 'COLOR_MODE_BACKGROUND';
   const isSchemeActive = colorConfig?.colorSchemesActivated !== false;
   const schemeColor =
     isSchemeActive && colorMode !== 'COLOR_MODE_BORDER'
       ? getSchemeColorForCategory(element.colorCategory, scheme || null)
       : undefined;
 
-  const backgroundColor =
-    element.backgroundColor || schemeColor || fallbackBackground || '#FFFFFF';
+  const backgroundColor = element.backgroundColor || schemeColor || fallbackBackground || '#FFFFFF';
 
   const borderColor = resolveBorderColor(
     element,
-    colorConfig || {},
+    colorConfig,
     scheme || null,
     backgroundColor,
     schemeColor,
@@ -606,9 +643,7 @@ function resolveButtonColors(
   );
 
   const fontColor =
-    element.fontColor ||
-    colorConfig?.fontColor ||
-    getContrastingTextColor(backgroundColor);
+    element.fontColor || colorConfig?.fontColor || getContrastingTextColor(backgroundColor);
 
   return {
     backgroundColor,
@@ -734,8 +769,11 @@ class AstericsGridProcessor extends BaseProcessor {
     switch (action.modelName) {
       case 'GridActionSpeakCustom':
         if (action.speakText && typeof action.speakText === 'object') {
-          Object.values(action.speakText).forEach((text: unknown) => {
-            if (text && typeof text === 'string') texts.push(text);
+          const speakTextMap = action.speakText as Record<string, unknown>;
+          Object.values(speakTextMap).forEach((textValue) => {
+            if (typeof textValue === 'string' && textValue.length > 0) {
+              texts.push(textValue);
+            }
           });
         }
         break;
@@ -786,7 +824,10 @@ class AstericsGridProcessor extends BaseProcessor {
       return tree;
     }
 
-    const colorConfig = grdFile.metadata?.colorConfig;
+    const rawColorConfig = grdFile.metadata?.colorConfig;
+    const colorConfig: AstericsColorConfig | undefined = isRecord(rawColorConfig)
+      ? (rawColorConfig as AstericsColorConfig)
+      : undefined;
     const activeColorSchemeDefinition = getActiveColorSchemeDefinition(colorConfig);
 
     // First pass: create all pages
@@ -823,7 +864,11 @@ class AstericsGridProcessor extends BaseProcessor {
       }
 
       grid.gridElements.forEach((element: GridElement) => {
-        const button = this.createButtonFromElement(element, colorConfig, activeColorSchemeDefinition);
+        const button = this.createButtonFromElement(
+          element,
+          colorConfig,
+          activeColorSchemeDefinition
+        );
         page.addButton(button);
 
         // Place button in grid layout using its x,y coordinates
@@ -845,8 +890,10 @@ class AstericsGridProcessor extends BaseProcessor {
         const navAction = element.actions.find(
           (a: GridAction) => a.modelName === 'GridActionNavigate'
         );
-        if (navAction && navAction.toGridId) {
-          const targetPage = tree.getPage(navAction.toGridId);
+        const targetGridId =
+          navAction && typeof navAction.toGridId === 'string' ? navAction.toGridId : undefined;
+        if (targetGridId) {
+          const targetPage = tree.getPage(targetGridId);
           if (targetPage) {
             targetPage.parentId = page.id;
           }
@@ -872,17 +919,29 @@ class AstericsGridProcessor extends BaseProcessor {
     return labelMap.en || labelMap.de || labelMap.es || Object.values(labelMap)[0] || '';
   }
 
-  private getLocalizedText(text: any): string {
+  private getLocalizedText(text: unknown): string {
     if (typeof text === 'string') return text;
-    if (typeof text === 'object' && text) {
-      return text.en || text.de || text.es || Object.values(text)[0] || '';
+    if (isRecord(text)) {
+      const preferred = ['en', 'de', 'es'];
+      for (const lang of preferred) {
+        const value = text[lang];
+        if (typeof value === 'string' && value.length > 0) {
+          return value;
+        }
+      }
+      const fallback = Object.values(text).find(
+        (value): value is string => typeof value === 'string' && value.length > 0
+      );
+      if (fallback) {
+        return fallback;
+      }
     }
     return '';
   }
 
   private createButtonFromElement(
     element: GridElement,
-    colorConfig?: any,
+    colorConfig?: AstericsColorConfig,
     activeColorScheme?: ColorSchemeDefinition | null
   ): AACButton {
     let audioRecording;
@@ -890,15 +949,20 @@ class AstericsGridProcessor extends BaseProcessor {
       const audioAction = element.actions.find(
         (a: GridAction) => a.modelName === 'GridActionAudio'
       );
-      if (audioAction && audioAction.dataBase64) {
+      if (audioAction && typeof audioAction.dataBase64 === 'string') {
+        const parsedId = Number.parseInt(String(audioAction.id), 10);
+        const metadata: Record<string, unknown> = {};
+        if (typeof audioAction.mimeType === 'string') {
+          metadata.mimeType = audioAction.mimeType;
+        }
+        if (typeof audioAction.durationMs === 'number') {
+          metadata.durationMs = audioAction.durationMs;
+        }
         audioRecording = {
-          id: parseInt(audioAction.id) || undefined,
+          id: Number.isNaN(parsedId) ? undefined : parsedId,
           data: Buffer.from(audioAction.dataBase64, 'base64'),
-          identifier: audioAction.filename,
-          metadata: JSON.stringify({
-            mimeType: audioAction.mimeType,
-            durationMs: audioAction.durationMs,
-          }),
+          identifier: typeof audioAction.filename === 'string' ? audioAction.filename : undefined,
+          metadata: JSON.stringify(metadata),
         };
       }
     }
@@ -906,22 +970,13 @@ class AstericsGridProcessor extends BaseProcessor {
     const colorStyles = resolveButtonColors(element, colorConfig, activeColorScheme);
 
     const navAction = element.actions.find((a: GridAction) => a.modelName === 'GridActionNavigate');
-    const targetPageId = navAction ? navAction.toGridId : null;
-
-    // Determine button type based on actions
-    let buttonType: 'SPEAK' | 'NAVIGATE' = 'SPEAK';
-    if (targetPageId) {
-      buttonType = 'NAVIGATE';
-    }
+    const targetPageId =
+      navAction && typeof navAction.toGridId === 'string' ? navAction.toGridId : null;
 
     const label = this.getLocalizedLabel(element.label);
 
     // Create semantic action from AstericsGrid element
     let semanticAction: AACSemanticAction | undefined;
-    let legacyAction: any = null;
-
-    // Find the primary action
-    const primaryAction = element.actions[0]; // AstericsGrid typically has one primary action
 
     if (navAction && targetPageId) {
       semanticAction = {
@@ -938,10 +993,6 @@ class AstericsGridProcessor extends BaseProcessor {
           type: 'NAVIGATE',
           targetPageId: targetPageId,
         },
-      };
-      legacyAction = {
-        type: 'NAVIGATE',
-        targetPageId: targetPageId,
       };
     } else {
       // Check for other action types
@@ -965,9 +1016,6 @@ class AstericsGridProcessor extends BaseProcessor {
                 message: 'Delete word',
               },
             };
-            legacyAction = {
-              type: 'DELETE_WORD',
-            };
             break;
 
           case 'COLLECT_ACTION_REMOVE_CHAR':
@@ -985,9 +1033,6 @@ class AstericsGridProcessor extends BaseProcessor {
                 message: 'Delete character',
               },
             };
-            legacyAction = {
-              type: 'DELETE_CHARACTER',
-            };
             break;
 
           case 'COLLECT_ACTION_CLEAR':
@@ -1004,9 +1049,6 @@ class AstericsGridProcessor extends BaseProcessor {
                 type: 'ACTION',
                 message: 'Clear text',
               },
-            };
-            legacyAction = {
-              type: 'CLEAR_TEXT',
             };
             break;
         }
@@ -1030,9 +1072,6 @@ class AstericsGridProcessor extends BaseProcessor {
                 message: 'Go back',
               },
             };
-            legacyAction = {
-              type: 'GO_BACK',
-            };
             break;
 
           case 'TO_HOME':
@@ -1049,9 +1088,6 @@ class AstericsGridProcessor extends BaseProcessor {
                 type: 'ACTION',
                 message: 'Go home',
               },
-            };
-            legacyAction = {
-              type: 'GO_HOME',
             };
             break;
         }
@@ -1107,7 +1143,10 @@ class AstericsGridProcessor extends BaseProcessor {
 
     // Determine the final background color
     const finalBackgroundColor =
-      element.backgroundColor || colorStyles.backgroundColor || colorConfig?.elementBackgroundColor || '#FFFFFF';
+      element.backgroundColor ||
+      colorStyles.backgroundColor ||
+      colorConfig?.elementBackgroundColor ||
+      '#FFFFFF';
 
     // Determine font color with priority:
     // 1. Explicit element.fontColor (highest priority)
@@ -1131,7 +1170,9 @@ class AstericsGridProcessor extends BaseProcessor {
         let imageFormat = 'png'; // Default format
 
         // Check if this is a Data URL and extract the base64 part
-        const dataUrlMatch = base64Data.match(/^data:image\/(png|jpeg|jpg|gif|svg\+xml);base64,(.+)/);
+        const dataUrlMatch = base64Data.match(
+          /^data:image\/(png|jpeg|jpg|gif|svg\+xml);base64,(.+)/
+        );
         if (dataUrlMatch) {
           imageFormat = dataUrlMatch[1];
           base64Data = dataUrlMatch[2]; // Use only the base64 part, not the prefix
@@ -1157,15 +1198,14 @@ class AstericsGridProcessor extends BaseProcessor {
       semanticAction: semanticAction,
       audioRecording: audioRecording,
       image: imageName, // Store image filename/reference
-      parameters: imageData ? {
-        ...{ imageData: imageData } // Store actual image data in parameters for conversion
-      } : undefined,
+      parameters: imageData
+        ? {
+            ...{ imageData: imageData }, // Store actual image data in parameters for conversion
+          }
+        : undefined,
       style: {
         backgroundColor: finalBackgroundColor,
-        borderColor:
-          colorStyles.borderColor ||
-          colorConfig?.elementBorderColor ||
-          '#CCCCCC',
+        borderColor: colorStyles.borderColor || colorConfig?.elementBorderColor || '#CCCCCC',
         borderWidth: colorConfig?.borderWidth || 1,
         fontFamily: colorConfig?.fontFamily || 'Arial',
         fontSize: colorConfig?.fontSizePct ? colorConfig.fontSizePct * 16 : 16, // Default to 16px
@@ -1209,7 +1249,10 @@ class AstericsGridProcessor extends BaseProcessor {
         Object.keys(grid.label).forEach((lang) => {
           const originalText = grid.label[lang];
           if (originalText && translations.has(originalText)) {
-            grid.label[lang] = translations.get(originalText)!;
+            const translation = translations.get(originalText);
+            if (translation !== undefined) {
+              grid.label[lang] = translation;
+            }
           }
         });
       }
@@ -1221,7 +1264,10 @@ class AstericsGridProcessor extends BaseProcessor {
           Object.keys(element.label).forEach((lang) => {
             const originalText = element.label[lang];
             if (originalText && translations.has(originalText)) {
-              element.label[lang] = translations.get(originalText)!;
+              const translation = translations.get(originalText);
+              if (translation !== undefined) {
+                element.label[lang] = translation;
+              }
             }
           });
         }
@@ -1230,7 +1276,10 @@ class AstericsGridProcessor extends BaseProcessor {
         if (element.wordForms) {
           element.wordForms.forEach((wordForm: WordForm) => {
             if (wordForm.value && translations.has(wordForm.value)) {
-              wordForm.value = translations.get(wordForm.value)!;
+              const translation = translations.get(wordForm.value);
+              if (translation !== undefined) {
+                wordForm.value = translation;
+              }
             }
           });
         }
@@ -1247,12 +1296,13 @@ class AstericsGridProcessor extends BaseProcessor {
     switch (action.modelName) {
       case 'GridActionSpeakCustom':
         if (action.speakText && typeof action.speakText === 'object') {
-          Object.keys(action.speakText).forEach((lang) => {
-            const originalText = action.speakText[lang];
+          const speakTextMap = action.speakText as Record<string, unknown>;
+          Object.keys(speakTextMap).forEach((lang) => {
+            const originalText = speakTextMap[lang];
             if (typeof originalText === 'string' && translations.has(originalText)) {
               const translation = translations.get(originalText);
-              if (translation) {
-                action.speakText[lang] = translation;
+              if (translation !== undefined) {
+                speakTextMap[lang] = translation;
               }
             }
           });
@@ -1261,13 +1311,13 @@ class AstericsGridProcessor extends BaseProcessor {
       case 'GridActionChangeLang':
         if (typeof action.language === 'string' && translations.has(action.language)) {
           const translation = translations.get(action.language);
-          if (translation) {
+          if (translation !== undefined) {
             action.language = translation;
           }
         }
         if (typeof action.voice === 'string' && translations.has(action.voice)) {
           const translation = translations.get(action.voice);
-          if (translation) {
+          if (translation !== undefined) {
             action.voice = translation;
           }
         }
@@ -1275,13 +1325,13 @@ class AstericsGridProcessor extends BaseProcessor {
       case 'GridActionHTTP':
         if (typeof action.restUrl === 'string' && translations.has(action.restUrl)) {
           const translation = translations.get(action.restUrl);
-          if (translation) {
+          if (translation !== undefined) {
             action.restUrl = translation;
           }
         }
         if (typeof action.body === 'string' && translations.has(action.body)) {
           const translation = translations.get(action.body);
-          if (translation) {
+          if (translation !== undefined) {
             action.body = translation;
           }
         }
@@ -1289,7 +1339,7 @@ class AstericsGridProcessor extends BaseProcessor {
       case 'GridActionOpenWebpage':
         if (typeof action.openURL === 'string' && translations.has(action.openURL)) {
           const translation = translations.get(action.openURL);
-          if (translation) {
+          if (translation !== undefined) {
             action.openURL = translation;
           }
         }
@@ -1297,7 +1347,7 @@ class AstericsGridProcessor extends BaseProcessor {
       case 'GridActionMatrix':
         if (typeof action.sendText === 'string' && translations.has(action.sendText)) {
           const translation = translations.get(action.sendText);
-          if (translation) {
+          if (translation !== undefined) {
             action.sendText = translation;
           }
         }

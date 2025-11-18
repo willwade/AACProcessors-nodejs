@@ -37,6 +37,10 @@ export interface AACPage {
   buttons: AACButton[];
   parentId: string | null;
   style?: AACStyle;
+  locale?: string;
+  descriptionHtml?: string;
+  images?: any[];
+  sounds?: any[];
 }
 
 export interface AACTree {
