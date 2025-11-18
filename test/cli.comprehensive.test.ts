@@ -1,5 +1,5 @@
 // Comprehensive CLI tests to achieve 90%+ coverage
-import { execSync, spawn } from 'child_process';
+import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import { TreeFactory } from './utils/testFactories';

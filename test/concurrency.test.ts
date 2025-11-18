@@ -1,11 +1,9 @@
 // Concurrent access and thread safety tests
 import fs from 'fs';
 import path from 'path';
-import { Worker } from 'worker_threads';
 import { DotProcessor } from '../src/processors/dotProcessor';
-import { SnapProcessor } from '../src/processors/snapProcessor';
-import { TouchChatProcessor } from '../src/processors/touchchatProcessor';
 import { ObfProcessor } from '../src/processors/obfProcessor';
+import { SnapProcessor } from '../src/processors/snapProcessor';
 import { AACTree, AACPage, AACButton } from '../src/core/treeStructure';
 
 describe('Concurrency and Thread Safety Tests', () => {

@@ -95,7 +95,9 @@ class SnapProcessor extends BaseProcessor {
 
       const getTableColumns = (tableName: string): Set<string> => {
         try {
-          const rows = db.prepare(`PRAGMA table_info(${tableName})`).all() as Array<{ name: string }>;
+          const rows = db.prepare(`PRAGMA table_info(${tableName})`).all() as Array<{
+            name: string;
+          }>;
           return new Set(rows.map((row) => row.name));
         } catch {
           return new Set();
@@ -180,7 +182,8 @@ class SnapProcessor extends BaseProcessor {
           buttons = db.prepare(buttonQuery).all(pageRow.Id);
         } catch (err) {
           const errorMessage = err instanceof Error ? err.message : String(err);
-          const errorCode = err && typeof err === 'object' && 'code' in err ? (err as any).code : undefined;
+          const errorCode =
+            err && typeof err === 'object' && 'code' in err ? (err as any).code : undefined;
           if (
             errorCode === 'SQLITE_CORRUPT' ||
             errorCode === 'SQLITE_NOTADB' ||
@@ -189,9 +192,7 @@ class SnapProcessor extends BaseProcessor {
             throw new Error(`Snap database is corrupted or incomplete: ${errorMessage}`);
           }
 
-          console.warn(
-            `Failed to load buttons for page ${pageRow.Id}: ${errorMessage}`
-          );
+          console.warn(`Failed to load buttons for page ${pageRow.Id}: ${errorMessage}`);
           // Skip this page instead of loading all buttons
           buttons = [];
         }
@@ -257,7 +258,6 @@ class SnapProcessor extends BaseProcessor {
 
           // Create semantic action for Snap button
           let semanticAction: AACSemanticAction | undefined;
-          let legacyAction: any = null;
 
           if (targetPageUniqueId) {
             semanticAction = {
@@ -274,10 +274,6 @@ class SnapProcessor extends BaseProcessor {
                 type: 'NAVIGATE',
                 targetPageId: targetPageUniqueId,
               },
-            };
-            legacyAction = {
-              type: 'NAVIGATE',
-              targetPageId: targetPageUniqueId,
             };
           } else {
             semanticAction = {
@@ -363,15 +359,17 @@ class SnapProcessor extends BaseProcessor {
 
       return tree;
     } catch (error: any) {
+      const fileIdentifier =
+        typeof filePathOrBuffer === 'string' ? filePathOrBuffer : '[buffer input]';
       // Provide more specific error messages
       if (error.code === 'SQLITE_NOTADB') {
         throw new Error(
           `Invalid SQLite database file: ${typeof filePathOrBuffer === 'string' ? filePathOrBuffer : 'buffer'}`
         );
       } else if (error.code === 'ENOENT') {
-        throw new Error(`File not found: ${filePathOrBuffer}`);
+        throw new Error(`File not found: ${fileIdentifier}`);
       } else if (error.code === 'EACCES') {
-        throw new Error(`Permission denied accessing file: ${filePathOrBuffer}`);
+        throw new Error(`Permission denied accessing file: ${fileIdentifier}`);
       } else {
         throw new Error(`Failed to load Snap file: ${error.message}`);
       }
@@ -404,16 +402,25 @@ class SnapProcessor extends BaseProcessor {
     Object.values(tree.pages).forEach((page) => {
       // Translate page names
       if (page.name && translations.has(page.name)) {
-        page.name = translations.get(page.name)!;
+        const translatedName = translations.get(page.name);
+        if (translatedName !== undefined) {
+          page.name = translatedName;
+        }
       }
 
       // Translate button labels and messages
       page.buttons.forEach((button) => {
         if (button.label && translations.has(button.label)) {
-          button.label = translations.get(button.label)!;
+          const translatedLabel = translations.get(button.label);
+          if (translatedLabel !== undefined) {
+            button.label = translatedLabel;
+          }
         }
         if (button.message && translations.has(button.message)) {
-          button.message = translations.get(button.message)!;
+          const translatedMessage = translations.get(button.message);
+          if (translatedMessage !== undefined) {
+            button.message = translatedMessage;
+          }
         }
       });
     });
@@ -498,7 +505,9 @@ class SnapProcessor extends BaseProcessor {
       const insertPageSetData = db.prepare(
         'INSERT INTO PageSetData (Id, Identifier, Data, RefCount) VALUES (?, ?, ?, ?)'
       );
-      const incrementRefCount = db.prepare('UPDATE PageSetData SET RefCount = RefCount + 1 WHERE Id = ?');
+      const incrementRefCount = db.prepare(
+        'UPDATE PageSetData SET RefCount = RefCount + 1 WHERE Id = ?'
+      );
 
       // First pass: create all pages
       Object.values(tree.pages).forEach((page) => {
@@ -521,7 +530,10 @@ class SnapProcessor extends BaseProcessor {
 
       // Second pass: create buttons with proper page references
       Object.values(tree.pages).forEach((page) => {
-        const numericPageId = pageIdMap.get(page.id)!;
+        const numericPageId = pageIdMap.get(page.id);
+        if (numericPageId === undefined) {
+          return;
+        }
 
         page.buttons.forEach((button, index) => {
           // Find button position in grid layout

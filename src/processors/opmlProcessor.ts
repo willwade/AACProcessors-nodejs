@@ -7,7 +7,7 @@ import {
 } from '../core/baseProcessor';
 import { AACTree, AACPage, AACButton, AACSemanticIntent } from '../core/treeStructure';
 // Removed unused import: FileProcessor
-import { XMLParser, XMLValidator } from 'fast-xml-parser';
+import { XMLParser, XMLValidator, XMLBuilder } from 'fast-xml-parser';
 import fs from 'fs';
 
 interface OpmlOutline {
@@ -93,7 +93,7 @@ class OpmlProcessor extends BaseProcessor {
     const data = parser.parse(content) as OpmlDocument;
     const texts: string[] = [];
 
-    function processNode(node: any) {
+    function processNode(node: OpmlOutline): void {
       // Handle different attribute formats
       let textValue: string | undefined;
 
@@ -207,9 +207,9 @@ class OpmlProcessor extends BaseProcessor {
     return resultBuffer;
   }
 
-  saveFromTree(tree: AACTree, outputPath: string) {
+  saveFromTree(tree: AACTree, outputPath: string): void {
     // Helper to recursively build outline nodes with cycle detection
-    function buildOutline(page: AACPage, visited: Set<string> = new Set()): any {
+    function buildOutline(page: AACPage, visited: Set<string> = new Set()): OpmlOutline {
       // Prevent infinite recursion by tracking visited pages
       if (visited.has(page.id)) {
         return {
@@ -219,7 +219,7 @@ class OpmlProcessor extends BaseProcessor {
 
       visited.add(page.id);
 
-      const outline: any = {
+      const outline: OpmlOutline = {
         '@_text': page.name || page.id,
       };
 
@@ -231,7 +231,18 @@ class OpmlProcessor extends BaseProcessor {
             !!b.targetPageId &&
             !!tree.pages[b.targetPageId]
         )
-        .map((b) => buildOutline(tree.pages[b.targetPageId!], new Set(visited))); // Pass copy of visited set
+        .map((b) => {
+          const targetId = b.targetPageId;
+          if (!targetId) {
+            return null;
+          }
+          const targetPage = tree.pages[targetId];
+          if (!targetPage) {
+            return null;
+          }
+          return buildOutline(targetPage, new Set(visited));
+        })
+        .filter((childOutline): childOutline is OpmlOutline => childOutline !== null);
       if (childOutlines.length) outline.outline = childOutlines;
       return outline;
     }
@@ -264,7 +275,6 @@ class OpmlProcessor extends BaseProcessor {
       },
     };
     // Convert to XML
-    const { XMLBuilder } = require('fast-xml-parser');
     const builder = new XMLBuilder({
       ignoreAttributes: false,
       format: true,
