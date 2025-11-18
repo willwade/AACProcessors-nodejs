@@ -2,7 +2,7 @@
 import fs from 'fs';
 import path from 'path';
 import { TouchChatProcessor } from '../src/processors/touchchatProcessor';
-import { AACTree, AACPage, AACButton } from '../src/core/treeStructure';
+import { AACTree } from '../src/core/treeStructure';
 import { TreeFactory, PageFactory, ButtonFactory } from './utils/testFactories';
 
 describe('TouchChatProcessor - Comprehensive Coverage Tests', () => {
@@ -94,10 +94,13 @@ describe('TouchChatProcessor - Comprehensive Coverage Tests', () => {
       const loadedPage = loadedTree.getPage('custom_actions');
 
       expect(loadedPage).toBeDefined();
-      expect(loadedPage!.buttons).toHaveLength(2);
-      expect(loadedPage!.buttons[0].type).toBe('SPEAK');
-      expect(loadedPage!.buttons[1].type).toBe('NAVIGATE');
-      expect(loadedPage!.buttons[1].targetPageId).toBe('target');
+      if (!loadedPage) {
+        return;
+      }
+      expect(loadedPage.buttons).toHaveLength(2);
+      expect(loadedPage.buttons[0].type).toBe('SPEAK');
+      expect(loadedPage.buttons[1].type).toBe('NAVIGATE');
+      expect(loadedPage.buttons[1].targetPageId).toBe('target');
     });
 
     it('should handle buttons with multiple audio recordings', () => {
@@ -131,7 +134,10 @@ describe('TouchChatProcessor - Comprehensive Coverage Tests', () => {
       const loadedPage = loadedTree.getPage('audio_page');
 
       expect(loadedPage).toBeDefined();
-      expect(loadedPage!.buttons[0].label).toBe('Audio Button');
+      if (!loadedPage) {
+        return;
+      }
+      expect(loadedPage.buttons[0].label).toBe('Audio Button');
     });
 
     it('should process navigation buttons with complex targets', () => {
@@ -188,12 +194,20 @@ describe('TouchChatProcessor - Comprehensive Coverage Tests', () => {
       expect(Object.keys(loadedTree.pages)).toHaveLength(3);
 
       const loadedHome = loadedTree.getPage('home');
-      expect(loadedHome!.buttons[0].targetPageId).toBe('category');
+      expect(loadedHome).toBeDefined();
+      if (!loadedHome) {
+        return;
+      }
+      expect(loadedHome.buttons[0].targetPageId).toBe('category');
 
       const loadedCategory = loadedTree.getPage('category');
-      expect(loadedCategory!.buttons).toHaveLength(2);
-      expect(loadedCategory!.buttons[0].targetPageId).toBe('sub');
-      expect(loadedCategory!.buttons[1].targetPageId).toBe('home');
+      expect(loadedCategory).toBeDefined();
+      if (!loadedCategory) {
+        return;
+      }
+      expect(loadedCategory.buttons).toHaveLength(2);
+      expect(loadedCategory.buttons[0].targetPageId).toBe('sub');
+      expect(loadedCategory.buttons[1].targetPageId).toBe('home');
     });
   });
 
@@ -209,6 +223,7 @@ describe('TouchChatProcessor - Comprehensive Coverage Tests', () => {
 
     it('should process databases with missing required tables', () => {
       // Create a minimal zip file without proper database structure
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const AdmZip = require('adm-zip');
       const zip = new AdmZip();
       zip.addFile('empty.txt', Buffer.from('empty'));
@@ -346,7 +361,8 @@ describe('TouchChatProcessor - Comprehensive Coverage Tests', () => {
       // Load and verify translations were applied
       const translatedTree = processor.loadIntoTree(outputPath);
       const homePage = translatedTree.getPage('home');
-      expect(homePage!.name).toBe('Casa');
+      expect(homePage).toBeDefined();
+      expect(homePage?.name).toBe('Casa');
     });
   });
 });

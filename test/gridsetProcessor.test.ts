@@ -25,9 +25,9 @@ describe('GridsetProcessor', () => {
 
   describe('Error Handling', () => {
     it('should throw error for non-existent file', () => {
-      const processor = new GridsetProcessor();
+      const _processor = new GridsetProcessor();
       expect(() => {
-        const nonExistentBuffer = fs.readFileSync('/non/existent/file.gridset');
+        const _nonExistentBuffer = fs.readFileSync('/non/existent/file.gridset');
       }).toThrow();
     });
 

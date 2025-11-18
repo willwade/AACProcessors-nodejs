@@ -4,9 +4,6 @@ import path from 'path';
 import { performance } from 'perf_hooks';
 import { DotProcessor } from '../src/processors/dotProcessor';
 import { SnapProcessor } from '../src/processors/snapProcessor';
-import { TouchChatProcessor } from '../src/processors/touchchatProcessor';
-import { ObfProcessor } from '../src/processors/obfProcessor';
-import { GridsetProcessor } from '../src/processors/gridsetProcessor';
 import { AACTree, AACPage, AACButton } from '../src/core/treeStructure';
 
 describe('Memory Leak Detection Tests', () => {
@@ -403,6 +400,7 @@ describe('Memory Leak Detection Tests', () => {
       const processor = new SnapProcessor();
 
       const memBefore = getMemoryUsage();
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const tempFilesBefore = fs.readdirSync(require('os').tmpdir()).length;
 
       // Perform operations that create temporary files
@@ -430,6 +428,7 @@ describe('Memory Leak Detection Tests', () => {
       // Give some time for cleanup
       setTimeout(() => {
         const memAfter = getMemoryUsage();
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
         const tempFilesAfter = fs.readdirSync(require('os').tmpdir()).length;
 
         const memoryIncrease = memAfter.heapUsed - memBefore.heapUsed;

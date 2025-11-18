@@ -105,7 +105,7 @@ describe('TouchChatProcessor Coverage', () => {
       expect(Object.keys(tree.pages).length).toBe(1);
       const testPage = tree.getPage('1');
       expect(testPage).toBeDefined();
-      expect(testPage!.buttons.length).toBe(0); // No buttons table
+      expect(testPage?.buttons.length).toBe(0); // No buttons table
     });
   });
 });

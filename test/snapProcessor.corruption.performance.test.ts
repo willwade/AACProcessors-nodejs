@@ -2,7 +2,7 @@
 import fs from 'fs';
 import path from 'path';
 import { SnapProcessor } from '../src/processors/snapProcessor';
-import { AACTree, AACPage, AACButton } from '../src/core/treeStructure';
+import { AACTree } from '../src/core/treeStructure';
 import { TreeFactory, PageFactory, ButtonFactory } from './utils/testFactories';
 
 describe('SnapProcessor - Database Corruption & Performance Tests', () => {
@@ -89,6 +89,7 @@ describe('SnapProcessor - Database Corruption & Performance Tests', () => {
 
     it('should handle missing database tables gracefully', () => {
       // Create a zip file with missing required tables
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const AdmZip = require('adm-zip');
       const zip = new AdmZip();
 
@@ -240,8 +241,12 @@ describe('SnapProcessor - Database Corruption & Performance Tests', () => {
 
       // Verify audio data integrity
       const firstPage = loadedTree.getPage('audio_page_0');
-      expect(firstPage!.buttons).toHaveLength(10);
-      expect(firstPage!.buttons[0].audioRecording).toBeDefined();
+      expect(firstPage).toBeDefined();
+      if (!firstPage) {
+        return;
+      }
+      expect(firstPage.buttons).toHaveLength(10);
+      expect(firstPage.buttons[0].audioRecording).toBeDefined();
 
       console.log(`Extensive audio processing time: ${processingTime}ms`);
     });

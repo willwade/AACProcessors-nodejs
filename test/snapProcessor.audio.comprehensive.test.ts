@@ -2,13 +2,13 @@
 import fs from 'fs';
 import path from 'path';
 import { SnapProcessor } from '../src/processors/snapProcessor';
-import { AACTree, AACPage, AACButton } from '../src/core/treeStructure';
-import { TreeFactory, PageFactory, ButtonFactory } from './utils/testFactories';
+import { AACTree } from '../src/core/treeStructure';
+import { PageFactory, ButtonFactory } from './utils/testFactories';
 
 describe('SnapProcessor - Comprehensive Coverage Tests', () => {
   let processor: SnapProcessor;
   const tempDir = path.join(__dirname, 'temp_snap');
-  const exampleFile = path.join(__dirname, '../examples/example.sps');
+  const _exampleFile = path.join(__dirname, '../examples/example.sps');
 
   beforeAll(() => {
     if (!fs.existsSync(tempDir)) {
@@ -62,8 +62,11 @@ describe('SnapProcessor - Comprehensive Coverage Tests', () => {
       const loadedPage = loadedTree.getPage('audio_page');
 
       expect(loadedPage).toBeDefined();
-      expect(loadedPage!.buttons).toHaveLength(1);
-      expect(loadedPage!.buttons[0].label).toBe('Audio Button');
+      if (!loadedPage) {
+        return;
+      }
+      expect(loadedPage.buttons).toHaveLength(1);
+      expect(loadedPage.buttons[0].label).toBe('Audio Button');
     });
 
     it('should handle missing audio files gracefully', () => {
@@ -163,7 +166,11 @@ describe('SnapProcessor - Comprehensive Coverage Tests', () => {
       // Load and add audio
       const loadedTree = processor.loadIntoTree(outputPath);
       const loadedPage = loadedTree.getPage('add_audio_page');
-      const loadedButton = loadedPage!.buttons[0];
+      expect(loadedPage).toBeDefined();
+      if (!loadedPage) {
+        return;
+      }
+      const loadedButton = loadedPage.buttons[0];
 
       // Add audio recording
       loadedButton.audioRecording = {
@@ -181,8 +188,11 @@ describe('SnapProcessor - Comprehensive Coverage Tests', () => {
       const finalTree = processor.loadIntoTree(updatedPath);
       const finalPage = finalTree.getPage('add_audio_page');
       expect(finalPage).toBeDefined();
+      if (!finalPage) {
+        return;
+      }
 
-      const finalButton = finalPage!.buttons[0];
+      const finalButton = finalPage.buttons[0];
       expect(finalButton.audioRecording).toBeDefined();
       expect(finalButton.audioRecording?.identifier).toBe('new_audio');
     });
@@ -216,7 +226,12 @@ describe('SnapProcessor - Comprehensive Coverage Tests', () => {
 
       // Load and update audio
       const loadedTree = processor.loadIntoTree(outputPath);
-      const loadedButton = loadedTree.getPage('update_audio_page')!.buttons[0];
+      const updatePage = loadedTree.getPage('update_audio_page');
+      expect(updatePage).toBeDefined();
+      if (!updatePage) {
+        return;
+      }
+      const loadedButton = updatePage.buttons[0];
 
       // Update audio recording
       loadedButton.audioRecording = {
@@ -233,8 +248,11 @@ describe('SnapProcessor - Comprehensive Coverage Tests', () => {
       const finalTree = processor.loadIntoTree(updatedPath);
       const finalPage = finalTree.getPage('update_audio_page');
       expect(finalPage).toBeDefined();
+      if (!finalPage) {
+        return;
+      }
 
-      const finalButton = finalPage!.buttons[0];
+      const finalButton = finalPage.buttons[0];
       expect(finalButton.audioRecording?.identifier).toBe('updated_audio');
       expect(finalButton.audioRecording?.metadata).toBe('Updated audio');
     });
@@ -268,7 +286,12 @@ describe('SnapProcessor - Comprehensive Coverage Tests', () => {
 
       // Load and remove audio
       const loadedTree = processor.loadIntoTree(outputPath);
-      const loadedButton = loadedTree.getPage('remove_audio_page')!.buttons[0];
+      const removePage = loadedTree.getPage('remove_audio_page');
+      expect(removePage).toBeDefined();
+      if (!removePage) {
+        return;
+      }
+      const loadedButton = removePage.buttons[0];
 
       // Remove audio recording
       loadedButton.audioRecording = undefined;
@@ -278,7 +301,12 @@ describe('SnapProcessor - Comprehensive Coverage Tests', () => {
 
       // Verify audio was removed
       const finalTree = processor.loadIntoTree(updatedPath);
-      const finalButton = finalTree.getPage('remove_audio_page')!.buttons[0];
+      const finalPage = finalTree.getPage('remove_audio_page');
+      expect(finalPage).toBeDefined();
+      if (!finalPage) {
+        return;
+      }
+      const finalButton = finalPage.buttons[0];
       expect(finalButton.audioRecording).toBeUndefined();
     });
 
@@ -320,8 +348,11 @@ describe('SnapProcessor - Comprehensive Coverage Tests', () => {
       const loadedTree = processor.loadIntoTree(outputPath);
       const loadedPage = loadedTree.getPage('metadata_page');
       expect(loadedPage).toBeDefined();
+      if (!loadedPage) {
+        return;
+      }
 
-      const loadedButton = loadedPage!.buttons[0];
+      const loadedButton = loadedPage.buttons[0];
       expect(loadedButton.audioRecording).toBeDefined();
       expect(loadedButton.audioRecording?.metadata).toBe(complexMetadata);
 
@@ -367,13 +398,14 @@ describe('SnapProcessor - Comprehensive Coverage Tests', () => {
       sampleRates.forEach((rate) => {
         const page = loadedTree.getPage(`page_${rate}hz`);
         expect(page).toBeDefined();
+        if (!page) {
+          return;
+        }
 
-        // Safe null checks for audio metadata
-        expect(page).toBeDefined();
-        expect(page!.buttons.length).toBeGreaterThan(0);
-        expect(page!.buttons[0].audioRecording).toBeDefined();
+        expect(page.buttons.length).toBeGreaterThan(0);
+        expect(page.buttons[0].audioRecording).toBeDefined();
 
-        const metadata = JSON.parse(page!.buttons[0].audioRecording?.metadata || '{}');
+        const metadata = JSON.parse(page.buttons[0].audioRecording?.metadata || '{}');
         expect(metadata.sampleRate).toBe(rate);
       });
     });
@@ -414,13 +446,14 @@ describe('SnapProcessor - Comprehensive Coverage Tests', () => {
       bitDepths.forEach((depth) => {
         const page = loadedTree.getPage(`page_${depth}bit`);
         expect(page).toBeDefined();
+        if (!page) {
+          return;
+        }
 
-        // Safe null checks for audio metadata
-        expect(page).toBeDefined();
-        expect(page!.buttons.length).toBeGreaterThan(0);
-        expect(page!.buttons[0].audioRecording).toBeDefined();
+        expect(page.buttons.length).toBeGreaterThan(0);
+        expect(page.buttons[0].audioRecording).toBeDefined();
 
-        const metadata = JSON.parse(page!.buttons[0].audioRecording?.metadata || '{}');
+        const metadata = JSON.parse(page.buttons[0].audioRecording?.metadata || '{}');
         expect(metadata.bitDepth).toBe(depth);
       });
     });

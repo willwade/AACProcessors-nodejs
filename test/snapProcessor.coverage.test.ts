@@ -27,7 +27,9 @@ describe('SnapProcessor Coverage', () => {
       saveProcessor.saveFromTree(tree, tempDbPath);
 
       const db = new Database(tempDbPath);
-      const firstButton = db.prepare('SELECT Id FROM Button ORDER BY Id LIMIT 1').get() as { Id: number };
+      const firstButton = db.prepare('SELECT Id FROM Button ORDER BY Id LIMIT 1').get() as {
+        Id: number;
+      };
       db.close();
 
       const audioData = Buffer.from('audio data');

@@ -159,7 +159,11 @@ describe('Grid3 Wordlist Helpers', () => {
       expect(wordlists.size).toBe(1);
       expect(wordlists.has('Greetings')).toBe(true);
 
-      const wordlist = wordlists.get('Greetings')!;
+      const wordlist = wordlists.get('Greetings');
+      expect(wordlist).toBeDefined();
+      if (!wordlist) {
+        return;
+      }
       expect(wordlist.items).toHaveLength(2);
       expect(wordlist.items[0].text).toBe('hello');
       expect(wordlist.items[0].image).toBe('[WIDGIT]hello.emf');
@@ -205,8 +209,14 @@ describe('Grid3 Wordlist Helpers', () => {
 </Grid>`;
       };
 
-      zip.addFile('Grids/Greetings/grid.xml', Buffer.from(createGrid('Greetings', ['hello', 'hi']), 'utf8'));
-      zip.addFile('Grids/Farewells/grid.xml', Buffer.from(createGrid('Farewells', ['goodbye', 'bye']), 'utf8'));
+      zip.addFile(
+        'Grids/Greetings/grid.xml',
+        Buffer.from(createGrid('Greetings', ['hello', 'hi']), 'utf8')
+      );
+      zip.addFile(
+        'Grids/Farewells/grid.xml',
+        Buffer.from(createGrid('Farewells', ['goodbye', 'bye']), 'utf8')
+      );
 
       const wordlists = extractWordlists(zip.toBuffer());
 
@@ -243,7 +253,9 @@ describe('Grid3 Wordlist Helpers', () => {
     function createTestGridset(gridName: string, initialWordlistXml?: string): Buffer {
       const zip = new AdmZip();
 
-      const wordlistSection = initialWordlistXml || `<WordList>
+      const wordlistSection =
+        initialWordlistXml ||
+        `<WordList>
   <Items>
     <WordListItem>
       <Text><s><r>old</r></s></Text>
@@ -285,7 +297,11 @@ describe('Grid3 Wordlist Helpers', () => {
       const wordlists = extractWordlists(updated);
 
       expect(wordlists.has('Greetings')).toBe(true);
-      const wordlist = wordlists.get('Greetings')!;
+      const wordlist = wordlists.get('Greetings');
+      expect(wordlist).toBeDefined();
+      if (!wordlist) {
+        return;
+      }
       expect(wordlist.items).toHaveLength(3);
       expect(wordlist.items.map((i) => i.text)).toEqual(['hello', 'hi', 'hey']);
     });
@@ -300,7 +316,11 @@ describe('Grid3 Wordlist Helpers', () => {
       const updated = updateWordlist(gridset, 'Greetings', newWordlist);
       const wordlists = extractWordlists(updated);
 
-      const wordlist = wordlists.get('Greetings')!;
+      const wordlist = wordlists.get('Greetings');
+      expect(wordlist).toBeDefined();
+      if (!wordlist) {
+        return;
+      }
       expect(wordlist.items[0].image).toBe('[WIDGIT]hello.emf');
       expect(wordlist.items[0].partOfSpeech).toBe('Interjection');
     });
@@ -363,4 +383,3 @@ describe('Grid3 Wordlist Helpers', () => {
     });
   });
 });
-

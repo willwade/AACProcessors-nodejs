@@ -1197,18 +1197,18 @@ class AstericsGridProcessor extends BaseProcessor {
         imageData = Buffer.from(base64Data, 'base64');
 
         // Use detected format for filename
-      imageName = element.image.id || `image.${imageFormat}`;
-    } catch (e) {
-      // Invalid base64 data, skip image
+        imageName = element.image.id || `image.${imageFormat}`;
+      } catch (e) {
+        // Invalid base64 data, skip image
+      }
     }
-  }
 
-  return new AACButton({
-    id: element.id,
-    label: label,
-    message: label,
+    return new AACButton({
+      id: element.id,
+      label: label,
+      message: label,
 
-    targetPageId: targetPageId || undefined,
+      targetPageId: targetPageId || undefined,
 
       semanticAction: semanticAction,
       audioRecording: audioRecording,

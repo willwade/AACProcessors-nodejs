@@ -2,7 +2,7 @@
 import fs from 'fs';
 import path from 'path';
 import { ObfProcessor } from '../src/processors/obfProcessor';
-import { AACTree } from '../src/core/treeStructure';
+import { AACTree, AACPage, AACButton } from '../src/core/treeStructure';
 
 describe('OBFProcessor round-trip', () => {
   const obfPath: string = path.join(__dirname, '../examples/example.obf');
@@ -73,13 +73,13 @@ describe('OBFProcessor round-trip', () => {
 
     // Create a simple tree programmatically
     const tree1 = new AACTree();
-    const page = new (require('../src/core/treeStructure').AACPage)({
+    const page = new AACPage({
       id: 'test-page',
       name: 'Test Page',
       buttons: [],
     });
 
-    const button = new (require('../src/core/treeStructure').AACButton)({
+    const button = new AACButton({
       id: 'test-button',
       label: 'Test Button',
       message: 'Hello World',
@@ -106,7 +106,7 @@ describe('OBFProcessor round-trip', () => {
     const processor = new ObfProcessor();
     const tree = new AACTree();
 
-    const page = new (require('../src/core/treeStructure').AACPage)({
+    const page = new AACPage({
       id: 'meta-page',
       name: 'Meta Page',
       grid: [
@@ -116,7 +116,7 @@ describe('OBFProcessor round-trip', () => {
       locale: 'en',
     });
 
-    const AACButtonCtor = require('../src/core/treeStructure').AACButton;
+    const AACButtonCtor = AACButton;
     const buttonA = new AACButtonCtor({
       id: 'btn-a',
       label: 'A',
