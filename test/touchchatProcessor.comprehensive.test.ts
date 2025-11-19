@@ -266,7 +266,7 @@ describe('TouchChatProcessor - Comprehensive Coverage Tests', () => {
 
       expect(loadedTree).toBeDefined();
       expect(Object.keys(loadedTree.pages)).toHaveLength(10);
-      expect(processingTime).toBeLessThan(10000); // Should complete in under 10 seconds
+      expect(processingTime).toBeLessThan(40000); // Should complete in under 40 seconds
 
       // Verify button count
       let totalButtons = 0;

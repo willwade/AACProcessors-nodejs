@@ -15,10 +15,26 @@ describe('Memory Performance Tests', () => {
     }
   });
 
-  afterAll(() => {
-    if (fs.existsSync(tempDir)) {
-      fs.rmSync(tempDir, { recursive: true, force: true });
+  beforeEach(() => {
+    if (!fs.existsSync(tempDir)) {
+      fs.mkdirSync(tempDir, { recursive: true });
     }
+  });
+
+  afterAll(() => {
+    // Add a small delay to allow pending I/O to complete
+    return new Promise<void>((resolve) => {
+      setTimeout(() => {
+        if (fs.existsSync(tempDir)) {
+          try {
+            fs.rmSync(tempDir, { recursive: true, force: true });
+          } catch (e) {
+            console.warn('Failed to clean up temp dir:', e);
+          }
+        }
+        resolve();
+      }, 100);
+    });
   });
 
   // Helper function to measure memory usage

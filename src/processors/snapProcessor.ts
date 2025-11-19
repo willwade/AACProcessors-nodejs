@@ -598,29 +598,49 @@ class SnapProcessor extends BaseProcessor {
             useMessageRecording = 1;
           }
 
-          insertButton.run(
-            buttonIdCounter++,
-            button.label || '',
-            button.message || button.label || '',
-            navigatePageId,
-            elementRefId,
-            null,
-            null,
-            messageRecordingId,
-            serializedMetadata,
-            useMessageRecording,
-            button.style?.fontColor ? parseInt(button.style.fontColor.replace('#', ''), 16) : null,
-            button.style?.backgroundColor
-              ? parseInt(button.style.backgroundColor.replace('#', ''), 16)
-              : null,
-            button.style?.borderColor
-              ? parseInt(button.style.borderColor.replace('#', ''), 16)
-              : null,
-            button.style?.borderWidth,
-            button.style?.fontSize,
-            button.style?.fontFamily,
-            button.style?.fontStyle ? parseInt(button.style.fontStyle) : null
-          );
+          // Retry logic for SQLite operations
+          let retries = 3;
+          while (retries > 0) {
+            try {
+              insertButton.run(
+                buttonIdCounter++,
+                button.label || '',
+                button.message || button.label || '',
+                navigatePageId,
+                elementRefId,
+                null,
+                null,
+                messageRecordingId,
+                serializedMetadata,
+                useMessageRecording,
+                button.style?.fontColor
+                  ? parseInt(button.style.fontColor.replace('#', ''), 16)
+                  : null,
+                button.style?.backgroundColor
+                  ? parseInt(button.style.backgroundColor.replace('#', ''), 16)
+                  : null,
+                button.style?.borderColor
+                  ? parseInt(button.style.borderColor.replace('#', ''), 16)
+                  : null,
+                button.style?.borderWidth,
+                button.style?.fontSize,
+                button.style?.fontFamily,
+                button.style?.fontStyle ? parseInt(button.style.fontStyle) : null
+              );
+              break; // Success
+            } catch (err: any) {
+              if (err.code === 'SQLITE_IOERR' && retries > 1) {
+                retries--;
+                // Wait a bit before retrying
+                const now = Date.now();
+                while (Date.now() - now < 100) {
+                  /* busy wait */
+                }
+              } else {
+                throw err;
+              }
+            }
+          }
 
           // Insert ElementPlacement
           const insertPlacement = db.prepare(
