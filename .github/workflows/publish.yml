@@ -57,7 +57,14 @@ jobs:
             const token = await core.getIDToken('https://registry.npmjs.org');
             core.setOutput('token', token);
 
+      - name: Configure npm with OIDC token
+        run: |
+          npm config set //registry.npmjs.org/:_authToken "${{ steps.oidc.outputs.token }}"
+          npm config set @willwade:registry https://registry.npmjs.org/
+
       - name: Publish to npm (Trusted Publishing)
         run: npm publish --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ steps.oidc.outputs.token }}
+
+      - name: Show npm debug log on failure
+        if: failure()
+        run: cat ~/.npm/_logs/*-debug-0.log | tail -100
