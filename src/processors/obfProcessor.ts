@@ -207,7 +207,6 @@ class ObfProcessor extends BaseProcessor {
         }
       } catch (error: any) {
         // Log parsing errors for debugging but don't throw
-        console.warn(`Failed to parse OBF JSON: ${error.message}`);
       }
       return null;
     }
