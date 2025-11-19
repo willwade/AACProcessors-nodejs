@@ -151,6 +151,8 @@ demo_out.txt
 
 # Test temporary files
 test/temp*
+test/debug*
+test/diagnostic*
 
 # API keys and secrets
 *_key.js
