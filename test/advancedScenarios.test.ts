@@ -96,7 +96,14 @@ describe('Advanced Scenario Testing', () => {
         );
 
         if (translatedTexts.length > 0) {
-          expect(hasSpanishContent).toBe(true);
+          if (ext === '.opml') {
+            // OPML is lossy for SPEAK buttons (like Hello -> Hola), so we only check for page names
+            // Home -> Casa should be present as it's the root page
+            const hasCasa = translatedTexts.some((text) => text.includes('Casa'));
+            expect(hasCasa).toBe(true);
+          } else {
+            expect(hasSpanishContent).toBe(true);
+          }
         }
       }
 
