@@ -1,0 +1,12 @@
+digraph AACBoard {
+  "home" [label="Home"]
+  "food" [label="Food"]
+  "activities" [label="Activities"]
+  "people" [label="People"]
+  "navigation" [label="Navigation"]
+  "home" -> "more" [label="More"]
+  "navigation" -> "home" [label="Go to Home"]
+  "navigation" -> "food" [label="Go to Food"]
+  "navigation" -> "activities" [label="Go to Activities"]
+  "navigation" -> "people" [label="Go to People"]
+}

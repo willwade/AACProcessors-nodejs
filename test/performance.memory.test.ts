@@ -4,10 +4,12 @@ import path from 'path';
 import { TouchChatProcessor } from '../src/processors/touchchatProcessor';
 import { SnapProcessor } from '../src/processors/snapProcessor';
 import { DotProcessor } from '../src/processors/dotProcessor';
-import { TreeFactory } from './utils/testFactories';
 
-describe('Memory Performance Tests', () => {
-  const tempDir = path.join(__dirname, 'temp_performance');
+// Skip memory intensive tests in CI environment
+const describeIfLocal = process.env.CI ? describe.skip : describe;
+
+describeIfLocal('Memory Performance Tests', () => {
+  const tempDir = path.join(__dirname, 'temp_performance_memory');
 
   beforeAll(() => {
     if (!fs.existsSync(tempDir)) {
