@@ -715,15 +715,6 @@ Inspired by the Python AACProcessors project
 - [ ] **Add Symbol Tools coverage** (currently 0%) - Implement tests for PCS and ARASAAC symbol lookups to reach >70% coverage
 - [ ] **Fix property-based test failures** - Resolve TypeScript interface compatibility issues in edge case generators
 
-### Recently Completed ✅
-
-- [x] **Core utilities test coverage** - Complete implementation for analyze.ts and fileProcessor.ts (0% → 100% coverage, 45 comprehensive tests, src/core/ directory 30% → 83% coverage)
-- [x] **CLI test infrastructure** - Fixed DotProcessor parsing and test expectations (0 → 25 passing tests, 100% CLI functionality)
-- [x] **Critical linting fixes** - Resolved unsafe argument types and CLI type safety issues (177 → 123 errors, 32% improvement)
-- [x] **Audio test syntax fixes** - Fixed non-null assertion errors in audio tests (21 → 5 failing tests, 76% improvement)
-- [x] **Comprehensive styling support** - Complete implementation across all AAC formats with cross-format preservation (Added: AACStyle interface, enhanced all processors, 7 new test cases, complete documentation)
-- [x] **TouchChatProcessor save/load functionality** - Fixed button persistence and ID mapping (coverage improved from 57.62% to 86.44%)
-- [x] **Build integration** - Ensure `npm run build` is executed before CLI tests (Fixed: All test scripts now automatically build before running)
 
 ### Medium Priority
 
@@ -748,29 +739,6 @@ Inspired by the Python AACProcessors project
 - [ ] **Add benchmark suite** - Performance regression testing
 - [ ] **CI/CD improvements** - Add automated releases and npm publishing
 - [ ] **Documentation improvements** - Add more real-world examples and tutorials
-
-### Known Issues
-
-- ⚠️ **Audio Persistence**: 5 functional tests failing due to audio recording not persisting through SnapProcessor save/load cycle
-- ⚠️ **Grid3 Layout**: Grid sizes not reliable and X,Y positions incorrect, particularly affecting Grid3 processor functionality
-- ⚠️ **Database Constraints**: UNIQUE constraint violations with real-world data files (Page.Id and buttons.id conflicts)
-- ⚠️ **Linting**: 123 ESLint issues remaining (mostly in test files, reduced from 177)
-- ⚠️ **SnapProcessor**: Lowest coverage at 48.32%, missing comprehensive audio handling tests
-- ⚠️ **Memory usage**: Large files (>50MB) may cause memory pressure
-- ⚠️ **Concurrent access**: Some processors not fully thread-safe for simultaneous writes
-
-### 🧪 Current Test Status & Immediate Follow-Up
-
-As of the latest run (`npm test`), **47 suites pass / 6 fail (10 individual tests)**. Remaining blockers are:
-
-1. **Edge-case loaders** – corrupted JSON/XML fixtures still expect explicit exceptions. Decide whether to restore the old throwing behaviour (Asterics/OPML/DOT) or update the tests to accept the softer error reporting.
-2. **Gridset exports & styling** – round-trip continues to lose a button and the styling suite cannot find `style.xml`. GridsetProcessor needs to preserve button arrays and emit the styling assets Grid 3 expects.
-3. **DOT navigation semantics** – the deterministic DOT test still falls back to `SPEAK`. Improve semantic reconstruction when loading navigation edges so navigation buttons survive round-trips.
-4. **Advanced workflow scenario** – the multi-format pipeline still loses Spanish translations (likely during the Gridset ⇄ Snap steps); trace text propagation and patch the conversion chain.
-5. **Styling suite** – Grid 3 export still lacks `style.xml`; ensure the styling assets are generated alongside the gridset payload.
-6. **Memory comparison suite** – memory delta expectations are still unmet (TouchChat GC + DOT vs others). Either recalibrate the harness or tune the processors before re-enabling the assertions.
-
-Clearing these items will put the test matrix back in the green and unblock the release.
 
 ## More enhancements
 
