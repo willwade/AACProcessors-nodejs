@@ -18,7 +18,7 @@ describe('GridsetProcessor round-trip', () => {
       return;
     }
 
-    const processor = new GridsetProcessor();
+    const processor = new GridsetProcessor({ preserveAllButtons: true });
     const fileBuffer = fs.readFileSync(exampleFile);
     const tree1: AACTree = processor.loadIntoTree(fileBuffer);
 
@@ -55,7 +55,7 @@ describe('GridsetProcessor round-trip', () => {
   });
 
   it('can save and load a constructed tree', () => {
-    const processor = new GridsetProcessor();
+    const processor = new GridsetProcessor({ preserveAllButtons: true });
 
     // Create a simple tree programmatically
     const tree1 = new AACTree();

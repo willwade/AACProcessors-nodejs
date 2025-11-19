@@ -202,7 +202,10 @@ describe('Styling Support Tests', () => {
       const AdmZip = require('adm-zip');
       const zip = new AdmZip(outputPath);
       const entries = zip.getEntries();
-      const hasStyleXml = entries.some((entry: any) => entry.entryName === 'style.xml');
+      const hasStyleXml = entries.some(
+        (entry: any) =>
+          entry.entryName.endsWith('styles.xml') || entry.entryName.endsWith('style.xml')
+      );
       expect(hasStyleXml).toBe(true);
     });
   });

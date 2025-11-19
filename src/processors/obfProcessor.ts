@@ -199,6 +199,10 @@ class ObfProcessor extends BaseProcessor {
 
         const obj = JSON.parse(str);
         if (obj && typeof obj === 'object' && 'id' in obj && 'buttons' in obj) {
+          // Validate buttons is an array
+          if (!Array.isArray(obj.buttons)) {
+            throw new Error('Invalid OBF: buttons must be an array');
+          }
           return obj as ObfBoard;
         }
       } catch (error: any) {

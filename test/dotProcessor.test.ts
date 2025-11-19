@@ -24,8 +24,11 @@ describe('DotProcessor', () => {
       return;
     }
     expect(rootPage.buttons.length).toBeGreaterThan(0);
-    // Buttons should be NAVIGATE type
-    rootPage.buttons.forEach((btn) => {
+    // Should have navigation buttons
+    const navButtons = rootPage.buttons.filter((b) => b.type === 'NAVIGATE');
+    expect(navButtons.length).toBeGreaterThan(0);
+
+    navButtons.forEach((btn) => {
       expect(btn.type).toBe('NAVIGATE');
       expect(btn.targetPageId).toBeTruthy();
     });

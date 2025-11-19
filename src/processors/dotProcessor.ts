@@ -33,19 +33,17 @@ class DotProcessor extends BaseProcessor {
 
     // Extract all edge statements using regex to handle single-line DOT files
     const edgeRegex = /"?([^"\s]+)"?\s*->\s*"?([^"\s]+)"?(?:\s*\[label="([^"]+)"\])?/g;
-    const nodeRegex = /"?([^"\s]+)"?\s*\[label="([^"]+)"\]/g;
 
-    // Find all explicit node definitions
-    let nodeMatch;
-    while ((nodeMatch = nodeRegex.exec(content)) !== null) {
-      const [, id, label] = nodeMatch;
-      nodes.set(id, { id, label });
-    }
+    // We need to find nodes, but avoid matching the target of an edge which might look like a node definition
+    // e.g. A -> B [label="L"]  -- "B [label="L"]" looks like a node def
+    // Strategy: Find all edges, record them, and then "mask" them in the content to avoid false positives for nodes
+
+    let maskedContent = content;
+    let edgeMatch;
 
     // Find all edge definitions
-    let edgeMatch;
     while ((edgeMatch = edgeRegex.exec(content)) !== null) {
-      const [, from, to, label] = edgeMatch;
+      const [fullMatch, from, to, label] = edgeMatch;
       edges.push({ from, to, label });
 
       // Add nodes if they don't exist (implicit definition)
@@ -55,6 +53,26 @@ class DotProcessor extends BaseProcessor {
       if (!nodes.has(to)) {
         nodes.set(to, { id: to, label: to });
       }
+
+      // Mask this edge in the content so we don't match it as a node
+      // We replace it with spaces to preserve indices if needed, but simple replacement is enough here
+      maskedContent = maskedContent.replace(fullMatch, ' '.repeat(fullMatch.length));
+    }
+
+    // Now find explicit node definitions in the masked content
+    // This regex matches: ID [label="LABEL"]
+    // We use a non-greedy match for the label content to handle escaped quotes if possible,
+    // but the previous regex `[^"]+` was too simple.
+    // Better regex for quoted string content: (?:[^"\\]|\\.)*
+    const nodeRegex = /"?([^"\s]+)"?\s*\[label="((?:[^"\\]|\\.)*)"\]/g;
+
+    let nodeMatch;
+    while ((nodeMatch = nodeRegex.exec(maskedContent)) !== null) {
+      const [, id, rawLabel] = nodeMatch;
+      // Unescape the label: replace \" with " and \\ with \
+      const label = rawLabel.replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+      // Only update if not already defined or if we want to override the implicit label
+      nodes.set(id, { id, label });
     }
 
     return { nodes: Array.from(nodes.values()), edges };
@@ -111,7 +129,8 @@ class DotProcessor extends BaseProcessor {
     let hasControl = false;
     for (let i = 0; i < head.length; i++) {
       const code = head.charCodeAt(i);
-      if (code === 0 || (code >= 0 && code <= 8) || (code >= 14 && code <= 31) || code >= 127) {
+      // Allow UTF-8 characters (code >= 127)
+      if (code === 0 || (code >= 0 && code <= 8) || (code >= 14 && code <= 31)) {
         hasControl = true;
         break;
       }
@@ -203,10 +222,15 @@ class DotProcessor extends BaseProcessor {
   saveFromTree(tree: AACTree, _outputPath: string): void {
     let dotContent = 'digraph AACBoard {\n';
 
+    // Helper to escape DOT string
+    const escapeDotString = (str: string): string => {
+      return str.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+    };
+
     // Add nodes
     for (const pageId in tree.pages) {
       const page = tree.pages[pageId];
-      dotContent += `  "${page.id}" [label="${page.name}"]\n`;
+      dotContent += `  "${page.id}" [label="${escapeDotString(page.name)}"]\n`;
     }
 
     // Add edges from navigation buttons (semantic intent or legacy targetPageId)
@@ -222,7 +246,7 @@ class DotProcessor extends BaseProcessor {
         .forEach((btn: AACButton) => {
           const target = btn.semanticAction?.targetId || btn.targetPageId;
           if (target) {
-            dotContent += `  "${page.id}" -> "${target}" [label="${btn.label}"]\n`;
+            dotContent += `  "${page.id}" -> "${target}" [label="${escapeDotString(btn.label)}"]\n`;
           }
         });
     }
