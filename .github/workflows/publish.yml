@@ -25,5 +25,15 @@ jobs:
         run: npm install -g npm@latest
 
       - run: npm ci
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Update package version
+        run: npm version ${{ steps.version.outputs.version }} --no-git-tag-version
+
       - run: npm run build --if-present
       - run: npm publish --access public
