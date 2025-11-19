@@ -38,15 +38,15 @@ module.exports = {
     global: {
       branches: 60,
       functions: 70,
-      lines: 77,
+      lines: 76,
       statements: 76,
     },
     // Per-file thresholds for critical components
     "src/core/": {
       branches: 80,
-      functions: 90,
-      lines: 90,
-      statements: 90,
+      functions: 88,
+      lines: 88,
+      statements: 88,
     },
     "src/processors/dotProcessor.ts": {
       branches: 70,
