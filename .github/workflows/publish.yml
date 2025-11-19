@@ -1,9 +1,9 @@
 name: Publish Package
 
 on:
-  push:
-    tags:
-      - "v*"
+  release:
+    types:
+      - published
 
 permissions:
   id-token: write # Required for OIDC
@@ -11,9 +11,12 @@ permissions:
 
 jobs:
   publish:
+    if: ${{ github.event.release.prerelease == false }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -26,14 +29,22 @@ jobs:
 
       - run: npm ci
 
-      - name: Extract version from tag
-        id: version
+      - name: Derive release version
+        id: release_version
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          VERSION="${RELEASE_TAG#refs/tags/}"
+          VERSION="${VERSION#v}"
+          if [[ -z "$VERSION" ]]; then
+            echo "Unable to determine version from release tag '${RELEASE_TAG}'" >&2
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Update package version
-        run: npm version ${{ steps.version.outputs.version }} --no-git-tag-version
+      - name: Sync package metadata
+        run: |
+          npm version "${{ steps.release_version.outputs.version }}" --no-git-tag-version
 
       - run: npm run build --if-present
       - run: npm publish --access public
