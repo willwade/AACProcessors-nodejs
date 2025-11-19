@@ -49,11 +49,15 @@ jobs:
         run: |
           npm version "${{ steps.release_version.outputs.version }}" --no-git-tag-version
 
-      - name: Debug npm config
-        run: |
-          npm config list
-          echo "---"
-          cat ~/.npmrc 2>/dev/null || echo "No ~/.npmrc found"
+      - name: Get OIDC token
+        id: oidc
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const token = await core.getIDToken('https://registry.npmjs.org');
+            core.setOutput('token', token);
 
       - name: Publish to npm (Trusted Publishing)
         run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ steps.oidc.outputs.token }}
