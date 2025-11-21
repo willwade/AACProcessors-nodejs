@@ -37,15 +37,29 @@ export {
   type WordListItem,
 } from './gridset/wordlistHelpers';
 
+// Gridset (Grid 3) color utilities
+export {
+  getNamedColor,
+  rgbaToHex,
+  channelToHex,
+  clampColorChannel,
+  clampAlpha,
+  toHexColor,
+  darkenColor,
+  normalizeColor,
+  ensureAlphaChannel,
+} from './gridset/colorUtils';
+
 // Gridset (Grid 3) style helpers
 export {
   DEFAULT_GRID3_STYLES,
   CATEGORY_STYLES,
-  ensureAlphaChannel,
   createDefaultStylesXml,
   createCategoryStyle,
-  type Grid3Style,
 } from './gridset/styleHelpers';
+
+// Re-export ensureAlphaChannel from styleHelpers for backward compatibility
+export { ensureAlphaChannel as ensureAlphaChannelFromStyles } from './gridset/styleHelpers';
 
 // Snap helpers (stubs)
 export {

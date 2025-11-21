@@ -6,6 +6,7 @@
  */
 
 import { XMLBuilder } from 'fast-xml-parser';
+import { ensureAlphaChannel, darkenColor } from './colorUtils';
 
 /**
  * Grid3 Style object structure
@@ -129,26 +130,10 @@ export const CATEGORY_STYLES: Record<string, Grid3Style> = {
 };
 
 /**
- * Ensure a color has an alpha channel (Grid3 format requires 8-digit ARGB)
- * @param color - Color string (hex format)
- * @returns Color with alpha channel in format #AARRGGBBFF
+ * Re-export ensureAlphaChannel from colorUtils for backward compatibility
+ * @deprecated Use ensureAlphaChannel from colorUtils instead
  */
-export function ensureAlphaChannel(color: string | undefined): string {
-  if (!color) return '#FFFFFFFF';
-  // If already 8 digits (with alpha), return as is
-  if (color.match(/^#[0-9A-Fa-f]{8}$/)) return color;
-  // If 6 digits (no alpha), add FF for fully opaque
-  if (color.match(/^#[0-9A-Fa-f]{6}$/)) return color + 'FF';
-  // If 3 digits (shorthand), expand to 8
-  if (color.match(/^#[0-9A-Fa-f]{3}$/)) {
-    const r = color[1];
-    const g = color[2];
-    const b = color[3];
-    return `#${r}${r}${g}${g}${b}${b}FF`;
-  }
-  // Invalid or unknown format, return white
-  return '#FFFFFFFF';
-}
+export { ensureAlphaChannel } from './colorUtils';
 
 /**
  * Create a Grid3 style XML string with default and category styles
@@ -211,19 +196,4 @@ export function createCategoryStyle(
   };
 }
 
-/**
- * Darken a hex color by a given amount
- * @param hexColor - Hex color string
- * @param amount - Amount to darken (0-255)
- * @returns Darkened hex color
- */
-function darkenColor(hexColor: string, amount: number): string {
-  const normalized = ensureAlphaChannel(hexColor);
-  const hex = normalized.slice(1, 7); // Extract RGB part (skip # and alpha)
-  const num = parseInt(hex, 16);
-  const clamp = (value: number): number => Math.max(0, Math.min(255, value));
-  const r = clamp(((num >> 16) & 0xff) - amount);
-  const g = clamp(((num >> 8) & 0xff) - amount);
-  const b = clamp((num & 0xff) - amount);
-  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
-}
+
