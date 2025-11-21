@@ -195,5 +195,3 @@ export function createCategoryStyle(
     FontSize: '16',
   };
 }
-
-

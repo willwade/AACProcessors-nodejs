@@ -169,7 +169,8 @@ const CSS_COLORS: Record<string, [number, number, number]> = {
  * @returns RGB tuple [r, g, b] or undefined if not found
  */
 export function getNamedColor(name: string): [number, number, number] | undefined {
-  return CSS_COLORS[name.toLowerCase()];
+  const color = CSS_COLORS[name.toLowerCase()];
+  return color;
 }
 
 /**
@@ -281,7 +282,7 @@ export function darkenColor(hex: string, amount: number): string {
   const r = parseInt(rgb.substring(0, 2), 16);
   const g = parseInt(rgb.substring(2, 4), 16);
   const b = parseInt(rgb.substring(4, 6), 16);
-  const clamp = (val: number) => Math.max(0, Math.min(255, val));
+  const clamp = (val: number): number => Math.max(0, Math.min(255, val));
   const newR = clamp(r - amount);
   const newG = clamp(g - amount);
   const newB = clamp(b - amount);
@@ -329,4 +330,3 @@ export function ensureAlphaChannel(color: string | undefined): string {
   // Invalid or unknown format, return white
   return '#FFFFFFFF';
 }
-
