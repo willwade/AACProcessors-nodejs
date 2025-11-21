@@ -9,11 +9,21 @@ export { TouchChatProcessor } from './touchchatProcessor';
 export { AstericsGridProcessor } from './astericsGridProcessor';
 
 // Gridset (Grid 3) helpers
-export { getPageTokenImageMap, getAllowedImageEntries, openImage } from './gridset/helpers';
+export {
+  getPageTokenImageMap,
+  getAllowedImageEntries,
+  openImage,
+  generateGrid3Guid,
+  createSettingsXml,
+  createFileMapXml,
+} from './gridset/helpers';
 export {
   getPageTokenImageMap as getGridsetPageTokenImageMap,
   getAllowedImageEntries as getGridsetAllowedImageEntries,
   openImage as openGridsetImage,
+  generateGrid3Guid as generateGridsetGuid,
+  createSettingsXml as createGridsetSettingsXml,
+  createFileMapXml as createGridsetFileMapXml,
 } from './gridset/helpers';
 export { resolveGrid3CellImage } from './gridset/resolver';
 
