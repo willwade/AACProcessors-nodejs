@@ -34,8 +34,16 @@ describe('Color Utilities', () => {
 
     it('supports all 147 CSS color names', () => {
       const colors = [
-        'aliceblue', 'antiquewhite', 'aqua', 'aquamarine', 'azure',
-        'rebeccapurple', 'yellowgreen', 'whitesmoke', 'wheat', 'white',
+        'aliceblue',
+        'antiquewhite',
+        'aqua',
+        'aquamarine',
+        'azure',
+        'rebeccapurple',
+        'yellowgreen',
+        'whitesmoke',
+        'wheat',
+        'white',
       ];
       colors.forEach((color) => {
         expect(getNamedColor(color)).toBeDefined();
@@ -220,4 +228,3 @@ describe('Color Utilities', () => {
     });
   });
 });
-
