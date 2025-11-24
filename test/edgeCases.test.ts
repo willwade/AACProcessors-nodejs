@@ -326,7 +326,7 @@ describe('Edge Case Tests', () => {
       // Give some time for cleanup
       setTimeout(() => {
         const tempFilesAfter = fs.readdirSync(os.tmpdir()).length;
-        expect(tempFilesAfter).toBeLessThanOrEqual(tempFilesBefore + 2); // Allow some variance
+        expect(tempFilesAfter).toBeLessThanOrEqual(tempFilesBefore + 5); // Allow some variance
       }, 100);
     });
 

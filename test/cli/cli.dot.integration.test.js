@@ -9,7 +9,7 @@ describe("aac-processors CLI (DOT)", () => {
     const cliPath = path.join(__dirname, "../../dist/cli/index.js");
     if (!fs.existsSync(cliPath)) {
       throw new Error(
-        "dist/cli/index.js is missing – run `npm run build` before executing the CLI tests."
+        "dist/cli/index.js is missing – run `npm run build` before executing the CLI tests.",
       );
     }
   });

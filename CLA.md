@@ -6,9 +6,9 @@ Thank you for contributing to aacprocessors-node (“Project”).
 This Contributor License Agreement (“Agreement”) clarifies how we can use your contributions while you keep your rights.
 
 1. Definitions
-	•	“You” means the individual or legal entity submitting a Contribution.
-	•	“Contribution” means any original work of authorship (code, docs, tests, sample board files, format-specific fixtures, issues, examples, data, etc.) that you submit to this Project.
-	•	“Maintainers” means the Project owners and authorized reviewers.
+   • “You” means the individual or legal entity submitting a Contribution.
+   • “Contribution” means any original work of authorship (code, docs, tests, sample board files, format-specific fixtures, issues, examples, data, etc.) that you submit to this Project.
+   • “Maintainers” means the Project owners and authorized reviewers.
 
 2. Copyright license
 
@@ -21,12 +21,7 @@ If you (or your agent) initiate patent litigation alleging that the Project or a
 
 4. Your representations
 
-By submitting a Contribution, you represent that:
-	1.	Originality / rights. The Contribution is your original work, or you have sufficient rights to submit it and to grant the licenses above.
-	2.	Third-party material. If the Contribution includes third-party content (code, data, audio, symbols, images), you have identified its source and license, and it is compatible with the Project’s license (currently MIT; see LICENSE). Specifically, Contributions must not include any proprietary, non-redistributable symbol sets (e.g., Boardmaker PCS®) or other media unless you provide explicit proof of a compatible license (e.g., Creative Commons, public domain, or a specific grant of rights).
-	3.	No Protected Health Information or Personal Data. The Contribution does not include confidential information, personal data, or Protected Health Information (PHI) you lack the explicit right to share. You represent that any data resembling clinical or user-generated content (including voice recordings, text, or board layouts) is synthetic, fully anonymized, and carries no risk of re-identification.
-	4.	No additional restrictions. You will not impose further terms or restrictions on the Contribution (e.g., no additional EULAs or field-of-use limits).
-	5.	Compliance. You will follow applicable laws and the Project’s Code of Conduct.
+By submitting a Contribution, you represent that: 1. Originality / rights. The Contribution is your original work, or you have sufficient rights to submit it and to grant the licenses above. 2. Third-party material. If the Contribution includes third-party content (code, data, audio, symbols, images), you have identified its source and license, and it is compatible with the Project’s license (currently MIT; see LICENSE). Specifically, Contributions must not include any proprietary, non-redistributable symbol sets (e.g., Boardmaker PCS®) or other media unless you provide explicit proof of a compatible license (e.g., Creative Commons, public domain, or a specific grant of rights). 3. No Protected Health Information or Personal Data. The Contribution does not include confidential information, personal data, or Protected Health Information (PHI) you lack the explicit right to share. You represent that any data resembling clinical or user-generated content (including voice recordings, text, or board layouts) is synthetic, fully anonymized, and carries no risk of re-identification. 4. No additional restrictions. You will not impose further terms or restrictions on the Contribution (e.g., no additional EULAs or field-of-use limits). 5. Compliance. You will follow applicable laws and the Project’s Code of Conduct.
 
 5. Moral rights
 
@@ -51,9 +46,9 @@ TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT WILL YOU OR THE MAINTAINERS 
 10. How you agree to this CLA
 
 You agree to this CLA by any of the following:
-	•	Submitting a pull request that includes a DCO-style sign-off line in each commit message, or
-	•	Checking the CLA/DCO box presented by any automated check on your pull request, or
-	•	Completing and submitting the optional signature block below in your PR.
+• Submitting a pull request that includes a DCO-style sign-off line in each commit message, or
+• Checking the CLA/DCO box presented by any automated check on your pull request, or
+• Completing and submitting the optional signature block below in your PR.
 
 DCO Sign-off format (required if DCO is enforced):
 
@@ -72,22 +67,22 @@ If any provision of this Agreement is unenforceable, the remaining provisions re
 (Optional) Signature Block
 
 If your organization requires a signed record, include this in your PR (as cla-signature.txt or in the PR description).
-	•	Contributor Name: ______________________________
-	•	GitHub Username: ______________________________
-	•	Email: _______________________________________
-	•	Employer/Entity (if any): _____________________
-	•	I have authority to bind the entity (Y/N): _____
-	•	Date: _________________________________________
-	•	Signature: ____________________________________
+• Contributor Name: **************\_\_**************
+• GitHub Username: **************\_\_**************
+• Email: ******************\_\_\_******************
+• Employer/Entity (if any): **********\_**********
+• I have authority to bind the entity (Y/N): **\_**
+• Date: ********************\_********************
+• Signature: ****************\_\_\_\_****************
 
 ⸻
 
 FAQ (project-specific)
-	•	Can I include real AAC data?
+• Can I include real AAC data?
 Please do not. Use synthetic or fully anonymized fixtures. Do not upload identifiable voice/audio or clinical details.
-	•	What licenses are acceptable for third-party assets?
+• What licenses are acceptable for third-party assets?
 MIT/Apache-2.0/BSD-style are preferred for code; ensure data/symbol assets permit redistribution in an open-source project.
-	•	Patents?
+• Patents?
 By contributing, you grant the patent license above. If you file a patent suit alleging infringement by this Project, your patent grant here ends.
 
 This CLA is a community-friendly, Apache-style CLA adapted for AAC libraries. It is not legal advice.

@@ -22,8 +22,16 @@ describe('Grid3 Wordlist Helpers', () => {
 
     it('creates wordlist from array of WordListItem objects', () => {
       const input: WordListItem[] = [
-        { text: 'hello', image: '[WIDGIT]greetings/hello.emf', partOfSpeech: 'Interjection' },
-        { text: 'goodbye', image: '[WIDGIT]greetings/goodbye.emf', partOfSpeech: 'Interjection' },
+        {
+          text: 'hello',
+          image: '[WIDGIT]greetings/hello.emf',
+          partOfSpeech: 'Interjection',
+        },
+        {
+          text: 'goodbye',
+          image: '[WIDGIT]greetings/goodbye.emf',
+          partOfSpeech: 'Interjection',
+        },
       ];
       const wordlist = createWordlist(input);
 
@@ -72,7 +80,11 @@ describe('Grid3 Wordlist Helpers', () => {
     it('converts wordlist to valid XML', () => {
       const wordlist: WordList = {
         items: [
-          { text: 'hello', image: '[WIDGIT]hello.emf', partOfSpeech: 'Interjection' },
+          {
+            text: 'hello',
+            image: '[WIDGIT]hello.emf',
+            partOfSpeech: 'Interjection',
+          },
           { text: 'goodbye', partOfSpeech: 'Interjection' },
         ],
       };
@@ -309,8 +321,16 @@ describe('Grid3 Wordlist Helpers', () => {
     it('updates wordlist with metadata', () => {
       const gridset = createTestGridset('Greetings');
       const newWordlist = createWordlist([
-        { text: 'hello', image: '[WIDGIT]hello.emf', partOfSpeech: 'Interjection' },
-        { text: 'goodbye', image: '[WIDGIT]goodbye.emf', partOfSpeech: 'Interjection' },
+        {
+          text: 'hello',
+          image: '[WIDGIT]hello.emf',
+          partOfSpeech: 'Interjection',
+        },
+        {
+          text: 'goodbye',
+          image: '[WIDGIT]goodbye.emf',
+          partOfSpeech: 'Interjection',
+        },
       ]);
 
       const updated = updateWordlist(gridset, 'Greetings', newWordlist);

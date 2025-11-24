@@ -16,6 +16,14 @@ export {
   generateGrid3Guid,
   createSettingsXml,
   createFileMapXml,
+  getCommonDocumentsPath,
+  findGrid3UserPaths,
+  findGrid3HistoryDatabases,
+  findGrid3Users,
+  findGrid3Vocabularies,
+  findGrid3UserHistory,
+  type Grid3UserPath,
+  type Grid3VocabularyPath,
 } from './gridset/helpers';
 export {
   getPageTokenImageMap as getGridsetPageTokenImageMap,
@@ -24,6 +32,12 @@ export {
   generateGrid3Guid as generateGridsetGuid,
   createSettingsXml as createGridsetSettingsXml,
   createFileMapXml as createGridsetFileMapXml,
+  getCommonDocumentsPath as getGridsetCommonDocumentsPath,
+  findGrid3UserPaths as findGridsetUserPaths,
+  findGrid3HistoryDatabases as findGridsetHistoryDatabases,
+  findGrid3Users as findGridsetUsers,
+  findGrid3Vocabularies as findGridsetVocabularies,
+  findGrid3UserHistory as findGridsetUserHistory,
 } from './gridset/helpers';
 export { resolveGrid3CellImage } from './gridset/resolver';
 
@@ -61,11 +75,18 @@ export {
 // Re-export ensureAlphaChannel from styleHelpers for backward compatibility
 export { ensureAlphaChannel as ensureAlphaChannelFromStyles } from './gridset/styleHelpers';
 
-// Snap helpers (stubs)
+// Snap helpers
 export {
   getPageTokenImageMap as getSnapPageTokenImageMap,
   getAllowedImageEntries as getSnapAllowedImageEntries,
   openImage as openSnapImage,
+  findSnapPackages,
+  findSnapPackagePath,
+  findSnapUsers,
+  findSnapUserVocabularies,
+  findSnapUserHistory,
+  type SnapPackagePath,
+  type SnapUserInfo,
 } from './snap/helpers';
 
 // TouchChat helpers (stubs)
