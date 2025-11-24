@@ -1765,6 +1765,240 @@ Multiple access methods supported:
 </Cell>
 ```
 
+## Usage History and Analytics
+
+### Overview
+Grid 3 tracks phrase history in SQLite database files stored in the user's data directory. This allows for analytics on what phrases have been spoken, when they were used, and optionally where they were used (if GPS is enabled).
+
+### History File Locations
+
+Grid 3 stores history data in user-specific directories:
+
+**Windows:**
+```
+C:\Users\Public\Documents\Smartbox\Grid 3\Users\{username}\{language}\Phrases\history.sqlite
+```
+
+**Alternative locations:**
+```
+%USERPROFILE%\Documents\Smartbox\Grid 3\Users\{username}\{language}\Phrases\history.sqlite
+```
+
+**Structure:**
+```
+Grid 3\
+└── Users\
+    ├── {username1}\
+    │   └── en-GB\
+    │       └── Phrases\
+    │           └── history.sqlite
+    └── {username2}\
+        └── en-GB\
+            └── Phrases\
+                └── history.sqlite
+```
+
+Each user can have multiple language directories (e.g., `en-GB`, `en-US`, `fr-FR`), each with its own history database.
+
+### Database Schema
+
+The `history.sqlite` file contains two main tables:
+
+#### Phrases Table
+
+Stores unique phrases with their XML content.
+
+**Schema:**
+```sql
+CREATE TABLE Phrases (
+  Id INTEGER PRIMARY KEY AUTOINCREMENT,
+  Text TEXT NOT NULL,
+  Content TEXT NOT NULL
+);
+```
+
+**Fields:**
+- `Id` - Primary key, auto-increment
+- `Text` - Plain text version of the phrase (lowercase, for indexing)
+- `Content` - XML representation of the phrase with proper casing and formatting
+
+**XML Content Format:**
+
+Grid 3 stores phrases as XML with `<r>` (run) elements containing text fragments:
+
+```xml
+<p><s><r>I</r></s><s><r><![CDATA[ ]]></r></s><s><r>love</r></s><s><r><![CDATA[ ]]></r></s><s><r>you</r></s></p>
+```
+
+This represents: "I love you"
+
+The XML structure preserves:
+- Proper capitalization
+- Spacing between words
+- Sentence structure
+- Symbol associations (if any)
+
+#### PhraseHistory Table
+
+Stores each occurrence of a phrase being spoken.
+
+**Schema:**
+```sql
+CREATE TABLE PhraseHistory (
+  Id INTEGER PRIMARY KEY AUTOINCREMENT,
+  PhraseId INTEGER NOT NULL,
+  Timestamp BIGINT NOT NULL,
+  Latitude REAL,
+  Longitude REAL,
+  FOREIGN KEY(PhraseId) REFERENCES Phrases(Id)
+);
+```
+
+**Fields:**
+- `Id` - Primary key, auto-increment
+- `PhraseId` - References `Phrases.Id`
+- `Timestamp` - When the phrase was spoken (.NET ticks: 100-nanosecond intervals since 0001-01-01)
+- `Latitude` - GPS latitude (if location tracking enabled, otherwise NULL)
+- `Longitude` - GPS longitude (if location tracking enabled, otherwise NULL)
+
+### Querying History Data
+
+**Get all unique phrases that have been spoken:**
+```sql
+SELECT DISTINCT p.Content
+FROM PhraseHistory ph
+INNER JOIN Phrases p ON p.Id = ph.PhraseId
+WHERE ph.Timestamp <> 0
+ORDER BY ph.Timestamp DESC;
+```
+
+**Note:** Phrases with `Timestamp = 0` exist in the database but have never been spoken.
+
+**Get phrase usage with timestamps:**
+```sql
+SELECT
+  p.Content,
+  ph.Timestamp,
+  ph.Latitude,
+  ph.Longitude
+FROM PhraseHistory ph
+INNER JOIN Phrases p ON p.Id = ph.PhraseId
+WHERE ph.Timestamp <> 0
+ORDER BY ph.Timestamp ASC;
+```
+
+**Get most frequently used phrases:**
+```sql
+SELECT
+  p.Content,
+  COUNT(*) as UsageCount,
+  MIN(ph.Timestamp) as FirstUsed,
+  MAX(ph.Timestamp) as LastUsed
+FROM PhraseHistory ph
+INNER JOIN Phrases p ON p.Id = ph.PhraseId
+WHERE ph.Timestamp <> 0
+GROUP BY ph.PhraseId
+ORDER BY UsageCount DESC
+LIMIT 20;
+```
+
+**Get phrases with GPS data:**
+```sql
+SELECT
+  p.Content,
+  ph.Timestamp,
+  ph.Latitude,
+  ph.Longitude
+FROM PhraseHistory ph
+INNER JOIN Phrases p ON p.Id = ph.PhraseId
+WHERE ph.Latitude IS NOT NULL
+  AND ph.Longitude IS NOT NULL
+  AND ph.Timestamp <> 0
+ORDER BY ph.Timestamp DESC;
+```
+
+### Parsing XML Content
+
+To extract the properly cased text from the XML `Content` field:
+
+**JavaScript/TypeScript:**
+```javascript
+function parseGrid3XML(xmlContent) {
+  // Extract all <r>...</r> content, including CDATA sections
+  const rTagRegex = /<r>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/r>/g;
+  const matches = [];
+  let match;
+
+  while ((match = rTagRegex.exec(xmlContent)) !== null) {
+    matches.push(match[1]);
+  }
+
+  return matches.join("");
+}
+```
+
+**Example:**
+```javascript
+const xml = '<p><s><r>I</r></s><s><r><![CDATA[ ]]></r></s><s><r>love</r></s></p>';
+const text = parseGrid3XML(xml);
+// Returns: "I love"
+```
+
+### Converting .NET Ticks to Dates
+
+Timestamps are stored as .NET ticks (100-nanosecond intervals since 0001-01-01 00:00:00).
+
+**Conversion Formula:**
+```javascript
+function dotNetTicksToDate(ticks) {
+  const epochTicks = 621355968000000000; // Ticks at Unix epoch (1970-01-01)
+  const ticksPerMillisecond = 10000;
+  const milliseconds = (ticks - epochTicks) / ticksPerMillisecond;
+  return new Date(milliseconds);
+}
+```
+
+**Example:**
+- Ticks: `638000000000000000`
+- Converts to: `2023-01-01 00:00:00 UTC`
+
+### GPS Location Data
+
+If location tracking is enabled in Grid 3 settings, the `Latitude` and `Longitude` fields will contain GPS coordinates.
+
+**Features:**
+- Track where phrases were spoken
+- Analyze communication patterns by location
+- Useful for community-based AAC users
+- Privacy considerations: GPS data is sensitive
+
+**Checking for GPS data:**
+```sql
+SELECT
+  COUNT(*) as TotalPhrases,
+  SUM(CASE WHEN Latitude IS NOT NULL THEN 1 ELSE 0 END) as PhrasesWithGPS
+FROM PhraseHistory
+WHERE Timestamp <> 0;
+```
+
+### Important Notes
+
+1. **Multiple users** - Each Grid 3 user has their own history database
+2. **Multiple languages** - Each language has its own history database
+3. **Timestamps are .NET ticks** - Must convert to standard dates for analysis
+4. **Zero timestamps** - Phrases with `Timestamp = 0` have never been spoken
+5. **XML parsing required** - The `Content` field contains XML that must be parsed to get readable text
+6. **Privacy considerations** - History data may contain sensitive personal information
+7. **File access** - Grid 3 may lock the database file when running; close the app to access it
+
+### Chat History vs Phrase History
+
+Grid 3 distinguishes between:
+- **Phrase History** - All phrases spoken through the "Speak" command (stored in `history.sqlite`)
+- **Chat History** - Messages in the chat workspace (may be stored separately or in workspace state)
+
+The `history.sqlite` file specifically tracks phrases that were spoken aloud, not just typed into workspaces.
+
 ## Best Practices
 
 ### Cell Design

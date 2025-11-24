@@ -1,7 +1,44 @@
-Exports are .sps files. these are sqlite files. no encryption. 
+# Tobii Dynavox Snap File Format Documentation
 
+## Overview
 
-here is the structure
+Exports are .sps files. These are SQLite database files with no encryption.
+
+## File Locations
+
+### Windows UWP Installation
+TD Snap stores data in the sandboxed UWP app directory:
+```
+%LOCALAPPDATA%\Packages\TobiiDynavox.Snap_626b2w651dr5w\LocalState\
+```
+
+### Key Directories and Files
+
+#### User Data
+```
+LocalState\Users\{user-guid}\
+├── {pageset-guid}.sps          # User's pageset file (contains history!)
+├── Settings.ssf                 # User settings database
+├── MyTdx.data                   # MyTDX account data
+├── SyncPermissionsCache.db3     # Sync permissions
+└── SwiftKeyDynamicModels\       # Word prediction models
+    └── {language}\
+        ├── dynamic.lm           # Binary language model
+        ├── learned.json         # Learning configuration
+        └── .config              # Model configuration
+```
+
+#### Global Data
+```
+LocalState\
+├── GlobalSettings.ssf           # Global application settings
+├── Symbols\
+│   └── SymbolsSnapCoreExtended.db3  # Symbol library database
+└── logs\
+    └── {date}.log               # Application logs
+```
+
+## Database Structure
 
 ERD Diagram here : https://dbdiagram.io/d/TobiiDynavoxSnap-651a8680ffbf5169f0da45d5
 
@@ -392,3 +429,186 @@ So to resolve a symbol reference in a Snap file, you would need to:
 1. Get the PageSetImageId from Button or Page
 2. Look up the entry in PageSetData
 3. Use the image Data directly, with the Identifier as the label
+
+## Usage History and Analytics
+
+### Overview
+TD Snap tracks button usage history and stores it directly within the .sps pageset files. This allows for analytics on which buttons are used most frequently, when they were used, and whether they were used for modeling purposes.
+
+### Enabling History Tracking
+
+History tracking must be enabled in the user settings. Check the `Settings.ssf` file:
+
+**Location:** `LocalState\Users\{user-guid}\Settings.ssf`
+
+**Settings Table:** `UserSettings`
+
+**Key Fields:**
+- `TrackButtonUsage` - Must be set to `1` to enable tracking
+- `ShowButtonUsageCounts` - Display usage counts in the UI (0/1)
+- `ShowButtonModelingUsageCounts` - Display modeling counts in the UI (0/1)
+
+**Example Query:**
+```sql
+SELECT TrackButtonUsage, ShowButtonUsageCounts, ShowButtonModelingUsageCounts
+FROM UserSettings;
+```
+
+### History Storage
+
+History data is stored in two tables within each `.sps` pageset file:
+
+#### ButtonUsage Table
+
+Stores individual button press events.
+
+**Schema:**
+```sql
+CREATE TABLE IF NOT EXISTS "ButtonUsage"(
+  "Id" integer primary key autoincrement not null,
+  "Timestamp" bigint,
+  "ButtonUniqueId" varchar(36),
+  "Modeling" integer,
+  "AccessMethod" integer,
+  "BlockId" integer
+);
+CREATE INDEX "ButtonUsage_ButtonId" on "ButtonUsage"("ButtonUniqueId");
+CREATE INDEX "ButtonUsage_BlockId" on "ButtonUsage"("BlockId");
+```
+
+**Fields:**
+- `Id` - Primary key, auto-increment
+- `Timestamp` - When the button was pressed (.NET ticks: 100-nanosecond intervals since 0001-01-01)
+- `ButtonUniqueId` - References `Button.UniqueId` to identify which button was pressed
+- `Modeling` - Whether this was a modeling action (0 = user, 1 = modeling)
+- `AccessMethod` - How the button was accessed (touch, scanning, eye gaze, etc.)
+- `BlockId` - References `ButtonUsageBlock.Id` for grouping usage into time blocks
+
+#### ButtonUsageBlock Table
+
+Groups usage data into time blocks for synchronization and organization.
+
+**Schema:**
+```sql
+CREATE TABLE IF NOT EXISTS "ButtonUsageBlock"(
+  "Id" integer primary key autoincrement not null,
+  "UniqueId" varchar(36),
+  "StartTime" bigint,
+  "Timestamp" bigint,
+  "SyncHash" integer
+);
+CREATE UNIQUE INDEX "ButtonUsageBlock_UniqueId" on "ButtonUsageBlock"("UniqueId");
+```
+
+**Fields:**
+- `Id` - Primary key, auto-increment
+- `UniqueId` - Unique identifier for the block (GUID)
+- `StartTime` - Block start time (.NET ticks)
+- `Timestamp` - Block end time (.NET ticks)
+- `SyncHash` - Hash for synchronization purposes
+
+### Querying Usage History
+
+**Get all button presses with button details:**
+```sql
+SELECT
+  bu.Timestamp,
+  bu.Modeling,
+  bu.AccessMethod,
+  b.Label,
+  b.Message,
+  b.UniqueId as ButtonId
+FROM ButtonUsage bu
+LEFT JOIN Button b ON bu.ButtonUniqueId = b.UniqueId
+ORDER BY bu.Timestamp ASC;
+```
+
+**Get usage counts per button:**
+```sql
+SELECT
+  b.Label,
+  b.Message,
+  COUNT(*) as UsageCount,
+  SUM(CASE WHEN bu.Modeling = 1 THEN 1 ELSE 0 END) as ModelingCount,
+  SUM(CASE WHEN bu.Modeling = 0 THEN 1 ELSE 0 END) as UserCount
+FROM ButtonUsage bu
+LEFT JOIN Button b ON bu.ButtonUniqueId = b.UniqueId
+GROUP BY bu.ButtonUniqueId
+ORDER BY UsageCount DESC;
+```
+
+**Get most recently used buttons:**
+```sql
+SELECT
+  b.Label,
+  b.Message,
+  MAX(bu.Timestamp) as LastUsed
+FROM ButtonUsage bu
+LEFT JOIN Button b ON bu.ButtonUniqueId = b.UniqueId
+GROUP BY bu.ButtonUniqueId
+ORDER BY LastUsed DESC
+LIMIT 10;
+```
+
+### Converting .NET Ticks to Dates
+
+Timestamps are stored as .NET ticks (100-nanosecond intervals since 0001-01-01 00:00:00).
+
+**Conversion Formula:**
+```javascript
+function dotNetTicksToDate(ticks) {
+  const epochTicks = 621355968000000000; // Ticks at Unix epoch (1970-01-01)
+  const ticksPerMillisecond = 10000;
+  const milliseconds = (ticks - epochTicks) / ticksPerMillisecond;
+  return new Date(milliseconds);
+}
+```
+
+**Example:**
+- Ticks: `638996075431380131`
+- Converts to: `2024-11-24 18:54:03.138 UTC`
+
+### Page Access History
+
+The `PageExtra` table tracks when pages were last accessed:
+
+**Schema:**
+```sql
+CREATE TABLE IF NOT EXISTS "PageExtra" (
+  "Id" integer,
+  "AccessedAt" bigint,
+  PRIMARY KEY("Id"),
+  FOREIGN KEY("Id") REFERENCES "Page"("Id") ON DELETE CASCADE
+);
+```
+
+**Query:**
+```sql
+SELECT
+  p.Title,
+  pe.AccessedAt
+FROM PageExtra pe
+LEFT JOIN Page p ON pe.Id = p.Id
+ORDER BY pe.AccessedAt DESC;
+```
+
+### Word Prediction History
+
+TD Snap uses SwiftKey for word prediction and stores learned words in the user's language model.
+
+**Location:** `LocalState\Users\{user-guid}\SwiftKeyDynamicModels\{language}/`
+
+**Files:**
+- `dynamic.lm` - Binary language model containing learned words and phrases
+- `learned.json` - Configuration for learning parameters (weights, decay, etc.)
+- `.config` - Model configuration settings
+
+**Note:** The `dynamic.lm` file is a proprietary binary format and cannot be easily parsed without SwiftKey's SDK.
+
+### Important Notes
+
+1. **History is embedded in pagesets** - The `.sps` file contains both the pageset structure AND usage history
+2. **File locking** - TD Snap locks the `.sps` file when running; close the app to access the database
+3. **Timestamps are .NET ticks** - Must convert to standard dates for analysis
+4. **Privacy considerations** - Usage history may contain sensitive information about user communication patterns
+5. **Synchronization** - ButtonUsageBlock helps organize data for cloud sync with MyTDX
