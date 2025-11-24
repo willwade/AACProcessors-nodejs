@@ -396,7 +396,7 @@ describe('Memory Leak Detection Tests', () => {
       expect(memoryVariation).toBeLessThan(15); // Less than 15MB variation
     });
 
-    it('should clean up temporary resources properly', () => {
+    it('should clean up temporary resources properly', async () => {
       const processor = new SnapProcessor();
 
       const memBefore = getMemoryUsage();
@@ -426,21 +426,24 @@ describe('Memory Leak Detection Tests', () => {
       forceGC();
 
       // Give some time for cleanup
-      setTimeout(() => {
-        const memAfter = getMemoryUsage();
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const tempFilesAfter = fs.readdirSync(require('os').tmpdir()).length;
+      await new Promise<void>((resolve) => {
+        setTimeout(() => {
+          const memAfter = getMemoryUsage();
+          // eslint-disable-next-line @typescript-eslint/no-var-requires
+          const tempFilesAfter = fs.readdirSync(require('os').tmpdir()).length;
 
-        const memoryIncrease = memAfter.heapUsed - memBefore.heapUsed;
-        const tempFileIncrease = tempFilesAfter - tempFilesBefore;
+          const memoryIncrease = memAfter.heapUsed - memBefore.heapUsed;
+          const tempFileIncrease = tempFilesAfter - tempFilesBefore;
 
-        console.log(
-          `Temp cleanup - Memory: +${memoryIncrease}MB, Temp files: +${tempFileIncrease}`
-        );
+          console.log(
+            `Temp cleanup - Memory: +${memoryIncrease}MB, Temp files: +${tempFileIncrease}`
+          );
 
-        expect(memoryIncrease).toBeLessThan(20);
-        expect(tempFileIncrease).toBeLessThan(5); // Should clean up most temp files
-      }, 200);
+          expect(memoryIncrease).toBeLessThan(20);
+          expect(tempFileIncrease).toBeLessThan(5); // Should clean up most temp files
+          resolve();
+        }, 200);
+      });
     });
   });
 });

@@ -1,6 +1,9 @@
 import AdmZip from 'adm-zip';
 import { XMLBuilder } from 'fast-xml-parser';
 import { AACTree, AACPage, AACButton } from '../../core/treeStructure';
+import * as fs from 'fs';
+import * as path from 'path';
+import { execSync } from 'child_process';
 
 function normalizeZipPath(p: string): string {
   const unified = p.replace(/\\/g, '/');
@@ -124,4 +127,190 @@ export function createFileMapXml(
   };
 
   return builder.build(fileMapData);
+}
+
+/**
+ * Grid3 user data path information
+ */
+export interface Grid3UserPath {
+  userName: string;
+  langCode: string;
+  basePath: string;
+  historyDbPath: string;
+}
+
+export interface Grid3VocabularyPath {
+  userName: string;
+  gridsetPath: string;
+}
+
+/**
+ * Get the Windows Common Documents folder path from registry
+ * Falls back to default path if registry access fails
+ * @returns Path to Common Documents folder
+ */
+export function getCommonDocumentsPath(): string {
+  // Only works on Windows
+  if (process.platform !== 'win32') {
+    return '';
+  }
+
+  try {
+    // Query registry for Common Documents path
+    const command =
+      'REG.EXE QUERY "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders" /V "Common Documents"';
+    const output = execSync(command, { encoding: 'utf-8', windowsHide: true });
+
+    // Parse the output to extract the path
+    const match = output.match(/Common Documents\s+REG_SZ\s+(.+)/);
+    if (match && match[1]) {
+      return match[1].trim();
+    }
+  } catch (error) {
+    // Registry access failed, fall back to default
+  }
+
+  // Default fallback path
+  return 'C:\\Users\\Public\\Documents';
+}
+
+/**
+ * Find all Grid3 user data paths
+ * Searches for users and language codes in the Grid3 directory structure
+ * C:\Users\Public\Documents\Smartbox\Grid 3\Users\{UserName}\{langCode}\Phrases\history.sqlite
+ * @returns Array of Grid3 user path information
+ */
+export function findGrid3UserPaths(): Grid3UserPath[] {
+  const results: Grid3UserPath[] = [];
+
+  // Only works on Windows
+  if (process.platform !== 'win32') {
+    return results;
+  }
+
+  try {
+    const commonDocs = getCommonDocumentsPath();
+    const grid3BasePath = path.join(commonDocs, 'Smartbox', 'Grid 3', 'Users');
+
+    // Check if Grid3 Users directory exists
+    if (!fs.existsSync(grid3BasePath)) {
+      return results;
+    }
+
+    // Enumerate users
+    const users = fs.readdirSync(grid3BasePath, { withFileTypes: true });
+
+    for (const userDir of users) {
+      if (!userDir.isDirectory()) continue;
+
+      const userName = userDir.name;
+      const userPath = path.join(grid3BasePath, userName);
+
+      // Enumerate language codes
+      const langDirs = fs.readdirSync(userPath, { withFileTypes: true });
+
+      for (const langDir of langDirs) {
+        if (!langDir.isDirectory()) continue;
+
+        const langCode = langDir.name;
+        const basePath = path.join(userPath, langCode);
+        const historyDbPath = path.join(basePath, 'Phrases', 'history.sqlite');
+
+        // Only include if history database exists
+        if (fs.existsSync(historyDbPath)) {
+          results.push({
+            userName,
+            langCode,
+            basePath,
+            historyDbPath,
+          });
+        }
+      }
+    }
+  } catch (error) {
+    // Silently fail if directory access fails
+  }
+
+  return results;
+}
+
+/**
+ * Find all Grid3 history database paths
+ * Convenience method that returns just the database file paths
+ * @returns Array of paths to history.sqlite files
+ */
+export function findGrid3HistoryDatabases(): string[] {
+  return findGrid3UserPaths().map((userPath) => userPath.historyDbPath);
+}
+
+/**
+ * Get Grid 3 users (alias of findGrid3UserPaths for clarity)
+ */
+export function findGrid3Users(): Grid3UserPath[] {
+  return findGrid3UserPaths();
+}
+
+/**
+ * Find Grid 3 gridset/vocabulary files for each user
+ * @param userName Optional user filter; matches case-insensitively
+ * @returns Array of user/gridset path pairs
+ */
+export function findGrid3Vocabularies(userName?: string): Grid3VocabularyPath[] {
+  const results: Grid3VocabularyPath[] = [];
+
+  if (process.platform !== 'win32') {
+    return results;
+  }
+
+  const commonDocs = getCommonDocumentsPath();
+  const grid3BasePath = path.join(commonDocs, 'Smartbox', 'Grid 3', 'Users');
+
+  if (!fs.existsSync(grid3BasePath)) {
+    return results;
+  }
+
+  const normalizedUser = userName?.toLowerCase();
+  const users = fs.readdirSync(grid3BasePath, { withFileTypes: true });
+
+  for (const userDir of users) {
+    if (!userDir.isDirectory()) continue;
+    if (normalizedUser && userDir.name.toLowerCase() !== normalizedUser) continue;
+
+    const userRoot = path.join(grid3BasePath, userDir.name);
+    const gridSetsDir = path.join(userRoot, 'Grid Sets');
+    if (!fs.existsSync(gridSetsDir)) continue;
+
+    const entries = fs.readdirSync(gridSetsDir, { withFileTypes: true });
+    for (const entry of entries) {
+      if (!entry.isFile()) continue;
+      const ext = path.extname(entry.name).toLowerCase();
+      if (ext === '.gridset' || ext === '.grd' || ext === '.grdl') {
+        results.push({
+          userName: userDir.name,
+          gridsetPath: path.join(gridSetsDir, entry.name),
+        });
+      }
+    }
+  }
+
+  return results;
+}
+
+/**
+ * Find a specific user's Grid 3 history database
+ * @param userName User name to search for (case-insensitive)
+ * @param langCode Optional language code filter (case-insensitive)
+ * @returns Path to history.sqlite or null if not found
+ */
+export function findGrid3UserHistory(userName: string, langCode?: string): string | null {
+  const normalizedUser = userName.toLowerCase();
+  const normalizedLang = langCode?.toLowerCase();
+
+  const match = findGrid3UserPaths().find(
+    (u) =>
+      u.userName.toLowerCase() === normalizedUser &&
+      (!normalizedLang || u.langCode.toLowerCase() === normalizedLang)
+  );
+
+  return match?.historyDbPath ?? null;
 }

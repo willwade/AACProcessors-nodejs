@@ -45,19 +45,44 @@ describe('Gridset helper APIs', () => {
 
   it('getAllowedImageEntries aggregates unique image entries across pages', () => {
     const tree = new AACTree();
-    const p1 = new AACPage({ id: 'p1', name: 'P1', grid: { columns: 1, rows: 1 }, buttons: [] });
-    const p2 = new AACPage({ id: 'p2', name: 'P2', grid: { columns: 1, rows: 1 }, buttons: [] });
+    const p1 = new AACPage({
+      id: 'p1',
+      name: 'P1',
+      grid: { columns: 1, rows: 1 },
+      buttons: [],
+    });
+    const p2 = new AACPage({
+      id: 'p2',
+      name: 'P2',
+      grid: { columns: 1, rows: 1 },
+      buttons: [],
+    });
     tree.addPage(p1);
     tree.addPage(p2);
 
     p1.addButton(
-      new AACButton({ id: 'b1', label: 'A', message: 'A', resolvedImageEntry: 'X/Y/a.png' })
+      new AACButton({
+        id: 'b1',
+        label: 'A',
+        message: 'A',
+        resolvedImageEntry: 'X/Y/a.png',
+      })
     );
     p1.addButton(
-      new AACButton({ id: 'b2', label: 'B', message: 'B', resolvedImageEntry: 'X/Y/a.png' })
+      new AACButton({
+        id: 'b2',
+        label: 'B',
+        message: 'B',
+        resolvedImageEntry: 'X/Y/a.png',
+      })
     );
     p2.addButton(
-      new AACButton({ id: 'b3', label: 'C', message: 'C', resolvedImageEntry: 'X/Z/c.png' })
+      new AACButton({
+        id: 'b3',
+        label: 'C',
+        message: 'C',
+        resolvedImageEntry: 'X/Z/c.png',
+      })
     );
 
     const set = getAllowedImageEntries(tree);
@@ -204,7 +229,11 @@ describe('Grid3 FileMap XML Builder', () => {
   it('createFileMapXml handles mixed grids with and without dynamic files', () => {
     const xml = createFileMapXml([
       { name: 'Home', path: 'Grids\\Home\\grid.xml' },
-      { name: 'Menu', path: 'Grids\\Menu\\grid.xml', dynamicFiles: ['menu_dynamic.xml'] },
+      {
+        name: 'Menu',
+        path: 'Grids\\Menu\\grid.xml',
+        dynamicFiles: ['menu_dynamic.xml'],
+      },
     ]);
     expect(xml).toContain('StaticFile="Grids\\Home\\grid.xml"');
     expect(xml).toContain('StaticFile="Grids\\Menu\\grid.xml"');

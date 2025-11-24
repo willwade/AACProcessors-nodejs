@@ -404,8 +404,8 @@ processor.saveFromTree(tree, "styled-board.spb");
 | **Grid3**         | ✅ Yes     | ✅ Yes       | ✅ Yes  | ✅ Style references             |
 | **Asterics Grid** | ✅ Yes     | ✅ Yes       | ✅ Yes  | ✅ Metadata-based               |
 | **Apple Panels**  | ✅ Yes     | ✅ Size only | ❌ No   | ✅ Display weight               |
-| **Dot**           |  ❌No     | ❌ Yes       | ❌ No   | ❌ Basic only                   |
-| **OPML**          |  ❌No     | ❌ Yes       | ❌ No   | ❌ Basic only                   |
+| **Dot**           | ❌No       | ❌ Yes       | ❌ No   | ❌ Basic only                   |
+| **OPML**          | ❌No       | ❌ Yes       | ❌ No   | ❌ Basic only                   |
 | **Excel**         | ✅ Yes     | ✅ Size only | ❌ No   | ✅ Display weight               |
 
 #### Cross-Format Styling Conversion
@@ -709,7 +709,6 @@ Inspired by the Python AACProcessors project
 - [ ] **Improve AstericsGridProcessor coverage** (currently 62.5%) - Add comprehensive tests for Asterics Grid format processing to reach >80% coverage
 - [ ] **Add Symbol Tools coverage** (currently 0%) - Implement tests for PCS and ARASAAC symbol lookups to reach >70% coverage
 - [ ] **Fix property-based test failures** - Resolve TypeScript interface compatibility issues in edge case generators
-
 
 ### Medium Priority
 

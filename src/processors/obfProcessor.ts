@@ -297,7 +297,12 @@ class ObfProcessor extends BaseProcessor {
         buttonPositions.set(id, index);
         return id;
       });
-      return { rows: 1, columns: fallbackRow.length, order: [fallbackRow], buttonPositions };
+      return {
+        rows: 1,
+        columns: fallbackRow.length,
+        order: [fallbackRow],
+        buttonPositions,
+      };
     }
 
     const order: (string | null)[][] = [];
