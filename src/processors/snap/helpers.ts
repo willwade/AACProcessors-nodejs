@@ -163,6 +163,8 @@ export function findSnapPackagePath(packageNamePattern = 'TobiiDynavox'): string
 
 /**
  * Find Snap user directories and their vocab files (.sps/.spb)
+ * Typical path:
+ * C:\Users\{username}\AppData\Roaming\Tobii Dynavox\Snap Scene\Users\{userId}\
  * @param packageNamePattern Optional package filter (default TobiiDynavox)
  * @returns Array of user info with vocab paths
  */

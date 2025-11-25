@@ -58,6 +58,37 @@ npm run build
 
 ---
 
+## Using with Electron
+
+`better-sqlite3` is a native module and must be rebuilt against Electron's Node.js runtime. If you see a `NODE_MODULE_VERSION` mismatch error, rebuild after installing dependencies:
+
+```bash
+npm install
+npx electron-rebuild
+```
+
+Or add a postinstall hook so the rebuild happens automatically:
+
+```json
+{
+  "scripts": {
+    "postinstall": "electron-builder install-app-deps"
+  }
+}
+```
+
+This step is only required for Electron apps; regular Node.js consumers do not need it.
+
+---
+
+## Windows Data Paths
+
+- **Grid 3 history**: `C:\Users\Public\Documents\Smartbox\Grid 3\Users\{username}\{langCode}\Phrases\history.sqlite`
+- **Grid 3 vocabularies**: `C:\Users\Public\Documents\Smartbox\Grid 3\Users\{username}\Grid Sets\`
+- **Snap vocabularies**: `C:\Users\{username}\AppData\Roaming\Tobii Dynavox\Snap Scene\Users\{userId}\` (`.sps`/`.spb`)
+
+---
+
 ## 🔧 Quick Start
 
 ### Basic Usage (TypeScript/ES6)
