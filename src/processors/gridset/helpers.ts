@@ -16,6 +16,10 @@ function normalizeZipPath(p: string): string {
   }
 }
 
+/**
+ * Build a map of button IDs to resolved image entry paths for a specific page.
+ * Helpful when rewriting zip entry names or validating images referenced in a grid.
+ */
 export function getPageTokenImageMap(tree: AACTree, pageId: string): Map<string, string> {
   const map = new Map<string, string>();
   const page: AACPage | undefined = tree.getPage(pageId);
@@ -28,6 +32,10 @@ export function getPageTokenImageMap(tree: AACTree, pageId: string): Map<string,
   return map;
 }
 
+/**
+ * Collect all image entries referenced across every page in a tree.
+ * Returns normalized zip entry paths that should be preserved when pruning images.
+ */
 export function getAllowedImageEntries(tree: AACTree): Set<string> {
   const out = new Set<string>();
   Object.values(tree.pages).forEach((page) => {
@@ -38,6 +46,12 @@ export function getAllowedImageEntries(tree: AACTree): Set<string> {
   return out;
 }
 
+/**
+ * Read an image entry from a gridset zip by path.
+ * @param gridsetBuffer Gridset archive contents
+ * @param entryPath Entry name inside the zip
+ * @returns Image data buffer or null if not found
+ */
 export function openImage(gridsetBuffer: Buffer, entryPath: string): Buffer | null {
   const zip = new AdmZip(gridsetBuffer);
   const want = normalizeZipPath(entryPath);
@@ -353,6 +367,11 @@ function parseGrid3ContentXml(xmlContent: string): string {
   return xmlContent.replace(/<[^>]+>/g, '').trim();
 }
 
+/**
+ * Read history events from a Grid 3 history.sqlite database.
+ * @param historyDbPath Absolute path to the history database
+ * @returns Parsed history entries grouped by phrase
+ */
 export function readGrid3History(historyDbPath: string): Grid3HistoryEntry[] {
   if (!fs.existsSync(historyDbPath)) return [];
 
@@ -407,12 +426,22 @@ export function readGrid3History(historyDbPath: string): Grid3HistoryEntry[] {
   return Array.from(events.values());
 }
 
+/**
+ * Convenience wrapper to load history for a specific Grid 3 user/lang combination.
+ * @param userName Grid 3 user name (case-insensitive)
+ * @param langCode Optional language code to narrow selection (case-insensitive)
+ * @returns History entries for that user/language, or empty array if none
+ */
 export function readGrid3HistoryForUser(userName: string, langCode?: string): Grid3HistoryEntry[] {
   const dbPath = findGrid3UserHistory(userName, langCode);
   if (!dbPath) return [];
   return readGrid3History(dbPath);
 }
 
+/**
+ * Load all available Grid 3 histories on the machine.
+ * @returns Combined history entries from every discovered history.sqlite
+ */
 export function readAllGrid3History(): Grid3HistoryEntry[] {
   const paths = findGrid3HistoryDatabases();
   return paths.flatMap((p) => readGrid3History(p));

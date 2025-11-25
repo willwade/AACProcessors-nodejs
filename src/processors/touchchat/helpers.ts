@@ -4,6 +4,10 @@ import { AACTree } from '../../core/treeStructure';
 // NOTE: TouchChat buttons currently do not populate resolvedImageEntry; these helpers
 // therefore return empty collections until image resolution is implemented.
 
+/**
+ * Build a map of button IDs to resolved image entry strings for a page.
+ * Returns an empty map when no images are present.
+ */
 export function getPageTokenImageMap(tree: AACTree, pageId: string): Map<string, string> {
   const map = new Map<string, string>();
   const page = tree.getPage(pageId);
@@ -14,12 +18,18 @@ export function getPageTokenImageMap(tree: AACTree, pageId: string): Map<string,
   return map;
 }
 
+/**
+ * Collect all referenced image entries across the tree.
+ * Currently empty until TouchChat image resolution is implemented.
+ */
 export function getAllowedImageEntries(_tree: AACTree): Set<string> {
-  // No known image entry paths for TouchChat yet
   return new Set<string>();
 }
 
+/**
+ * Read a binary asset from a .ce file.
+ * Not implemented yet; provided for API symmetry with other processors.
+ */
 export function openImage(_ceFile: string | Buffer, _entryPath: string): Buffer | null {
-  // Not implemented for TouchChat yet
   return null;
 }

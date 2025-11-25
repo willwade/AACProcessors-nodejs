@@ -182,7 +182,13 @@ describe('Grid3 Path Discovery', () => {
           return [{ name: 'User1', isDirectory: () => true }] as any;
         }
         if (pathStr === gridSetsDir) {
-          return [{ name: 'Test.gridset', isDirectory: () => false, isFile: () => true }] as any;
+          return [
+            {
+              name: 'Test.gridset',
+              isDirectory: () => false,
+              isFile: () => true,
+            },
+          ] as any;
         }
         return [] as any;
       });

@@ -67,13 +67,13 @@ If any provision of this Agreement is unenforceable, the remaining provisions re
 (Optional) Signature Block
 
 If your organization requires a signed record, include this in your PR (as cla-signature.txt or in the PR description).
-• Contributor Name: **************\_\_**************
-• GitHub Username: **************\_\_**************
-• Email: ******************\_\_\_******************
-• Employer/Entity (if any): **********\_**********
+• Contributor Name: ******\*\*******\_\_******\*\*******
+• GitHub Username: ******\*\*******\_\_******\*\*******
+• Email: ********\*\*********\_\_\_********\*\*********
+• Employer/Entity (if any): ****\*\*****\_****\*\*****
 • I have authority to bind the entity (Y/N): **\_**
-• Date: ********************\_********************
-• Signature: ****************\_\_\_\_****************
+• Date: ********\*\*\*\*********\_********\*\*\*\*********
+• Signature: ******\*\*\*\*******\_\_\_\_******\*\*\*\*******
 
 ⸻
 

@@ -28,6 +28,7 @@
     "test:watch": "npm run build && jest --watch",
     "test:coverage": "npm run build && jest --coverage",
     "test:ci": "npm run build && jest --coverage --ci --watchAll=false --testTimeout=30000",
+    "docs": "typedoc",
     "coverage:report": "node scripts/coverage-analysis.js",
     "type-check": "tsc --noEmit",
     "prepublishOnly": "npm run build",
@@ -88,6 +89,7 @@
     "prettier": "^3.5.3",
     "rimraf": "^5.0.5",
     "ts-jest": "^29.1.2",
+    "typedoc": "^0.28.14",
     "typescript": "~5.5.0"
   },
   "dependencies": {
