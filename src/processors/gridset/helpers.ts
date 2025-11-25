@@ -277,7 +277,7 @@ export function findGrid3Vocabularies(userName?: string): Grid3VocabularyPath[] 
   }
 
   const commonDocs = getCommonDocumentsPath();
-  const grid3BasePath = path.join(commonDocs, 'Smartbox', 'Grid 3', 'Users');
+  const grid3BasePath = path.win32.join(commonDocs, 'Smartbox', 'Grid 3', 'Users');
 
   if (!fs.existsSync(grid3BasePath)) {
     return results;
@@ -290,8 +290,8 @@ export function findGrid3Vocabularies(userName?: string): Grid3VocabularyPath[] 
     if (!userDir.isDirectory()) continue;
     if (normalizedUser && userDir.name.toLowerCase() !== normalizedUser) continue;
 
-    const userRoot = path.join(grid3BasePath, userDir.name);
-    const gridSetsDir = path.join(userRoot, 'Grid Sets');
+    const userRoot = path.win32.join(grid3BasePath, userDir.name);
+    const gridSetsDir = path.win32.join(userRoot, 'Grid Sets');
     if (!fs.existsSync(gridSetsDir)) continue;
 
     const entries = fs.readdirSync(gridSetsDir, { withFileTypes: true });
@@ -301,7 +301,7 @@ export function findGrid3Vocabularies(userName?: string): Grid3VocabularyPath[] 
       if (ext === '.gridset' || ext === '.grd' || ext === '.grdl') {
         results.push({
           userName: userDir.name,
-          gridsetPath: path.join(gridSetsDir, entry.name),
+          gridsetPath: path.win32.join(gridSetsDir, entry.name),
         });
       }
     }
@@ -336,7 +336,7 @@ export function isGrid3Installed(): boolean {
   if (process.platform !== 'win32') return false;
   const commonDocs = getCommonDocumentsPath();
   if (!commonDocs) return false;
-  const grid3BasePath = path.join(commonDocs, 'Smartbox', 'Grid 3', 'Users');
+  const grid3BasePath = path.win32.join(commonDocs, 'Smartbox', 'Grid 3', 'Users');
   return fs.existsSync(grid3BasePath);
 }
 
