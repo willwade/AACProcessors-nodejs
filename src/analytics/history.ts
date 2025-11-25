@@ -42,22 +42,43 @@ export interface HistoryEntry {
 
 export { dotNetTicksToDate };
 
+/**
+ * Read Grid 3 phrase history from a history.sqlite database and tag entries with their source.
+ */
 export function readGrid3History(historyDbPath: string): HistoryEntry[] {
-  return readGrid3HistoryImpl(historyDbPath).map((e) => ({ ...e, source: 'Grid' }));
+  return readGrid3HistoryImpl(historyDbPath).map((e) => ({
+    ...e,
+    source: 'Grid',
+  }));
 }
 
+/**
+ * Read Grid 3 history for a specific user/language combination.
+ */
 export function readGrid3HistoryForUser(userName: string, langCode?: string): HistoryEntry[] {
-  return readGrid3HistoryForUserImpl(userName, langCode).map((e) => ({ ...e, source: 'Grid' }));
+  return readGrid3HistoryForUserImpl(userName, langCode).map((e) => ({
+    ...e,
+    source: 'Grid',
+  }));
 }
 
+/**
+ * Read every available Grid 3 history database on the machine.
+ */
 export function readAllGrid3History(): HistoryEntry[] {
   return readAllGrid3HistoryImpl().map((e) => ({ ...e, source: 'Grid' }));
 }
 
+/**
+ * Read Snap button usage from a pageset database and tag entries with source.
+ */
 export function readSnapUsage(pagesetPath: string): HistoryEntry[] {
   return readSnapUsageImpl(pagesetPath).map((e) => ({ ...e, source: 'Snap' }));
 }
 
+/**
+ * Read Snap usage for a specific user across all discovered pagesets.
+ */
 export function readSnapUsageForUser(
   userId?: string,
   packageNamePattern = 'TobiiDynavox'
@@ -72,6 +93,9 @@ export function listSnapUsers(): SnapUserInfo[] {
   return findSnapUsers();
 }
 
+/**
+ * List Grid 3 users on the current machine.
+ */
 export function listGrid3Users(): Grid3UserPath[] {
   return findGrid3Users();
 }

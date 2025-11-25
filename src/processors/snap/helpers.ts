@@ -41,6 +41,10 @@ function collectFiles(
   return Array.from(results);
 }
 
+/**
+ * Build a map of button IDs to resolved image entries for a specific page.
+ * Mirrors the Grid helper for consumers that expect image reference data.
+ */
 export function getPageTokenImageMap(tree: AACTree, pageId: string): Map<string, string> {
   const map = new Map<string, string>();
   const page = tree.getPage(pageId);
@@ -51,13 +55,19 @@ export function getPageTokenImageMap(tree: AACTree, pageId: string): Map<string,
   return map;
 }
 
+/**
+ * Collect all image entry paths referenced in a Snap tree.
+ * Currently empty until resolvedImageEntry is populated by the processor.
+ */
 export function getAllowedImageEntries(_tree: AACTree): Set<string> {
-  // No known image entry paths for Snap yet
   return new Set<string>();
 }
 
+/**
+ * Read a binary asset from a Snap pageset.
+ * Not implemented yet; provided for API symmetry with other processors.
+ */
 export function openImage(_dbOrFile: string | Buffer, _entryPath: string): Buffer | null {
-  // Not implemented for Snap yet
   return null;
 }
 

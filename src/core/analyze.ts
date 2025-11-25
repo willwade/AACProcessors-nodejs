@@ -10,6 +10,11 @@ import { ApplePanelsProcessor } from '../processors/applePanelsProcessor';
 import { AACTree } from './treeStructure';
 import { BaseProcessor, ProcessorOptions } from './baseProcessor';
 
+/**
+ * Resolve a processor instance by friendly format name or common extension.
+ * @param format Format key or extension (e.g., 'snap', 'obf', 'xlsx')
+ * @param options Optional processor configuration
+ */
 export function getProcessor(format: string, options?: ProcessorOptions): BaseProcessor {
   const normalizedFormat = (format || '').toLowerCase();
 
@@ -43,6 +48,11 @@ export function getProcessor(format: string, options?: ProcessorOptions): BasePr
   }
 }
 
+/**
+ * Convenience helper to load a file into an AACTree using the inferred processor.
+ * @param file Path to the source file
+ * @param format Format key or extension (passed to getProcessor)
+ */
 export function analyze(file: string, format: string): { tree: AACTree } {
   const processor = getProcessor(format);
   const tree = processor.loadIntoTree(file);

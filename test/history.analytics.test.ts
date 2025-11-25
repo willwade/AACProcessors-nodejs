@@ -10,16 +10,33 @@ describe('History analytics wrappers (mocked)', () => {
     jest.isolateModules(() => {
       jest.doMock('../src/processors/gridset/helpers', () => ({
         readGrid3History: jest.fn(() => [
-          { id: 'g1', content: 'grid single', occurrences: [{ timestamp: new Date() }] },
+          {
+            id: 'g1',
+            content: 'grid single',
+            occurrences: [{ timestamp: new Date() }],
+          },
         ]),
         readGrid3HistoryForUser: jest.fn(() => [
-          { id: 'g-user', content: 'grid user', occurrences: [{ timestamp: new Date() }] },
+          {
+            id: 'g-user',
+            content: 'grid user',
+            occurrences: [{ timestamp: new Date() }],
+          },
         ]),
         readAllGrid3History: jest.fn(() => [
-          { id: 'g-all', content: 'grid all', occurrences: [{ timestamp: new Date() }] },
+          {
+            id: 'g-all',
+            content: 'grid all',
+            occurrences: [{ timestamp: new Date() }],
+          },
         ]),
         findGrid3Users: jest.fn(() => [
-          { userName: 'alice', langCode: 'en', basePath: 'p', historyDbPath: 'p/db' },
+          {
+            userName: 'alice',
+            langCode: 'en',
+            basePath: 'p',
+            historyDbPath: 'p/db',
+          },
         ]),
       }));
 
@@ -33,7 +50,11 @@ describe('History analytics wrappers (mocked)', () => {
           },
         ]),
         readSnapUsageForUser: jest.fn(() => [
-          { id: 's-user', content: 'snap user', occurrences: [{ timestamp: new Date() }] },
+          {
+            id: 's-user',
+            content: 'snap user',
+            occurrences: [{ timestamp: new Date() }],
+          },
         ]),
         findSnapUsers: jest.fn(() => [{ userId: 'u1', userPath: 'p', vocabPaths: [] }]),
       }));

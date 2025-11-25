@@ -22,6 +22,9 @@ export enum StringCasing {
  * @param text - The text to analyze for casing pattern
  * @returns StringCasing enum value representing the detected casing
  */
+/**
+ * Infer the dominant casing style of a string (camel, pascal, snake, kebab, title, sentence, upper, lower).
+ */
 export function detectCasing(text: string): StringCasing {
   if (!text || text.length === 0) return StringCasing.LOWER;
 
@@ -124,6 +127,11 @@ export function detectCasing(text: string): StringCasing {
  * @param targetCasing - The desired casing format
  * @returns The text converted to the target casing
  */
+/**
+ * Convert a string into the requested casing style.
+ * @param text Input string
+ * @param targetCasing Desired casing variant
+ */
 export function convertCasing(text: string, targetCasing: StringCasing): string {
   if (!text || text.length === 0) return text;
 
@@ -199,6 +207,9 @@ export function convertCasing(text: string, targetCasing: StringCasing): string 
  * Used for filtering out non-meaningful text content
  * @param text - The text to check
  * @returns True if the text should be considered non-meaningful
+ */
+/**
+ * Check whether a string is empty or represents a numeric value.
  */
 export function isNumericOrEmpty(text: string): boolean {
   const trimmed = text.trim();
