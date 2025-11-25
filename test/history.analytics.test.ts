@@ -39,6 +39,7 @@ describe('History analytics wrappers (mocked)', () => {
       }));
 
       // Import after mocks are in place
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const history = require('../src/analytics/history');
 
       const gridUserEntries = history.readGrid3HistoryForUser('alice');
