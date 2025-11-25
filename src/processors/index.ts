@@ -22,8 +22,12 @@ export {
   findGrid3Users,
   findGrid3Vocabularies,
   findGrid3UserHistory,
+  readGrid3History,
+  readGrid3HistoryForUser,
+  readAllGrid3History,
   type Grid3UserPath,
   type Grid3VocabularyPath,
+  type Grid3HistoryEntry,
 } from './gridset/helpers';
 export {
   getPageTokenImageMap as getGridsetPageTokenImageMap,
@@ -38,6 +42,9 @@ export {
   findGrid3Users as findGridsetUsers,
   findGrid3Vocabularies as findGridsetVocabularies,
   findGrid3UserHistory as findGridsetUserHistory,
+  readGrid3History as readGridsetHistory,
+  readGrid3HistoryForUser as readGridsetHistoryForUser,
+  readAllGrid3History as readAllGridsetHistory,
 } from './gridset/helpers';
 export { resolveGrid3CellImage } from './gridset/resolver';
 
@@ -85,8 +92,11 @@ export {
   findSnapUsers,
   findSnapUserVocabularies,
   findSnapUserHistory,
+  readSnapUsage,
+  readSnapUsageForUser,
   type SnapPackagePath,
   type SnapUserInfo,
+  type SnapUsageEntry,
 } from './snap/helpers';
 
 // TouchChat helpers (stubs)

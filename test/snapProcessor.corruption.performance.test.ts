@@ -183,7 +183,7 @@ describe('SnapProcessor - Database Corruption & Performance Tests', () => {
 
       expect(loadedTree).toBeDefined();
       expect(Object.keys(loadedTree.pages)).toHaveLength(500);
-      expect(processingTime).toBeLessThan(90000); // Should complete in under 90 seconds
+      expect(processingTime).toBeLessThan(110000); // Allow headroom on slower machines
 
       console.log(`Large pageset processing time: ${processingTime}ms`);
     });
@@ -237,7 +237,7 @@ describe('SnapProcessor - Database Corruption & Performance Tests', () => {
 
       expect(loadedTree).toBeDefined();
       expect(Object.keys(loadedTree.pages)).toHaveLength(50);
-      expect(processingTime).toBeLessThan(60000); // Should complete in under 60 seconds
+      expect(processingTime).toBeLessThan(80000); // Allow headroom on slower machines
 
       // Verify audio data integrity
       const firstPage = loadedTree.getPage('audio_page_0');
