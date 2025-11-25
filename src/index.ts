@@ -3,6 +3,11 @@ export * from './core/treeStructure';
 export * from './core/baseProcessor';
 export * from './core/stringCasing';
 export * from './processors';
+export {
+  collectUnifiedHistory,
+  listGrid3Users as listHistoryGrid3Users,
+  listSnapUsers as listHistorySnapUsers,
+} from './analytics/history';
 
 import { BaseProcessor } from './core/baseProcessor';
 import { DotProcessor } from './processors/dotProcessor';

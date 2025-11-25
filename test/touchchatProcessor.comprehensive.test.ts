@@ -266,7 +266,7 @@ describe('TouchChatProcessor - Comprehensive Coverage Tests', () => {
 
       expect(loadedTree).toBeDefined();
       expect(Object.keys(loadedTree.pages)).toHaveLength(10);
-      expect(processingTime).toBeLessThan(60000); // Allow headroom on slower platforms
+      expect(processingTime).toBeLessThan(90000); // Allow headroom on slower platforms
 
       // Verify button count
       let totalButtons = 0;

@@ -1,6 +1,8 @@
 import { AACTree } from '../../core/treeStructure';
 import * as fs from 'fs';
 import * as path from 'path';
+import Database from 'better-sqlite3';
+import { dotNetTicksToDate } from '../../utils/dotnetTicks';
 
 // Minimal Snap helpers (stubs) to align with processors/<engine>/helpers pattern
 // NOTE: Snap buttons currently do not populate resolvedImageEntry; these helpers
@@ -71,6 +73,21 @@ export interface SnapUserInfo {
   userId: string;
   userPath: string;
   vocabPaths: string[];
+}
+
+export interface SnapUsageEntry {
+  id: string;
+  content: string;
+  occurrences: Array<{
+    timestamp: Date;
+    modeling?: boolean;
+    accessMethod?: number | null;
+  }>;
+  platform?: {
+    label?: string;
+    message?: string;
+    buttonId?: string;
+  };
 }
 
 /**
@@ -211,4 +228,89 @@ export function findSnapUserHistory(userId: string, packageNamePattern = 'TobiiD
     (full) => path.basename(full).toLowerCase().includes('history'),
     2
   );
+}
+
+/**
+ * Read Snap usage history from a pageset file (.sps/.spb)
+ */
+export function readSnapUsage(pagesetPath: string): SnapUsageEntry[] {
+  if (!fs.existsSync(pagesetPath)) return [];
+
+  const db = new Database(pagesetPath, { readonly: true });
+
+  const tableCheck = db
+    .prepare(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('ButtonUsage','Button')"
+    )
+    .all();
+  if (tableCheck.length < 2) return [];
+
+  const rows = db
+    .prepare(
+      `
+      SELECT
+        bu.ButtonUniqueId as ButtonId,
+        bu.Timestamp as TickValue,
+        bu.Modeling as Modeling,
+        bu.AccessMethod as AccessMethod,
+        b.Label as Label,
+        b.Message as Message
+      FROM ButtonUsage bu
+      LEFT JOIN Button b ON bu.ButtonUniqueId = b.UniqueId
+      WHERE bu.Timestamp IS NOT NULL
+      ORDER BY bu.Timestamp ASC
+    `
+    )
+    .all() as Array<{
+    ButtonId?: string;
+    TickValue?: number | bigint;
+    Modeling?: number;
+    AccessMethod?: number;
+    Label?: string;
+    Message?: string;
+  }>;
+
+  const events = new Map<string, SnapUsageEntry>();
+
+  for (const row of rows) {
+    const buttonId: string = row.ButtonId ?? 'unknown';
+    const label = row.Label ?? undefined;
+    const message = row.Message ?? undefined;
+    const content = message || label || '';
+
+    const entry =
+      events.get(buttonId) ??
+      ({
+        id: `snap:${buttonId}`,
+        content,
+        occurrences: [],
+        platform: {
+          label,
+          message,
+          buttonId,
+        },
+      } as SnapUsageEntry);
+
+    entry.occurrences.push({
+      timestamp: dotNetTicksToDate(BigInt(row.TickValue ?? 0)),
+      modeling: row.Modeling === 1,
+      accessMethod: row.AccessMethod ?? null,
+    });
+
+    events.set(buttonId, entry);
+  }
+
+  return Array.from(events.values());
+}
+
+/**
+ * Read Snap usage history for a user (all pagesets)
+ */
+export function readSnapUsageForUser(
+  userId?: string,
+  packageNamePattern = 'TobiiDynavox'
+): SnapUsageEntry[] {
+  const users = findSnapUsers(packageNamePattern).filter((u) => !userId || u.userId === userId);
+  const pagesets = users.flatMap((u) => u.vocabPaths);
+  return pagesets.flatMap((p) => readSnapUsage(p));
 }

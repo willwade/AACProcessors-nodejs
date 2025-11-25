@@ -4,6 +4,8 @@ import { AACTree, AACPage, AACButton } from '../../core/treeStructure';
 import * as fs from 'fs';
 import * as path from 'path';
 import { execSync } from 'child_process';
+import Database from 'better-sqlite3';
+import { dotNetTicksToDate } from '../../utils/dotnetTicks';
 
 function normalizeZipPath(p: string): string {
   const unified = p.replace(/\\/g, '/');
@@ -142,6 +144,17 @@ export interface Grid3UserPath {
 export interface Grid3VocabularyPath {
   userName: string;
   gridsetPath: string;
+}
+
+export interface Grid3HistoryEntry {
+  id: string;
+  content: string;
+  occurrences: Array<{
+    timestamp: Date;
+    latitude?: number | null;
+    longitude?: number | null;
+  }>;
+  rawXml?: string;
 }
 
 /**
@@ -313,4 +326,82 @@ export function findGrid3UserHistory(userName: string, langCode?: string): strin
   );
 
   return match?.historyDbPath ?? null;
+}
+
+function parseGrid3ContentXml(xmlContent: string): string {
+  const regex = /<r>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/r>/gis;
+  const parts: string[] = [];
+  let match: RegExpExecArray | null;
+  while ((match = regex.exec(xmlContent)) !== null) {
+    parts.push(match[1]);
+  }
+  if (parts.length > 0) {
+    return parts.join('');
+  }
+  return xmlContent.replace(/<[^>]+>/g, '').trim();
+}
+
+export function readGrid3History(historyDbPath: string): Grid3HistoryEntry[] {
+  if (!fs.existsSync(historyDbPath)) return [];
+
+  const db = new Database(historyDbPath, { readonly: true });
+  const rows = db
+    .prepare(
+      `
+      SELECT p.Id as PhraseId,
+             p.Text as TextValue,
+             p.Content as ContentXml,
+             ph.Timestamp as TickValue,
+             ph.Latitude as Latitude,
+             ph.Longitude as Longitude
+      FROM PhraseHistory ph
+      INNER JOIN Phrases p ON p.Id = ph.PhraseId
+      WHERE ph.Timestamp <> 0
+      ORDER BY ph.Timestamp ASC
+    `
+    )
+    .all() as Array<{
+    PhraseId: number;
+    TextValue?: string;
+    ContentXml?: string;
+    TickValue?: number | bigint;
+    Latitude?: number;
+    Longitude?: number;
+  }>;
+
+  const events = new Map<number, Grid3HistoryEntry>();
+
+  for (const row of rows) {
+    const phraseId: number = row.PhraseId;
+    const contentText = parseGrid3ContentXml(String(row.ContentXml ?? row.TextValue ?? ''));
+    const entry =
+      events.get(phraseId) ??
+      ({
+        id: `grid:${phraseId}`,
+        content: contentText,
+        occurrences: [],
+        rawXml: row.ContentXml,
+      } as Grid3HistoryEntry);
+
+    entry.occurrences.push({
+      timestamp: dotNetTicksToDate(BigInt(row.TickValue ?? 0)),
+      latitude: row.Latitude ?? null,
+      longitude: row.Longitude ?? null,
+    });
+
+    events.set(phraseId, entry);
+  }
+
+  return Array.from(events.values());
+}
+
+export function readGrid3HistoryForUser(userName: string, langCode?: string): Grid3HistoryEntry[] {
+  const dbPath = findGrid3UserHistory(userName, langCode);
+  if (!dbPath) return [];
+  return readGrid3History(dbPath);
+}
+
+export function readAllGrid3History(): Grid3HistoryEntry[] {
+  const paths = findGrid3HistoryDatabases();
+  return paths.flatMap((p) => readGrid3History(p));
 }

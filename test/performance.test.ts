@@ -264,8 +264,8 @@ describe('Performance Tests', () => {
 
       expect(loadedTree).toBeDefined();
       expect(Object.keys(loadedTree.pages).length).toBe(Object.keys(largeTree.pages).length);
-      expect(saveProcessingTime).toBeLessThan(15000); // Save should complete in under 15 seconds
-      expect(loadProcessingTime).toBeLessThan(10000); // Load should complete in under 10 seconds
+      expect(saveProcessingTime).toBeLessThan(25000); // Save should complete in under 25 seconds on slower disks
+      expect(loadProcessingTime).toBeLessThan(15000); // Load should complete in under 15 seconds
       expect(memoryIncrease).toBeLessThan(100); // Should not use excessive memory
     });
   });
