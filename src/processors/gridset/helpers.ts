@@ -205,6 +205,8 @@ export function getCommonDocumentsPath(): string {
  * Find all Grid3 user data paths
  * Searches for users and language codes in the Grid3 directory structure
  * C:\Users\Public\Documents\Smartbox\Grid 3\Users\{UserName}\{langCode}\Phrases\history.sqlite
+ * Grid set/vocabulary archives live alongside users at:
+ * C:\Users\Public\Documents\Smartbox\Grid 3\Users\{UserName}\Grid Sets\
  * @returns Array of Grid3 user path information
  */
 export function findGrid3UserPaths(): Grid3UserPath[] {
@@ -331,6 +333,8 @@ export function findGrid3Vocabularies(userName?: string): Grid3VocabularyPath[] 
  * @returns Path to history.sqlite or null if not found
  */
 export function findGrid3UserHistory(userName: string, langCode?: string): string | null {
+  if (!userName) return null;
+
   const normalizedUser = userName.toLowerCase();
   const normalizedLang = langCode?.toLowerCase();
 
@@ -404,14 +408,28 @@ export function readGrid3History(historyDbPath: string): Grid3HistoryEntry[] {
 
   for (const row of rows) {
     const phraseId: number = row.PhraseId;
-    const contentText = parseGrid3ContentXml(String(row.ContentXml ?? row.TextValue ?? ''));
+    const rawContentSource = [row.ContentXml, row.TextValue].find((candidate) => {
+      if (candidate === null || candidate === undefined) return false;
+      const asString = String(candidate);
+      return asString.trim().length > 0;
+    });
+    if (rawContentSource === undefined) {
+      continue; // Skip history rows with no usable text content
+    }
+
+    const rawContentText = String(rawContentSource);
+    const contentText = parseGrid3ContentXml(rawContentText);
+    const rawXml =
+      typeof row.ContentXml === 'string' && row.ContentXml.trim().length > 0
+        ? row.ContentXml
+        : undefined;
     const entry =
       events.get(phraseId) ??
       ({
         id: `grid:${phraseId}`,
         content: contentText,
         occurrences: [],
-        rawXml: row.ContentXml,
+        rawXml,
       } as Grid3HistoryEntry);
 
     entry.occurrences.push({

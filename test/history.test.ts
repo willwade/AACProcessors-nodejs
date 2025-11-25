@@ -71,6 +71,44 @@ describe('History analytics', () => {
     expect(entry.occurrences[0].longitude).toBeCloseTo(-1.2);
   });
 
+  it('skips Grid 3 history rows without text and falls back to plain text when XML is missing', () => {
+    const dbPath = path.join(tempDir, 'grid3-history-missing.sqlite');
+    const db = new Database(dbPath);
+    db.exec(`
+      CREATE TABLE Phrases (Id INTEGER PRIMARY KEY AUTOINCREMENT, Text TEXT, Content TEXT);
+      CREATE TABLE PhraseHistory (
+        Id INTEGER PRIMARY KEY AUTOINCREMENT,
+        PhraseId INTEGER NOT NULL,
+        Timestamp BIGINT NOT NULL,
+        Latitude REAL,
+        Longitude REAL,
+        FOREIGN KEY(PhraseId) REFERENCES Phrases(Id)
+      );
+    `);
+
+    const missingId = db
+      .prepare('INSERT INTO Phrases (Text, Content) VALUES (?, ?)')
+      .run(null, null).lastInsertRowid as number;
+    const fallbackId = db
+      .prepare('INSERT INTO Phrases (Text, Content) VALUES (?, ?)')
+      .run('plain text only', '').lastInsertRowid as number;
+
+    const ts1 = dateToTicks(new Date('2024-04-04T00:00:00Z'));
+    const ts2 = dateToTicks(new Date('2024-04-04T00:01:00Z'));
+
+    db.prepare(
+      'INSERT INTO PhraseHistory (PhraseId, Timestamp, Latitude, Longitude) VALUES (?, ?, ?, ?)'
+    ).run(missingId, ts1, null, null);
+    db.prepare(
+      'INSERT INTO PhraseHistory (PhraseId, Timestamp, Latitude, Longitude) VALUES (?, ?, ?, ?)'
+    ).run(fallbackId, ts2, null, null);
+
+    const history = readGrid3History(dbPath);
+    expect(history).toHaveLength(1);
+    expect(history[0].content).toBe('plain text only');
+    expect(history[0].occurrences).toHaveLength(1);
+  });
+
   it('reads Snap usage from pageset sqlite', () => {
     const pagesetPath = path.join(tempDir, 'snap.sps');
     const db = new Database(pagesetPath);
