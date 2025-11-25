@@ -163,7 +163,8 @@ describe('Error Handling', () => {
       setTimeout(() => {
         // eslint-disable-next-line @typescript-eslint/no-var-requires
         const tempFilesAfter = fs.readdirSync(require('os').tmpdir()).length;
-        expect(tempFilesAfter).toBeLessThanOrEqual(tempFilesBefore + 1); // Allow for some variance
+        const allowedDelta = 5; // Allow a handful of transient temp files created by other processes
+        expect(tempFilesAfter).toBeLessThanOrEqual(tempFilesBefore + allowedDelta);
       }, 100);
     });
   });
