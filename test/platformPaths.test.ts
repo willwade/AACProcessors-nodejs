@@ -169,7 +169,7 @@ describe('Grid3 Path Discovery', () => {
     it('should list gridset files per user', () => {
       const mockCommonDocs = 'C:\\Users\\Public\\Documents';
       const grid3BasePath = path.win32.join(mockCommonDocs, 'Smartbox', 'Grid 3', 'Users');
-      const gridSetsDir = path.join(grid3BasePath, 'User1', 'Grid Sets');
+      const gridSetsDir = path.win32.join(grid3BasePath, 'User1', 'Grid Sets');
 
       mockExecSync.mockReturnValue(`Common Documents    REG_SZ    ${mockCommonDocs}\r\n` as any);
       mockFs.existsSync.mockImplementation((p: any) => {
@@ -192,7 +192,7 @@ describe('Grid3 Path Discovery', () => {
       expect(result).toHaveLength(1);
       expect(result[0]).toMatchObject({
         userName: 'User1',
-        gridsetPath: path.join(gridSetsDir, 'Test.gridset'),
+        gridsetPath: path.win32.join(gridSetsDir, 'Test.gridset'),
       });
     });
   });
@@ -202,7 +202,7 @@ describe('Grid3 Path Discovery', () => {
       const mockCommonDocs = 'C:\\Users\\Public\\Documents';
       mockExecSync.mockReturnValue(`Common Documents    REG_SZ    ${mockCommonDocs}\r\n` as any);
 
-      const grid3BasePath = path.join(mockCommonDocs, 'Smartbox', 'Grid 3', 'Users');
+      const grid3BasePath = path.win32.join(mockCommonDocs, 'Smartbox', 'Grid 3', 'Users');
 
       mockFs.existsSync.mockImplementation((p: any) => {
         const pathStr = String(p);
