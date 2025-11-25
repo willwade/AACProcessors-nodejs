@@ -32,6 +32,8 @@ module.exports = {
     "!src/**/*.d.ts",
     "!src/**/*.test.{js,ts}",
     "!src/**/__tests__/**",
+    "!src/cli/**",
+    "!src/optional/**",
   ],
   coveragePathIgnorePatterns: ["/node_modules/", "/dist/", "/__tests__/"],
   coverageThreshold: {

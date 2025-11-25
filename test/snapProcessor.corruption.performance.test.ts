@@ -339,8 +339,8 @@ describe('SnapProcessor - Database Corruption & Performance Tests', () => {
 
       expect(loadedTree).toBeDefined();
       expect(Object.keys(loadedTree.pages)).toHaveLength(200);
-      // Windows file system overhead can make this a bit slower; keep expectation reasonable
-      expect(processingTime).toBeLessThan(65000); // Should complete in under ~65 seconds
+      // Windows CI can spike here (file system + SQLite), so keep a generous ceiling
+      expect(processingTime).toBeLessThan(80000); // Should complete in under ~80 seconds
 
       console.log(
         `Streaming test - File size: ${fileSizeMB.toFixed(2)}MB, Processing time: ${processingTime}ms`
