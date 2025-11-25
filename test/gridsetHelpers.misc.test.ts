@@ -1,5 +1,9 @@
 import { describe, expect, it } from '@jest/globals';
-import { createFileMapXml, createSettingsXml, generateGrid3Guid } from '../src/processors/gridset/helpers';
+import {
+  createFileMapXml,
+  createSettingsXml,
+  generateGrid3Guid,
+} from '../src/processors/gridset/helpers';
 
 describe('Gridset helper misc utilities', () => {
   it('generates a GUID-like value', () => {
@@ -8,7 +12,11 @@ describe('Gridset helper misc utilities', () => {
   });
 
   it('builds settings XML with overrides', () => {
-    const xml = createSettingsXml('Home', { scanEnabled: true, hoverTimeoutMs: 1500, language: 'en-GB' });
+    const xml = createSettingsXml('Home', {
+      scanEnabled: true,
+      hoverTimeoutMs: 1500,
+      language: 'en-GB',
+    });
     expect(xml).toContain('<StartGrid>Home</StartGrid>');
     expect(xml).toContain('<ScanEnabled>true</ScanEnabled>');
     expect(xml).toContain('<HoverTimeoutMs>1500</HoverTimeoutMs>');
@@ -16,7 +24,10 @@ describe('Gridset helper misc utilities', () => {
   });
 
   it('builds file map XML for multiple grids', () => {
-    const xml = createFileMapXml([{ name: 'Main', path: 'main.gridset' }, { name: 'Alt', path: 'alt.gridset', dynamicFiles: ['dyn1'] }]);
+    const xml = createFileMapXml([
+      { name: 'Main', path: 'main.gridset' },
+      { name: 'Alt', path: 'alt.gridset', dynamicFiles: ['dyn1'] },
+    ]);
     expect(xml).toContain('main.gridset');
     expect(xml).toContain('alt.gridset');
     expect(xml).toContain('<DynamicFiles>');
