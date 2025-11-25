@@ -203,7 +203,8 @@ export function findGrid3UserPaths(): Grid3UserPath[] {
 
   try {
     const commonDocs = getCommonDocumentsPath();
-    const grid3BasePath = path.join(commonDocs, 'Smartbox', 'Grid 3', 'Users');
+    // Use Windows path joining so tests that mock a Windows platform stay consistent even on POSIX runners
+    const grid3BasePath = path.win32.join(commonDocs, 'Smartbox', 'Grid 3', 'Users');
 
     // Check if Grid3 Users directory exists
     if (!fs.existsSync(grid3BasePath)) {
@@ -217,7 +218,7 @@ export function findGrid3UserPaths(): Grid3UserPath[] {
       if (!userDir.isDirectory()) continue;
 
       const userName = userDir.name;
-      const userPath = path.join(grid3BasePath, userName);
+      const userPath = path.win32.join(grid3BasePath, userName);
 
       // Enumerate language codes
       const langDirs = fs.readdirSync(userPath, { withFileTypes: true });
@@ -226,8 +227,8 @@ export function findGrid3UserPaths(): Grid3UserPath[] {
         if (!langDir.isDirectory()) continue;
 
         const langCode = langDir.name;
-        const basePath = path.join(userPath, langCode);
-        const historyDbPath = path.join(basePath, 'Phrases', 'history.sqlite');
+        const basePath = path.win32.join(userPath, langCode);
+        const historyDbPath = path.win32.join(basePath, 'Phrases', 'history.sqlite');
 
         // Only include if history database exists
         if (fs.existsSync(historyDbPath)) {
