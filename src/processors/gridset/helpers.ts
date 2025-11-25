@@ -328,6 +328,17 @@ export function findGrid3UserHistory(userName: string, langCode?: string): strin
   return match?.historyDbPath ?? null;
 }
 
+/**
+ * Check whether Grid 3 appears to be installed (Windows only)
+ */
+export function isGrid3Installed(): boolean {
+  if (process.platform !== 'win32') return false;
+  const commonDocs = getCommonDocumentsPath();
+  if (!commonDocs) return false;
+  const grid3BasePath = path.join(commonDocs, 'Smartbox', 'Grid 3', 'Users');
+  return fs.existsSync(grid3BasePath);
+}
+
 function parseGrid3ContentXml(xmlContent: string): string {
   const regex = /<r>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/r>/gis;
   const parts: string[] = [];

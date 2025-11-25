@@ -231,6 +231,14 @@ export function findSnapUserHistory(userId: string, packageNamePattern = 'TobiiD
 }
 
 /**
+ * Check whether TD Snap appears to be installed (Windows only)
+ */
+export function isSnapInstalled(packageNamePattern = 'TobiiDynavox'): boolean {
+  if (process.platform !== 'win32') return false;
+  return Boolean(findSnapPackagePath(packageNamePattern));
+}
+
+/**
  * Read Snap usage history from a pageset file (.sps/.spb)
  */
 export function readSnapUsage(pagesetPath: string): SnapUsageEntry[] {
