@@ -1,4 +1,4 @@
-import { isSymbolReference, parseSymbolReference, type SymbolReference } from './symbols';
+import { isSymbolReference, parseSymbolReference } from './symbols';
 
 function normalizeZipPathLocal(p: string): string {
   const unified = p.replace(/\\/g, '/');
@@ -57,16 +57,22 @@ export function resolveGrid3CellImage(
   const entries = new Set(listZipEntries(zip, zipEntries));
   const has = (p: string): boolean => entries.has(normalizeZipPathLocal(p));
 
-  // Check for symbol library reference like [widgit]/food/apple.png
-  if (imageName && isSymbolReference(imageName)) {
-    // Symbol library references are NOT stored as files in the gridset
-    // They are resolved from the external Grid 3 installation
-    // Return null to indicate this is an external symbol reference
-    return null;
-  }
-
   // Built-in resource like [grid3x]... (old format, not symbol library)
+  // Check this BEFORE general symbol references to avoid misclassification
   if (imageName && imageName.startsWith('[')) {
+    // Check if it's a symbol library reference like [widgit]/food/apple.png
+    // Symbol library references have a path after the library name
+    if (isSymbolReference(imageName)) {
+      const parsed = parseSymbolReference(imageName);
+      // If it's grid3x, it's a built-in resource, not a symbol library
+      if (parsed.library !== 'grid3x') {
+        // Symbol library references are NOT stored as files in the gridset
+        // They are resolved from the external Grid 3 installation
+        // Return null to indicate this is an external symbol reference
+        return null;
+      }
+    }
+    // For grid3x and other built-in resources, use the builtinHandler
     if (args.builtinHandler) {
       const mapped = args.builtinHandler(imageName);
       if (mapped) return mapped;
@@ -135,7 +141,7 @@ export function isSymbolLibraryReference(imageName?: string): boolean {
  * @param imageName - Image reference from Grid 3
  * @returns Parsed reference or null if not a symbol reference
  */
-export function parseImageSymbolReference(imageName: string): SymbolReference | null {
+export function parseImageSymbolReference(imageName: string) {
   if (!isSymbolLibraryReference(imageName)) {
     return null;
   }

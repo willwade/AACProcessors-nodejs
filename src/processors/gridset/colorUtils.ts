@@ -290,6 +290,42 @@ export function darkenColor(hex: string, amount: number): string {
 }
 
 /**
+ * Lighten a hex color by a specified amount
+ * @param hex - Hex color string
+ * @param amount - Amount to lighten (0-255)
+ * @returns Lightened hex color
+ */
+export function lightenColor(hex: string, amount: number): string {
+  const normalized = ensureAlphaChannel(hex).substring(1); // strip #
+  const rgb = normalized.substring(0, 6);
+  const alpha = normalized.substring(6) || 'FF';
+  const r = parseInt(rgb.substring(0, 2), 16);
+  const g = parseInt(rgb.substring(2, 4), 16);
+  const b = parseInt(rgb.substring(4, 6), 16);
+  const clamp = (val: number): number => Math.max(0, Math.min(255, val));
+  const newR = clamp(r + amount);
+  const newG = clamp(g + amount);
+  const newB = clamp(b + amount);
+  return `#${channelToHex(newR)}${channelToHex(newG)}${channelToHex(newB)}${alpha.toUpperCase()}`;
+}
+
+/**
+ * Convert hex color to RGBA object
+ * @param hex - Hex color string (#RRGGBB or #RRGGBBAA)
+ * @returns RGBA object with r, g, b, a properties (0-1 for alpha)
+ */
+export function hexToRgba(hex: string): { r: number; g: number; b: number; a: number } {
+  const normalized = ensureAlphaChannel(hex).substring(1); // strip #
+  const rgb = normalized.substring(0, 6);
+  const alphaHex = normalized.substring(6) || 'FF';
+  const r = parseInt(rgb.substring(0, 2), 16);
+  const g = parseInt(rgb.substring(2, 4), 16);
+  const b = parseInt(rgb.substring(4, 6), 16);
+  const a = parseInt(alphaHex, 16) / 255;
+  return { r, g, b, a };
+}
+
+/**
  * Normalize any color format to Grid3's 8-digit hex format
  * @param input - Color string in any supported format
  * @param fallback - Fallback color if input is invalid (default: white)

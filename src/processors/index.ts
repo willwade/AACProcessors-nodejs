@@ -48,6 +48,7 @@ export {
   readGrid3HistoryForUser as readGridsetHistoryForUser,
   readAllGrid3History as readAllGridsetHistory,
 } from './gridset/helpers';
+export { resolveGrid3CellImage } from './gridset/resolver';
 
 // Gridset (Grid 3) wordlist helpers
 export {
@@ -140,16 +141,13 @@ export {
   symbolReferenceToFilename,
   SYMBOL_LIBRARIES,
 } from './gridset/symbols';
-
-// Gridset image resolution helpers
-export {
-  resolveGrid3CellImage,
-  isSymbolLibraryReference,
-  parseImageSymbolReference,
-} from './gridset/resolver';
+export { isSymbolLibraryReference, parseImageSymbolReference } from './gridset/resolver';
 
 // Backward compatibility
-export { getSymbolsDir, getSymbolSearchDir } from './gridset/symbols';
+export {
+  getSymbolsDir,
+  getSymbolSearchDir,
+} from './gridset/symbols';
 
 // Gridset (Grid 3) symbol extraction for conversion
 export {

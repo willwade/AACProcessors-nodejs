@@ -16,6 +16,18 @@ export interface ProcessorOptions {
 
   // Preserve original behavior for backwards compatibility
   preserveAllButtons?: boolean;
+
+  // Grid 3 symbol library directory (for resolving [widgit]/ style references)
+  // If not specified, will attempt to auto-detect from Grid 3 installation
+  grid3SymbolDir?: string;
+
+  // Grid 3 installation path (for auto-detecting symbol directory)
+  // If not specified, will use default platform-specific path
+  grid3Path?: string;
+
+  // Locale for symbol libraries (e.g., 'en-GB', 'en-US')
+  // Defaults to 'en-GB' if not specified
+  grid3Locale?: string;
 }
 
 // Types for aac-tools-platform compatibility

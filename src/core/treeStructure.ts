@@ -156,6 +156,8 @@ export class AACButton implements IAACButton {
     contentSubType,
     image,
     resolvedImageEntry,
+    symbolLibrary,
+    symbolPath,
     x,
     y,
     columnSpan,
@@ -184,6 +186,8 @@ export class AACButton implements IAACButton {
     contentSubType?: string;
     image?: string;
     resolvedImageEntry?: string;
+    symbolLibrary?: string;
+    symbolPath?: string;
     x?: number;
     y?: number;
     columnSpan?: number;
@@ -211,6 +215,8 @@ export class AACButton implements IAACButton {
     this.contentSubType = contentSubType;
     this.image = image;
     this.resolvedImageEntry = resolvedImageEntry;
+    this.symbolLibrary = symbolLibrary;
+    this.symbolPath = symbolPath;
     this.x = x;
     this.y = y;
     this.columnSpan = columnSpan;
