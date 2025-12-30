@@ -4,7 +4,7 @@ import {
   ExtractStringsResult,
   TranslatedString,
   SourceString,
-} from '../core/baseProcessor';
+} from "../core/baseProcessor";
 import {
   AACTree,
   AACPage,
@@ -12,15 +12,15 @@ import {
   AACSemanticAction,
   AACSemanticCategory,
   AACSemanticIntent,
-} from '../core/treeStructure';
+} from "../core/treeStructure";
 // Removed unused import: FileProcessor
-import AdmZip from 'adm-zip';
-import fs from 'fs';
+import AdmZip from "adm-zip";
+import fs from "fs";
 // Removed unused import: path
-import { ObfValidator } from '../validation/obfValidator';
-import { ValidationResult } from '../validation/validationTypes';
+import { ObfValidator } from "../validation/obfValidator";
+import { ValidationResult } from "../validation/validationTypes";
 
-const OBF_FORMAT_VERSION = 'open-board-0.1';
+const OBF_FORMAT_VERSION = "open-board-0.1";
 
 interface ObfButton {
   id: string;
@@ -58,45 +58,47 @@ class ObfProcessor extends BaseProcessor {
   }
   private processBoard(boardData: ObfBoard, _boardPath: string): AACPage {
     const sourceButtons = boardData.buttons || [];
-    const buttons: AACButton[] = sourceButtons.map((btn: ObfButton): AACButton => {
-      const semanticAction: AACSemanticAction = btn.load_board
-        ? {
-            category: AACSemanticCategory.NAVIGATION,
-            intent: AACSemanticIntent.NAVIGATE_TO,
-            targetId: btn.load_board.path,
-            fallback: {
-              type: 'NAVIGATE',
-              targetPageId: btn.load_board.path,
-            },
-          }
-        : {
-            category: AACSemanticCategory.COMMUNICATION,
-            intent: AACSemanticIntent.SPEAK_TEXT,
-            text: String(btn?.vocalization || btn?.label || ''),
-            fallback: {
-              type: 'SPEAK',
-              message: String(btn?.vocalization || btn?.label || ''),
-            },
-          };
+    const buttons: AACButton[] = sourceButtons.map(
+      (btn: ObfButton): AACButton => {
+        const semanticAction: AACSemanticAction = btn.load_board
+          ? {
+              category: AACSemanticCategory.NAVIGATION,
+              intent: AACSemanticIntent.NAVIGATE_TO,
+              targetId: btn.load_board.path,
+              fallback: {
+                type: "NAVIGATE",
+                targetPageId: btn.load_board.path,
+              },
+            }
+          : {
+              category: AACSemanticCategory.COMMUNICATION,
+              intent: AACSemanticIntent.SPEAK_TEXT,
+              text: String(btn?.vocalization || btn?.label || ""),
+              fallback: {
+                type: "SPEAK",
+                message: String(btn?.vocalization || btn?.label || ""),
+              },
+            };
 
-      return new AACButton({
-        id: String(btn?.id || ''),
-        label: String(btn?.label || ''),
-        message: String(btn?.vocalization || btn?.label || ''),
-        style: {
-          backgroundColor: btn.background_color,
-          borderColor: btn.border_color,
-        },
-        semanticAction,
-        targetPageId: btn.load_board?.path,
-      });
-    });
+        return new AACButton({
+          id: String(btn?.id || ""),
+          label: String(btn?.label || ""),
+          message: String(btn?.vocalization || btn?.label || ""),
+          style: {
+            backgroundColor: btn.background_color,
+            borderColor: btn.border_color,
+          },
+          semanticAction,
+          targetPageId: btn.load_board?.path,
+        });
+      },
+    );
 
     const buttonMap = new Map(buttons.map((btn) => [btn.id, btn]));
 
     const page = new AACPage({
-      id: String(boardData?.id || ''),
-      name: String(boardData?.name || ''),
+      id: String(boardData?.id || ""),
+      name: String(boardData?.name || ""),
       grid: [],
       buttons,
       parentId: null,
@@ -109,25 +111,30 @@ class ObfProcessor extends BaseProcessor {
     // Process grid layout if available
     if (boardData.grid) {
       const rows =
-        typeof boardData.grid.rows === 'number'
+        typeof boardData.grid.rows === "number"
           ? boardData.grid.rows
           : boardData.grid.order?.length || 0;
       const cols =
-        typeof boardData.grid.columns === 'number'
+        typeof boardData.grid.columns === "number"
           ? boardData.grid.columns
           : boardData.grid.order
             ? boardData.grid.order.reduce(
-                (max, row) => Math.max(max, Array.isArray(row) ? row.length : 0),
-                0
+                (max, row) =>
+                  Math.max(max, Array.isArray(row) ? row.length : 0),
+                0,
               )
             : 0;
 
       if (rows > 0 && cols > 0) {
-        const grid: Array<Array<AACButton | null>> = Array.from({ length: rows }, () =>
-          Array.from({ length: cols }, () => null)
+        const grid: Array<Array<AACButton | null>> = Array.from(
+          { length: rows },
+          () => Array.from({ length: cols }, () => null),
         );
 
-        if (Array.isArray(boardData.grid.order) && boardData.grid.order.length) {
+        if (
+          Array.isArray(boardData.grid.order) &&
+          boardData.grid.order.length
+        ) {
           boardData.grid.order.forEach((orderRow, rowIndex) => {
             if (!Array.isArray(orderRow)) return;
             orderRow.forEach((cellId, colIndex) => {
@@ -141,7 +148,7 @@ class ObfProcessor extends BaseProcessor {
           });
         } else {
           for (const btn of sourceButtons) {
-            if (typeof btn.box_id === 'number') {
+            if (typeof btn.box_id === "number") {
               const row = Math.floor(btn.box_id / cols);
               const col = btn.box_id % cols;
               if (row < rows && col < cols) {
@@ -169,8 +176,9 @@ class ObfProcessor extends BaseProcessor {
       const page = tree.pages[pageId];
       if (page.name) texts.push(page.name);
       page.buttons.forEach((btn) => {
-        if (typeof btn.label === 'string') texts.push(btn.label);
-        if (typeof btn.message === 'string' && btn.message !== btn.label) texts.push(btn.message);
+        if (typeof btn.label === "string") texts.push(btn.label);
+        if (typeof btn.message === "string" && btn.message !== btn.label)
+          texts.push(btn.message);
       });
     }
 
@@ -179,20 +187,20 @@ class ObfProcessor extends BaseProcessor {
 
   loadIntoTree(filePathOrBuffer: string | Buffer): AACTree {
     // Detailed logging for debugging input
-    console.log('[OBF] loadIntoTree called with:', {
+    console.log("[OBF] loadIntoTree called with:", {
       type: typeof filePathOrBuffer,
       isBuffer: Buffer.isBuffer(filePathOrBuffer),
       value:
-        typeof filePathOrBuffer === 'string'
+        typeof filePathOrBuffer === "string"
           ? filePathOrBuffer
-          : '[Buffer of length ' + filePathOrBuffer.length + ']',
+          : "[Buffer of length " + filePathOrBuffer.length + "]",
     });
     const tree = new AACTree();
 
     // Helper: try to parse JSON OBF
     function tryParseObfJson(data: string | Buffer): ObfBoard | null {
       try {
-        const str = typeof data === 'string' ? data : data.toString('utf8');
+        const str = typeof data === "string" ? data : data.toString("utf8");
 
         // Check for empty or whitespace-only content
         if (!str.trim()) {
@@ -200,10 +208,10 @@ class ObfProcessor extends BaseProcessor {
         }
 
         const obj = JSON.parse(str);
-        if (obj && typeof obj === 'object' && 'id' in obj && 'buttons' in obj) {
+        if (obj && typeof obj === "object" && "id" in obj && "buttons" in obj) {
           // Validate buttons is an array
           if (!Array.isArray(obj.buttons)) {
-            throw new Error('Invalid OBF: buttons must be an array');
+            throw new Error("Invalid OBF: buttons must be an array");
           }
           return obj as ObfBoard;
         }
@@ -214,20 +222,23 @@ class ObfProcessor extends BaseProcessor {
     }
 
     // If input is a string path and ends with .obf, treat as JSON
-    if (typeof filePathOrBuffer === 'string' && filePathOrBuffer.endsWith('.obf')) {
+    if (
+      typeof filePathOrBuffer === "string" &&
+      filePathOrBuffer.endsWith(".obf")
+    ) {
       try {
-        const content = fs.readFileSync(filePathOrBuffer, 'utf8');
+        const content = fs.readFileSync(filePathOrBuffer, "utf8");
         const boardData = tryParseObfJson(content);
         if (boardData) {
-          console.log('[OBF] Detected .obf file, parsed as JSON');
+          console.log("[OBF] Detected .obf file, parsed as JSON");
           const page = this.processBoard(boardData, filePathOrBuffer);
           tree.addPage(page);
           return tree;
         } else {
-          throw new Error('Invalid OBF JSON content');
+          throw new Error("Invalid OBF JSON content");
         }
       } catch (err) {
-        console.error('[OBF] Error reading .obf file:', err);
+        console.error("[OBF] Error reading .obf file:", err);
         throw err;
       }
     }
@@ -235,15 +246,16 @@ class ObfProcessor extends BaseProcessor {
     // If input is a buffer or string that parses as OBF JSON
     const asJson = tryParseObfJson(filePathOrBuffer);
     if (asJson) {
-      console.log('[OBF] Detected buffer/string as OBF JSON');
-      const page = this.processBoard(asJson, '[bufferOrString]');
+      console.log("[OBF] Detected buffer/string as OBF JSON");
+      const page = this.processBoard(asJson, "[bufferOrString]");
       tree.addPage(page);
       return tree;
     }
 
     // Otherwise, try as ZIP (.obz). Detect likely zip signature first; throw if neither JSON nor ZIP
     function isLikelyZip(input: string | Buffer): boolean {
-      if (typeof input === 'string') return input.endsWith('.zip') || input.endsWith('.obz');
+      if (typeof input === "string")
+        return input.endsWith(".zip") || input.endsWith(".obz");
       if (Buffer.isBuffer(input) && input.length >= 2) {
         return input[0] === 0x50 && input[1] === 0x4b; // 'PK'
       }
@@ -251,26 +263,29 @@ class ObfProcessor extends BaseProcessor {
     }
 
     if (!isLikelyZip(filePathOrBuffer)) {
-      throw new Error('Invalid OBF content: not JSON and not ZIP');
+      throw new Error("Invalid OBF content: not JSON and not ZIP");
     }
 
     let zip: AdmZip;
     try {
       zip = new AdmZip(filePathOrBuffer);
     } catch (err) {
-      console.error('[OBF] Error instantiating AdmZip with input:', err);
+      console.error("[OBF] Error instantiating AdmZip with input:", err);
       throw err;
     }
-    console.log('[OBF] Detected zip archive, extracting .obf files');
+    console.log("[OBF] Detected zip archive, extracting .obf files");
     zip.getEntries().forEach((entry) => {
-      if (entry.entryName.endsWith('.obf')) {
-        const content = entry.getData().toString('utf8');
+      if (entry.entryName.endsWith(".obf")) {
+        const content = entry.getData().toString("utf8");
         const boardData = tryParseObfJson(content);
         if (boardData) {
           const page = this.processBoard(boardData, entry.entryName);
           tree.addPage(page);
         } else {
-          console.warn('[OBF] Skipped entry (not valid OBF JSON):', entry.entryName);
+          console.warn(
+            "[OBF] Skipped entry (not valid OBF JSON):",
+            entry.entryName,
+          );
         }
       }
     });
@@ -287,7 +302,10 @@ class ObfProcessor extends BaseProcessor {
     const totalRows = Array.isArray(page.grid) ? page.grid.length : 0;
     const totalColumns =
       totalRows > 0
-        ? page.grid.reduce((max, row) => Math.max(max, Array.isArray(row) ? row.length : 0), 0)
+        ? page.grid.reduce(
+            (max, row) => Math.max(max, Array.isArray(row) ? row.length : 0),
+            0,
+          )
         : 0;
 
     if (totalRows === 0 || totalColumns === 0) {
@@ -295,7 +313,7 @@ class ObfProcessor extends BaseProcessor {
         return { rows: 0, columns: 0, order: [], buttonPositions };
       }
       const fallbackRow: string[] = page.buttons.map((button, index) => {
-        const id = String(button.id ?? '');
+        const id = String(button.id ?? "");
         buttonPositions.set(id, index);
         return id;
       });
@@ -315,7 +333,7 @@ class ObfProcessor extends BaseProcessor {
       for (let colIndex = 0; colIndex < totalColumns; colIndex++) {
         const cell = sourceRow[colIndex] || null;
         if (cell) {
-          const id = String(cell.id ?? '');
+          const id = String(cell.id ?? "");
           orderRow.push(id);
           buttonPositions.set(id, rowIndex * totalColumns + colIndex);
         } else {
@@ -328,14 +346,18 @@ class ObfProcessor extends BaseProcessor {
     return { rows: totalRows, columns: totalColumns, order, buttonPositions };
   }
 
-  private createObfBoardFromPage(page: AACPage, fallbackName: string): ObfBoard {
-    const { rows, columns, order, buttonPositions } = this.buildGridMetadata(page);
+  private createObfBoardFromPage(
+    page: AACPage,
+    fallbackName: string,
+  ): ObfBoard {
+    const { rows, columns, order, buttonPositions } =
+      this.buildGridMetadata(page);
     const boardName = page.name || fallbackName;
 
     return {
       format: OBF_FORMAT_VERSION,
       id: page.id,
-      locale: page.locale || 'en',
+      locale: page.locale || "en",
       name: boardName,
       description_html: page.descriptionHtml || boardName,
       grid: {
@@ -348,14 +370,15 @@ class ObfProcessor extends BaseProcessor {
         label: button.label,
         vocalization: button.message || button.label,
         load_board:
-          button.semanticAction?.intent === AACSemanticIntent.NAVIGATE_TO && button.targetPageId
+          button.semanticAction?.intent === AACSemanticIntent.NAVIGATE_TO &&
+          button.targetPageId
             ? {
                 path: button.targetPageId,
               }
             : undefined,
         background_color: button.style?.backgroundColor,
         border_color: button.style?.borderColor,
-        box_id: buttonPositions.get(String(button.id ?? '')),
+        box_id: buttonPositions.get(String(button.id ?? "")),
       })),
       images: Array.isArray(page.images) ? page.images : [],
       sounds: Array.isArray(page.sounds) ? page.sounds : [],
@@ -365,7 +388,7 @@ class ObfProcessor extends BaseProcessor {
   processTexts(
     filePathOrBuffer: string | Buffer,
     translations: Map<string, string>,
-    outputPath: string
+    outputPath: string,
   ): Buffer {
     // Load the tree, apply translations, and save to new file
     const tree = this.loadIntoTree(filePathOrBuffer);
@@ -403,23 +426,25 @@ class ObfProcessor extends BaseProcessor {
   }
 
   saveFromTree(tree: AACTree, outputPath: string): void {
-    if (outputPath.endsWith('.obf')) {
+    if (outputPath.endsWith(".obf")) {
       // Save as single OBF JSON file
-      const rootPage = tree.rootId ? tree.getPage(tree.rootId) : Object.values(tree.pages)[0];
+      const rootPage = tree.rootId
+        ? tree.getPage(tree.rootId)
+        : Object.values(tree.pages)[0];
       if (!rootPage) {
-        throw new Error('No pages to save');
+        throw new Error("No pages to save");
       }
 
-      const obfBoard = this.createObfBoardFromPage(rootPage, 'Exported Board');
+      const obfBoard = this.createObfBoardFromPage(rootPage, "Exported Board");
       fs.writeFileSync(outputPath, JSON.stringify(obfBoard, null, 2));
     } else {
       // Save as OBZ (zip with multiple OBF files)
       const zip = new AdmZip();
 
       Object.values(tree.pages).forEach((page) => {
-        const obfBoard = this.createObfBoardFromPage(page, 'Board');
+        const obfBoard = this.createObfBoardFromPage(page, "Board");
         const obfContent = JSON.stringify(obfBoard, null, 2);
-        zip.addFile(`${page.id}.obf`, Buffer.from(obfContent, 'utf8'));
+        zip.addFile(`${page.id}.obf`, Buffer.from(obfContent, "utf8"));
       });
 
       zip.writeZip(outputPath);
@@ -430,7 +455,9 @@ class ObfProcessor extends BaseProcessor {
    * Extract strings with metadata for aac-tools-platform compatibility
    * Uses the generic implementation from BaseProcessor
    */
-  async extractStringsWithMetadata(filePath: string): Promise<ExtractStringsResult> {
+  async extractStringsWithMetadata(
+    filePath: string,
+  ): Promise<ExtractStringsResult> {
     return this.extractStringsWithMetadataGeneric(filePath);
   }
 
@@ -441,9 +468,13 @@ class ObfProcessor extends BaseProcessor {
   async generateTranslatedDownload(
     filePath: string,
     translatedStrings: TranslatedString[],
-    sourceStrings: SourceString[]
+    sourceStrings: SourceString[],
   ): Promise<string> {
-    return this.generateTranslatedDownloadGeneric(filePath, translatedStrings, sourceStrings);
+    return this.generateTranslatedDownloadGeneric(
+      filePath,
+      translatedStrings,
+      sourceStrings,
+    );
   }
 
   /**

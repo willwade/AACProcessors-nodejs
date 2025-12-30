@@ -1,13 +1,13 @@
 // Memory leak detection tests
-import fs from 'fs';
-import path from 'path';
-import { performance } from 'perf_hooks';
-import { DotProcessor } from '../src/processors/dotProcessor';
-import { SnapProcessor } from '../src/processors/snapProcessor';
-import { AACTree, AACPage, AACButton } from '../src/core/treeStructure';
+import fs from "fs";
+import path from "path";
+import { performance } from "perf_hooks";
+import { DotProcessor } from "../src/processors/dotProcessor";
+import { SnapProcessor } from "../src/processors/snapProcessor";
+import { AACTree, AACPage, AACButton } from "../src/core/treeStructure";
 
-describe('Memory Leak Detection Tests', () => {
-  const tempDir = path.join(__dirname, 'temp_memory');
+describe("Memory Leak Detection Tests", () => {
+  const tempDir = path.join(__dirname, "temp_memory");
 
   beforeAll(() => {
     if (!fs.existsSync(tempDir)) {
@@ -40,7 +40,10 @@ describe('Memory Leak Detection Tests', () => {
   }
 
   // Helper function to create test data
-  function createTestTree(pageCount: number = 5, buttonsPerPage: number = 10): AACTree {
+  function createTestTree(
+    pageCount: number = 5,
+    buttonsPerPage: number = 10,
+  ): AACTree {
     const tree = new AACTree();
 
     for (let p = 0; p < pageCount; p++) {
@@ -55,9 +58,11 @@ describe('Memory Leak Detection Tests', () => {
           id: `btn_${p}_${b}`,
           label: `Button ${b} on Page ${p}`,
           message: `Message for button ${b} on page ${p}`,
-          type: Math.random() > 0.5 ? 'SPEAK' : 'NAVIGATE',
+          type: Math.random() > 0.5 ? "SPEAK" : "NAVIGATE",
           targetPageId:
-            Math.random() > 0.7 ? `page_${Math.floor(Math.random() * pageCount)}` : undefined,
+            Math.random() > 0.7
+              ? `page_${Math.floor(Math.random() * pageCount)}`
+              : undefined,
         });
         page.addButton(button);
       }
@@ -68,8 +73,8 @@ describe('Memory Leak Detection Tests', () => {
     return tree;
   }
 
-  describe('Repeated Operations Memory Tests', () => {
-    it('should not leak memory during repeated loadIntoTree operations', () => {
+  describe("Repeated Operations Memory Tests", () => {
+    it("should not leak memory during repeated loadIntoTree operations", () => {
       const processor = new DotProcessor();
       const testContent = `
         digraph G {
@@ -82,7 +87,7 @@ describe('Memory Leak Detection Tests', () => {
       `;
 
       const memBefore = getMemoryUsage();
-      console.log('Memory before repeated loads:', memBefore);
+      console.log("Memory before repeated loads:", memBefore);
 
       // Perform many load operations
       for (let i = 0; i < 50; i++) {
@@ -97,7 +102,7 @@ describe('Memory Leak Detection Tests', () => {
 
       forceGC();
       const memAfter = getMemoryUsage();
-      console.log('Memory after repeated loads:', memAfter);
+      console.log("Memory after repeated loads:", memAfter);
 
       const memoryIncrease = memAfter.heapUsed - memBefore.heapUsed;
       console.log(`Memory increase: ${memoryIncrease}MB`);
@@ -106,12 +111,12 @@ describe('Memory Leak Detection Tests', () => {
       expect(memoryIncrease).toBeLessThan(20); // Less than 20MB increase
     });
 
-    it('should not leak memory during repeated saveFromTree operations', () => {
+    it("should not leak memory during repeated saveFromTree operations", () => {
       const processor = new DotProcessor();
       const testTree = createTestTree(3, 5);
 
       const memBefore = getMemoryUsage();
-      console.log('Memory before repeated saves:', memBefore);
+      console.log("Memory before repeated saves:", memBefore);
 
       // Perform many save operations
       for (let i = 0; i < 30; i++) {
@@ -129,7 +134,7 @@ describe('Memory Leak Detection Tests', () => {
 
       forceGC();
       const memAfter = getMemoryUsage();
-      console.log('Memory after repeated saves:', memAfter);
+      console.log("Memory after repeated saves:", memAfter);
 
       const memoryIncrease = memAfter.heapUsed - memBefore.heapUsed;
       console.log(`Memory increase: ${memoryIncrease}MB`);
@@ -137,7 +142,7 @@ describe('Memory Leak Detection Tests', () => {
       expect(memoryIncrease).toBeLessThan(15); // Less than 15MB increase
     });
 
-    it('should not leak memory during repeated translation operations', () => {
+    it("should not leak memory during repeated translation operations", () => {
       const processor = new DotProcessor();
       const testContent = `
         digraph G {
@@ -149,19 +154,23 @@ describe('Memory Leak Detection Tests', () => {
       `;
 
       const translations = new Map([
-        ['Hello', 'Hola'],
-        ['World', 'Mundo'],
-        ['Test', 'Prueba'],
-        ['Go', 'Ir'],
+        ["Hello", "Hola"],
+        ["World", "Mundo"],
+        ["Test", "Prueba"],
+        ["Go", "Ir"],
       ]);
 
       const memBefore = getMemoryUsage();
-      console.log('Memory before repeated translations:', memBefore);
+      console.log("Memory before repeated translations:", memBefore);
 
       // Perform many translation operations
       for (let i = 0; i < 25; i++) {
         const outputPath = path.join(tempDir, `repeated_translation_${i}.dot`);
-        const result = processor.processTexts(Buffer.from(testContent), translations, outputPath);
+        const result = processor.processTexts(
+          Buffer.from(testContent),
+          translations,
+          outputPath,
+        );
 
         expect(result).toBeInstanceOf(Buffer);
         expect(fs.existsSync(outputPath)).toBe(true);
@@ -176,7 +185,7 @@ describe('Memory Leak Detection Tests', () => {
 
       forceGC();
       const memAfter = getMemoryUsage();
-      console.log('Memory after repeated translations:', memAfter);
+      console.log("Memory after repeated translations:", memAfter);
 
       const memoryIncrease = memAfter.heapUsed - memBefore.heapUsed;
       console.log(`Memory increase: ${memoryIncrease}MB`);
@@ -185,13 +194,13 @@ describe('Memory Leak Detection Tests', () => {
     });
   });
 
-  describe('Database Connection Memory Tests', () => {
-    it('should not leak memory with repeated database operations', () => {
+  describe("Database Connection Memory Tests", () => {
+    it("should not leak memory with repeated database operations", () => {
       const processor = new SnapProcessor();
       const testTree = createTestTree(2, 8);
 
       const memBefore = getMemoryUsage();
-      console.log('Memory before repeated DB operations:', memBefore);
+      console.log("Memory before repeated DB operations:", memBefore);
 
       // Perform many database operations
       for (let i = 0; i < 20; i++) {
@@ -203,7 +212,9 @@ describe('Memory Leak Detection Tests', () => {
 
         // Load from database
         const loadedTree = processor.loadIntoTree(dbPath);
-        expect(Object.keys(loadedTree.pages).length).toBe(Object.keys(testTree.pages).length);
+        expect(Object.keys(loadedTree.pages).length).toBe(
+          Object.keys(testTree.pages).length,
+        );
 
         // Extract texts
         const texts = processor.extractTexts(dbPath);
@@ -219,7 +230,7 @@ describe('Memory Leak Detection Tests', () => {
 
       forceGC();
       const memAfter = getMemoryUsage();
-      console.log('Memory after repeated DB operations:', memAfter);
+      console.log("Memory after repeated DB operations:", memAfter);
 
       const memoryIncrease = memAfter.heapUsed - memBefore.heapUsed;
       console.log(`Memory increase: ${memoryIncrease}MB`);
@@ -227,7 +238,7 @@ describe('Memory Leak Detection Tests', () => {
       expect(memoryIncrease).toBeLessThan(25); // Less than 25MB increase
     });
 
-    it('should properly close database connections', () => {
+    it("should properly close database connections", () => {
       const processor = new SnapProcessor();
       const testTree = createTestTree(1, 5);
 
@@ -263,12 +274,12 @@ describe('Memory Leak Detection Tests', () => {
     });
   });
 
-  describe('Large Data Memory Tests', () => {
-    it('should handle large trees without excessive memory retention', () => {
+  describe("Large Data Memory Tests", () => {
+    it("should handle large trees without excessive memory retention", () => {
       const processor = new DotProcessor();
 
       const memBefore = getMemoryUsage();
-      console.log('Memory before large tree test:', memBefore);
+      console.log("Memory before large tree test:", memBefore);
 
       // Create and process large trees
       for (let i = 0; i < 5; i++) {
@@ -288,7 +299,7 @@ describe('Memory Leak Detection Tests', () => {
       }
 
       const memAfter = getMemoryUsage();
-      console.log('Memory after large tree test:', memAfter);
+      console.log("Memory after large tree test:", memAfter);
 
       const memoryIncrease = memAfter.heapUsed - memBefore.heapUsed;
       console.log(`Large tree memory increase: ${memoryIncrease}MB`);
@@ -296,16 +307,16 @@ describe('Memory Leak Detection Tests', () => {
       expect(memoryIncrease).toBeLessThan(30); // Less than 30MB increase
     });
 
-    it('should handle large translation maps without memory leaks', () => {
+    it("should handle large translation maps without memory leaks", () => {
       const processor = new DotProcessor();
 
       // Create content with many nodes
-      const lines = ['digraph G {'];
+      const lines = ["digraph G {"];
       for (let i = 0; i < 200; i++) {
         lines.push(`  node${i} [label="Text ${i}"];`);
       }
-      lines.push('}');
-      const largeContent = lines.join('\n');
+      lines.push("}");
+      const largeContent = lines.join("\n");
 
       // Create large translation map
       const largeTranslations = new Map<string, string>();
@@ -314,7 +325,7 @@ describe('Memory Leak Detection Tests', () => {
       }
 
       const memBefore = getMemoryUsage();
-      console.log('Memory before large translation test:', memBefore);
+      console.log("Memory before large translation test:", memBefore);
 
       // Perform translation multiple times
       for (let i = 0; i < 5; i++) {
@@ -322,16 +333,16 @@ describe('Memory Leak Detection Tests', () => {
         const result = processor.processTexts(
           Buffer.from(largeContent),
           largeTranslations,
-          outputPath
+          outputPath,
         );
 
         expect(result).toBeInstanceOf(Buffer);
         expect(fs.existsSync(outputPath)).toBe(true);
 
         // Verify some translations
-        const translatedContent = result.toString('utf8');
-        expect(translatedContent).toContain('Texto 0');
-        expect(translatedContent).toContain('Texto 199');
+        const translatedContent = result.toString("utf8");
+        expect(translatedContent).toContain("Texto 0");
+        expect(translatedContent).toContain("Texto 199");
 
         // Clean up
         fs.unlinkSync(outputPath);
@@ -340,7 +351,7 @@ describe('Memory Leak Detection Tests', () => {
       }
 
       const memAfter = getMemoryUsage();
-      console.log('Memory after large translation test:', memAfter);
+      console.log("Memory after large translation test:", memAfter);
 
       const memoryIncrease = memAfter.heapUsed - memBefore.heapUsed;
       console.log(`Large translation memory increase: ${memoryIncrease}MB`);
@@ -349,8 +360,8 @@ describe('Memory Leak Detection Tests', () => {
     });
   });
 
-  describe('Long-Running Operation Memory Tests', () => {
-    it('should maintain stable memory during extended operations', () => {
+  describe("Long-Running Operation Memory Tests", () => {
+    it("should maintain stable memory during extended operations", () => {
       const processor = new DotProcessor();
       const testContent = 'digraph G { test [label="Extended Test"]; }';
 
@@ -382,26 +393,30 @@ describe('Memory Leak Detection Tests', () => {
       const endTime = performance.now();
       const totalTime = endTime - startTime;
 
-      console.log(`Completed ${operationCount} operations in ${totalTime.toFixed(2)}ms`);
-      console.log('Memory snapshots:', memorySnapshots);
+      console.log(
+        `Completed ${operationCount} operations in ${totalTime.toFixed(2)}ms`,
+      );
+      console.log("Memory snapshots:", memorySnapshots);
 
       // Memory should remain relatively stable
       const maxMemory = Math.max(...memorySnapshots);
       const minMemory = Math.min(...memorySnapshots);
       const memoryVariation = maxMemory - minMemory;
 
-      console.log(`Memory variation: ${memoryVariation}MB (${minMemory}MB - ${maxMemory}MB)`);
+      console.log(
+        `Memory variation: ${memoryVariation}MB (${minMemory}MB - ${maxMemory}MB)`,
+      );
 
       // Memory variation should be reasonable
       expect(memoryVariation).toBeLessThan(15); // Less than 15MB variation
     });
 
-    it('should clean up temporary resources properly', async () => {
+    it("should clean up temporary resources properly", async () => {
       const processor = new SnapProcessor();
 
       const memBefore = getMemoryUsage();
       // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const tempFilesBefore = fs.readdirSync(require('os').tmpdir()).length;
+      const tempFilesBefore = fs.readdirSync(require("os").tmpdir()).length;
 
       // Perform operations that create temporary files
       for (let i = 0; i < 10; i++) {
@@ -430,13 +445,13 @@ describe('Memory Leak Detection Tests', () => {
         setTimeout(() => {
           const memAfter = getMemoryUsage();
           // eslint-disable-next-line @typescript-eslint/no-var-requires
-          const tempFilesAfter = fs.readdirSync(require('os').tmpdir()).length;
+          const tempFilesAfter = fs.readdirSync(require("os").tmpdir()).length;
 
           const memoryIncrease = memAfter.heapUsed - memBefore.heapUsed;
           const tempFileIncrease = tempFilesAfter - tempFilesBefore;
 
           console.log(
-            `Temp cleanup - Memory: +${memoryIncrease}MB, Temp files: +${tempFileIncrease}`
+            `Temp cleanup - Memory: +${memoryIncrease}MB, Temp files: +${tempFileIncrease}`,
           );
 
           expect(memoryIncrease).toBeLessThan(20);

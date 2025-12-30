@@ -3,53 +3,53 @@ import {
   AACPage as IAACPage,
   AACTree as IAACTree,
   AACStyle,
-} from '../types/aac';
+} from "../types/aac";
 
 // Semantic action categories for cross-platform compatibility
 export enum AACSemanticCategory {
-  COMMUNICATION = 'communication', // Speech, text output
-  NAVIGATION = 'navigation', // Page/grid navigation
-  TEXT_EDITING = 'text_editing', // Text manipulation
-  SYSTEM_CONTROL = 'system_control', // Device/app control
-  MEDIA = 'media', // Audio/video playback
-  ACCESSIBILITY = 'accessibility', // Switch scanning, etc.
-  CUSTOM = 'custom', // Platform-specific extensions
+  COMMUNICATION = "communication", // Speech, text output
+  NAVIGATION = "navigation", // Page/grid navigation
+  TEXT_EDITING = "text_editing", // Text manipulation
+  SYSTEM_CONTROL = "system_control", // Device/app control
+  MEDIA = "media", // Audio/video playback
+  ACCESSIBILITY = "accessibility", // Switch scanning, etc.
+  CUSTOM = "custom", // Platform-specific extensions
 }
 
 // Semantic intents within each category
 export enum AACSemanticIntent {
   // Communication
-  SPEAK_TEXT = 'SPEAK_TEXT',
-  SPEAK_IMMEDIATE = 'SPEAK_IMMEDIATE',
-  STOP_SPEECH = 'STOP_SPEECH',
-  INSERT_TEXT = 'INSERT_TEXT',
+  SPEAK_TEXT = "SPEAK_TEXT",
+  SPEAK_IMMEDIATE = "SPEAK_IMMEDIATE",
+  STOP_SPEECH = "STOP_SPEECH",
+  INSERT_TEXT = "INSERT_TEXT",
 
   // Navigation
-  NAVIGATE_TO = 'NAVIGATE_TO',
-  GO_BACK = 'GO_BACK',
-  GO_HOME = 'GO_HOME',
+  NAVIGATE_TO = "NAVIGATE_TO",
+  GO_BACK = "GO_BACK",
+  GO_HOME = "GO_HOME",
 
   // Text Editing
-  DELETE_WORD = 'DELETE_WORD',
-  DELETE_CHARACTER = 'DELETE_CHARACTER',
-  CLEAR_TEXT = 'CLEAR_TEXT',
-  COPY_TEXT = 'COPY_TEXT',
-  PASTE_TEXT = 'PASTE_TEXT',
+  DELETE_WORD = "DELETE_WORD",
+  DELETE_CHARACTER = "DELETE_CHARACTER",
+  CLEAR_TEXT = "CLEAR_TEXT",
+  COPY_TEXT = "COPY_TEXT",
+  PASTE_TEXT = "PASTE_TEXT",
 
   // System Control
-  SEND_KEYS = 'SEND_KEYS',
-  MOUSE_CLICK = 'MOUSE_CLICK',
+  SEND_KEYS = "SEND_KEYS",
+  MOUSE_CLICK = "MOUSE_CLICK",
 
   // Media
-  PLAY_SOUND = 'PLAY_SOUND',
-  PLAY_VIDEO = 'PLAY_VIDEO',
+  PLAY_SOUND = "PLAY_SOUND",
+  PLAY_VIDEO = "PLAY_VIDEO",
 
   // Accessibility
-  SCAN_NEXT = 'SCAN_NEXT',
-  SCAN_SELECT = 'SCAN_SELECT',
+  SCAN_NEXT = "SCAN_NEXT",
+  SCAN_SELECT = "SCAN_SELECT",
 
   // Custom
-  PLATFORM_SPECIFIC = 'PLATFORM_SPECIFIC',
+  PLATFORM_SPECIFIC = "PLATFORM_SPECIFIC",
 }
 
 // New semantic action interface for cross-platform compatibility
@@ -104,7 +104,7 @@ export interface AACSemanticAction {
 
   // Fallback for unknown platforms
   fallback?: {
-    type: 'SPEAK' | 'NAVIGATE' | 'ACTION';
+    type: "SPEAK" | "NAVIGATE" | "ACTION";
     message?: string;
     targetPageId?: string;
   };
@@ -128,7 +128,7 @@ export class AACButton implements IAACButton {
   };
 
   // Extended properties for advanced platforms
-  contentType?: 'Normal' | 'AutoContent' | 'Workspace' | 'LiveCell';
+  contentType?: "Normal" | "AutoContent" | "Workspace" | "LiveCell";
   contentSubType?: string;
   image?: string;
   resolvedImageEntry?: string; // normalized zip path to resolved image, if present
@@ -139,15 +139,20 @@ export class AACButton implements IAACButton {
   columnSpan?: number;
   rowSpan?: number;
   scanBlocks?: number[];
-  visibility?: 'Visible' | 'Hidden' | 'Disabled' | 'PointerAndTouchOnly' | 'Empty';
+  visibility?:
+    | "Visible"
+    | "Hidden"
+    | "Disabled"
+    | "PointerAndTouchOnly"
+    | "Empty";
   directActivate?: boolean;
   audioDescription?: string;
   parameters?: { [key: string]: any };
 
   constructor({
     id,
-    label = '',
-    message = '',
+    label = "",
+    message = "",
     targetPageId,
     semanticAction,
     audioRecording,
@@ -180,7 +185,7 @@ export class AACButton implements IAACButton {
       metadata?: string;
     };
     style?: AACStyle;
-    contentType?: 'Normal' | 'AutoContent' | 'Workspace' | 'LiveCell';
+    contentType?: "Normal" | "AutoContent" | "Workspace" | "LiveCell";
     contentSubType?: string;
     image?: string;
     resolvedImageEntry?: string;
@@ -189,13 +194,18 @@ export class AACButton implements IAACButton {
     columnSpan?: number;
     rowSpan?: number;
     scanBlocks?: number[];
-    visibility?: 'Visible' | 'Hidden' | 'Disabled' | 'PointerAndTouchOnly' | 'Empty';
+    visibility?:
+      | "Visible"
+      | "Hidden"
+      | "Disabled"
+      | "PointerAndTouchOnly"
+      | "Empty";
     directActivate?: boolean;
     parameters?: { [key: string]: any };
     // Legacy constructor properties for backward compatibility
-    type?: 'SPEAK' | 'NAVIGATE' | 'ACTION';
+    type?: "SPEAK" | "NAVIGATE" | "ACTION";
     action?: {
-      type: 'SPEAK' | 'NAVIGATE' | 'ACTION';
+      type: "SPEAK" | "NAVIGATE" | "ACTION";
       targetPageId?: string;
       message?: string;
     } | null;
@@ -222,80 +232,83 @@ export class AACButton implements IAACButton {
 
     // Legacy mapping: if no semanticAction provided, derive from legacy `action` first
     if (!this.semanticAction && action) {
-      if (action.type === 'NAVIGATE' && (action.targetPageId || this.targetPageId)) {
+      if (
+        action.type === "NAVIGATE" &&
+        (action.targetPageId || this.targetPageId)
+      ) {
         if (!this.targetPageId) this.targetPageId = action.targetPageId;
         this.semanticAction = {
           category: AACSemanticCategory.NAVIGATION,
           intent: AACSemanticIntent.NAVIGATE_TO,
           targetId: this.targetPageId,
-          fallback: { type: 'NAVIGATE', targetPageId: this.targetPageId },
+          fallback: { type: "NAVIGATE", targetPageId: this.targetPageId },
         };
-      } else if (action.type === 'SPEAK') {
-        const text = action.message || this.message || this.label || '';
+      } else if (action.type === "SPEAK") {
+        const text = action.message || this.message || this.label || "";
         if (!this.message) this.message = text;
         this.semanticAction = {
           category: AACSemanticCategory.COMMUNICATION,
           intent: AACSemanticIntent.SPEAK_TEXT,
           text,
-          fallback: { type: 'SPEAK', message: text },
+          fallback: { type: "SPEAK", message: text },
         };
       } else {
         this.semanticAction = {
           category: AACSemanticCategory.SYSTEM_CONTROL,
           intent: AACSemanticIntent.PLATFORM_SPECIFIC,
-          fallback: { type: 'ACTION' },
+          fallback: { type: "ACTION" },
         };
       }
     }
 
     // Legacy mapping: if still no semanticAction and `type` provided
     if (!this.semanticAction && type) {
-      if (type === 'NAVIGATE' && this.targetPageId) {
+      if (type === "NAVIGATE" && this.targetPageId) {
         this.semanticAction = {
           category: AACSemanticCategory.NAVIGATION,
           intent: AACSemanticIntent.NAVIGATE_TO,
           targetId: this.targetPageId,
-          fallback: { type: 'NAVIGATE', targetPageId: this.targetPageId },
+          fallback: { type: "NAVIGATE", targetPageId: this.targetPageId },
         };
-      } else if (type === 'SPEAK') {
-        const text = this.message || this.label || '';
+      } else if (type === "SPEAK") {
+        const text = this.message || this.label || "";
         this.semanticAction = {
           category: AACSemanticCategory.COMMUNICATION,
           intent: AACSemanticIntent.SPEAK_TEXT,
           text,
-          fallback: { type: 'SPEAK', message: text },
+          fallback: { type: "SPEAK", message: text },
         };
       } else {
         this.semanticAction = {
           category: AACSemanticCategory.SYSTEM_CONTROL,
           intent: AACSemanticIntent.PLATFORM_SPECIFIC,
-          fallback: { type: 'ACTION' },
+          fallback: { type: "ACTION" },
         };
       }
     }
   }
 
   // Legacy compatibility properties
-  get type(): 'SPEAK' | 'NAVIGATE' | 'ACTION' | undefined {
+  get type(): "SPEAK" | "NAVIGATE" | "ACTION" | undefined {
     if (this.semanticAction) {
       const i = String(this.semanticAction.intent);
-      if (i === 'NAVIGATE_TO') return 'NAVIGATE';
-      if (i === 'SPEAK_TEXT' || i === 'SPEAK_IMMEDIATE') return 'SPEAK';
-      return 'ACTION';
+      if (i === "NAVIGATE_TO") return "NAVIGATE";
+      if (i === "SPEAK_TEXT" || i === "SPEAK_IMMEDIATE") return "SPEAK";
+      return "ACTION";
     }
-    if (this.targetPageId) return 'NAVIGATE';
-    if (this.message) return 'SPEAK';
-    return 'SPEAK';
+    if (this.targetPageId) return "NAVIGATE";
+    if (this.message) return "SPEAK";
+    return "SPEAK";
   }
 
   get action(): {
-    type: 'SPEAK' | 'NAVIGATE' | 'ACTION';
+    type: "SPEAK" | "NAVIGATE" | "ACTION";
     targetPageId?: string;
     message?: string;
   } | null {
     const t = this.type;
     if (!t) return null;
-    if (t === 'SPEAK' && !this.message && !this.label && !this.semanticAction) {
+    if (t === "SPEAK" && !this.message && !this.label && !this.semanticAction) {
       return null;
     }
     return { type: t, targetPageId: this.targetPageId, message: this.message };
@@ -316,7 +329,7 @@ export class AACPage implements IAACPage {
 
   constructor({
     id,
-    name = '',
+    name = "",
     grid = [],
     buttons = [],
     parentId = null,
@@ -341,10 +354,17 @@ export class AACPage implements IAACPage {
     this.name = name;
     if (Array.isArray(grid)) {
       this.grid = grid;
-    } else if (grid && typeof grid === 'object' && 'columns' in grid && 'rows' in grid) {
+    } else if (
+      grid &&
+      typeof grid === "object" &&
+      "columns" in grid &&
+      "rows" in grid
+    ) {
       const cols = (grid as any).columns as number;
       const rows = (grid as any).rows as number;
-      this.grid = Array.from({ length: rows }, () => Array.from({ length: cols }, () => null));
+      this.grid = Array.from({ length: rows }, () =>
+        Array.from({ length: cols }, () => null),
+      );
     } else {
       this.grid = [];
     }
@@ -403,7 +423,11 @@ export class AACTree implements IAACTree {
         page.buttons
           .filter((b) => {
             const i = String(b.semanticAction?.intent);
-            return i === 'NAVIGATE_TO' || !!b.semanticAction?.targetId || !!b.targetPageId;
+            return (
+              i === "NAVIGATE_TO" ||
+              !!b.semanticAction?.targetId ||
+              !!b.targetPageId
+            );
           })
           .forEach((b) => {
             const target = b.semanticAction?.targetId || b.targetPageId;

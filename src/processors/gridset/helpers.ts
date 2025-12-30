@@ -1,17 +1,20 @@
-import AdmZip from 'adm-zip';
-import { XMLBuilder } from 'fast-xml-parser';
-import { AACTree, AACPage, AACButton } from '../../core/treeStructure';
-import * as fs from 'fs';
-import * as path from 'path';
-import { execSync } from 'child_process';
-import Database from 'better-sqlite3';
-import { dotNetTicksToDate } from '../../utils/dotnetTicks';
-import { getZipEntriesWithPassword, resolveGridsetPasswordFromEnv } from './password';
+import AdmZip from "adm-zip";
+import { XMLBuilder } from "fast-xml-parser";
+import { AACTree, AACPage, AACButton } from "../../core/treeStructure";
+import * as fs from "fs";
+import * as path from "path";
+import { execSync } from "child_process";
+import Database from "better-sqlite3";
+import { dotNetTicksToDate } from "../../utils/dotnetTicks";
+import {
+  getZipEntriesWithPassword,
+  resolveGridsetPasswordFromEnv,
+} from "./password";
 
 function normalizeZipPath(p: string): string {
-  const unified = p.replace(/\\/g, '/');
+  const unified = p.replace(/\\/g, "/");
   try {
-    return unified.normalize('NFC');
+    return unified.normalize("NFC");
   } catch {
     return unified;
   }
@@ -21,7 +24,10 @@ function normalizeZipPath(p: string): string {
  * Build a map of button IDs to resolved image entry paths for a specific page.
  * Helpful when rewriting zip entry names or validating images referenced in a grid.
  */
-export function getPageTokenImageMap(tree: AACTree, pageId: string): Map<string, string> {
+export function getPageTokenImageMap(
+  tree: AACTree,
+  pageId: string,
+): Map<string, string> {
   const map = new Map<string, string>();
   const page: AACPage | undefined = tree.getPage(pageId);
   if (!page) return map;
@@ -41,7 +47,8 @@ export function getAllowedImageEntries(tree: AACTree): Set<string> {
   const out = new Set<string>();
   Object.values(tree.pages).forEach((page) => {
     page.buttons.forEach((btn: AACButton) => {
-      if (btn.resolvedImageEntry) out.add(normalizeZipPath(String(btn.resolvedImageEntry)));
+      if (btn.resolvedImageEntry)
+        out.add(normalizeZipPath(String(btn.resolvedImageEntry)));
     });
   });
   return out;
@@ -56,7 +63,7 @@ export function getAllowedImageEntries(tree: AACTree): Set<string> {
 export function openImage(
   gridsetBuffer: Buffer,
   entryPath: string,
-  password = resolveGridsetPasswordFromEnv()
+  password = resolveGridsetPasswordFromEnv(),
 ): Buffer | null {
   const zip = new AdmZip(gridsetBuffer);
   const entries = getZipEntriesWithPassword(zip, password);
@@ -72,9 +79,9 @@ export function openImage(
  * @returns A UUID v4-like string in the format xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
  */
 export function generateGrid3Guid(): string {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
     const r = (Math.random() * 16) | 0;
-    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
     return v.toString(16);
   });
 }
@@ -94,24 +101,24 @@ export function createSettingsXml(
     hoverTimeoutMs?: number;
     mouseclickEnabled?: boolean;
     language?: string;
-  }
+  },
 ): string {
   const builder = new XMLBuilder({
     ignoreAttributes: false,
     format: true,
-    indentBy: '  ',
+    indentBy: "  ",
   });
 
   const settingsData = {
     GridSetSettings: {
-      '@_xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
+      "@_xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
       StartGrid: startGrid,
-      ScanEnabled: options?.scanEnabled?.toString() ?? 'false',
-      ScanTimeoutMs: options?.scanTimeoutMs?.toString() ?? '2000',
-      HoverEnabled: options?.hoverEnabled?.toString() ?? 'false',
-      HoverTimeoutMs: options?.hoverTimeoutMs?.toString() ?? '1000',
-      MouseclickEnabled: options?.mouseclickEnabled?.toString() ?? 'true',
-      Language: options?.language ?? 'en-US',
+      ScanEnabled: options?.scanEnabled?.toString() ?? "false",
+      ScanTimeoutMs: options?.scanTimeoutMs?.toString() ?? "2000",
+      HoverEnabled: options?.hoverEnabled?.toString() ?? "false",
+      HoverTimeoutMs: options?.hoverTimeoutMs?.toString() ?? "1000",
+      MouseclickEnabled: options?.mouseclickEnabled?.toString() ?? "true",
+      Language: options?.language ?? "en-US",
     },
   };
 
@@ -124,16 +131,16 @@ export function createSettingsXml(
  * @returns XML string for FileMap.xml
  */
 export function createFileMapXml(
-  grids: Array<{ name: string; path: string; dynamicFiles?: string[] }>
+  grids: Array<{ name: string; path: string; dynamicFiles?: string[] }>,
 ): string {
   const builder = new XMLBuilder({
     ignoreAttributes: false,
     format: true,
-    indentBy: '  ',
+    indentBy: "  ",
   });
 
   const entries = grids.map((grid) => ({
-    '@_StaticFile': grid.path,
+    "@_StaticFile": grid.path,
     ...(grid.dynamicFiles && grid.dynamicFiles.length > 0
       ? { DynamicFiles: { File: grid.dynamicFiles } }
       : {}),
@@ -141,7 +148,7 @@ export function createFileMapXml(
 
   const fileMapData = {
     FileMap: {
-      '@_xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
+      "@_xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
       Entries: {
         Entry: entries,
       },
@@ -184,15 +191,15 @@ export interface Grid3HistoryEntry {
  */
 export function getCommonDocumentsPath(): string {
   // Only works on Windows
-  if (process.platform !== 'win32') {
-    return '';
+  if (process.platform !== "win32") {
+    return "";
   }
 
   try {
     // Query registry for Common Documents path
     const command =
       'REG.EXE QUERY "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders" /V "Common Documents"';
-    const output = execSync(command, { encoding: 'utf-8', windowsHide: true });
+    const output = execSync(command, { encoding: "utf-8", windowsHide: true });
 
     // Parse the output to extract the path
     const match = output.match(/Common Documents\s+REG_SZ\s+(.+)/);
@@ -204,7 +211,7 @@ export function getCommonDocumentsPath(): string {
   }
 
   // Default fallback path
-  return 'C:\\Users\\Public\\Documents';
+  return "C:\\Users\\Public\\Documents";
 }
 
 /**
@@ -219,14 +226,19 @@ export function findGrid3UserPaths(): Grid3UserPath[] {
   const results: Grid3UserPath[] = [];
 
   // Only works on Windows
-  if (process.platform !== 'win32') {
+  if (process.platform !== "win32") {
     return results;
   }
 
   try {
     const commonDocs = getCommonDocumentsPath();
     // Use Windows path joining so tests that mock a Windows platform stay consistent even on POSIX runners
-    const grid3BasePath = path.win32.join(commonDocs, 'Smartbox', 'Grid 3', 'Users');
+    const grid3BasePath = path.win32.join(
+      commonDocs,
+      "Smartbox",
+      "Grid 3",
+      "Users",
+    );
 
     // Check if Grid3 Users directory exists
     if (!fs.existsSync(grid3BasePath)) {
@@ -250,7 +262,11 @@ export function findGrid3UserPaths(): Grid3UserPath[] {
 
         const langCode = langDir.name;
         const basePath = path.win32.join(userPath, langCode);
-        const historyDbPath = path.win32.join(basePath, 'Phrases', 'history.sqlite');
+        const historyDbPath = path.win32.join(
+          basePath,
+          "Phrases",
+          "history.sqlite",
+        );
 
         // Only include if history database exists
         if (fs.existsSync(historyDbPath)) {
@@ -291,15 +307,22 @@ export function findGrid3Users(): Grid3UserPath[] {
  * @param userName Optional user filter; matches case-insensitively
  * @returns Array of user/gridset path pairs
  */
-export function findGrid3Vocabularies(userName?: string): Grid3VocabularyPath[] {
+export function findGrid3Vocabularies(
+  userName?: string,
+): Grid3VocabularyPath[] {
   const results: Grid3VocabularyPath[] = [];
 
-  if (process.platform !== 'win32') {
+  if (process.platform !== "win32") {
     return results;
   }
 
   const commonDocs = getCommonDocumentsPath();
-  const grid3BasePath = path.win32.join(commonDocs, 'Smartbox', 'Grid 3', 'Users');
+  const grid3BasePath = path.win32.join(
+    commonDocs,
+    "Smartbox",
+    "Grid 3",
+    "Users",
+  );
 
   if (!fs.existsSync(grid3BasePath)) {
     return results;
@@ -310,17 +333,23 @@ export function findGrid3Vocabularies(userName?: string): Grid3VocabularyPath[] 
 
   for (const userDir of users) {
     if (!userDir.isDirectory()) continue;
-    if (normalizedUser && userDir.name.toLowerCase() !== normalizedUser) continue;
+    if (normalizedUser && userDir.name.toLowerCase() !== normalizedUser)
+      continue;
 
     const userRoot = path.win32.join(grid3BasePath, userDir.name);
-    const gridSetsDir = path.win32.join(userRoot, 'Grid Sets');
+    const gridSetsDir = path.win32.join(userRoot, "Grid Sets");
     if (!fs.existsSync(gridSetsDir)) continue;
 
     const entries = fs.readdirSync(gridSetsDir, { withFileTypes: true });
     for (const entry of entries) {
       if (!entry.isFile()) continue;
       const ext = path.extname(entry.name).toLowerCase();
-      if (ext === '.gridset' || ext === '.gridsetx' || ext === '.grd' || ext === '.grdl') {
+      if (
+        ext === ".gridset" ||
+        ext === ".gridsetx" ||
+        ext === ".grd" ||
+        ext === ".grdl"
+      ) {
         results.push({
           userName: userDir.name,
           gridsetPath: path.win32.join(gridSetsDir, entry.name),
@@ -338,7 +367,10 @@ export function findGrid3Vocabularies(userName?: string): Grid3VocabularyPath[] 
  * @param langCode Optional language code filter (case-insensitive)
  * @returns Path to history.sqlite or null if not found
  */
-export function findGrid3UserHistory(userName: string, langCode?: string): string | null {
+export function findGrid3UserHistory(
+  userName: string,
+  langCode?: string,
+): string | null {
   if (!userName) return null;
 
   const normalizedUser = userName.toLowerCase();
@@ -347,7 +379,7 @@ export function findGrid3UserHistory(userName: string, langCode?: string): strin
   const match = findGrid3UserPaths().find(
     (u) =>
       u.userName.toLowerCase() === normalizedUser &&
-      (!normalizedLang || u.langCode.toLowerCase() === normalizedLang)
+      (!normalizedLang || u.langCode.toLowerCase() === normalizedLang),
   );
 
   return match?.historyDbPath ?? null;
@@ -357,10 +389,15 @@ export function findGrid3UserHistory(userName: string, langCode?: string): strin
  * Check whether Grid 3 appears to be installed (Windows only)
  */
 export function isGrid3Installed(): boolean {
-  if (process.platform !== 'win32') return false;
+  if (process.platform !== "win32") return false;
   const commonDocs = getCommonDocumentsPath();
   if (!commonDocs) return false;
-  const grid3BasePath = path.win32.join(commonDocs, 'Smartbox', 'Grid 3', 'Users');
+  const grid3BasePath = path.win32.join(
+    commonDocs,
+    "Smartbox",
+    "Grid 3",
+    "Users",
+  );
   return fs.existsSync(grid3BasePath);
 }
 
@@ -372,9 +409,9 @@ function parseGrid3ContentXml(xmlContent: string): string {
     parts.push(match[1]);
   }
   if (parts.length > 0) {
-    return parts.join('');
+    return parts.join("");
   }
-  return xmlContent.replace(/<[^>]+>/g, '').trim();
+  return xmlContent.replace(/<[^>]+>/g, "").trim();
 }
 
 /**
@@ -399,7 +436,7 @@ export function readGrid3History(historyDbPath: string): Grid3HistoryEntry[] {
       INNER JOIN Phrases p ON p.Id = ph.PhraseId
       WHERE ph.Timestamp <> 0
       ORDER BY ph.Timestamp ASC
-    `
+    `,
     )
     .all() as Array<{
     PhraseId: number;
@@ -414,11 +451,13 @@ export function readGrid3History(historyDbPath: string): Grid3HistoryEntry[] {
 
   for (const row of rows) {
     const phraseId: number = row.PhraseId;
-    const rawContentSource = [row.ContentXml, row.TextValue].find((candidate) => {
-      if (candidate === null || candidate === undefined) return false;
-      const asString = String(candidate);
-      return asString.trim().length > 0;
-    });
+    const rawContentSource = [row.ContentXml, row.TextValue].find(
+      (candidate) => {
+        if (candidate === null || candidate === undefined) return false;
+        const asString = String(candidate);
+        return asString.trim().length > 0;
+      },
+    );
     if (rawContentSource === undefined) {
       continue; // Skip history rows with no usable text content
     }
@@ -426,7 +465,7 @@ export function readGrid3History(historyDbPath: string): Grid3HistoryEntry[] {
     const rawContentText = String(rawContentSource);
     const contentText = parseGrid3ContentXml(rawContentText);
     const rawXml =
-      typeof row.ContentXml === 'string' && row.ContentXml.trim().length > 0
+      typeof row.ContentXml === "string" && row.ContentXml.trim().length > 0
         ? row.ContentXml
         : undefined;
     const entry =
@@ -456,7 +495,10 @@ export function readGrid3History(historyDbPath: string): Grid3HistoryEntry[] {
  * @param langCode Optional language code to narrow selection (case-insensitive)
  * @returns History entries for that user/language, or empty array if none
  */
-export function readGrid3HistoryForUser(userName: string, langCode?: string): Grid3HistoryEntry[] {
+export function readGrid3HistoryForUser(
+  userName: string,
+  langCode?: string,
+): Grid3HistoryEntry[] {
   const dbPath = findGrid3UserHistory(userName, langCode);
   if (!dbPath) return [];
   return readGrid3History(dbPath);
