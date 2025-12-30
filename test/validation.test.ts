@@ -183,6 +183,49 @@ describe('Validation System', () => {
 
       expect(result.valid).toBe(false);
     });
+
+    it('should handle encrypted .gridsetx files', async () => {
+      // .gridsetx files are encrypted, so we just validate the extension
+      const encryptedContent = Buffer.from('encrypted binary data');
+      const result = await new GridsetValidator().validate(
+        encryptedContent,
+        'test.gridsetx',
+        encryptedContent.length
+      );
+
+      expect(result).toBeDefined();
+      expect(result.format).toBe('gridset');
+      // Should have warning about encryption
+      const hasEncryptionWarning = result.results.some(
+        (r) => r.type === 'encrypted_format' && r.warnings && r.warnings.length > 0
+      );
+      expect(hasEncryptionWarning).toBe(true);
+    });
+
+    it('should not require wordlists element', async () => {
+      const gridsetWithoutWordlists = `<?xml version="1.0" encoding="utf-8"?>
+      <gridset id="test" name="Test Gridset">
+        <pages>
+          <page id="page1" name="Page 1">
+            <cells>
+              <cell id="cell1" label="Hello"/>
+            </cells>
+          </page>
+        </pages>
+        <fixedCellSize width="100" height="100"/>
+      </gridset>`;
+
+      const content = Buffer.from(gridsetWithoutWordlists);
+      const result = await new GridsetValidator().validate(content, 'test.gridset', content.length);
+
+      expect(result).toBeDefined();
+      expect(result.format).toBe('gridset');
+      // Should NOT have warning about missing wordlists
+      const hasWordlistsWarning = result.results.some(
+        (r) => r.type === 'wordlists' && r.warnings && r.warnings.length > 0
+      );
+      expect(hasWordlistsWarning).toBe(false);
+    });
   });
 
   describe('SnapValidator', () => {

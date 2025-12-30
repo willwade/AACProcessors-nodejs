@@ -55,12 +55,23 @@ export class GridsetValidator extends BaseValidator {
   ): Promise<ValidationResult> {
     this.reset();
 
+    const isEncrypted = filename.toLowerCase().endsWith('.gridsetx');
+
     // eslint-disable-next-line @typescript-eslint/require-await
     await this.add_check('filename', 'file extension', async () => {
       if (!filename.match(/\.gridsetx?$/)) {
         this.warn('filename should end with .gridset or .gridsetx');
       }
     });
+
+    // For encrypted .gridsetx files, we can't validate the content
+    if (isEncrypted) {
+      // eslint-disable-next-line @typescript-eslint/require-await
+      await this.add_check('encrypted_format', 'encrypted gridsetx file', async () => {
+        this.warn('gridsetx files are encrypted and cannot be fully validated');
+      });
+      return this.buildResult(filename, filesize, 'gridset');
+    }
 
     let xmlObj: any = null;
     await this.add_check('xml_parse', 'valid XML', async () => {
@@ -97,7 +108,7 @@ export class GridsetValidator extends BaseValidator {
    */
   private async validateGridsetStructure(
     gridset: any,
-    filename: string,
+    _filename: string,
     _content: Buffer | Uint8Array
   ): Promise<void> {
     // Check for required elements
@@ -171,22 +182,6 @@ export class GridsetValidator extends BaseValidator {
         this.warn('gridset should have a styles element for consistent formatting');
       }
     });
-
-    // Check for wordlists
-    await this.add_check('wordlists', 'wordlists element', async () => {
-      const wordlists = gridset.wordlists || gridset.Wordlists;
-      if (!wordlists) {
-        this.warn('gridset should have a wordlists element for vocabulary support');
-      }
-    });
-
-    // Validate file references if it's a .gridsetx file (encrypted)
-    if (filename.endsWith('.gridsetx')) {
-      await this.add_check('encrypted_format', 'encrypted gridsetx', async () => {
-        // Gridsetx files are encrypted, so we can't validate much
-        this.warn('gridsetx files are encrypted and cannot be fully validated');
-      });
-    }
   }
 
   /**
