@@ -59,6 +59,7 @@ export {
   type WordList,
   type WordListItem,
 } from './gridset/wordlistHelpers';
+export { resolveGridsetPassword, resolveGridsetPasswordFromEnv } from './gridset/password';
 
 // Gridset (Grid 3) color utilities
 export {

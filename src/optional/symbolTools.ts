@@ -1,5 +1,9 @@
 import path from 'path';
 import fs from 'fs';
+import {
+  getZipEntriesWithPassword,
+  resolveGridsetPasswordFromEnv,
+} from '../processors/gridset/password';
 
 // Dynamic imports for optional dependencies
 type Database = typeof import('better-sqlite3');
@@ -79,8 +83,9 @@ export class Grid3SymbolExtractor extends SymbolExtractor {
     const parser = new XMLParser();
     const refs = new Set<string>();
 
-    zip.getEntries().forEach((entry) => {
-      if (entry.entryName.endsWith('.gridset')) {
+    const entries = getZipEntriesWithPassword(zip, resolveGridsetPasswordFromEnv());
+    entries.forEach((entry) => {
+      if (entry.entryName.endsWith('.gridset') || entry.entryName.endsWith('.gridsetx')) {
         const xmlBuffer = entry.getData();
         // Parse to validate XML structure (future: extract refs)
         parser.parse(xmlBuffer.toString('utf8'));

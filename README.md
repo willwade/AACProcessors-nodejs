@@ -27,6 +27,7 @@ A comprehensive **TypeScript library** for processing AAC (Augmentative and Alte
 - 🌍 **Translation workflows** - Built-in i18n support with `processTexts()`
 - 🎨 **Comprehensive styling support** - Preserve visual appearance across formats
 - 🧪 **Property-based testing** - Robust validation with 140+ tests
+- ✅ **Format validation** - Spec-based validation for all supported formats
 - ⚡ **Performance optimized** - Memory-efficient processing of large files
 - 🛡️ **Error recovery** - Graceful handling of corrupted data
 - 🔒 **Thread-safe** - Concurrent processing support
@@ -190,6 +191,78 @@ const translatedBuffer = processor.processTexts(
 
 console.log("Translation complete!");
 ```
+
+### Format Validation
+
+Validate AAC files against format specifications to ensure data integrity:
+
+```typescript
+import { ObfProcessor, GridsetProcessor } from "aac-processors";
+
+// Validate OBF/OBZ files
+const obfProcessor = new ObfProcessor();
+const result = await obfProcessor.validate("board.obf");
+
+console.log(`Valid: ${result.valid}`);
+console.log(`Errors: ${result.errors}`);
+console.log(`Warnings: ${result.warnings}`);
+
+// Detailed validation results
+if (!result.valid) {
+  result.results
+    .filter((check) => !check.valid)
+    .forEach((check) => {
+      console.log(`✗ ${check.description}: ${check.error}`);
+    });
+}
+
+// Validate Gridset files (with optional password for encrypted files)
+const gridsetProcessor = new GridsetProcessor({
+  gridsetPassword: "optional-password",
+});
+const gridsetResult = await gridsetProcessor.validate("vocab.gridsetx");
+```
+
+#### Using the CLI
+
+```bash
+# Validate a file
+aacprocessors validate board.obf
+
+# JSON output
+aacprocessors validate board.obf --json
+
+# Quiet mode (just valid/invalid)
+aacprocessors validate board.gridset --quiet
+
+# Validate encrypted Gridset file
+aacprocessors validate board.gridsetx --gridset-password <password>
+```
+
+#### What Gets Validated?
+
+- **OBF/OBZ**: Spec compliance (Open Board Format)
+  - Required fields (format, id, locale, buttons, grid, images, sounds)
+  - Grid structure (rows, columns, order)
+  - Button references (image_id, sound_id, load_board paths)
+  - Color formats (RGB/RGBA)
+  - Cross-reference validation
+
+- **Gridset**: XML structure
+  - Required elements (gridset, pages, cells)
+  - FixedCellSize configuration
+  - Page and cell attributes
+  - Image references
+
+- **Snap**: Package structure
+  - ZIP package validity
+  - Settings file format
+  - Page/button configurations
+
+- **TouchChat**: XML structure
+  - PageSet hierarchy
+  - Button definitions
+  - Navigation links
 
 ### Cross-Format Conversion
 
@@ -506,6 +579,7 @@ npx aac-processors analyze examples/example.gridset --pretty
 - `--pretty` - Human-readable output (analyze command)
 - `--verbose` - Detailed output (extract command)
 - `--quiet` - Minimal output (extract command)
+- `--gridset-password <password>` - Password for encrypted Grid 3 archives (`.gridsetx`)
 
 **Button Filtering Options:**
 
@@ -594,17 +668,17 @@ interface AACButton {
 
 ### Supported Processors
 
-| Processor               | File Extensions | Description                   |
-| ----------------------- | --------------- | ----------------------------- |
-| `DotProcessor`          | `.dot`          | Graphviz DOT format           |
-| `OpmlProcessor`         | `.opml`         | OPML hierarchical format      |
-| `ObfProcessor`          | `.obf`, `.obz`  | Open Board Format (JSON/ZIP)  |
-| `SnapProcessor`         | `.sps`, `.spb`  | Tobii Dynavox Snap format     |
-| `GridsetProcessor`      | `.gridset`      | Smartbox Grid 3 format        |
-| `TouchChatProcessor`    | `.ce`           | PRC-Saltillo TouchChat format |
-| `ApplePanelsProcessor`  | `.plist`        | iOS Apple Panels format       |
-| `AstericsGridProcessor` | `.grd`          | Asterics Grid native format   |
-| `ExcelProcessor`        | `.xlsx`         | Microsoft Excel format        |
+| Processor               | File Extensions         | Description                   |
+| ----------------------- | ----------------------- | ----------------------------- |
+| `DotProcessor`          | `.dot`                  | Graphviz DOT format           |
+| `OpmlProcessor`         | `.opml`                 | OPML hierarchical format      |
+| `ObfProcessor`          | `.obf`, `.obz`          | Open Board Format (JSON/ZIP)  |
+| `SnapProcessor`         | `.sps`, `.spb`          | Tobii Dynavox Snap format     |
+| `GridsetProcessor`      | `.gridset`, `.gridsetx` | Smartbox Grid 3 format        |
+| `TouchChatProcessor`    | `.ce`                   | PRC-Saltillo TouchChat format |
+| `ApplePanelsProcessor`  | `.plist`                | iOS Apple Panels format       |
+| `AstericsGridProcessor` | `.grd`                  | Asterics Grid native format   |
+| `ExcelProcessor`        | `.xlsx`                 | Microsoft Excel format        |
 
 ---
 

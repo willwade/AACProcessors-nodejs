@@ -6,6 +6,7 @@ import * as path from 'path';
 import { execSync } from 'child_process';
 import Database from 'better-sqlite3';
 import { dotNetTicksToDate } from '../../utils/dotnetTicks';
+import { getZipEntriesWithPassword, resolveGridsetPasswordFromEnv } from './password';
 
 function normalizeZipPath(p: string): string {
   const unified = p.replace(/\\/g, '/');
@@ -52,10 +53,15 @@ export function getAllowedImageEntries(tree: AACTree): Set<string> {
  * @param entryPath Entry name inside the zip
  * @returns Image data buffer or null if not found
  */
-export function openImage(gridsetBuffer: Buffer, entryPath: string): Buffer | null {
+export function openImage(
+  gridsetBuffer: Buffer,
+  entryPath: string,
+  password = resolveGridsetPasswordFromEnv()
+): Buffer | null {
   const zip = new AdmZip(gridsetBuffer);
+  const entries = getZipEntriesWithPassword(zip, password);
   const want = normalizeZipPath(entryPath);
-  const entry = zip.getEntries().find((e) => normalizeZipPath(e.entryName) === want);
+  const entry = entries.find((e) => normalizeZipPath(e.entryName) === want);
   if (!entry) return null;
   return entry.getData();
 }
@@ -314,7 +320,7 @@ export function findGrid3Vocabularies(userName?: string): Grid3VocabularyPath[] 
     for (const entry of entries) {
       if (!entry.isFile()) continue;
       const ext = path.extname(entry.name).toLowerCase();
-      if (ext === '.gridset' || ext === '.grd' || ext === '.grdl') {
+      if (ext === '.gridset' || ext === '.gridsetx' || ext === '.grd' || ext === '.grdl') {
         results.push({
           userName: userDir.name,
           gridsetPath: path.win32.join(gridSetsDir, entry.name),

@@ -28,6 +28,7 @@ class FileProcessor {
       const ext = path.extname(filePathOrBuffer).toLowerCase();
       switch (ext) {
         case '.gridset':
+        case '.gridsetx':
           return 'gridset';
         case '.obf':
         case '.obz':

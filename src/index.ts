@@ -8,6 +8,7 @@ export {
   listGrid3Users as listHistoryGrid3Users,
   listSnapUsers as listHistorySnapUsers,
 } from './analytics/history';
+export * from './validation';
 
 import { BaseProcessor } from './core/baseProcessor';
 import { DotProcessor } from './processors/dotProcessor';
@@ -43,6 +44,7 @@ export function getProcessor(filePathOrExtension: string): BaseProcessor {
     case '.obz':
       return new ObfProcessor();
     case '.gridset':
+    case '.gridsetx':
       return new GridsetProcessor();
     case '.spb':
     case '.sps':
@@ -70,6 +72,7 @@ export function getSupportedExtensions(): string[] {
     '.obf',
     '.obz',
     '.gridset',
+    '.gridsetx',
     '.spb',
     '.sps',
     '.ce',

@@ -1,0 +1,376 @@
+{
+  "id": "aboutme",
+  "format": "open-board-0.1",
+  "name": "CommuniKate About Me",
+  "license": {
+    "type": "CC-By",
+    "copyright_notice_url": "http://creativecommons.org/licenses/by/3.0/",
+    "author_name": "Kate McCallum",
+    "author_url": "https://twitter.com/KateMcCallumuk"
+  },
+  "buttons": [
+    {
+      "label": "Top Page",
+      "load_board": {
+        "id": "page1",
+        "path": "boards/page1.obf"
+      },
+      "id": 0,
+      "border_color": "#444",
+      "background_color": "#ffff32",
+      "image_id": 0
+    },
+    {
+      "label": "Name",
+      "id": 1,
+      "border_color": "#444",
+      "background_color": "#c0c0c0",
+      "image_id": 1
+    },
+    {
+      "label": "I live in...",
+      "id": 2,
+      "border_color": "#444",
+      "background_color": "#c0c0c0",
+      "image_id": 2
+    },
+    {
+      "label": "Birthday...",
+      "id": 3,
+      "border_color": "#444",
+      "background_color": "#c0c0c0",
+      "image_id": 3
+    },
+    {
+      "label": "age...",
+      "id": 4,
+      "border_color": "#444",
+      "background_color": "#c0c0c0",
+      "image_id": 4
+    },
+    {
+      "label": "I live with...",
+      "id": 5,
+      "border_color": "#444",
+      "background_color": "#c0c0c0",
+      "image_id": 5
+    },
+    {
+      "label": "pet.. ",
+      "id": 6,
+      "border_color": "#444",
+      "background_color": "#c0c0c0",
+      "image_id": 6
+    },
+    {
+      "label": "School college...",
+      "id": 7,
+      "border_color": "#444",
+      "background_color": "#c0c0c0",
+      "image_id": 7
+    },
+    {
+      "label": "email..",
+      "id": 8,
+      "border_color": "#444",
+      "background_color": "#c0c0c0",
+      "image_id": 8
+    },
+    {
+      "label": "work...",
+      "id": 9,
+      "border_color": "#444",
+      "background_color": "#c0c0c0",
+      "image_id": 9
+    },
+    {
+      "label": "communication aid..",
+      "id": 10,
+      "border_color": "#444",
+      "background_color": "#c0c0c0",
+      "image_id": 10
+    },
+    {
+      "label": "music..",
+      "id": 11,
+      "border_color": "#444",
+      "background_color": "#c0c0c0",
+      "image_id": 11
+    },
+    {
+      "label": "film..",
+      "id": 12,
+      "border_color": "#444",
+      "background_color": "#c0c0c0",
+      "image_id": 12
+    },
+    {
+      "label": "hobby..",
+      "id": 13,
+      "border_color": "#444",
+      "background_color": "#c0c0c0",
+      "image_id": 13
+    },
+    {
+      "label": "tv...",
+      "id": 14,
+      "border_color": "#444",
+      "background_color": "#c0c0c0",
+      "image_id": 14
+    },
+    {
+      "label": "disability...",
+      "id": 15,
+      "border_color": "#444",
+      "background_color": "#c0c0c0",
+      "image_id": 15
+    },
+    {
+      "label": "mobile...",
+      "id": 16,
+      "border_color": "#444",
+      "background_color": "#c0c0c0",
+      "image_id": 16
+    },
+    {
+      "label": "About You",
+      "load_board": {
+        "id": "aboutyou",
+        "path": "boards/aboutyou.obf"
+      },
+      "id": 17,
+      "border_color": "rgb(255, 255, 0)",
+      "background_color": "rgba(120, 113, 255, 0.5)",
+      "image_id": 17
+    }
+  ],
+  "images": [
+    {
+      "id": 0,
+      "url": "https://s3.amazonaws.com/opensymbols/libraries/mulberry/communication aid 2.svg",
+      "content_type": "image/svg",
+      "license": {
+        "type": "CC BY-SA",
+        "copyright_notice_url": "http://creativecommons.org/licenses/by-sa/2.0/uk",
+        "source_url": null,
+        "author_name": "Paxtoncrafts Charitable Trust ",
+        "author_url": null
+      }
+    },
+    {
+      "id": 1,
+      "url": "https://s3.amazonaws.com/opensymbols/libraries/sclera/name.png",
+      "content_type": "image/png",
+      "license": {
+        "type": "CC BY-NC",
+        "copyright_notice_url": "http://creativecommons.org/licenses/by-nc/2.0/",
+        "source_url": null,
+        "author_name": "Sclera",
+        "author_url": null
+      }
+    },
+    {
+      "id": 2,
+      "url": "https://s3.amazonaws.com/opensymbols/libraries/mulberry/chicken live.svg",
+      "content_type": "image/svg",
+      "license": {
+        "type": "CC BY-SA",
+        "copyright_notice_url": "http://creativecommons.org/licenses/by-sa/2.0/uk",
+        "source_url": null,
+        "author_name": "Paxtoncrafts Charitable Trust ",
+        "author_url": null
+      }
+    },
+    {
+      "id": 3,
+      "url": "https://s3.amazonaws.com/opensymbols/libraries/mulberry/birthday cake.svg",
+      "content_type": "image/svg",
+      "license": {
+        "type": "CC BY-SA",
+        "copyright_notice_url": "http://creativecommons.org/licenses/by-sa/2.0/uk",
+        "source_url": null,
+        "author_name": "Paxtoncrafts Charitable Trust ",
+        "author_url": null
+      }
+    },
+    {
+      "id": 4,
+      "url": "https://s3.amazonaws.com/opensymbols/libraries/sclera/Age 16+.png",
+      "content_type": "image/png",
+      "license": {
+        "type": "CC BY-NC",
+        "copyright_notice_url": "http://creativecommons.org/licenses/by-nc/2.0/",
+        "source_url": null,
+        "author_name": "Sclera",
+        "author_url": null
+      }
+    },
+    {
+      "id": 5,
+      "url": "https://s3.amazonaws.com/opensymbols/libraries/mulberry/chicken live.svg",
+      "content_type": "image/svg",
+      "license": {
+        "type": "CC BY-SA",
+        "copyright_notice_url": "http://creativecommons.org/licenses/by-sa/2.0/uk",
+        "source_url": null,
+        "author_name": "Paxtoncrafts Charitable Trust ",
+        "author_url": null
+      }
+    },
+    {
+      "id": 6,
+      "url": "https://s3.amazonaws.com/opensymbols/libraries/mulberry/pet brush.svg",
+      "content_type": "image/svg",
+      "license": {
+        "type": "CC BY-SA",
+        "copyright_notice_url": "http://creativecommons.org/licenses/by-sa/2.0/uk",
+        "source_url": null,
+        "author_name": "Paxtoncrafts Charitable Trust ",
+        "author_url": null
+      }
+    },
+    {
+      "id": 7,
+      "url": "https://s3.amazonaws.com/opensymbols/libraries/mulberry/school.svg",
+      "content_type": "image/svg",
+      "license": {
+        "type": "CC BY-SA",
+        "copyright_notice_url": "http://creativecommons.org/licenses/by-sa/2.0/uk",
+        "source_url": null,
+        "author_name": "Paxtoncrafts Charitable Trust ",
+        "author_url": null
+      }
+    },
+    {
+      "id": 8,
+      "url": "https://s3.amazonaws.com/opensymbols/libraries/mulberry/email attachment.svg",
+      "content_type": "image/svg",
+      "license": {
+        "type": "CC BY-SA",
+        "copyright_notice_url": "http://creativecommons.org/licenses/by-sa/2.0/uk",
+        "source_url": null,
+        "author_name": "Paxtoncrafts Charitable Trust ",
+        "author_url": null
+      }
+    },
+    {
+      "id": 9,
+      "url": "https://s3.amazonaws.com/opensymbols/libraries/mulberry/work , to.svg",
+      "content_type": "image/svg",
+      "license": {
+        "type": "CC BY-SA",
+        "copyright_notice_url": "http://creativecommons.org/licenses/by-sa/2.0/uk",
+        "source_url": null,
+        "author_name": "Paxtoncrafts Charitable Trust ",
+        "author_url": null
+      }
+    },
+    {
+      "id": 10,
+      "url": "https://s3.amazonaws.com/opensymbols/libraries/mulberry/communication aid 2.svg",
+      "content_type": "image/svg",
+      "license": {
+        "type": "CC BY-SA",
+        "copyright_notice_url": "http://creativecommons.org/licenses/by-sa/2.0/uk",
+        "source_url": null,
+        "author_name": "Paxtoncrafts Charitable Trust ",
+        "author_url": null
+      }
+    },
+    {
+      "id": 11,
+      "url": "https://s3.amazonaws.com/opensymbols/libraries/mulberry/music class.svg",
+      "content_type": "image/svg",
+      "license": {
+        "type": "CC BY-SA",
+        "copyright_notice_url": "http://creativecommons.org/licenses/by-sa/2.0/uk",
+        "source_url": null,
+        "author_name": "Paxtoncrafts Charitable Trust ",
+        "author_url": null
+      }
+    },
+    {
+      "id": 12,
+      "url": "https://s3.amazonaws.com/opensymbols/libraries/sclera/film roll film.png",
+      "content_type": "image/png",
+      "license": {
+        "type": "CC BY-NC",
+        "copyright_notice_url": "http://creativecommons.org/licenses/by-nc/2.0/",
+        "source_url": null,
+        "author_name": "Sclera",
+        "author_url": null
+      }
+    },
+    {
+      "id": 13,
+      "url": "https://s3.amazonaws.com/opensymbols/libraries/arasaac/hobby-horses.png",
+      "content_type": "image/png",
+      "license": {
+        "type": "CC BY-NC-SA",
+        "copyright_notice_url": "http://creativecommons.org/licenses/by-nc-sa/3.0/",
+        "source_url": null,
+        "author_name": "Sergio Palao",
+        "author_url": null
+      }
+    },
+    {
+      "id": 14,
+      "url": "https://s3.amazonaws.com/opensymbols/libraries/mulberry/change tv channel , to.svg",
+      "content_type": "image/svg",
+      "license": {
+        "type": "CC BY-SA",
+        "copyright_notice_url": "http://creativecommons.org/licenses/by-sa/2.0/uk",
+        "source_url": null,
+        "author_name": "Paxtoncrafts Charitable Trust ",
+        "author_url": null
+      }
+    },
+    {
+      "id": 15,
+      "url": "https://s3.amazonaws.com/opensymbols/libraries/arasaac/movement disability.png",
+      "content_type": "image/png",
+      "license": {
+        "type": "CC BY-NC-SA",
+        "copyright_notice_url": "http://creativecommons.org/licenses/by-nc-sa/3.0/",
+        "source_url": null,
+        "author_name": "Sergio Palao",
+        "author_url": null
+      }
+    },
+    {
+      "id": 16,
+      "url": "https://s3.amazonaws.com/opensymbols/libraries/mulberry/mobile phone silent.svg",
+      "content_type": "image/svg",
+      "license": {
+        "type": "CC BY-SA",
+        "copyright_notice_url": "http://creativecommons.org/licenses/by-sa/2.0/uk",
+        "source_url": null,
+        "author_name": "Paxtoncrafts Charitable Trust ",
+        "author_url": null
+      }
+    },
+    {
+      "id": 17,
+      "url": "https://s3.amazonaws.com/opensymbols/libraries/arasaac/to forget about something.png",
+      "content_type": "image/png",
+      "license": {
+        "type": "CC BY-NC-SA",
+        "copyright_notice_url": "http://creativecommons.org/licenses/by-nc-sa/3.0/",
+        "source_url": null,
+        "author_name": "Sergio Palao",
+        "author_url": null
+      }
+    }
+  ],
+  "sounds": [],
+  "grid": {
+    "rows": 4,
+    "columns": 5,
+    "order": [
+      [0, 1, 2, 3, 4],
+      [5, 6, 7, 8, 9],
+      [10, 11, 12, 13, 14],
+      [15, 16, 17, null, null]
+    ]
+  }
+}

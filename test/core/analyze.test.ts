@@ -42,6 +42,10 @@ describe('analyze', () => {
       expect(getProcessor('gridset')).toBeInstanceOf(GridsetProcessor);
     });
 
+    it('should return a GridsetProcessor for "gridsetx"', () => {
+      expect(getProcessor('gridsetx')).toBeInstanceOf(GridsetProcessor);
+    });
+
     it('should return an AstericsGridProcessor for "grd" extension', () => {
       expect(getProcessor('grd')).toBeInstanceOf(AstericsGridProcessor);
     });

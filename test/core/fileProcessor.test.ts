@@ -108,6 +108,7 @@ describe('FileProcessor', () => {
       it('should detect gridset format', () => {
         expect(FileProcessor.detectFormat('test.gridset')).toBe('gridset');
         expect(FileProcessor.detectFormat('/path/to/file.gridset')).toBe('gridset');
+        expect(FileProcessor.detectFormat('secure.gridsetx')).toBe('gridset');
       });
 
       it('should detect coughdrop format', () => {
@@ -136,6 +137,7 @@ describe('FileProcessor', () => {
 
       it('should handle case insensitive extensions', () => {
         expect(FileProcessor.detectFormat('test.GRIDSET')).toBe('gridset');
+        expect(FileProcessor.detectFormat('test.GRIDSETX')).toBe('gridset');
         expect(FileProcessor.detectFormat('test.OBF')).toBe('coughdrop');
         expect(FileProcessor.detectFormat('test.DOT')).toBe('dot');
       });

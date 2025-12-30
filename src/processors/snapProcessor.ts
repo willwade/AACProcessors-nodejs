@@ -18,6 +18,8 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
+import { SnapValidator } from '../validation/snapValidator';
+import { ValidationResult } from '../validation/validationTypes';
 
 interface SnapButton {
   Id: number;
@@ -791,6 +793,15 @@ class SnapProcessor extends BaseProcessor {
     sourceStrings: SourceString[]
   ): Promise<string> {
     return this.generateTranslatedDownloadGeneric(filePath, translatedStrings, sourceStrings);
+  }
+
+  /**
+   * Validate Snap file format
+   * @param filePath - Path to the file to validate
+   * @returns Promise with validation result
+   */
+  async validate(filePath: string): Promise<ValidationResult> {
+    return SnapValidator.validateFile(filePath);
   }
 }
 

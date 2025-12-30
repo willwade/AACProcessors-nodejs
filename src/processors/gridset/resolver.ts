@@ -7,9 +7,14 @@ function normalizeZipPathLocal(p: string): string {
   }
 }
 
-function listZipEntries(zip: any): string[] {
+function listZipEntries(zip: any, zipEntries?: any[]): string[] {
   try {
-    const raw: unknown = typeof zip?.getEntries === 'function' ? zip.getEntries() : [];
+    const raw: unknown =
+      Array.isArray(zipEntries) && zipEntries.length > 0
+        ? zipEntries
+        : typeof zip?.getEntries === 'function'
+          ? zip.getEntries()
+          : [];
     let entries: unknown[] = [];
     if (Array.isArray(raw)) entries = raw;
     const arr = entries as Array<{ entryName: unknown }>;
@@ -39,14 +44,15 @@ export function resolveGrid3CellImage(
     y?: number;
     dynamicFiles?: string[];
     builtinHandler?: (name: string) => string | null;
-  }
+  },
+  zipEntries?: any[]
 ): string | null {
   const { baseDir, dynamicFiles } = args;
   const imageName = args.imageName?.trim();
   const x = args.x;
   const y = args.y;
 
-  const entries = new Set(listZipEntries(zip));
+  const entries = new Set(listZipEntries(zip, zipEntries));
   const has = (p: string): boolean => entries.has(normalizeZipPathLocal(p));
 
   // Built-in resource like [grid3x]...

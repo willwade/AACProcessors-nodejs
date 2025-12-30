@@ -18,10 +18,44 @@ import AdmZip from 'adm-zip';
 import fs from 'fs';
 import { XMLParser, XMLBuilder } from 'fast-xml-parser';
 import { resolveGrid3CellImage } from './gridset/resolver';
+import { getZipEntriesWithPassword, resolveGridsetPassword } from './gridset/password';
+import crypto from 'crypto';
+import zlib from 'zlib';
+import { GridsetValidator } from '../validation/gridsetValidator';
+import { ValidationResult } from '../validation/validationTypes';
 
 class GridsetProcessor extends BaseProcessor {
   constructor(options?: ProcessorOptions) {
     super(options);
+  }
+
+  /**
+   * Decrypt and inflate a Grid3 encrypted payload (DesktopContentEncrypter).
+   * Uses AES-256-CBC with key/IV derived from the password padded with spaces
+   * and then Deflate decompression.
+   */
+  private decryptGridsetEntry(buffer: Buffer, password?: string): Buffer {
+    const pwd = (password || 'Chocolate').padEnd(32, ' ');
+    const key = Buffer.from(pwd.slice(0, 32), 'utf8');
+    const iv = Buffer.from(pwd.slice(0, 16), 'utf8');
+
+    try {
+      const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
+      const decrypted = Buffer.concat([decipher.update(buffer), decipher.final()]);
+      try {
+        return zlib.inflateSync(decrypted);
+      } catch {
+        // If data isn't deflated, return raw decrypted bytes
+        return decrypted;
+      }
+    } catch {
+      return buffer;
+    }
+  }
+
+  // Determine password to use when opening encrypted gridset archives (.gridsetx)
+  private getGridsetPassword(source?: string | Buffer): string | undefined {
+    return resolveGridsetPassword(this.options, source);
   }
 
   // Helper function to ensure color has alpha channel (Grid3 format)
@@ -262,10 +296,7 @@ class GridsetProcessor extends BaseProcessor {
   }
 
   extractTexts(filePathOrBuffer: string | Buffer): string[] {
-    const buffer = Buffer.isBuffer(filePathOrBuffer)
-      ? filePathOrBuffer
-      : fs.readFileSync(filePathOrBuffer);
-    const tree = this.loadIntoTree(buffer);
+    const tree = this.loadIntoTree(filePathOrBuffer);
     const texts: string[] = [];
 
     for (const pageId in tree.pages) {
@@ -280,7 +311,7 @@ class GridsetProcessor extends BaseProcessor {
     return texts;
   }
 
-  loadIntoTree(filePathOrBuffer: Buffer): AACTree {
+  loadIntoTree(filePathOrBuffer: string | Buffer): AACTree {
     const tree = new AACTree();
 
     let zip: AdmZip;
@@ -289,14 +320,24 @@ class GridsetProcessor extends BaseProcessor {
     } catch (error: any) {
       throw new Error(`Invalid ZIP file format: ${error.message}`);
     }
+    const password = this.getGridsetPassword(filePathOrBuffer);
+    const entries = getZipEntriesWithPassword(zip, password);
     const parser = new XMLParser({ ignoreAttributes: false });
+    const isEncryptedArchive =
+      typeof filePathOrBuffer === 'string' && filePathOrBuffer.toLowerCase().endsWith('.gridsetx');
+    const encryptedContentPassword = this.getGridsetPassword(filePathOrBuffer);
+    const readEntryBuffer = (entry: AdmZip.IZipEntry): Buffer => {
+      const raw = entry.getData();
+      if (!isEncryptedArchive) return raw;
+      return this.decryptGridsetEntry(raw, encryptedContentPassword);
+    };
 
     // Parse FileMap.xml if present to index dynamic files per grid
     const fileMapIndex = new Map<string, string[]>();
     try {
-      const fmEntry = zip.getEntries().find((e) => e.entryName.endsWith('FileMap.xml'));
+      const fmEntry = entries.find((e) => e.entryName.endsWith('FileMap.xml'));
       if (fmEntry) {
-        const fmXml = fmEntry.getData().toString('utf8');
+        const fmXml = readEntryBuffer(fmEntry).toString('utf8');
         const fmData = parser.parse(fmXml);
         const entries = fmData?.FileMap?.Entries?.Entry || fmData?.fileMap?.entries?.entry;
         if (entries) {
@@ -326,14 +367,12 @@ class GridsetProcessor extends BaseProcessor {
 
     // First, load styles from Settings0/Styles/styles.xml (Grid3 format)
     const styles = new Map<string, any>();
-    const styleEntry = zip
-      .getEntries()
-      .find(
-        (entry) => entry.entryName.endsWith('styles.xml') || entry.entryName.endsWith('style.xml')
-      );
+    const styleEntry = entries.find(
+      (entry) => entry.entryName.endsWith('styles.xml') || entry.entryName.endsWith('style.xml')
+    );
     if (styleEntry) {
       try {
-        const styleXmlContent = styleEntry.getData().toString('utf8');
+        const styleXmlContent = readEntryBuffer(styleEntry).toString('utf8');
         const styleData = parser.parse(styleXmlContent);
         // Parse styles and store them in the map
         // Grid3 uses StyleData.Styles.Style with Key attribute
@@ -364,16 +403,16 @@ class GridsetProcessor extends BaseProcessor {
     }
 
     // Debug: log all entry names
-    // console.log('Gridset zip entries:', zip.getEntries().map(e => e.entryName));
+    // console.log('Gridset zip entries:', entries.map(e => e.entryName));
 
     // First pass: collect all grid names and IDs for navigation resolution
     const gridNameToIdMap = new Map<string, string>();
     const gridIdToNameMap = new Map<string, string>();
 
-    zip.getEntries().forEach((entry) => {
+    entries.forEach((entry) => {
       if (entry.entryName.startsWith('Grids/') && entry.entryName.endsWith('grid.xml')) {
         try {
-          const xmlContent = entry.getData().toString('utf8');
+          const xmlContent = readEntryBuffer(entry).toString('utf8');
           const data = parser.parse(xmlContent);
           const grid = data.Grid || data.grid;
           if (!grid) return;
@@ -397,12 +436,12 @@ class GridsetProcessor extends BaseProcessor {
     });
 
     // Second pass: process each grid file in the gridset
-    zip.getEntries().forEach((entry) => {
+    entries.forEach((entry) => {
       // Only process files named grid.xml under Grids/ (any subdir)
       if (entry.entryName.startsWith('Grids/') && entry.entryName.endsWith('grid.xml')) {
         let xmlContent: string;
         try {
-          xmlContent = entry.getData().toString('utf8');
+          xmlContent = readEntryBuffer(entry).toString('utf8');
         } catch (e) {
           // Skip unreadable files
           return;
@@ -511,13 +550,17 @@ class GridsetProcessor extends BaseProcessor {
             const baseDir = gridEntryPath.replace(/\/grid\.xml$/, '/');
             const dynamicFiles = fileMapIndex.get(gridEntryPath) || [];
             const resolvedImageEntry =
-              resolveGrid3CellImage(zip, {
-                baseDir,
-                imageName: declaredImageName,
-                x: cellX + 1,
-                y: cellY + 1,
-                dynamicFiles,
-              }) || undefined;
+              resolveGrid3CellImage(
+                zip,
+                {
+                  baseDir,
+                  imageName: declaredImageName,
+                  x: cellX + 1,
+                  y: cellY + 1,
+                  dynamicFiles,
+                },
+                entries
+              ) || undefined;
 
             if (commands) {
               const commandArr = Array.isArray(commands) ? commands : [commands];
@@ -972,9 +1015,9 @@ class GridsetProcessor extends BaseProcessor {
 
     // Read settings.xml to get the StartGrid (home page)
     try {
-      const settingsEntry = zip.getEntries().find((e) => e.entryName.endsWith('settings.xml'));
+      const settingsEntry = entries.find((e) => e.entryName.endsWith('settings.xml'));
       if (settingsEntry) {
-        const settingsXml = settingsEntry.getData().toString('utf8');
+        const settingsXml = readEntryBuffer(settingsEntry).toString('utf8');
         const settingsData = parser.parse(settingsXml);
         const startGridName =
           settingsData?.GridSetSettings?.StartGrid ||
@@ -1002,10 +1045,7 @@ class GridsetProcessor extends BaseProcessor {
     outputPath: string
   ): Buffer {
     // Load the tree, apply translations, and save to new file
-    const buffer = Buffer.isBuffer(filePathOrBuffer)
-      ? filePathOrBuffer
-      : fs.readFileSync(filePathOrBuffer);
-    const tree = this.loadIntoTree(buffer);
+    const tree = this.loadIntoTree(filePathOrBuffer);
 
     // Apply translations to all text content
     Object.values(tree.pages).forEach((page) => {
@@ -1464,6 +1504,15 @@ class GridsetProcessor extends BaseProcessor {
     sourceStrings: SourceString[]
   ): Promise<string> {
     return this.generateTranslatedDownloadGeneric(filePath, translatedStrings, sourceStrings);
+  }
+
+  /**
+   * Validate Gridset file format
+   * @param filePath - Path to the file to validate
+   * @returns Promise with validation result
+   */
+  async validate(filePath: string): Promise<ValidationResult> {
+    return GridsetValidator.validateFile(filePath);
   }
 }
 

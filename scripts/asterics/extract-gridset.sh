@@ -1,16 +1,22 @@
 #!/bin/bash
 
 # Extract gridset file to temp-data subdirectory based on gridset name
-# Usage: ./extract_gridset.sh <path-to-gridset-file>
+# Usage: ./extract_gridset.sh <path-to-gridset-file> [password]
 
 set -e  # Exit on error
 
 if [ $# -eq 0 ]; then
-    echo "Usage: ./extract_gridset.sh <path-to-gridset-file>"
+    echo "Usage: ./extract_gridset.sh <path-to-gridset-file> [password]"
     exit 1
 fi
 
 GRIDSET_FILE="$1"
+PASSWORD="${2:-${GRIDSET_PASSWORD:-}}"
+
+if [ -z "$PASSWORD" ] && [[ "$GRIDSET_FILE" == *.gridsetx ]]; then
+    echo "Error: password required for .gridsetx archives. Provide as argument or set GRIDSET_PASSWORD."
+    exit 1
+fi
 
 if [ ! -f "$GRIDSET_FILE" ]; then
     echo "Error: File '$GRIDSET_FILE' not found"
@@ -18,7 +24,9 @@ if [ ! -f "$GRIDSET_FILE" ]; then
 fi
 
 # Extract gridset name from filename (without extension)
-GRIDSET_NAME=$(basename "$GRIDSET_FILE" .gridset)
+GRIDSET_BASENAME=$(basename "$GRIDSET_FILE")
+GRIDSET_NAME=${GRIDSET_BASENAME%.gridsetx}
+GRIDSET_NAME=${GRIDSET_NAME%.gridset}
 
 # Create output directory path
 OUTPUT_DIR="temp-data/$GRIDSET_NAME"
@@ -33,7 +41,11 @@ fi
 mkdir -p "$OUTPUT_DIR"
 
 echo "Extracting gridset file to $OUTPUT_DIR/..."
-unzip -q "$GRIDSET_FILE" -d "$OUTPUT_DIR"
+if [[ "$GRIDSET_FILE" == *.gridsetx ]]; then
+    unzip -q -P "$PASSWORD" "$GRIDSET_FILE" -d "$OUTPUT_DIR"
+else
+    unzip -q "$GRIDSET_FILE" -d "$OUTPUT_DIR"
+fi
 
 echo ""
 echo "Done! Gridset extracted to $OUTPUT_DIR/"
