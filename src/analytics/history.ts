@@ -1,19 +1,19 @@
-import { dotNetTicksToDate } from "../utils/dotnetTicks";
+import { dotNetTicksToDate } from '../utils/dotnetTicks';
 import {
   findGrid3Users,
   Grid3UserPath,
   readAllGrid3History as readAllGrid3HistoryImpl,
   readGrid3History as readGrid3HistoryImpl,
   readGrid3HistoryForUser as readGrid3HistoryForUserImpl,
-} from "../processors/gridset/helpers";
+} from '../processors/gridset/helpers';
 import {
   findSnapUsers,
   readSnapUsage as readSnapUsageImpl,
   readSnapUsageForUser as readSnapUsageForUserImpl,
   SnapUserInfo,
-} from "../processors/snap/helpers";
+} from '../processors/snap/helpers';
 
-export type HistorySource = "Grid" | "Snap";
+export type HistorySource = 'Grid' | 'Snap';
 
 export interface HistoryOccurrence {
   timestamp: Date;
@@ -48,20 +48,17 @@ export { dotNetTicksToDate };
 export function readGrid3History(historyDbPath: string): HistoryEntry[] {
   return readGrid3HistoryImpl(historyDbPath).map((e) => ({
     ...e,
-    source: "Grid",
+    source: 'Grid',
   }));
 }
 
 /**
  * Read Grid 3 history for a specific user/language combination.
  */
-export function readGrid3HistoryForUser(
-  userName: string,
-  langCode?: string,
-): HistoryEntry[] {
+export function readGrid3HistoryForUser(userName: string, langCode?: string): HistoryEntry[] {
   return readGrid3HistoryForUserImpl(userName, langCode).map((e) => ({
     ...e,
-    source: "Grid",
+    source: 'Grid',
   }));
 }
 
@@ -69,14 +66,14 @@ export function readGrid3HistoryForUser(
  * Read every available Grid 3 history database on the machine.
  */
 export function readAllGrid3History(): HistoryEntry[] {
-  return readAllGrid3HistoryImpl().map((e) => ({ ...e, source: "Grid" }));
+  return readAllGrid3HistoryImpl().map((e) => ({ ...e, source: 'Grid' }));
 }
 
 /**
  * Read Snap button usage from a pageset database and tag entries with source.
  */
 export function readSnapUsage(pagesetPath: string): HistoryEntry[] {
-  return readSnapUsageImpl(pagesetPath).map((e) => ({ ...e, source: "Snap" }));
+  return readSnapUsageImpl(pagesetPath).map((e) => ({ ...e, source: 'Snap' }));
 }
 
 /**
@@ -84,11 +81,11 @@ export function readSnapUsage(pagesetPath: string): HistoryEntry[] {
  */
 export function readSnapUsageForUser(
   userId?: string,
-  packageNamePattern = "TobiiDynavox",
+  packageNamePattern = 'TobiiDynavox'
 ): HistoryEntry[] {
   return readSnapUsageForUserImpl(userId, packageNamePattern).map((e) => ({
     ...e,
-    source: "Snap",
+    source: 'Snap',
   }));
 }
 
@@ -109,8 +106,6 @@ export function listGrid3Users(): Grid3UserPath[] {
  */
 export function collectUnifiedHistory(): HistoryEntry[] {
   const gridHistory = readAllGrid3History();
-  const snapHistory = findSnapUsers().flatMap((u) =>
-    readSnapUsageForUser(u.userId),
-  );
+  const snapHistory = findSnapUsers().flatMap((u) => readSnapUsageForUser(u.userId));
   return [...gridHistory, ...snapHistory];
 }

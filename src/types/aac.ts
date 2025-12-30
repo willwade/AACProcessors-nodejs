@@ -1,5 +1,5 @@
 // Import semantic action types from core
-import { AACSemanticAction } from "../core/treeStructure";
+import { AACSemanticAction } from '../core/treeStructure';
 
 export interface AACStyle {
   backgroundColor?: string;

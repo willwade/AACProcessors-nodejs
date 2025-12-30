@@ -1,8 +1,8 @@
-import { AACTree } from "../../core/treeStructure";
-import * as fs from "fs";
-import * as path from "path";
-import Database from "better-sqlite3";
-import { dotNetTicksToDate } from "../../utils/dotnetTicks";
+import { AACTree } from '../../core/treeStructure';
+import * as fs from 'fs';
+import * as path from 'path';
+import Database from 'better-sqlite3';
+import { dotNetTicksToDate } from '../../utils/dotnetTicks';
 
 // Minimal Snap helpers (stubs) to align with processors/<engine>/helpers pattern
 // NOTE: Snap buttons currently do not populate resolvedImageEntry; these helpers
@@ -11,12 +11,10 @@ import { dotNetTicksToDate } from "../../utils/dotnetTicks";
 function collectFiles(
   root: string,
   matcher: (fullPath: string) => boolean,
-  maxDepth = 3,
+  maxDepth = 3
 ): string[] {
   const results = new Set<string>();
-  const stack: Array<{ dir: string; depth: number }> = [
-    { dir: root, depth: 0 },
-  ];
+  const stack: Array<{ dir: string; depth: number }> = [{ dir: root, depth: 0 }];
 
   while (stack.length > 0) {
     const current = stack.pop();
@@ -47,10 +45,7 @@ function collectFiles(
  * Build a map of button IDs to resolved image entries for a specific page.
  * Mirrors the Grid helper for consumers that expect image reference data.
  */
-export function getPageTokenImageMap(
-  tree: AACTree,
-  pageId: string,
-): Map<string, string> {
+export function getPageTokenImageMap(tree: AACTree, pageId: string): Map<string, string> {
   const map = new Map<string, string>();
   const page = tree.getPage(pageId);
   if (!page) return map;
@@ -72,10 +67,7 @@ export function getAllowedImageEntries(_tree: AACTree): Set<string> {
  * Read a binary asset from a Snap pageset.
  * Not implemented yet; provided for API symmetry with other processors.
  */
-export function openImage(
-  _dbOrFile: string | Buffer,
-  _entryPath: string,
-): Buffer | null {
+export function openImage(_dbOrFile: string | Buffer, _entryPath: string): Buffer | null {
   return null;
 }
 
@@ -114,13 +106,11 @@ export interface SnapUsageEntry {
  * @param packageNamePattern Optional pattern to filter package names (default: 'TobiiDynavox')
  * @returns Array of Snap package path information
  */
-export function findSnapPackages(
-  packageNamePattern = "TobiiDynavox",
-): SnapPackagePath[] {
+export function findSnapPackages(packageNamePattern = 'TobiiDynavox'): SnapPackagePath[] {
   const results: SnapPackagePath[] = [];
 
   // Only works on Windows
-  if (process.platform !== "win32") {
+  if (process.platform !== 'win32') {
     return results;
   }
 
@@ -130,7 +120,7 @@ export function findSnapPackages(
       return results;
     }
 
-    const packagesPath = path.join(localAppData, "Packages");
+    const packagesPath = path.join(localAppData, 'Packages');
 
     // Check if Packages directory exists
     if (!fs.existsSync(packagesPath)) {
@@ -166,9 +156,7 @@ export function findSnapPackages(
  * @param packageNamePattern Optional pattern to filter package names (default: 'TobiiDynavox')
  * @returns Path to the first matching Snap package, or null if not found
  */
-export function findSnapPackagePath(
-  packageNamePattern = "TobiiDynavox",
-): string | null {
+export function findSnapPackagePath(packageNamePattern = 'TobiiDynavox'): string | null {
   const packages = findSnapPackages(packageNamePattern);
   return packages.length > 0 ? packages[0].packagePath : null;
 }
@@ -180,12 +168,10 @@ export function findSnapPackagePath(
  * @param packageNamePattern Optional package filter (default TobiiDynavox)
  * @returns Array of user info with vocab paths
  */
-export function findSnapUsers(
-  packageNamePattern = "TobiiDynavox",
-): SnapUserInfo[] {
+export function findSnapUsers(packageNamePattern = 'TobiiDynavox'): SnapUserInfo[] {
   const results: SnapUserInfo[] = [];
 
-  if (process.platform !== "win32") {
+  if (process.platform !== 'win32') {
     return results;
   }
 
@@ -194,7 +180,7 @@ export function findSnapUsers(
     return results;
   }
 
-  const usersRoot = path.join(packagePath, "LocalState", "Users");
+  const usersRoot = path.join(packagePath, 'LocalState', 'Users');
   if (!fs.existsSync(usersRoot)) {
     return results;
   }
@@ -202,16 +188,16 @@ export function findSnapUsers(
   const entries = fs.readdirSync(usersRoot, { withFileTypes: true });
   for (const entry of entries) {
     if (!entry.isDirectory()) continue;
-    if (entry.name.toLowerCase().startsWith("swiftkey")) continue;
+    if (entry.name.toLowerCase().startsWith('swiftkey')) continue;
 
     const userPath = path.join(usersRoot, entry.name);
     const vocabPaths = collectFiles(
       userPath,
       (full) => {
         const ext = path.extname(full).toLowerCase();
-        return ext === ".sps" || ext === ".spb";
+        return ext === '.sps' || ext === '.spb';
       },
-      2,
+      2
     );
 
     results.push({
@@ -232,11 +218,9 @@ export function findSnapUsers(
  */
 export function findSnapUserVocabularies(
   userId?: string,
-  packageNamePattern = "TobiiDynavox",
+  packageNamePattern = 'TobiiDynavox'
 ): string[] {
-  const users = findSnapUsers(packageNamePattern).filter(
-    (u) => !userId || u.userId === userId,
-  );
+  const users = findSnapUsers(packageNamePattern).filter((u) => !userId || u.userId === userId);
   return users.flatMap((u) => u.vocabPaths);
 }
 
@@ -247,27 +231,22 @@ export function findSnapUserVocabularies(
  * @param packageNamePattern Optional package filter
  * @returns Array of history file paths (may be empty if not found)
  */
-export function findSnapUserHistory(
-  userId: string,
-  packageNamePattern = "TobiiDynavox",
-): string[] {
-  const user = findSnapUsers(packageNamePattern).find(
-    (u) => u.userId === userId,
-  );
+export function findSnapUserHistory(userId: string, packageNamePattern = 'TobiiDynavox'): string[] {
+  const user = findSnapUsers(packageNamePattern).find((u) => u.userId === userId);
   if (!user) return [];
 
   return collectFiles(
     user.userPath,
-    (full) => path.basename(full).toLowerCase().includes("history"),
-    2,
+    (full) => path.basename(full).toLowerCase().includes('history'),
+    2
   );
 }
 
 /**
  * Check whether TD Snap appears to be installed (Windows only)
  */
-export function isSnapInstalled(packageNamePattern = "TobiiDynavox"): boolean {
-  if (process.platform !== "win32") return false;
+export function isSnapInstalled(packageNamePattern = 'TobiiDynavox'): boolean {
+  if (process.platform !== 'win32') return false;
   return Boolean(findSnapPackagePath(packageNamePattern));
 }
 
@@ -281,7 +260,7 @@ export function readSnapUsage(pagesetPath: string): SnapUsageEntry[] {
 
   const tableCheck = db
     .prepare(
-      "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('ButtonUsage','Button')",
+      "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('ButtonUsage','Button')"
     )
     .all();
   if (tableCheck.length < 2) return [];
@@ -300,7 +279,7 @@ export function readSnapUsage(pagesetPath: string): SnapUsageEntry[] {
       LEFT JOIN Button b ON bu.ButtonUniqueId = b.UniqueId
       WHERE bu.Timestamp IS NOT NULL
       ORDER BY bu.Timestamp ASC
-    `,
+    `
     )
     .all() as Array<{
     ButtonId?: string;
@@ -314,10 +293,10 @@ export function readSnapUsage(pagesetPath: string): SnapUsageEntry[] {
   const events = new Map<string, SnapUsageEntry>();
 
   for (const row of rows) {
-    const buttonId: string = row.ButtonId ?? "unknown";
+    const buttonId: string = row.ButtonId ?? 'unknown';
     const label = row.Label ?? undefined;
     const message = row.Message ?? undefined;
-    const content = message || label || "";
+    const content = message || label || '';
 
     const entry =
       events.get(buttonId) ??
@@ -349,11 +328,9 @@ export function readSnapUsage(pagesetPath: string): SnapUsageEntry[] {
  */
 export function readSnapUsageForUser(
   userId?: string,
-  packageNamePattern = "TobiiDynavox",
+  packageNamePattern = 'TobiiDynavox'
 ): SnapUsageEntry[] {
-  const users = findSnapUsers(packageNamePattern).filter(
-    (u) => !userId || u.userId === userId,
-  );
+  const users = findSnapUsers(packageNamePattern).filter((u) => !userId || u.userId === userId);
   const pagesets = users.flatMap((u) => u.vocabPaths);
   return pagesets.flatMap((p) => readSnapUsage(p));
 }
