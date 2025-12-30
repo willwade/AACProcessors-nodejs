@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/require-await */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
-import * as fs from 'fs';
-import * as path from 'path';
-import * as xml2js from 'xml2js';
-import { BaseValidator } from './baseValidator';
-import { ValidationResult } from './validationTypes';
+import * as fs from "fs";
+import * as path from "path";
+import * as xml2js from "xml2js";
+import { BaseValidator } from "./baseValidator";
+import { ValidationResult } from "./validationTypes";
 
 /**
  * Validator for Grid3/Smartbox Gridset files (.gridset, .gridsetx)
@@ -28,15 +28,20 @@ export class GridsetValidator extends BaseValidator {
   /**
    * Check if content is Gridset format
    */
-  static async identifyFormat(content: any, filename: string): Promise<boolean> {
+  static async identifyFormat(
+    content: any,
+    filename: string,
+  ): Promise<boolean> {
     const name = filename.toLowerCase();
-    if (name.endsWith('.gridset') || name.endsWith('.gridsetx')) {
+    if (name.endsWith(".gridset") || name.endsWith(".gridsetx")) {
       return true;
     }
 
     // Try to parse as XML and check for gridset structure
     try {
-      const contentStr = Buffer.isBuffer(content) ? content.toString('utf-8') : content;
+      const contentStr = Buffer.isBuffer(content)
+        ? content.toString("utf-8")
+        : content;
       const parser = new xml2js.Parser();
       const result = await parser.parseStringPromise(contentStr as string);
       return result && (result.gridset || result.Gridset);
@@ -51,33 +56,39 @@ export class GridsetValidator extends BaseValidator {
   async validate(
     content: Buffer | Uint8Array,
     filename: string,
-    filesize: number
+    filesize: number,
   ): Promise<ValidationResult> {
     this.reset();
 
-    const isEncrypted = filename.toLowerCase().endsWith('.gridsetx');
+    const isEncrypted = filename.toLowerCase().endsWith(".gridsetx");
 
     // eslint-disable-next-line @typescript-eslint/require-await
-    await this.add_check('filename', 'file extension', async () => {
+    await this.add_check("filename", "file extension", async () => {
       if (!filename.match(/\.gridsetx?$/)) {
-        this.warn('filename should end with .gridset or .gridsetx');
+        this.warn("filename should end with .gridset or .gridsetx");
       }
     });
 
     // For encrypted .gridsetx files, we can't validate the content
     if (isEncrypted) {
       // eslint-disable-next-line @typescript-eslint/require-await
-      await this.add_check('encrypted_format', 'encrypted gridsetx file', async () => {
-        this.warn('gridsetx files are encrypted and cannot be fully validated');
-      });
-      return this.buildResult(filename, filesize, 'gridset');
+      await this.add_check(
+        "encrypted_format",
+        "encrypted gridsetx file",
+        async () => {
+          this.warn(
+            "gridsetx files are encrypted and cannot be fully validated",
+          );
+        },
+      );
+      return this.buildResult(filename, filesize, "gridset");
     }
 
     let xmlObj: any = null;
-    await this.add_check('xml_parse', 'valid XML', async () => {
+    await this.add_check("xml_parse", "valid XML", async () => {
       try {
         const parser = new xml2js.Parser();
-        const contentStr = content.toString('utf-8');
+        const contentStr = content.toString("utf-8");
         xmlObj = await parser.parseStringPromise(contentStr);
       } catch (e: any) {
         this.err(`Failed to parse XML: ${e.message}`, true);
@@ -85,13 +96,13 @@ export class GridsetValidator extends BaseValidator {
     });
 
     if (!xmlObj) {
-      return this.buildResult(filename, filesize, 'gridset');
+      return this.buildResult(filename, filesize, "gridset");
     }
 
     // eslint-disable-next-line @typescript-eslint/require-await
-    await this.add_check('xml_structure', 'gridset root element', async () => {
+    await this.add_check("xml_structure", "gridset root element", async () => {
       if (!xmlObj.gridset && !xmlObj.Gridset) {
-        this.err('missing root gridset element', true);
+        this.err("missing root gridset element", true);
       }
     });
 
@@ -100,7 +111,7 @@ export class GridsetValidator extends BaseValidator {
       await this.validateGridsetStructure(gridset, filename, content);
     }
 
-    return this.buildResult(filename, filesize, 'gridset');
+    return this.buildResult(filename, filesize, "gridset");
   }
 
   /**
@@ -109,31 +120,31 @@ export class GridsetValidator extends BaseValidator {
   private async validateGridsetStructure(
     gridset: any,
     _filename: string,
-    _content: Buffer | Uint8Array
+    _content: Buffer | Uint8Array,
   ): Promise<void> {
     // Check for required elements
-    await this.add_check('gridset_id', 'gridset id', async () => {
+    await this.add_check("gridset_id", "gridset id", async () => {
       const id = gridset.$.id || gridset.$.Id;
       if (!id) {
-        this.warn('gridset should have an id attribute');
+        this.warn("gridset should have an id attribute");
       }
     });
 
-    await this.add_check('gridset_name', 'gridset name', async () => {
+    await this.add_check("gridset_name", "gridset name", async () => {
       const name = gridset.$.name || gridset.$.Name || gridset.name?.[0];
       if (!name) {
-        this.warn('gridset should have a name attribute or element');
+        this.warn("gridset should have a name attribute or element");
       }
     });
 
     // Check for pages
-    await this.add_check('pages', 'pages element', async () => {
+    await this.add_check("pages", "pages element", async () => {
       if (!gridset.pages && !gridset.Pages) {
-        this.err('gridset must have a pages element');
+        this.err("gridset must have a pages element");
       } else {
         const pages = gridset.pages || gridset.Pages;
         if (!pages[0] || !Array.isArray(pages[0].page)) {
-          this.warn('pages should contain at least one page element');
+          this.warn("pages should contain at least one page element");
         }
       }
     });
@@ -141,9 +152,9 @@ export class GridsetValidator extends BaseValidator {
     // Validate individual pages
     const pages = gridset.pages?.[0] || gridset.Pages?.[0];
     if (pages && Array.isArray(pages.page)) {
-      await this.add_check('page_count', 'page count', async () => {
+      await this.add_check("page_count", "page count", async () => {
         if (pages.page.length === 0) {
-          this.err('gridset must contain at least one page');
+          this.err("gridset must contain at least one page");
         }
       });
 
@@ -155,31 +166,41 @@ export class GridsetValidator extends BaseValidator {
     }
 
     // Check for fixedCellSize
-    await this.add_check('fixed_cell_size', 'fixedCellSize element', async () => {
-      const fixedSize = gridset.fixedCellSize || gridset.FixedCellSize;
-      if (!fixedSize) {
-        this.warn('gridset should have a fixedCellSize element for consistency');
-      } else {
-        // Validate fixedCellSize structure
-        const size = fixedSize[0];
-        if (size) {
-          const width = size.$.width || size.$.Width;
-          const height = size.$.height || size.$.Height;
+    await this.add_check(
+      "fixed_cell_size",
+      "fixedCellSize element",
+      async () => {
+        const fixedSize = gridset.fixedCellSize || gridset.FixedCellSize;
+        if (!fixedSize) {
+          this.warn(
+            "gridset should have a fixedCellSize element for consistency",
+          );
+        } else {
+          // Validate fixedCellSize structure
+          const size = fixedSize[0];
+          if (size) {
+            const width = size.$.width || size.$.Width;
+            const height = size.$.height || size.$.Height;
 
-          if (!width || !height) {
-            this.warn('fixedCellSize should have both width and height attributes');
-          } else if (isNaN(parseInt(width)) || isNaN(parseInt(height))) {
-            this.err('fixedCellSize width and height must be valid numbers');
+            if (!width || !height) {
+              this.warn(
+                "fixedCellSize should have both width and height attributes",
+              );
+            } else if (isNaN(parseInt(width)) || isNaN(parseInt(height))) {
+              this.err("fixedCellSize width and height must be valid numbers");
+            }
           }
         }
-      }
-    });
+      },
+    );
 
     // Check for styles
-    await this.add_check('styles', 'styles element', async () => {
+    await this.add_check("styles", "styles element", async () => {
       const styles = gridset.styles || gridset.Styles;
       if (!styles) {
-        this.warn('gridset should have a styles element for consistent formatting');
+        this.warn(
+          "gridset should have a styles element for consistent formatting",
+        );
       }
     });
   }
@@ -195,25 +216,37 @@ export class GridsetValidator extends BaseValidator {
       }
     });
 
-    await this.add_check(`page[${index}]_name`, `page ${index} name`, async () => {
-      const name = page.$.name || page.$.Name || page.name?.[0];
-      if (!name) {
-        this.warn(`page ${index} should have a name`);
-      }
-    });
+    await this.add_check(
+      `page[${index}]_name`,
+      `page ${index} name`,
+      async () => {
+        const name = page.$.name || page.$.Name || page.name?.[0];
+        if (!name) {
+          this.warn(`page ${index} should have a name`);
+        }
+      },
+    );
 
     // Check for cells
-    await this.add_check(`page[${index}]_cells`, `page ${index} cells`, async () => {
-      const cells = page.cells || page.Cells;
-      if (!cells) {
-        this.warn(`page ${index} should have a cells element`);
-      } else {
-        const cellArray = cells[0]?.cell || cells[0]?.Cell;
-        if (!cellArray || !Array.isArray(cellArray) || cellArray.length === 0) {
-          this.warn(`page ${index} should contain at least one cell`);
+    await this.add_check(
+      `page[${index}]_cells`,
+      `page ${index} cells`,
+      async () => {
+        const cells = page.cells || page.Cells;
+        if (!cells) {
+          this.warn(`page ${index} should have a cells element`);
+        } else {
+          const cellArray = cells[0]?.cell || cells[0]?.Cell;
+          if (
+            !cellArray ||
+            !Array.isArray(cellArray) ||
+            cellArray.length === 0
+          ) {
+            this.warn(`page ${index} should contain at least one cell`);
+          }
         }
-      }
-    });
+      },
+    );
 
     // Validate cells if present
     const cells = page.cells?.[0] || page.Cells?.[0];
@@ -232,22 +265,38 @@ export class GridsetValidator extends BaseValidator {
   /**
    * Validate a single cell
    */
-  private async validateCell(cell: any, pageIdx: number, cellIdx: number): Promise<void> {
-    await this.add_check(`page[${pageIdx}]_cell[${cellIdx}]_id`, `cell id`, async () => {
-      const id = cell.$.id || cell.$.Id;
-      if (!id) {
-        this.warn(`cell ${cellIdx} on page ${pageIdx} is missing id attribute`);
-      }
-    });
+  private async validateCell(
+    cell: any,
+    pageIdx: number,
+    cellIdx: number,
+  ): Promise<void> {
+    await this.add_check(
+      `page[${pageIdx}]_cell[${cellIdx}]_id`,
+      `cell id`,
+      async () => {
+        const id = cell.$.id || cell.$.Id;
+        if (!id) {
+          this.warn(
+            `cell ${cellIdx} on page ${pageIdx} is missing id attribute`,
+          );
+        }
+      },
+    );
 
-    await this.add_check(`page[${pageIdx}]_cell[${cellIdx}]_content`, `cell content`, async () => {
-      const label = cell.$.label || cell.$.Label;
-      const image = cell.$.image || cell.$.Image;
+    await this.add_check(
+      `page[${pageIdx}]_cell[${cellIdx}]_content`,
+      `cell content`,
+      async () => {
+        const label = cell.$.label || cell.$.Label;
+        const image = cell.$.image || cell.$.Image;
 
-      if (!label && !image) {
-        this.warn(`cell ${cellIdx} on page ${pageIdx} should have a label or image`);
-      }
-    });
+        if (!label && !image) {
+          this.warn(
+            `cell ${cellIdx} on page ${pageIdx} should have a label or image`,
+          );
+        }
+      },
+    );
 
     // Check for color attributes
     const backgroundColor = cell.$.backgroundColor || cell.$.BackgroundColor;
@@ -263,7 +312,7 @@ export class GridsetValidator extends BaseValidator {
           if (backgroundColor.length === 0) {
             this.warn(`cell ${cellIdx} has empty background color`);
           }
-        }
+        },
       );
     }
 
@@ -274,10 +323,10 @@ export class GridsetValidator extends BaseValidator {
         `page[${pageIdx}]_cell[${cellIdx}]_jump`,
         `cell jump reference`,
         async () => {
-          if (typeof jump !== 'string' || jump.length === 0) {
+          if (typeof jump !== "string" || jump.length === 0) {
             this.warn(`cell ${cellIdx} has invalid jump reference`);
           }
-        }
+        },
       );
     }
   }
@@ -292,12 +341,12 @@ export class GridsetValidator extends BaseValidator {
     if (/^[a-zA-Z]+$/.test(color)) return true;
 
     // ARGB format: #AARRGGBB or #RRGGBB
-    if (color.startsWith('#')) {
+    if (color.startsWith("#")) {
       return color.length === 7 || color.length === 9;
     }
 
     // RGB format: rgb(r,g,b) or rgba(r,g,b,a)
-    if (color.startsWith('rgb')) {
+    if (color.startsWith("rgb")) {
       return true; // Simplified check
     }
 

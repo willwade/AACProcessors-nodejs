@@ -1,7 +1,7 @@
 function normalizeZipPathLocal(p: string): string {
-  const unified = p.replace(/\\/g, '/');
+  const unified = p.replace(/\\/g, "/");
   try {
-    return unified.normalize('NFC');
+    return unified.normalize("NFC");
   } catch {
     return unified;
   }
@@ -12,7 +12,7 @@ function listZipEntries(zip: any, zipEntries?: any[]): string[] {
     const raw: unknown =
       Array.isArray(zipEntries) && zipEntries.length > 0
         ? zipEntries
-        : typeof zip?.getEntries === 'function'
+        : typeof zip?.getEntries === "function"
           ? zip.getEntries()
           : [];
     let entries: unknown[] = [];
@@ -31,8 +31,8 @@ function extFromName(name?: string): string | undefined {
 }
 
 function joinBaseDir(baseDir: string, leaf: string): string {
-  const base = normalizeZipPathLocal(baseDir).replace(/\/?$/, '/');
-  return normalizeZipPathLocal(base + leaf.replace(/^\//, ''));
+  const base = normalizeZipPathLocal(baseDir).replace(/\/?$/, "/");
+  return normalizeZipPathLocal(base + leaf.replace(/^\//, ""));
 }
 
 export function resolveGrid3CellImage(
@@ -45,7 +45,7 @@ export function resolveGrid3CellImage(
     dynamicFiles?: string[];
     builtinHandler?: (name: string) => string | null;
   },
-  zipEntries?: any[]
+  zipEntries?: any[],
 ): string | null {
   const { baseDir, dynamicFiles } = args;
   const imageName = args.imageName?.trim();
@@ -56,7 +56,7 @@ export function resolveGrid3CellImage(
   const has = (p: string): boolean => entries.has(normalizeZipPathLocal(p));
 
   // Built-in resource like [grid3x]...
-  if (imageName && imageName.startsWith('[')) {
+  if (imageName && imageName.startsWith("[")) {
     if (args.builtinHandler) {
       const mapped = args.builtinHandler(imageName);
       if (mapped) return mapped;

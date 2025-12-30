@@ -4,17 +4,17 @@
  */
 
 export enum StringCasing {
-  LOWER = 'lower',
-  SNAKE = 'snake',
-  CONSTANT = 'constant',
-  CAMEL = 'camel',
-  UPPER = 'upper',
-  KEBAB = 'kebab',
-  CAPITAL = 'capital',
-  HEADER = 'header',
-  PASCAL = 'pascal',
-  TITLE = 'title',
-  SENTENCE = 'sentence',
+  LOWER = "lower",
+  SNAKE = "snake",
+  CONSTANT = "constant",
+  CAMEL = "camel",
+  UPPER = "upper",
+  KEBAB = "kebab",
+  CAPITAL = "capital",
+  HEADER = "header",
+  PASCAL = "pascal",
+  TITLE = "title",
+  SENTENCE = "sentence",
 }
 
 /**
@@ -35,17 +35,17 @@ export function detectCasing(text: string): StringCasing {
   // Check for specific patterns
 
   // CONSTANT_CASE (ALL_CAPS_WITH_UNDERSCORES)
-  if (/^[A-Z][A-Z0-9_]*$/.test(trimmed) && trimmed.includes('_')) {
+  if (/^[A-Z][A-Z0-9_]*$/.test(trimmed) && trimmed.includes("_")) {
     return StringCasing.CONSTANT;
   }
 
   // snake_case (lowercase_with_underscores)
-  if (/^[a-z][a-z0-9_]*$/.test(trimmed) && trimmed.includes('_')) {
+  if (/^[a-z][a-z0-9_]*$/.test(trimmed) && trimmed.includes("_")) {
     return StringCasing.SNAKE;
   }
 
   // kebab-case (lowercase-with-hyphens)
-  if (/^[a-z][a-z0-9-]*$/.test(trimmed) && trimmed.includes('-')) {
+  if (/^[a-z][a-z0-9-]*$/.test(trimmed) && trimmed.includes("-")) {
     return StringCasing.KEBAB;
   }
 
@@ -64,7 +64,11 @@ export function detectCasing(text: string): StringCasing {
   }
 
   // UPPER CASE (ALL UPPERCASE) - but only if more than one character
-  if (trimmed === trimmed.toUpperCase() && /[A-Z]/.test(trimmed) && trimmed.length > 1) {
+  if (
+    trimmed === trimmed.toUpperCase() &&
+    /[A-Z]/.test(trimmed) &&
+    trimmed.length > 1
+  ) {
     return StringCasing.UPPER;
   }
 
@@ -81,22 +85,22 @@ export function detectCasing(text: string): StringCasing {
       (word) =>
         word.length > 0 &&
         word[0] === word[0].toUpperCase() &&
-        (word.length === 1 || word.slice(1) === word.slice(1).toLowerCase())
+        (word.length === 1 || word.slice(1) === word.slice(1).toLowerCase()),
     )
   ) {
     return StringCasing.TITLE;
   }
 
   // Header-Case (First-Letter-Of-Each-Word-Capitalized-With-Hyphens)
-  if (trimmed.includes('-')) {
-    const hyphenWords = trimmed.split('-');
+  if (trimmed.includes("-")) {
+    const hyphenWords = trimmed.split("-");
     if (
       hyphenWords.length > 1 &&
       hyphenWords.every(
         (word) =>
           word.length > 0 &&
           word[0] === word[0].toUpperCase() &&
-          (word.length === 1 || word.slice(1) === word.slice(1).toLowerCase())
+          (word.length === 1 || word.slice(1) === word.slice(1).toLowerCase()),
       )
     ) {
       return StringCasing.HEADER;
@@ -132,7 +136,10 @@ export function detectCasing(text: string): StringCasing {
  * @param text Input string
  * @param targetCasing Desired casing variant
  */
-export function convertCasing(text: string, targetCasing: StringCasing): string {
+export function convertCasing(
+  text: string,
+  targetCasing: StringCasing,
+): string {
   if (!text || text.length === 0) return text;
 
   const trimmed = text.trim();
@@ -154,8 +161,10 @@ export function convertCasing(text: string, targetCasing: StringCasing): string 
     case StringCasing.TITLE:
       return trimmed
         .split(/\s+/)
-        .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-        .join(' ');
+        .map(
+          (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase(),
+        )
+        .join(" ");
 
     case StringCasing.CAMEL:
       return trimmed
@@ -163,39 +172,43 @@ export function convertCasing(text: string, targetCasing: StringCasing): string 
         .map((word, index) =>
           index === 0
             ? word.toLowerCase()
-            : word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+            : word.charAt(0).toUpperCase() + word.slice(1).toLowerCase(),
         )
-        .join('');
+        .join("");
 
     case StringCasing.PASCAL:
       return trimmed
         .split(/[\s_-]+/)
-        .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-        .join('');
+        .map(
+          (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase(),
+        )
+        .join("");
 
     case StringCasing.SNAKE:
       return trimmed
         .split(/[\s-]+/)
         .map((word) => word.toLowerCase())
-        .join('_');
+        .join("_");
 
     case StringCasing.CONSTANT:
       return trimmed
         .split(/[\s-]+/)
         .map((word) => word.toUpperCase())
-        .join('_');
+        .join("_");
 
     case StringCasing.KEBAB:
       return trimmed
         .split(/[\s_]+/)
         .map((word) => word.toLowerCase())
-        .join('-');
+        .join("-");
 
     case StringCasing.HEADER:
       return trimmed
         .split(/[\s_]+/)
-        .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-        .join('-');
+        .map(
+          (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase(),
+        )
+        .join("-");
 
     default:
       return trimmed;

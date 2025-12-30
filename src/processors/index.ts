@@ -1,12 +1,12 @@
-export { ApplePanelsProcessor } from './applePanelsProcessor';
-export { DotProcessor } from './dotProcessor';
-export { ExcelProcessor } from './excelProcessor';
-export { GridsetProcessor } from './gridsetProcessor';
-export { ObfProcessor } from './obfProcessor';
-export { OpmlProcessor } from './opmlProcessor';
-export { SnapProcessor } from './snapProcessor';
-export { TouchChatProcessor } from './touchchatProcessor';
-export { AstericsGridProcessor } from './astericsGridProcessor';
+export { ApplePanelsProcessor } from "./applePanelsProcessor";
+export { DotProcessor } from "./dotProcessor";
+export { ExcelProcessor } from "./excelProcessor";
+export { GridsetProcessor } from "./gridsetProcessor";
+export { ObfProcessor } from "./obfProcessor";
+export { OpmlProcessor } from "./opmlProcessor";
+export { SnapProcessor } from "./snapProcessor";
+export { TouchChatProcessor } from "./touchchatProcessor";
+export { AstericsGridProcessor } from "./astericsGridProcessor";
 
 // Gridset (Grid 3) helpers
 export {
@@ -29,7 +29,7 @@ export {
   type Grid3UserPath,
   type Grid3VocabularyPath,
   type Grid3HistoryEntry,
-} from './gridset/helpers';
+} from "./gridset/helpers";
 export {
   getPageTokenImageMap as getGridsetPageTokenImageMap,
   getAllowedImageEntries as getGridsetAllowedImageEntries,
@@ -47,8 +47,8 @@ export {
   readGrid3History as readGridsetHistory,
   readGrid3HistoryForUser as readGridsetHistoryForUser,
   readAllGrid3History as readAllGridsetHistory,
-} from './gridset/helpers';
-export { resolveGrid3CellImage } from './gridset/resolver';
+} from "./gridset/helpers";
+export { resolveGrid3CellImage } from "./gridset/resolver";
 
 // Gridset (Grid 3) wordlist helpers
 export {
@@ -58,8 +58,11 @@ export {
   wordlistToXml,
   type WordList,
   type WordListItem,
-} from './gridset/wordlistHelpers';
-export { resolveGridsetPassword, resolveGridsetPasswordFromEnv } from './gridset/password';
+} from "./gridset/wordlistHelpers";
+export {
+  resolveGridsetPassword,
+  resolveGridsetPasswordFromEnv,
+} from "./gridset/password";
 
 // Gridset (Grid 3) color utilities
 export {
@@ -72,7 +75,7 @@ export {
   darkenColor,
   normalizeColor,
   ensureAlphaChannel,
-} from './gridset/colorUtils';
+} from "./gridset/colorUtils";
 
 // Gridset (Grid 3) style helpers
 export {
@@ -80,10 +83,10 @@ export {
   CATEGORY_STYLES,
   createDefaultStylesXml,
   createCategoryStyle,
-} from './gridset/styleHelpers';
+} from "./gridset/styleHelpers";
 
 // Re-export ensureAlphaChannel from styleHelpers for backward compatibility
-export { ensureAlphaChannel as ensureAlphaChannelFromStyles } from './gridset/styleHelpers';
+export { ensureAlphaChannel as ensureAlphaChannelFromStyles } from "./gridset/styleHelpers";
 
 // Snap helpers
 export {
@@ -101,11 +104,11 @@ export {
   type SnapPackagePath,
   type SnapUserInfo,
   type SnapUsageEntry,
-} from './snap/helpers';
+} from "./snap/helpers";
 
 // TouchChat helpers (stubs)
 export {
   getPageTokenImageMap as getTouchChatPageTokenImageMap,
   getAllowedImageEntries as getTouchChatAllowedImageEntries,
   openImage as openTouchChatImage,
-} from './touchchat/helpers';
+} from "./touchchat/helpers";

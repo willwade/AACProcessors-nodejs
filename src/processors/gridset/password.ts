@@ -1,6 +1,6 @@
-import path from 'path';
-import { ProcessorOptions } from '../../core/baseProcessor';
-import AdmZip from 'adm-zip';
+import path from "path";
+import { ProcessorOptions } from "../../core/baseProcessor";
+import AdmZip from "adm-zip";
 
 /**
  * Resolve the password to use for Grid3 archives.
@@ -10,14 +10,14 @@ import AdmZip from 'adm-zip';
  */
 export function resolveGridsetPassword(
   options?: ProcessorOptions,
-  source?: string | Buffer
+  source?: string | Buffer,
 ): string | undefined {
   if (options?.gridsetPassword) return options.gridsetPassword;
   if (process.env.GRIDSET_PASSWORD) return process.env.GRIDSET_PASSWORD;
 
-  if (typeof source === 'string') {
+  if (typeof source === "string") {
     const ext = path.extname(source).toLowerCase();
-    if (ext === '.gridsetx') return process.env.GRIDSET_PASSWORD;
+    if (ext === ".gridsetx") return process.env.GRIDSET_PASSWORD;
   }
 
   return undefined;
@@ -28,11 +28,14 @@ export function resolveGridsetPasswordFromEnv(): string | undefined {
 }
 
 // Wrapper to set the password before reading entries (typed getEntries lacks the optional arg)
-export function getZipEntriesWithPassword(zip: AdmZip, password?: string): AdmZip.IZipEntry[] {
+export function getZipEntriesWithPassword(
+  zip: AdmZip,
+  password?: string,
+): AdmZip.IZipEntry[] {
   if (password) {
-    return (zip as unknown as { getEntries: (pw?: string) => AdmZip.IZipEntry[] }).getEntries(
-      password
-    );
+    return (
+      zip as unknown as { getEntries: (pw?: string) => AdmZip.IZipEntry[] }
+    ).getEntries(password);
   }
   return zip.getEntries();
 }

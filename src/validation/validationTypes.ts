@@ -7,7 +7,7 @@ export class ValidationError extends Error {
 
   constructor(message: string, blocker = false) {
     super(message);
-    this.name = 'ValidationError';
+    this.name = "ValidationError";
     this.blocker = blocker;
   }
 }

@@ -1,14 +1,19 @@
-import fs from 'fs';
-import path from 'path';
-import * as ExcelJS from 'exceljs';
+import fs from "fs";
+import path from "path";
+import * as ExcelJS from "exceljs";
 import {
   BaseProcessor,
   ExtractStringsResult,
   TranslatedString,
   SourceString,
-} from '../core/baseProcessor';
-import { AACTree, AACPage, AACButton, AACSemanticIntent } from '../core/treeStructure';
-import { AACStyle } from '../types/aac';
+} from "../core/baseProcessor";
+import {
+  AACTree,
+  AACPage,
+  AACButton,
+  AACSemanticIntent,
+} from "../core/treeStructure";
+import { AACStyle } from "../types/aac";
 
 /**
  * Excel Processor for converting AAC grids to Excel format
@@ -16,7 +21,13 @@ import { AACStyle } from '../types/aac';
  * Supports visual styling, navigation links, and vocabulary analysis workflows
  */
 export class ExcelProcessor extends BaseProcessor {
-  private static readonly NAVIGATION_BUTTONS = ['Home', 'Message Bar', 'Delete', 'Back', 'Clear'];
+  private static readonly NAVIGATION_BUTTONS = [
+    "Home",
+    "Message Bar",
+    "Delete",
+    "Back",
+    "Clear",
+  ];
 
   /**
    * Extract all text content from an Excel file
@@ -24,7 +35,7 @@ export class ExcelProcessor extends BaseProcessor {
    * @returns Array of all text content found in the Excel file
    */
   extractTexts(_filePathOrBuffer: string | Buffer): string[] {
-    console.warn('ExcelProcessor.extractTexts is not implemented yet.');
+    console.warn("ExcelProcessor.extractTexts is not implemented yet.");
     return [];
   }
 
@@ -34,7 +45,7 @@ export class ExcelProcessor extends BaseProcessor {
    * @returns AACTree representation of the Excel file
    */
   loadIntoTree(_filePathOrBuffer: string | Buffer): AACTree {
-    console.warn('ExcelProcessor.loadIntoTree is not implemented yet.');
+    console.warn("ExcelProcessor.loadIntoTree is not implemented yet.");
     return new AACTree();
   }
 
@@ -48,9 +59,9 @@ export class ExcelProcessor extends BaseProcessor {
   processTexts(
     _filePathOrBuffer: string | Buffer,
     _translations: Map<string, string>,
-    outputPath: string
+    outputPath: string,
   ): Buffer {
-    console.warn('ExcelProcessor.processTexts is not implemented yet.');
+    console.warn("ExcelProcessor.processTexts is not implemented yet.");
     const outputDir = path.dirname(outputPath);
     if (!fs.existsSync(outputDir)) {
       fs.mkdirSync(outputDir, { recursive: true });
@@ -69,10 +80,13 @@ export class ExcelProcessor extends BaseProcessor {
     workbook: ExcelJS.Workbook,
     page: AACPage,
     tree: AACTree,
-    usedNames: Set<string> = new Set()
+    usedNames: Set<string> = new Set(),
   ): void {
     // Create worksheet with page name (sanitized for Excel and unique)
-    const worksheetName = this.getUniqueWorksheetName(page.name || page.id, usedNames);
+    const worksheetName = this.getUniqueWorksheetName(
+      page.name || page.id,
+      usedNames,
+    );
     const worksheet = workbook.addWorksheet(worksheetName);
 
     // Determine grid dimensions
@@ -136,7 +150,7 @@ export class ExcelProcessor extends BaseProcessor {
   private convertGridLayout(
     worksheet: ExcelJS.Worksheet,
     grid: Array<Array<AACButton | null>>,
-    startRow: number
+    startRow: number,
   ): void {
     for (let row = 0; row < grid.length; row++) {
       for (let col = 0; col < grid[row].length; col++) {
@@ -163,7 +177,7 @@ export class ExcelProcessor extends BaseProcessor {
     buttons: AACButton[],
     rows: number,
     cols: number,
-    startRow: number
+    startRow: number,
   ): void {
     for (let i = 0; i < buttons.length; i++) {
       const button = buttons[i];
@@ -189,12 +203,12 @@ export class ExcelProcessor extends BaseProcessor {
     worksheet: ExcelJS.Worksheet,
     button: AACButton,
     row: number,
-    col: number
+    col: number,
   ): void {
     const cell = worksheet.getCell(row, col);
 
     // Set cell value to button label
-    cell.value = button.label || '';
+    cell.value = button.label || "";
 
     // Add button message as cell comment if different from label
     if (button.message && button.message !== button.label) {
@@ -207,7 +221,10 @@ export class ExcelProcessor extends BaseProcessor {
     }
 
     // Add navigation link if this is a navigation button
-    if (button.semanticAction?.intent === AACSemanticIntent.NAVIGATE_TO && button.targetPageId) {
+    if (
+      button.semanticAction?.intent === AACSemanticIntent.NAVIGATE_TO &&
+      button.targetPageId
+    ) {
       this.addNavigationLink(cell, button.targetPageId);
     }
 
@@ -228,8 +245,8 @@ export class ExcelProcessor extends BaseProcessor {
     // Background color
     if (style.backgroundColor) {
       fill = {
-        type: 'pattern',
-        pattern: 'solid',
+        type: "pattern",
+        pattern: "solid",
         fgColor: { argb: this.convertColorToArgb(style.backgroundColor) },
       };
     }
@@ -250,12 +267,12 @@ export class ExcelProcessor extends BaseProcessor {
     }
 
     // Font weight
-    if (style.fontWeight === 'bold') {
+    if (style.fontWeight === "bold") {
       font.bold = true;
     }
 
     // Font style
-    if (style.fontStyle === 'italic') {
+    if (style.fontStyle === "italic") {
       font.italic = true;
     }
 
@@ -265,12 +282,12 @@ export class ExcelProcessor extends BaseProcessor {
     }
 
     // Border
-    if (style.borderColor || typeof style.borderWidth === 'number') {
+    if (style.borderColor || typeof style.borderWidth === "number") {
       const borderWidth = style.borderWidth ?? 1;
-      const borderStyle = borderWidth > 1 ? 'thick' : 'thin';
+      const borderStyle = borderWidth > 1 ? "thick" : "thin";
       const borderColor = style.borderColor
         ? { argb: this.convertColorToArgb(style.borderColor) }
-        : { argb: 'FF000000' }; // Default black
+        : { argb: "FF000000" }; // Default black
 
       border = {
         top: { style: borderStyle, color: borderColor },
@@ -293,8 +310,8 @@ export class ExcelProcessor extends BaseProcessor {
 
     // Center align text
     cell.alignment = {
-      vertical: 'middle',
-      horizontal: 'center',
+      vertical: "middle",
+      horizontal: "center",
       wrapText: true,
     };
   }
@@ -305,16 +322,16 @@ export class ExcelProcessor extends BaseProcessor {
    * @returns ARGB color string
    */
   private convertColorToArgb(color?: string): string {
-    if (!color) return 'FFFFFFFF'; // Default white
+    if (!color) return "FFFFFFFF"; // Default white
 
     // Remove any whitespace
     color = color.trim();
 
     // If already in hex format
-    if (color.startsWith('#')) {
+    if (color.startsWith("#")) {
       const hex = color.substring(1);
       if (hex.length === 6) {
-        return 'FF' + hex.toUpperCase(); // Add alpha channel
+        return "FF" + hex.toUpperCase(); // Add alpha channel
       } else if (hex.length === 8) {
         return hex.toUpperCase(); // Already has alpha
       }
@@ -323,26 +340,30 @@ export class ExcelProcessor extends BaseProcessor {
     // Handle rgb() format
     const rgbMatch = color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
     if (rgbMatch) {
-      const r = parseInt(rgbMatch[1]).toString(16).padStart(2, '0');
-      const g = parseInt(rgbMatch[2]).toString(16).padStart(2, '0');
-      const b = parseInt(rgbMatch[3]).toString(16).padStart(2, '0');
-      return 'FF' + r.toUpperCase() + g.toUpperCase() + b.toUpperCase();
+      const r = parseInt(rgbMatch[1]).toString(16).padStart(2, "0");
+      const g = parseInt(rgbMatch[2]).toString(16).padStart(2, "0");
+      const b = parseInt(rgbMatch[3]).toString(16).padStart(2, "0");
+      return "FF" + r.toUpperCase() + g.toUpperCase() + b.toUpperCase();
     }
 
     // Handle rgba() format
-    const rgbaMatch = color.match(/rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)/);
+    const rgbaMatch = color.match(
+      /rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)/,
+    );
     if (rgbaMatch) {
-      const r = parseInt(rgbaMatch[1]).toString(16).padStart(2, '0');
-      const g = parseInt(rgbaMatch[2]).toString(16).padStart(2, '0');
-      const b = parseInt(rgbaMatch[3]).toString(16).padStart(2, '0');
+      const r = parseInt(rgbaMatch[1]).toString(16).padStart(2, "0");
+      const g = parseInt(rgbaMatch[2]).toString(16).padStart(2, "0");
+      const b = parseInt(rgbaMatch[3]).toString(16).padStart(2, "0");
       const a = Math.round(parseFloat(rgbaMatch[4]) * 255)
         .toString(16)
-        .padStart(2, '0');
-      return a.toUpperCase() + r.toUpperCase() + g.toUpperCase() + b.toUpperCase();
+        .padStart(2, "0");
+      return (
+        a.toUpperCase() + r.toUpperCase() + g.toUpperCase() + b.toUpperCase()
+      );
     }
 
     // Default fallback
-    return 'FFFFFFFF';
+    return "FFFFFFFF";
   }
 
   /**
@@ -354,7 +375,7 @@ export class ExcelProcessor extends BaseProcessor {
     // Create internal link to another worksheet
     const sanitizedTargetName = this.sanitizeWorksheetName(targetPageId);
     cell.value = {
-      text: cell.value?.toString() || '',
+      text: cell.value?.toString() || "",
       hyperlink: `#'${sanitizedTargetName}'!A1`,
     };
   }
@@ -365,7 +386,11 @@ export class ExcelProcessor extends BaseProcessor {
    * @param row - Row number
    * @param col - Column number
    */
-  private setCellSize(worksheet: ExcelJS.Worksheet, row: number, col: number): void {
+  private setCellSize(
+    worksheet: ExcelJS.Worksheet,
+    row: number,
+    col: number,
+  ): void {
     // Set column width (approximately 15 characters wide)
     const column = worksheet.getColumn(col);
     if (!column.width || column.width < 15) {
@@ -385,7 +410,11 @@ export class ExcelProcessor extends BaseProcessor {
    * @param page - Current AAC page
    * @param tree - Full AAC tree for navigation context
    */
-  private addNavigationRow(worksheet: ExcelJS.Worksheet, page: AACPage, tree: AACTree): void {
+  private addNavigationRow(
+    worksheet: ExcelJS.Worksheet,
+    page: AACPage,
+    tree: AACTree,
+  ): void {
     const navButtons = ExcelProcessor.NAVIGATION_BUTTONS;
 
     for (let i = 0; i < navButtons.length; i++) {
@@ -394,32 +423,32 @@ export class ExcelProcessor extends BaseProcessor {
 
       // Style navigation buttons differently
       cell.fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: 'FFE0E0E0' }, // Light gray background
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FFE0E0E0" }, // Light gray background
       };
 
       cell.font = {
         bold: true,
-        color: { argb: 'FF000000' }, // Black text
+        color: { argb: "FF000000" }, // Black text
       };
 
       cell.border = {
-        top: { style: 'thin', color: { argb: 'FF000000' } },
-        left: { style: 'thin', color: { argb: 'FF000000' } },
-        bottom: { style: 'thin', color: { argb: 'FF000000' } },
-        right: { style: 'thin', color: { argb: 'FF000000' } },
+        top: { style: "thin", color: { argb: "FF000000" } },
+        left: { style: "thin", color: { argb: "FF000000" } },
+        bottom: { style: "thin", color: { argb: "FF000000" } },
+        right: { style: "thin", color: { argb: "FF000000" } },
       };
 
       cell.alignment = {
-        vertical: 'middle',
-        horizontal: 'center',
+        vertical: "middle",
+        horizontal: "center",
       };
 
       // Add navigation functionality for specific buttons
-      if (navButtons[i] === 'Home' && tree.rootId) {
+      if (navButtons[i] === "Home" && tree.rootId) {
         this.addNavigationLink(cell, tree.rootId);
-      } else if (navButtons[i] === 'Back' && page.parentId) {
+      } else if (navButtons[i] === "Back" && page.parentId) {
         this.addNavigationLink(cell, page.parentId);
       }
     }
@@ -436,7 +465,7 @@ export class ExcelProcessor extends BaseProcessor {
     worksheet: ExcelJS.Worksheet,
     rows: number,
     cols: number,
-    startRow: number
+    startRow: number,
   ): void {
     // Set default column widths
     for (let col = 1; col <= cols; col++) {
@@ -456,7 +485,7 @@ export class ExcelProcessor extends BaseProcessor {
 
     // Freeze navigation row if present
     if (startRow > 1) {
-      worksheet.views = [{ state: 'frozen', ySplit: 1 }];
+      worksheet.views = [{ state: "frozen", ySplit: 1 }];
     }
   }
 
@@ -470,12 +499,12 @@ export class ExcelProcessor extends BaseProcessor {
     // - Max 31 characters
     // - Cannot contain: \ / ? * [ ] :
     // - Cannot be empty
-    let cleaned = (name || '').replace(/[\\/?*:]/g, '_');
-    cleaned = cleaned.replace(/\[/g, '_').replace(/\]/g, '_');
+    let cleaned = (name || "").replace(/[\\/?*:]/g, "_");
+    cleaned = cleaned.replace(/\[/g, "_").replace(/\]/g, "_");
     cleaned = cleaned.substring(0, 31);
 
     if (cleaned.length === 0) {
-      return 'Sheet1';
+      return "Sheet1";
     }
 
     return cleaned;
@@ -540,13 +569,13 @@ export class ExcelProcessor extends BaseProcessor {
       await this.saveFromTreeAsync(tree, outputPath);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
-      console.error('Failed to save Excel file:', message);
+      console.error("Failed to save Excel file:", message);
       try {
-        const fallbackPath = outputPath.replace(/\.xlsx$/i, '_error.txt');
+        const fallbackPath = outputPath.replace(/\.xlsx$/i, "_error.txt");
         fs.mkdirSync(path.dirname(fallbackPath), { recursive: true });
         fs.writeFileSync(fallbackPath, `Error saving Excel file: ${message}`);
       } catch (writeError) {
-        console.error('Failed to write Excel error file:', writeError);
+        console.error("Failed to write Excel error file:", writeError);
       }
     }
   }
@@ -554,19 +583,22 @@ export class ExcelProcessor extends BaseProcessor {
   /**
    * Async version of saveFromTree for internal use
    */
-  private async saveFromTreeAsync(tree: AACTree, outputPath: string): Promise<void> {
+  private async saveFromTreeAsync(
+    tree: AACTree,
+    outputPath: string,
+  ): Promise<void> {
     const workbook = new ExcelJS.Workbook();
 
     // Set workbook properties
-    workbook.creator = 'AACProcessors';
-    workbook.lastModifiedBy = 'AACProcessors';
+    workbook.creator = "AACProcessors";
+    workbook.lastModifiedBy = "AACProcessors";
     workbook.created = new Date();
     workbook.modified = new Date();
 
     // If no pages, create a default empty worksheet
     if (Object.keys(tree.pages).length === 0) {
-      const worksheet = workbook.addWorksheet('Empty');
-      worksheet.getCell('A1').value = 'No AAC pages found';
+      const worksheet = workbook.addWorksheet("Empty");
+      worksheet.getCell("A1").value = "No AAC pages found";
       await workbook.xlsx.writeFile(outputPath);
       return;
     }
@@ -599,8 +631,12 @@ export class ExcelProcessor extends BaseProcessor {
   generateTranslatedDownload(
     filePath: string,
     translatedStrings: TranslatedString[],
-    sourceStrings: SourceString[]
+    sourceStrings: SourceString[],
   ): Promise<string> {
-    return this.generateTranslatedDownloadGeneric(filePath, translatedStrings, sourceStrings);
+    return this.generateTranslatedDownloadGeneric(
+      filePath,
+      translatedStrings,
+      sourceStrings,
+    );
   }
 }

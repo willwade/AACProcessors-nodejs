@@ -1,6 +1,6 @@
-import { AACTree, AACButton, AACSemanticCategory } from './treeStructure';
-import { StringCasing, detectCasing, isNumericOrEmpty } from './stringCasing';
-import { ValidationResult } from '../validation/validationTypes';
+import { AACTree, AACButton, AACSemanticCategory } from "./treeStructure";
+import { StringCasing, detectCasing, isNumericOrEmpty } from "./stringCasing";
+import { ValidationResult } from "../validation/validationTypes";
 
 // Configuration options for processors
 export interface ProcessorOptions {
@@ -37,7 +37,7 @@ export interface VocabLocation {
 
 export interface ProcessingError {
   message: string;
-  step: 'EXTRACT' | 'PROCESS' | 'SAVE';
+  step: "EXTRACT" | "PROCESS" | "SAVE";
 }
 
 export interface ExtractStringsResult {
@@ -80,11 +80,14 @@ abstract class BaseProcessor {
   abstract processTexts(
     filePathOrBuffer: string | Buffer,
     translations: Map<string, string>,
-    outputPath: string
+    outputPath: string,
   ): Buffer;
 
   // Save tree structure back to file/buffer
-  abstract saveFromTree(tree: AACTree, outputPath: string): void | Promise<void>;
+  abstract saveFromTree(
+    tree: AACTree,
+    outputPath: string,
+  ): void | Promise<void>;
 
   // Validate file format
   validate?(filePath: string): Promise<ValidationResult>;
@@ -109,7 +112,7 @@ abstract class BaseProcessor {
   generateTranslatedDownload?(
     filePath: string,
     translatedStrings: TranslatedString[],
-    sourceStrings: SourceString[]
+    sourceStrings: SourceString[],
   ): Promise<string>;
 
   // Helper method to determine if a button should be filtered out
@@ -131,13 +134,16 @@ abstract class BaseProcessor {
       // Filter specific navigation intents (toolbar navigation only)
       if (this.options.excludeNavigationButtons) {
         const i = String(intent);
-        if (i === 'GO_BACK' || i === 'GO_HOME') {
+        if (i === "GO_BACK" || i === "GO_HOME") {
           return true;
         }
       }
 
       // Filter system/text editing buttons by category
-      if (this.options.excludeSystemButtons && category === AACSemanticCategory.TEXT_EDITING) {
+      if (
+        this.options.excludeSystemButtons &&
+        category === AACSemanticCategory.TEXT_EDITING
+      ) {
         return true;
       }
 
@@ -145,10 +151,10 @@ abstract class BaseProcessor {
       if (this.options.excludeSystemButtons) {
         const i = String(intent);
         if (
-          i === 'DELETE_WORD' ||
-          i === 'DELETE_CHARACTER' ||
-          i === 'CLEAR_TEXT' ||
-          i === 'COPY_TEXT'
+          i === "DELETE_WORD" ||
+          i === "DELETE_CHARACTER" ||
+          i === "CLEAR_TEXT" ||
+          i === "COPY_TEXT"
         ) {
           return true;
         }
@@ -159,25 +165,30 @@ abstract class BaseProcessor {
     // Only apply label-based filtering if button doesn't have semantic actions
     if (
       !button.semanticAction &&
-      (this.options.excludeNavigationButtons || this.options.excludeSystemButtons)
+      (this.options.excludeNavigationButtons ||
+        this.options.excludeSystemButtons)
     ) {
-      const label = button.label?.toLowerCase() || '';
-      const message = button.message?.toLowerCase() || '';
+      const label = button.label?.toLowerCase() || "";
+      const message = button.message?.toLowerCase() || "";
 
       // More conservative navigation terms (exclude "more" since it's often used for legitimate page navigation)
-      const navigationTerms = ['back', 'home', 'menu', 'settings'];
-      const systemTerms = ['delete', 'clear', 'copy', 'paste', 'undo', 'redo'];
+      const navigationTerms = ["back", "home", "menu", "settings"];
+      const systemTerms = ["delete", "clear", "copy", "paste", "undo", "redo"];
 
       if (
         this.options.excludeNavigationButtons &&
-        navigationTerms.some((term) => label.includes(term) || message.includes(term))
+        navigationTerms.some(
+          (term) => label.includes(term) || message.includes(term),
+        )
       ) {
         return true;
       }
 
       if (
         this.options.excludeSystemButtons &&
-        systemTerms.some((term) => label.includes(term) || message.includes(term))
+        systemTerms.some(
+          (term) => label.includes(term) || message.includes(term),
+        )
       ) {
         return true;
       }
@@ -197,7 +208,9 @@ abstract class BaseProcessor {
    * @param filePath - Path to the AAC file
    * @returns Promise with extracted strings and metadata
    */
-  protected extractStringsWithMetadataGeneric(filePath: string): Promise<ExtractStringsResult> {
+  protected extractStringsWithMetadataGeneric(
+    filePath: string,
+  ): Promise<ExtractStringsResult> {
     try {
       const tree = this.loadIntoTree(filePath);
       const extractedMap = new Map<string, ExtractedString>();
@@ -205,30 +218,48 @@ abstract class BaseProcessor {
       // Process all pages and buttons
       Object.values(tree.pages).forEach((page) => {
         // Process page names
-        if (page.name && page.name.trim().length > 1 && !isNumericOrEmpty(page.name)) {
+        if (
+          page.name &&
+          page.name.trim().length > 1 &&
+          !isNumericOrEmpty(page.name)
+        ) {
           const key = page.name.trim().toLowerCase();
           const vocabLocation: VocabLocation = {
-            table: 'pages',
+            table: "pages",
             id: parseInt(page.id) || 0,
-            column: 'NAME',
+            column: "NAME",
             casing: detectCasing(page.name),
           };
 
-          this.addToExtractedMap(extractedMap, key, page.name.trim(), vocabLocation);
+          this.addToExtractedMap(
+            extractedMap,
+            key,
+            page.name.trim(),
+            vocabLocation,
+          );
         }
 
         page.buttons.forEach((button) => {
           // Process button labels
-          if (button.label && button.label.trim().length > 1 && !isNumericOrEmpty(button.label)) {
+          if (
+            button.label &&
+            button.label.trim().length > 1 &&
+            !isNumericOrEmpty(button.label)
+          ) {
             const key = button.label.trim().toLowerCase();
             const vocabLocation: VocabLocation = {
-              table: 'buttons',
+              table: "buttons",
               id: parseInt(button.id) || 0,
-              column: 'LABEL',
+              column: "LABEL",
               casing: detectCasing(button.label),
             };
 
-            this.addToExtractedMap(extractedMap, key, button.label.trim(), vocabLocation);
+            this.addToExtractedMap(
+              extractedMap,
+              key,
+              button.label.trim(),
+              vocabLocation,
+            );
           }
 
           // Process button messages (if different from label)
@@ -240,13 +271,18 @@ abstract class BaseProcessor {
           ) {
             const key = button.message.trim().toLowerCase();
             const vocabLocation: VocabLocation = {
-              table: 'buttons',
+              table: "buttons",
               id: parseInt(button.id) || 0,
-              column: 'MESSAGE',
+              column: "MESSAGE",
               casing: detectCasing(button.message),
             };
 
-            this.addToExtractedMap(extractedMap, key, button.message.trim(), vocabLocation);
+            this.addToExtractedMap(
+              extractedMap,
+              key,
+              button.message.trim(),
+              vocabLocation,
+            );
           }
         });
       });
@@ -257,8 +293,11 @@ abstract class BaseProcessor {
       return Promise.resolve({
         errors: [
           {
-            message: error instanceof Error ? error.message : 'Unknown extraction error',
-            step: 'EXTRACT' as const,
+            message:
+              error instanceof Error
+                ? error.message
+                : "Unknown extraction error",
+            step: "EXTRACT" as const,
           },
         ],
         extractedStrings: [],
@@ -277,7 +316,7 @@ abstract class BaseProcessor {
   protected generateTranslatedDownloadGeneric(
     filePath: string,
     translatedStrings: TranslatedString[],
-    sourceStrings: SourceString[]
+    sourceStrings: SourceString[],
   ): Promise<string> {
     try {
       // Build translation map from the provided data
@@ -285,7 +324,7 @@ abstract class BaseProcessor {
 
       sourceStrings.forEach((sourceString) => {
         const translated = translatedStrings.find(
-          (ts) => ts.sourcestringid.toString() === sourceString.id.toString()
+          (ts) => ts.sourcestringid.toString() === sourceString.id.toString(),
         );
 
         if (translated) {
@@ -307,8 +346,8 @@ abstract class BaseProcessor {
     } catch (error) {
       return Promise.reject(
         new Error(
-          `Failed to generate translated download: ${error instanceof Error ? error.message : 'Unknown error'}`
-        )
+          `Failed to generate translated download: ${error instanceof Error ? error.message : "Unknown error"}`,
+        ),
       );
     }
   }
@@ -324,7 +363,7 @@ abstract class BaseProcessor {
     extractedMap: Map<string, ExtractedString>,
     key: string,
     originalString: string,
-    vocabLocation: VocabLocation
+    vocabLocation: VocabLocation,
   ): void {
     const existing = extractedMap.get(key);
     if (existing) {
@@ -345,9 +384,9 @@ abstract class BaseProcessor {
    * @returns Path for the translated output file
    */
   protected generateTranslatedOutputPath(filePath: string): string {
-    const lastDotIndex = filePath.lastIndexOf('.');
+    const lastDotIndex = filePath.lastIndexOf(".");
     if (lastDotIndex === -1) {
-      return filePath + '_translated';
+      return filePath + "_translated";
     }
 
     const basePath = filePath.substring(0, lastDotIndex);
