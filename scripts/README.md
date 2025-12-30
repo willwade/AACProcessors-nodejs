@@ -1,166 +1,98 @@
-# Developer Scripts and Demos
+# AAC Processors - Utility Scripts
 
-This directory contains scripts and demos that demonstrate how to use the `aac-processors` library with the sample files in `/examples`. They are intended as quick starters for people exploring the project.
+This directory contains utility scripts and tools for working with AAC files. These are organized by category for easier navigation.
 
-## Setup
+> **Note:** For code examples and demos showing how to use the library programmatically, see the **examples/** directory.
 
-```bash
-# Install script-specific dependencies
-npm install
+## 📁 Directory Structure
+
+```
+scripts/
+├── analysis/          # Pageset analysis and vocabulary extraction
+├── asterics/          # Asterics Grid format conversion
+├── audio/             # Audio enhancement and integration
+├── conversion/        # File format conversion utilities
+├── translation/       # Translation workflows and tools
+└── utilities/         # General utility scripts
 ```
 
-## Available scripts
+## 📂 Categories
 
-### Core Demos
+### 📊 analysis/
+Analysis and reporting tools for AAC pagesets.
 
-#### `demo.js`
-Comprehensive demo showcasing all supported AAC formats and processors.
+- **analyze_pageset.js** - General pageset analysis
+- **analyze_audio_pageset.js** - Audio integration analysis
+- **extract_vocabulary.js** - Extract vocabulary from pagesets
+- **generate_csv.js** - Generate CSV reports from vocabulary
+- **validate_complete_workflow.js** - Validate end-to-end workflows
 
-```bash
-node demo.js
-```
-
-Demonstrates:
-- DOT format loading and text extraction
-- OPML format processing
-- Snap format (.spb) handling
-- Grid3 gridset processing
-- TouchChat (.ce) format
-- OBF/OBZ format handling
-
-#### `typescript-demo.ts`
-TypeScript example demonstrating the modern TypeScript API.
-
-```bash
-npx ts-node typescript-demo.ts
-```
-
-Features:
-- Auto-detection of processor by file extension
-- TypeScript type safety
-- Modern async/await patterns
-
-#### `unified-interface-demo.ts`
-Demonstrates the unified interface across all processors.
-
-```bash
-npx ts-node unified-interface-demo.ts
-```
-
-#### `wordlist-demo.ts` / `wordlist-demo.js`
-Demonstrates Grid3 wordlist functionality.
-
-```bash
-npx ts-node wordlist-demo.ts
-# or
-node wordlist-demo.js
-```
-
-Features:
-- Extract wordlists from existing gridsets
-- Create wordlists from various input formats
-- Update wordlists in gridsets
-
-#### `styling-example.ts`
-Demonstrates comprehensive styling support across formats.
-
-```bash
-npx ts-node styling-example.ts
-```
-
-Output saved to `../examples/styled-output/`
-
-#### `image-map.js`
-Demonstrates image handling in Grid3 gridsets.
-
-```bash
-node image-map.js
-```
-
-### Translation Demos
-
-#### `translate_demo.js`
-Comprehensive translation demo supporting multiple translation services.
-
-```bash
-export AZURE_TRANSLATOR_KEY="your-key"
-export GOOGLE_TRANSLATE_KEY="your-key"
-node translate_demo.js ../examples/example.gridset --endlang fr
-```
-
-#### `translate.js`
-Simple text extraction and analysis tool.
-
-```bash
-node translate.js ../examples/example.ce
-```
-
-### Analysis Scripts
-
-### `analysis/extract-vocabulary.js`
-Generate a JSON and console summary of all vocabulary in a pageset.
-
+Example:
 ```bash
 npm run build
-node scripts/analysis/extract-vocabulary.js examples/example.sps vocabulary.json
+node scripts/analysis/extract_vocabulary.js ../examples/example.sps vocabulary.json
 ```
 
-Sample output (excerpt):
-```text
-Top-level vocabulary sample:
-  - -
-  - -'s
-  - -ed
-  - -en
-  - -er
-  - -est
-```
+### 🔧 asterics/
+Tools for working with Asterics Grid format.
 
-### `analysis/compare-vocabulary.js`
-Compare the vocabulary used in two files and highlight overlaps and differences.
+- **convert-asterics-grid.js** - Convert Asterics grids to other formats
+- **convert-gridset.sh** - Shell script for gridset conversion
+- **extract-gridset.sh** - Extract gridset contents
 
+### 🎵 audio/
+Audio enhancement and integration scripts.
+
+- **create_audio_enhanced_pageset.js** - Add audio to pagesets
+- **generate_audio_with_resume.js** - Generate audio with resume capability
+- **demo_enhanced_snapprocessor.js** - Demo of audio-enhanced Snap files
+- **test_audio_integration.js** - Test audio integration features
+
+### 🔄 conversion/
+Format conversion utilities.
+
+- **txt-to-gridset.ts** - Convert TSV (tab-separated) files to Gridset format
+
+Example:
 ```bash
 npm run build
-node scripts/analysis/compare-vocabulary.js examples/example.sps examples/example2.grd
+npx ts-node scripts/conversion/txt-to-gridset.ts input.tsv output.gridset
 ```
 
-Sample output (excerpt):
-```text
-Shared vocabulary (3):
-  - he
-  - I
-  - you
-```
+### 🌐 translation/
+Translation and localization tools.
 
-### `analysis/page-layout-to-markdown.js`
-Render a page from a pageset as a Markdown table so you can see button positioning.
+- **translate.js** - General translation utility
+- **punjabi/** - Punjabi language translation scripts
+  - `translate_to_punjabi.js` - Translate pagesets to Punjabi
+
+### 🛠️ utilities/
+General-purpose utility scripts.
+
+- **image-map.js** - Image mapping and analysis tools
+
+## 🚀 Usage
+
+Most scripts can be run from the repository root:
 
 ```bash
+# Build the library first
 npm run build
-node scripts/analysis/page-layout-to-markdown.js examples/example.sps "Food & Drink" layout.md
+
+# Run a script
+node scripts/analysis/analyze_pageset.js path/to/pageset.gridset
+node scripts/analysis/extract_vocabulary.js path/to/pageset.gridset
+npx ts-node scripts/conversion/txt-to-gridset.ts input.tsv output.gridset
 ```
 
-Sample output (excerpt):
-```text
-| **Home** | **breakfast** | **lunch** | **dinner** | **salad** | **soup** | **Breakfast Food** | **Lunch & Dinner** |   |   |
-| **food** | **sandwich** | **pizza** | **bread** | **cheese** |   | **Vegetables** | **Fruit** |   |   |
-```
+## 🔑 Environment Variables
 
-### `coverage-analysis.js`
-Summarise Jest coverage output. This is mainly for maintainers but remains available.
-
-## Example data
-
-AAC sample files live in `../examples/`. All scripts use these files for demonstration. Feel free to copy them into a temporary location if you want to experiment without changing the originals.
-
-## Environment Variables
-
-For translation demos:
+For translation scripts:
 
 ```bash
 # Azure Translator
 export AZURE_TRANSLATOR_KEY="your-key"
-export AZURE_TRANSLATOR_REGION="uksouth"  # optional
+export AZURE_TRANSLATOR_REGION="uksouth"
 
 # Google Translate
 export GOOGLE_TRANSLATE_KEY="your-key"
@@ -169,6 +101,20 @@ export GOOGLE_TRANSLATE_KEY="your-key"
 export GEMINI_API_KEY="your-key"
 ```
 
-## Contributing
+See `.envrc.example` for all available environment variables.
 
-If you add another script, keep it focused on demonstrating core library features and document a working example command using the repository assets.
+## 📝 Notes
+
+- These scripts use the built `dist/` directory
+- Run `npm run build` before executing TypeScript scripts
+- Scripts that create output files will respect `.gitignore`
+- No `node_modules` in this directory - uses workspace dependencies
+- Output files (`.gridset`, `.output.*`, etc.) are automatically ignored
+
+## 🔗 Related
+
+- **examples/** - Working code examples for all processors
+- **examples/demo.js** - Comprehensive demo of all formats
+- **examples/typescript-demo.ts** - TypeScript API examples
+- **examples/translate_demo.js** - Translation workflow demo
+- Main **README.md** - Complete library documentation

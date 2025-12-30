@@ -167,3 +167,13 @@ temp-data/**
 scripts/wordlist-demo-output.gridset
 scripts/gemini_response.txt
 scripts/translation_cache.json
+scripts/node_modules/
+scripts/package-lock.json
+scripts/*.gridset
+scripts/*.output.*
+
+# Translation and AI response caches (anywhere in the repo)
+**/translation_cache.json
+**/gemini_response.txt
+**/*_cache.json
+examples/gemini_response.txt
