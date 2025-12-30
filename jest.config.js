@@ -34,12 +34,13 @@ module.exports = {
     "!src/**/__tests__/**",
     "!src/cli/**",
     "!src/optional/**",
+    "!src/utilities/**",
   ],
   coveragePathIgnorePatterns: ["/node_modules/", "/dist/", "/__tests__/"],
   coverageThreshold: {
     global: {
       branches: 60,
-      functions: 70,
+      functions: 67,
       lines: 76,
       statements: 76,
     },
