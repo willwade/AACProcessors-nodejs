@@ -28,6 +28,22 @@ export interface AACButton {
     identifier?: string;
     metadata?: string;
   };
+  // Extended properties for advanced platforms
+  contentType?: 'Normal' | 'AutoContent' | 'Workspace' | 'LiveCell';
+  contentSubType?: string;
+  image?: string;
+  resolvedImageEntry?: string; // normalized zip path to resolved image, if present
+  symbolLibrary?: string;
+  symbolPath?: string;
+  x?: number;
+  y?: number;
+  columnSpan?: number;
+  rowSpan?: number;
+  scanBlocks?: number[];
+  visibility?: 'Visible' | 'Hidden' | 'Disabled' | 'PointerAndTouchOnly' | 'Empty';
+  directActivate?: boolean;
+  audioDescription?: string;
+  parameters?: { [key: string]: any };
 }
 
 export interface AACPage {

@@ -1,3 +1,5 @@
+import { isSymbolReference, parseSymbolReference, type SymbolReference } from './symbols';
+
 function normalizeZipPathLocal(p: string): string {
   const unified = p.replace(/\\/g, '/');
   try {
@@ -55,7 +57,15 @@ export function resolveGrid3CellImage(
   const entries = new Set(listZipEntries(zip, zipEntries));
   const has = (p: string): boolean => entries.has(normalizeZipPathLocal(p));
 
-  // Built-in resource like [grid3x]...
+  // Check for symbol library reference like [widgit]/food/apple.png
+  if (imageName && isSymbolReference(imageName)) {
+    // Symbol library references are NOT stored as files in the gridset
+    // They are resolved from the external Grid 3 installation
+    // Return null to indicate this is an external symbol reference
+    return null;
+  }
+
+  // Built-in resource like [grid3x]... (old format, not symbol library)
   if (imageName && imageName.startsWith('[')) {
     if (args.builtinHandler) {
       const mapped = args.builtinHandler(imageName);
@@ -108,4 +118,26 @@ export function resolveGrid3CellImage(
   }
 
   return null;
+}
+
+/**
+ * Check if an image reference is a symbol library reference
+ * @param imageName - Image reference from Grid 3
+ * @returns True if it's a symbol library reference
+ */
+export function isSymbolLibraryReference(imageName?: string): boolean {
+  if (!imageName) return false;
+  return isSymbolReference(imageName.trim());
+}
+
+/**
+ * Parse a symbol library reference from an image name
+ * @param imageName - Image reference from Grid 3
+ * @returns Parsed reference or null if not a symbol reference
+ */
+export function parseImageSymbolReference(imageName: string): SymbolReference | null {
+  if (!isSymbolLibraryReference(imageName)) {
+    return null;
+  }
+  return parseSymbolReference(imageName.trim());
 }

@@ -9,6 +9,41 @@ import { XMLBuilder } from 'fast-xml-parser';
 import { ensureAlphaChannel, darkenColor } from './colorUtils';
 
 /**
+ * Cell background shapes supported by Grid 3
+ * Maps to Grid 3's CellBackgroundShape enum
+ */
+export enum CellBackgroundShape {
+  Rectangle = 0,
+  RoundedRectangle = 1,
+  FoldedCorner = 2,
+  Octagon = 3,
+  Folder = 4,
+  Ellipse = 5,
+  SpeechBubble = 6,
+  ThoughtBubble = 7,
+  Star = 8,
+  Circle = 9,
+  ColouredCorner = 10,
+}
+
+/**
+ * Human-readable shape names
+ */
+export const SHAPE_NAMES: Record<CellBackgroundShape, string> = {
+  [CellBackgroundShape.Rectangle]: 'Rectangle',
+  [CellBackgroundShape.RoundedRectangle]: 'Rounded Rectangle',
+  [CellBackgroundShape.FoldedCorner]: 'Folded Corner',
+  [CellBackgroundShape.Octagon]: 'Octagon',
+  [CellBackgroundShape.Folder]: 'Folder',
+  [CellBackgroundShape.Ellipse]: 'Ellipse',
+  [CellBackgroundShape.SpeechBubble]: 'Speech Bubble',
+  [CellBackgroundShape.ThoughtBubble]: 'Thought Bubble',
+  [CellBackgroundShape.Star]: 'Star',
+  [CellBackgroundShape.Circle]: 'Circle',
+  [CellBackgroundShape.ColouredCorner]: 'Coloured Corner',
+};
+
+/**
  * Grid3 Style object structure
  */
 export interface Grid3Style {
@@ -18,6 +53,7 @@ export interface Grid3Style {
   FontColour?: string;
   FontName?: string;
   FontSize?: string | number;
+  BackgroundShape?: CellBackgroundShape;
 }
 
 /**

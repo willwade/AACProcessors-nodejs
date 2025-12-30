@@ -48,7 +48,6 @@ export {
   readGrid3HistoryForUser as readGridsetHistoryForUser,
   readAllGrid3History as readAllGridsetHistory,
 } from './gridset/helpers';
-export { resolveGrid3CellImage } from './gridset/resolver';
 
 // Gridset (Grid 3) wordlist helpers
 export {
@@ -80,10 +79,102 @@ export {
   CATEGORY_STYLES,
   createDefaultStylesXml,
   createCategoryStyle,
+  CellBackgroundShape,
+  SHAPE_NAMES,
 } from './gridset/styleHelpers';
 
 // Re-export ensureAlphaChannel from styleHelpers for backward compatibility
 export { ensureAlphaChannel as ensureAlphaChannelFromStyles } from './gridset/styleHelpers';
+
+// Gridset (Grid 3) plugin cell type detection
+export {
+  detectPluginCellType,
+  type Grid3PluginMetadata,
+  Grid3CellType,
+  WORKSPACE_TYPES,
+  LIVECELL_TYPES,
+  AUTOCONTENT_TYPES,
+  getCellTypeDisplayName,
+  isWorkspaceCell,
+  isLiveCell,
+  isAutoContentCell,
+  isRegularCell,
+} from './gridset/pluginTypes';
+
+// Gridset (Grid 3) command definitions and detection
+export {
+  detectCommand,
+  getCommandDefinition,
+  getCommandsByPlugin,
+  getCommandsByCategory,
+  getAllCommandIds,
+  getAllPluginIds,
+  extractCommandParameters,
+  GRID3_COMMANDS,
+  type Grid3CommandDefinition,
+  type CommandParameter,
+  type ExtractedParameters,
+  Grid3CommandCategory,
+} from './gridset/commands';
+
+// Gridset (Grid 3) enhanced index - re-export everything
+export * from './gridset/index';
+
+// Gridset (Grid 3) symbol library handling
+export {
+  parseSymbolReference,
+  isSymbolReference,
+  resolveSymbolReference,
+  getAvailableSymbolLibraries,
+  getSymbolLibraryInfo,
+  extractSymbolReferences,
+  analyzeSymbolUsage,
+  createSymbolReference,
+  getSymbolLibraryName,
+  getSymbolPath,
+  isKnownSymbolLibrary,
+  getSymbolLibraryDisplayName,
+  getDefaultGrid3Path,
+  getSymbolLibrariesDir,
+  getSymbolSearchIndexesDir,
+  symbolReferenceToFilename,
+  SYMBOL_LIBRARIES,
+} from './gridset/symbols';
+
+// Gridset image resolution helpers
+export {
+  resolveGrid3CellImage,
+  isSymbolLibraryReference,
+  parseImageSymbolReference,
+} from './gridset/resolver';
+
+// Backward compatibility
+export { getSymbolsDir, getSymbolSearchDir } from './gridset/symbols';
+
+// Gridset (Grid 3) symbol extraction for conversion
+export {
+  extractButtonImage,
+  extractSymbolLibraryImage,
+  convertToAstericsImage,
+  analyzeSymbolExtraction,
+  suggestExtractionStrategy,
+  exportSymbolReferencesToCsv,
+  createSymbolManifest,
+} from './gridset/symbolExtractor';
+
+// Gridset (Grid 3) symbol search
+export {
+  parsePixFile,
+  loadSearchIndexes,
+  searchSymbols,
+  searchSymbolsWithReferences,
+  getSymbolFilename,
+  getSymbolDisplayName,
+  getAllSearchTerms,
+  getSearchSuggestions,
+  countLibrarySymbols,
+  getSymbolSearchStats,
+} from './gridset/symbolSearch';
 
 // Snap helpers
 export {

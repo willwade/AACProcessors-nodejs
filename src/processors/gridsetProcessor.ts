@@ -23,6 +23,11 @@ import crypto from 'crypto';
 import zlib from 'zlib';
 import { GridsetValidator } from '../validation/gridsetValidator';
 import { ValidationResult } from '../validation/validationTypes';
+// New imports for enhanced Grid 3 support
+import { detectPluginCellType, Grid3CellType } from './gridset/pluginTypes';
+import { detectCommand } from './gridset/commands';
+import { parseSymbolReference, type SymbolReference } from './gridset/symbols';
+import { isSymbolLibraryReference } from './gridset/resolver';
 
 class GridsetProcessor extends BaseProcessor {
   constructor(options?: ProcessorOptions) {
@@ -277,6 +282,10 @@ class GridsetProcessor extends BaseProcessor {
       fontColor: grid3Style.FontColour,
       fontFamily: grid3Style.FontName,
       fontSize: grid3Style.FontSize ? parseInt(String(grid3Style.FontSize)) : undefined,
+      backgroundShape:
+        grid3Style.BackgroundShape !== undefined
+          ? parseInt(String(grid3Style.BackgroundShape))
+          : undefined,
     };
   }
 
@@ -529,11 +538,15 @@ class GridsetProcessor extends BaseProcessor {
 
             const message = label; // Use caption as message
 
+            // Detect plugin cell type (Workspace, LiveCell, AutoContent)
+            const pluginMetadata = detectPluginCellType(content);
+
             // Parse all command types from Grid3 and create semantic actions
             let semanticAction: AACSemanticAction | undefined;
             let legacyAction: any = null;
             // infer action type implicitly from commands; no explicit enum needed
             let navigationTarget: string | undefined;
+            let detectedCommands: any[] = []; // Store detected command metadata
 
             const commands = content.Commands?.Command || content.commands?.command;
 
@@ -562,8 +575,15 @@ class GridsetProcessor extends BaseProcessor {
                 entries
               ) || undefined;
 
+            // Check if image is a symbol library reference
+            let symbolLibraryRef: SymbolReference | null = null;
+            if (declaredImageName && isSymbolLibraryReference(declaredImageName)) {
+              symbolLibraryRef = parseSymbolReference(declaredImageName);
+            }
+
             if (commands) {
               const commandArr = Array.isArray(commands) ? commands : [commands];
+              detectedCommands = commandArr.map((cmd) => detectCommand(cmd));
 
               for (const command of commandArr) {
                 const commandId = command['@_ID'] || command.ID || command.id;
@@ -973,14 +993,33 @@ class GridsetProcessor extends BaseProcessor {
               y: cellY,
               columnSpan: colSpan,
               rowSpan: rowSpan,
+              contentType:
+                pluginMetadata.cellType === Grid3CellType.Regular
+                  ? 'Normal'
+                  : pluginMetadata.cellType === Grid3CellType.Workspace
+                    ? 'Workspace'
+                    : pluginMetadata.cellType === Grid3CellType.LiveCell
+                      ? 'LiveCell'
+                      : 'AutoContent',
+              contentSubType:
+                pluginMetadata.subType ||
+                pluginMetadata.liveCellType ||
+                pluginMetadata.autoContentType,
+              symbolLibrary: symbolLibraryRef?.library || undefined,
+              symbolPath: symbolLibraryRef?.path || undefined,
               style: {
                 ...cellStyle,
                 ...inlineStyle, // Inline styles override referenced styles
               },
+              parameters: {
+                pluginMetadata: pluginMetadata, // Store full plugin metadata for future use
+                grid3Commands: detectedCommands, // Store detected command metadata
+                symbolLibraryRef: symbolLibraryRef, // Store full symbol reference
+              },
             });
 
             // Add button to page
-            page.addButton(button);
+            page.addButton(button as AACButton);
 
             // Place button in grid layout (handle colspan/rowspan)
             for (let r = cellY; r < cellY + rowSpan && r < maxRows; r++) {
