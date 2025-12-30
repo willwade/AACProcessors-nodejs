@@ -1,14 +1,14 @@
-import path from "path";
-import fs from "fs";
+import path from 'path';
+import fs from 'fs';
 import {
   getZipEntriesWithPassword,
   resolveGridsetPasswordFromEnv,
-} from "../processors/gridset/password";
+} from '../processors/gridset/password';
 
 // Dynamic imports for optional dependencies
-type Database = typeof import("better-sqlite3");
-type AdmZip = typeof import("adm-zip");
-type XMLParser = typeof import("fast-xml-parser").XMLParser;
+type Database = typeof import('better-sqlite3');
+type AdmZip = typeof import('adm-zip');
+type XMLParser = typeof import('fast-xml-parser').XMLParser;
 
 // --- Base Classes ---
 export abstract class SymbolExtractor {
@@ -31,19 +31,17 @@ export abstract class SymbolResolver {
 let Database: Database | null = null;
 try {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
-  Database = require("better-sqlite3");
+  Database = require('better-sqlite3');
 } catch {
   Database = null;
 }
 
 export class SnapSymbolExtractor extends SymbolExtractor {
   getSymbolReferences(filePath: string): string[] {
-    if (!Database) throw new Error("better-sqlite3 not installed");
+    if (!Database) throw new Error('better-sqlite3 not installed');
     const db = new Database(filePath, { readonly: true });
     const rows = db
-      .prepare(
-        "SELECT DISTINCT LibrarySymbolId FROM Button WHERE LibrarySymbolId IS NOT NULL",
-      )
+      .prepare('SELECT DISTINCT LibrarySymbolId FROM Button WHERE LibrarySymbolId IS NOT NULL')
       .all() as { LibrarySymbolId: number }[];
     db.close();
     return rows.map((row) => String(row.LibrarySymbolId));
@@ -52,12 +50,10 @@ export class SnapSymbolExtractor extends SymbolExtractor {
 
 export class SnapSymbolResolver extends SymbolResolver {
   resolveSymbol(symbolRef: string): string | null {
-    if (!Database) throw new Error("better-sqlite3 not installed");
+    if (!Database) throw new Error('better-sqlite3 not installed');
     const db = new Database(this.dbPath, { readonly: true });
-    const query = "SELECT ImageData FROM Symbol WHERE Id = ?";
-    const row = db.prepare(query).get(symbolRef) as
-      | { ImageData: Buffer }
-      | undefined;
+    const query = 'SELECT ImageData FROM Symbol WHERE Id = ?';
+    const row = db.prepare(query).get(symbolRef) as { ImageData: Buffer } | undefined;
     db.close();
     if (!row) return null;
 
@@ -72,9 +68,9 @@ let AdmZip: AdmZip | null = null;
 let XMLParser: XMLParser | null = null;
 try {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
-  AdmZip = require("adm-zip");
+  AdmZip = require('adm-zip');
   // eslint-disable-next-line @typescript-eslint/no-var-requires
-  XMLParser = require("fast-xml-parser").XMLParser;
+  XMLParser = require('fast-xml-parser').XMLParser;
 } catch {
   AdmZip = null;
   XMLParser = null;
@@ -82,24 +78,17 @@ try {
 
 export class Grid3SymbolExtractor extends SymbolExtractor {
   getSymbolReferences(filePath: string): string[] {
-    if (!AdmZip || !XMLParser)
-      throw new Error("adm-zip or fast-xml-parser not installed");
+    if (!AdmZip || !XMLParser) throw new Error('adm-zip or fast-xml-parser not installed');
     const zip = new AdmZip(filePath);
     const parser = new XMLParser();
     const refs = new Set<string>();
 
-    const entries = getZipEntriesWithPassword(
-      zip,
-      resolveGridsetPasswordFromEnv(),
-    );
+    const entries = getZipEntriesWithPassword(zip, resolveGridsetPasswordFromEnv());
     entries.forEach((entry) => {
-      if (
-        entry.entryName.endsWith(".gridset") ||
-        entry.entryName.endsWith(".gridsetx")
-      ) {
+      if (entry.entryName.endsWith('.gridset') || entry.entryName.endsWith('.gridsetx')) {
         const xmlBuffer = entry.getData();
         // Parse to validate XML structure (future: extract refs)
-        parser.parse(xmlBuffer.toString("utf8"));
+        parser.parse(xmlBuffer.toString('utf8'));
         // TODO: Extract symbol references from Grid 3 XML structure when needed
       }
     });
@@ -134,8 +123,8 @@ export class TouchChatSymbolResolver extends SymbolResolver {
 
 // --- Simple fallback function for PCS-style lookup ---
 export function resolveSymbol(label: string, symbolDir: string): string | null {
-  const cleanLabel = label.toLowerCase().replace(/[^a-z0-9]/g, "");
-  const exts = [".png", ".jpg", ".svg"];
+  const cleanLabel = label.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const exts = ['.png', '.jpg', '.svg'];
 
   for (const ext of exts) {
     const symbolPath = path.join(symbolDir, cleanLabel + ext);

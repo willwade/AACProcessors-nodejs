@@ -168,9 +168,7 @@ const CSS_COLORS: Record<string, [number, number, number]> = {
  * @param name - CSS color name (case-insensitive)
  * @returns RGB tuple [r, g, b] or undefined if not found
  */
-export function getNamedColor(
-  name: string,
-): [number, number, number] | undefined {
+export function getNamedColor(name: string): [number, number, number] | undefined {
   const color = CSS_COLORS[name.toLowerCase()];
   return color;
 }
@@ -198,7 +196,7 @@ export function rgbaToHex(r: number, g: number, b: number, a: number): string {
  */
 export function channelToHex(value: number): string {
   const clamped = Math.max(0, Math.min(255, Math.round(value)));
-  return clamped.toString(16).padStart(2, "0").toUpperCase();
+  return clamped.toString(16).padStart(2, '0').toUpperCase();
 }
 
 /**
@@ -233,16 +231,14 @@ export function clampAlpha(value: number): number {
  */
 export function toHexColor(value: string): string | undefined {
   // Try hex format
-  const hexMatch = value.match(
-    /^#([0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/i,
-  );
+  const hexMatch = value.match(/^#([0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/i);
   if (hexMatch) {
     const hex = hexMatch[1];
     if (hex.length === 3 || hex.length === 4) {
       return `#${hex
-        .split("")
+        .split('')
         .map((char) => char + char)
-        .join("")}`;
+        .join('')}`;
     }
     return `#${hex}`;
   }
@@ -251,7 +247,7 @@ export function toHexColor(value: string): string | undefined {
   const rgbMatch = value.match(/^rgba?\((.+)\)$/i);
   if (rgbMatch) {
     const parts = rgbMatch[1]
-      .split(",")
+      .split(',')
       .map((part) => part.trim())
       .filter(Boolean);
     if (parts.length === 3 || parts.length === 4) {
@@ -282,7 +278,7 @@ export function toHexColor(value: string): string | undefined {
 export function darkenColor(hex: string, amount: number): string {
   const normalized = ensureAlphaChannel(hex).substring(1); // strip #
   const rgb = normalized.substring(0, 6);
-  const alpha = normalized.substring(6) || "FF";
+  const alpha = normalized.substring(6) || 'FF';
   const r = parseInt(rgb.substring(0, 2), 16);
   const g = parseInt(rgb.substring(2, 4), 16);
   const b = parseInt(rgb.substring(4, 6), 16);
@@ -299,10 +295,7 @@ export function darkenColor(hex: string, amount: number): string {
  * @param fallback - Fallback color if input is invalid (default: white)
  * @returns Normalized color in format #AARRGGBBFF
  */
-export function normalizeColor(
-  input: string,
-  fallback: string = "#FFFFFFFF",
-): string {
+export function normalizeColor(input: string, fallback: string = '#FFFFFFFF'): string {
   const trimmed = input.trim();
   if (!trimmed) {
     return fallback;
@@ -322,11 +315,11 @@ export function normalizeColor(
  * @returns Color with alpha channel in format #AARRGGBBFF
  */
 export function ensureAlphaChannel(color: string | undefined): string {
-  if (!color) return "#FFFFFFFF";
+  if (!color) return '#FFFFFFFF';
   // If already 8 digits (with alpha), return as is
   if (color.match(/^#[0-9A-Fa-f]{8}$/)) return color;
   // If 6 digits (no alpha), add FF for fully opaque
-  if (color.match(/^#[0-9A-Fa-f]{6}$/)) return color + "FF";
+  if (color.match(/^#[0-9A-Fa-f]{6}$/)) return color + 'FF';
   // If 3 digits (shorthand), expand to 8
   if (color.match(/^#[0-9A-Fa-f]{3}$/)) {
     const r = color[1];
@@ -335,5 +328,5 @@ export function ensureAlphaChannel(color: string | undefined): string {
     return `#${r}${r}${g}${g}${b}${b}FF`;
   }
   // Invalid or unknown format, return white
-  return "#FFFFFFFF";
+  return '#FFFFFFFF';
 }
