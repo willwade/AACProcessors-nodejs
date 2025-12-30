@@ -21,6 +21,8 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
+import { TouchChatValidator } from '../validation/touchChatValidator';
+import { ValidationResult } from '../validation/validationTypes';
 
 interface TouchChatButton {
   id: number;
@@ -1019,6 +1021,15 @@ class TouchChatProcessor extends BaseProcessor {
         )
       );
     }
+  }
+
+  /**
+   * Validate TouchChat file format
+   * @param filePath - Path to the file to validate
+   * @returns Promise with validation result
+   */
+  async validate(filePath: string): Promise<ValidationResult> {
+    return TouchChatValidator.validateFile(filePath);
   }
 }
 

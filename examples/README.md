@@ -19,6 +19,13 @@ This directory contains example AAC pagesets in various formats used for testing
 - **example.obf** - OBF pageset (JSON-based)
 - **example.obz** - OBZ pageset (compressed)
 
+**obf/** - Directory containing validation test samples from the obf-node project:
+- **simple.obf** - Simple, valid OBF file for basic validation tests
+- **aboutme.json** - Invalid OBF (missing locale field) for error testing
+- **hash.json** - Non-OBF JSON structure for format detection tests
+- **array.json** - JSON array (not object) for structure validation tests
+- **links.obz** - OBZ package with links for zip archive validation
+
 ### Asterics Grid Format (.grd)
 - **example.grd** - Asterics Grid pageset
 - **example2.grd** - Alternative Asterics Grid pageset

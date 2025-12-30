@@ -20,7 +20,7 @@ const {
 
 const AVAILABLE_FORMATS = {
   gridset: {
-    description: 'Smartbox Grid 3 (.gridset)',
+    description: 'Smartbox Grid 3 (.gridset, .gridsetx)',
     extension: '.gridset',
     Processor: GridsetProcessor,
   },

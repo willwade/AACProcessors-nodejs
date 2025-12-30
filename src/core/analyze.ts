@@ -27,6 +27,7 @@ export function getProcessor(format: string, options?: ProcessorOptions): BasePr
     case 'ce': // TouchChat file extension
       return new TouchChatProcessor(options);
     case 'gridset':
+    case 'gridsetx':
       return new GridsetProcessor(options); // Grid3 format
     case 'grd': // Asterics Grid file extension
       return new AstericsGridProcessor(options);

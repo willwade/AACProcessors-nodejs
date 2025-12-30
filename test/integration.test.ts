@@ -115,6 +115,7 @@ describe('Integration Tests', () => {
         { ext: '.obf', expectedType: ObfProcessor },
         { ext: '.obz', expectedType: ObfProcessor },
         { ext: '.gridset', expectedType: GridsetProcessor },
+        { ext: '.gridsetx', expectedType: GridsetProcessor },
         { ext: '.spb', expectedType: SnapProcessor },
         { ext: '.sps', expectedType: SnapProcessor },
         { ext: '.ce', expectedType: TouchChatProcessor },

@@ -11,6 +11,7 @@
 
 import AdmZip from 'adm-zip';
 import { XMLParser, XMLBuilder } from 'fast-xml-parser';
+import { getZipEntriesWithPassword, resolveGridsetPasswordFromEnv } from './password';
 
 /**
  * Represents a single item in a wordlist
@@ -125,7 +126,10 @@ export function wordlistToXml(wordlist: WordList): string {
  *   console.log(`Grid "${gridName}" has ${wordlist.items.length} items`);
  * });
  */
-export function extractWordlists(gridsetBuffer: Buffer): Map<string, WordList> {
+export function extractWordlists(
+  gridsetBuffer: Buffer,
+  password = resolveGridsetPasswordFromEnv()
+): Map<string, WordList> {
   const wordlists = new Map<string, WordList>();
   const parser = new XMLParser();
 
@@ -135,9 +139,10 @@ export function extractWordlists(gridsetBuffer: Buffer): Map<string, WordList> {
   } catch (error: any) {
     throw new Error(`Invalid gridset buffer: ${error.message}`);
   }
+  const entries = getZipEntriesWithPassword(zip, password);
 
   // Process each grid file
-  zip.getEntries().forEach((entry) => {
+  entries.forEach((entry) => {
     if (entry.entryName.startsWith('Grids/') && entry.entryName.endsWith('grid.xml')) {
       try {
         const xmlContent = entry.getData().toString('utf8');
@@ -202,7 +207,8 @@ export function extractWordlists(gridsetBuffer: Buffer): Map<string, WordList> {
 export function updateWordlist(
   gridsetBuffer: Buffer,
   gridName: string,
-  wordlist: WordList
+  wordlist: WordList,
+  password = resolveGridsetPasswordFromEnv()
 ): Buffer {
   const parser = new XMLParser();
   const builder = new XMLBuilder({
@@ -218,11 +224,12 @@ export function updateWordlist(
   } catch (error: any) {
     throw new Error(`Invalid gridset buffer: ${error.message}`);
   }
+  const entries = getZipEntriesWithPassword(zip, password);
 
   let found = false;
 
   // Find and update the grid
-  zip.getEntries().forEach((entry) => {
+  entries.forEach((entry) => {
     if (entry.entryName.startsWith('Grids/') && entry.entryName.endsWith('grid.xml')) {
       const match = entry.entryName.match(/^Grids\/([^/]+)\//);
       const currentGridName = match ? match[1] : null;

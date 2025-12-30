@@ -27,8 +27,13 @@ function parseFilteringOptions(options: {
   excludeNavigation?: boolean;
   excludeSystem?: boolean;
   excludeButtons?: string;
+  gridsetPassword?: string;
 }): ProcessorOptions {
   const processorOptions: ProcessorOptions = {};
+
+  if (options.gridsetPassword) {
+    processorOptions.gridsetPassword = options.gridsetPassword;
+  }
 
   // Handle preserve all buttons flag
   if (options.preserveAllButtons) {
@@ -79,6 +84,7 @@ program
   .option('--no-exclude-navigation', "Don't exclude navigation buttons (Home, Back)")
   .option('--no-exclude-system', "Don't exclude system buttons (Delete, Clear, etc.)")
   .option('--exclude-buttons <list>', 'Comma-separated list of button labels/terms to exclude')
+  .option('--gridset-password <password>', 'Password for encrypted Grid3 archives (.gridsetx)')
   .action(
     (
       file: string,
@@ -89,6 +95,7 @@ program
         excludeNavigation?: boolean;
         excludeSystem?: boolean;
         excludeButtons?: string;
+        gridsetPassword?: string;
       }
     ) => {
       try {
@@ -130,6 +137,7 @@ program
   .option('--no-exclude-navigation', "Don't exclude navigation buttons (Home, Back)")
   .option('--no-exclude-system', "Don't exclude system buttons (Delete, Clear, etc.)")
   .option('--exclude-buttons <list>', 'Comma-separated list of button labels/terms to exclude')
+  .option('--gridset-password <password>', 'Password for encrypted Grid3 archives (.gridsetx)')
   .action(
     (
       file: string,
@@ -141,6 +149,7 @@ program
         excludeNavigation?: boolean;
         excludeSystem?: boolean;
         excludeButtons?: string;
+        gridsetPassword?: string;
       }
     ) => {
       try {
@@ -191,6 +200,7 @@ program
   .option('--no-exclude-navigation', "Don't exclude navigation buttons (Home, Back)")
   .option('--no-exclude-system', "Don't exclude system buttons (Delete, Clear, etc.)")
   .option('--exclude-buttons <list>', 'Comma-separated list of button labels/terms to exclude')
+  .option('--gridset-password <password>', 'Password for encrypted Grid3 archives (.gridsetx)')
   .action(
     async (
       input: string,
@@ -201,6 +211,7 @@ program
         excludeNavigation?: boolean;
         excludeSystem?: boolean;
         excludeButtons?: string;
+        gridsetPassword?: string;
       }
     ) => {
       try {
@@ -243,6 +254,110 @@ program
       } catch (error) {
         console.error(
           'Error converting file:',
+          error instanceof Error ? error.message : String(error)
+        );
+        process.exit(1);
+      }
+    }
+  );
+
+program
+  .command('validate <file>')
+  .description('Validate an AAC file format')
+  .option('--format <format>', 'Format type (auto-detected if not specified)')
+  .option('--json', 'Output results as JSON')
+  .option('--quiet', 'Only output validation result (valid/invalid)')
+  .option('--gridset-password <password>', 'Password for encrypted Grid3 archives (.gridsetx)')
+  .action(
+    async (
+      file: string,
+      options: {
+        format?: string;
+        json?: boolean;
+        quiet?: boolean;
+        gridsetPassword?: string;
+      }
+    ) => {
+      try {
+        // Auto-detect format if not specified
+        const format = options.format || detectFormat(file);
+
+        // Get processor with gridset password if provided
+        const processorOptions: ProcessorOptions = {};
+        if (options.gridsetPassword) {
+          processorOptions.gridsetPassword = options.gridsetPassword;
+        }
+
+        const processor = getProcessor(format, processorOptions);
+
+        // Check if processor supports validation
+        if (!processor.validate) {
+          console.error(`Error: Validation not supported for format '${format}'`);
+          process.exit(1);
+        }
+
+        // Run validation
+        const result = await processor.validate(file);
+
+        // Output results
+        if (options.quiet) {
+          console.log(result.valid ? 'valid' : 'invalid');
+        } else if (options.json) {
+          console.log(JSON.stringify(result, null, 2));
+        } else {
+          // Pretty print validation results
+          console.log(`\nValidation Results for: ${result.filename}`);
+          console.log(`Format: ${result.format}`);
+          console.log(`File size: ${result.filesize} bytes`);
+          console.log(`Status: ${result.valid ? '✓ VALID' : '✗ INVALID'}`);
+          console.log(`Errors: ${result.errors}`);
+          console.log(`Warnings: ${result.warnings}\n`);
+
+          if (result.errors > 0 || result.warnings > 0) {
+            if (result.errors > 0) {
+              console.log('Errors:');
+              result.results
+                .filter((r) => !r.valid)
+                .forEach((check) => {
+                  console.log(`  ✗ ${check.description}`);
+                  if (check.error) {
+                    console.log(`    ${check.error}`);
+                  }
+                });
+            }
+
+            if (result.warnings > 0) {
+              console.log('\nWarnings:');
+              result.results.forEach((check) => {
+                if (check.warnings && check.warnings.length > 0) {
+                  console.log(`  ⚠ ${check.description}`);
+                  check.warnings.forEach((warning) => {
+                    console.log(`    ${warning}`);
+                  });
+                }
+              });
+            }
+          }
+
+          // Show sub-results if available
+          if (result.sub_results && result.sub_results.length > 0) {
+            console.log('\nSub-results:');
+            result.sub_results.forEach((sub, idx) => {
+              console.log(`  [${idx + 1}] ${sub.filename}`);
+              console.log(
+                `      Status: ${sub.valid ? '✓' : '✗'} (${sub.errors} errors, ${sub.warnings} warnings)`
+              );
+            });
+          }
+
+          console.log('');
+        }
+
+        // Exit with appropriate code
+        process.exit(result.valid ? 0 : 1);
+      } catch (error) {
+        console.error(
+          'Error validating file:',
           error instanceof Error ? error.message : String(error)
         );
         process.exit(1);

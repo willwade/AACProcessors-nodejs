@@ -17,6 +17,8 @@ import {
 import AdmZip from 'adm-zip';
 import fs from 'fs';
 // Removed unused import: path
+import { ObfValidator } from '../validation/obfValidator';
+import { ValidationResult } from '../validation/validationTypes';
 
 const OBF_FORMAT_VERSION = 'open-board-0.1';
 
@@ -442,6 +444,15 @@ class ObfProcessor extends BaseProcessor {
     sourceStrings: SourceString[]
   ): Promise<string> {
     return this.generateTranslatedDownloadGeneric(filePath, translatedStrings, sourceStrings);
+  }
+
+  /**
+   * Validate OBF/OBZ file format
+   * @param filePath - Path to the file to validate
+   * @returns Promise with validation result
+   */
+  async validate(filePath: string): Promise<ValidationResult> {
+    return ObfValidator.validateFile(filePath);
   }
 }
 

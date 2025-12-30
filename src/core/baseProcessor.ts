@@ -1,11 +1,15 @@
 import { AACTree, AACButton, AACSemanticCategory } from './treeStructure';
 import { StringCasing, detectCasing, isNumericOrEmpty } from './stringCasing';
+import { ValidationResult } from '../validation/validationTypes';
 
 // Configuration options for processors
 export interface ProcessorOptions {
   // Filter out navigation/system buttons (enabled by default)
   excludeNavigationButtons?: boolean;
   excludeSystemButtons?: boolean;
+
+  // Optional password for protected gridset archives (.gridsetx)
+  gridsetPassword?: string;
 
   // Custom filtering function for advanced use cases
   customButtonFilter?: (button: AACButton) => boolean;
@@ -81,6 +85,9 @@ abstract class BaseProcessor {
 
   // Save tree structure back to file/buffer
   abstract saveFromTree(tree: AACTree, outputPath: string): void | Promise<void>;
+
+  // Validate file format
+  validate?(filePath: string): Promise<ValidationResult>;
 
   // Optional alias methods for aac-tools-platform compatibility
   // These provide a unified interface across all AAC formats
