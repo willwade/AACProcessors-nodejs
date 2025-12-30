@@ -141,7 +141,9 @@ export function isSymbolLibraryReference(imageName?: string): boolean {
  * @param imageName - Image reference from Grid 3
  * @returns Parsed reference or null if not a symbol reference
  */
-export function parseImageSymbolReference(imageName: string) {
+export function parseImageSymbolReference(
+  imageName: string
+): ReturnType<typeof parseSymbolReference> | null {
   if (!isSymbolLibraryReference(imageName)) {
     return null;
   }

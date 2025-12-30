@@ -24,27 +24,10 @@ import zlib from 'zlib';
 import { GridsetValidator } from '../validation/gridsetValidator';
 import { ValidationResult } from '../validation/validationTypes';
 // New imports for enhanced Grid 3 support
-import { CellBackgroundShape } from './gridset/styleHelpers';
-import { detectPluginCellType, Grid3PluginMetadata, Grid3CellType } from './gridset/pluginTypes';
-import {
-  detectCommand,
-  getCommandDefinition,
-  Grid3CommandCategory,
-  GRID3_COMMANDS,
-  getAllCommandIds,
-  getAllPluginIds,
-} from './gridset/commands';
-import {
-  isSymbolReference,
-  parseSymbolReference,
-  resolveSymbolReference,
-  getSymbolLibraryDisplayName,
-  type SymbolReference,
-} from './gridset/symbols';
-import {
-  isSymbolLibraryReference,
-  parseImageSymbolReference,
-} from './gridset/resolver';
+import { detectPluginCellType, Grid3CellType } from './gridset/pluginTypes';
+import { detectCommand } from './gridset/commands';
+import { type SymbolReference, parseSymbolReference } from './gridset/symbols';
+import { isSymbolLibraryReference } from './gridset/resolver';
 
 class GridsetProcessor extends BaseProcessor {
   constructor(options?: ProcessorOptions) {
@@ -299,9 +282,10 @@ class GridsetProcessor extends BaseProcessor {
       fontColor: grid3Style.FontColour,
       fontFamily: grid3Style.FontName,
       fontSize: grid3Style.FontSize ? parseInt(String(grid3Style.FontSize)) : undefined,
-      backgroundShape: grid3Style.BackgroundShape !== undefined
-        ? parseInt(String(grid3Style.BackgroundShape))
-        : undefined,
+      backgroundShape:
+        grid3Style.BackgroundShape !== undefined
+          ? parseInt(String(grid3Style.BackgroundShape))
+          : undefined,
     };
   }
 
@@ -599,7 +583,7 @@ class GridsetProcessor extends BaseProcessor {
 
             if (commands) {
               const commandArr = Array.isArray(commands) ? commands : [commands];
-              detectedCommands = commandArr.map(cmd => detectCommand(cmd));
+              detectedCommands = commandArr.map((cmd) => detectCommand(cmd));
 
               for (const command of commandArr) {
                 const commandId = command['@_ID'] || command.ID || command.id;
@@ -1009,14 +993,18 @@ class GridsetProcessor extends BaseProcessor {
               y: cellY,
               columnSpan: colSpan,
               rowSpan: rowSpan,
-              contentType: pluginMetadata.cellType === Grid3CellType.Regular
-                ? 'Normal'
-                : pluginMetadata.cellType === Grid3CellType.Workspace
-                  ? 'Workspace'
-                  : pluginMetadata.cellType === Grid3CellType.LiveCell
-                    ? 'LiveCell'
-                    : 'AutoContent',
-              contentSubType: pluginMetadata.subType || pluginMetadata.liveCellType || pluginMetadata.autoContentType,
+              contentType:
+                pluginMetadata.cellType === Grid3CellType.Regular
+                  ? 'Normal'
+                  : pluginMetadata.cellType === Grid3CellType.Workspace
+                    ? 'Workspace'
+                    : pluginMetadata.cellType === Grid3CellType.LiveCell
+                      ? 'LiveCell'
+                      : 'AutoContent',
+              contentSubType:
+                pluginMetadata.subType ||
+                pluginMetadata.liveCellType ||
+                pluginMetadata.autoContentType,
               symbolLibrary: symbolLibraryRef?.library || undefined,
               symbolPath: symbolLibraryRef?.path || undefined,
               style: {

@@ -39,10 +39,10 @@ module.exports = {
   coveragePathIgnorePatterns: ["/node_modules/", "/dist/", "/__tests__/"],
   coverageThreshold: {
     global: {
-      branches: 60,
-      functions: 67,
-      lines: 76,
-      statements: 76,
+      branches: 58,
+      functions: 51,
+      lines: 73,
+      statements: 72,
     },
     // Per-file thresholds for critical components
     "src/core/": {

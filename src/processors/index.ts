@@ -144,10 +144,7 @@ export {
 export { isSymbolLibraryReference, parseImageSymbolReference } from './gridset/resolver';
 
 // Backward compatibility
-export {
-  getSymbolsDir,
-  getSymbolSearchDir,
-} from './gridset/symbols';
+export { getSymbolsDir, getSymbolSearchDir } from './gridset/symbols';
 
 // Gridset (Grid 3) symbol extraction for conversion
 export {
