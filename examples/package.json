@@ -1,0 +1,10 @@
+{
+  "name": "aac-processors-examples",
+  "private": true,
+  "dependencies": {
+    "@google-cloud/translate": "^8.1.0",
+    "axios": "^1.6.8",
+    "commander": "^12.0.0",
+    "dotenv": "^16.4.5"
+  }
+}
