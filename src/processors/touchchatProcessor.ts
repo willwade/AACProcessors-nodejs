@@ -210,7 +210,7 @@ class TouchChatProcessor extends BaseProcessor {
 
       // Load button boxes and their cells
       const buttonBoxQuery = `
-        SELECT bbc.*, b.*, bb.id as box_id 
+        SELECT bbc.*, b.*, bb.id as box_id
         FROM button_box_cells bbc
         JOIN buttons b ON b.resource_id = bbc.resource_id
         JOIN button_boxes bb ON bb.id = bbc.button_box_id
@@ -257,6 +257,9 @@ class TouchChatProcessor extends BaseProcessor {
             message: cell.message || '',
             semanticAction: semanticAction,
             semantic_id: (cell as any).symbol_link_id || (cell as any).symbolLinkId || undefined, // Extract semantic_id from symbol_link_id
+            // Note: TouchChat does not use scan blocks in the file
+            // Scanning is a runtime feature (linear/row-column patterns)
+            // scanBlock defaults to 1 (no grouping)
             style: {
               backgroundColor: intToHex(style?.body_color),
               borderColor: intToHex(style?.border_color),
@@ -418,8 +421,10 @@ class TouchChatProcessor extends BaseProcessor {
             id: String(btnRow.id),
             label: btnRow.label || '',
             message: btnRow.message || '',
-
             semanticAction: semanticAction,
+            // Note: TouchChat does not use scan blocks in the file
+            // Scanning is a runtime feature (linear/row-column patterns)
+            // scanBlock defaults to 1 (no grouping)
             style: {
               backgroundColor: intToHex(style?.body_color),
               borderColor: intToHex(style?.border_color),

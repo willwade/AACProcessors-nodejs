@@ -22,6 +22,17 @@ The algorithm rewards systems that support motor planning. If a button appears i
 - **Semantic Locations**: Patterns where types of words (e.g., verbs, colors) always appear in the same grid area.
 - **Upstream Matching**: If the button used to _enter_ a board matches the ID of a button _on_ that board, the effort is reduced.
 
+### Scanning Effort
+
+For users who use scanning access methods, the **Visual Scan Effort** metric is crucial. It measures how many items or groups must be scanned before reaching the target button.
+
+**Key Concepts**:
+- **Linear Scanning**: All buttons highlight one at a time
+- **Block Scanning**: Buttons highlight in groups (scan blocks 1-8)
+- **Effort Calculation**: Number of items/groups scanned before target
+
+> 📖 **Detailed Guide**: For comprehensive information on scanning metrics across Grid 3, TD Snap, and TouchChat, see [SCANNING_METRICS_GUIDE.md](./SCANNING_METRICS_GUIDE.md)
+
 ---
 
 ## 💻 How to Use the Code
