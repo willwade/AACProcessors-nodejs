@@ -250,18 +250,22 @@ export class GridsetValidator extends BaseValidator {
     });
 
     // Validate scan block number (Grid 3 attribute)
-    await this.add_check(`page[${pageIdx}]_cell[${cellIdx}]_scanblock`, `cell scan block`, async () => {
-      const scanBlock = cell.$.scanBlock || cell.$.ScanBlock;
-      if (scanBlock !== undefined) {
-        const blockNum = parseInt(scanBlock, 10);
-        if (isNaN(blockNum) || blockNum < 1 || blockNum > 8) {
-          this.err(
-            `cell ${cellIdx} on page ${pageIdx} has invalid scanBlock value: ${scanBlock} (must be 1-8)`,
-            false
-          );
+    await this.add_check(
+      `page[${pageIdx}]_cell[${cellIdx}]_scanblock`,
+      `cell scan block`,
+      async () => {
+        const scanBlock = cell.$.scanBlock || cell.$.ScanBlock;
+        if (scanBlock !== undefined) {
+          const blockNum = parseInt(scanBlock, 10);
+          if (isNaN(blockNum) || blockNum < 1 || blockNum > 8) {
+            this.err(
+              `cell ${cellIdx} on page ${pageIdx} has invalid scanBlock value: ${scanBlock} (must be 1-8)`,
+              false
+            );
+          }
         }
       }
-    });
+    );
 
     // Check for color attributes
     const backgroundColor = cell.$.backgroundColor || cell.$.BackgroundColor;

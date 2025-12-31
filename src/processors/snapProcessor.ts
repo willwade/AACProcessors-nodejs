@@ -51,16 +51,20 @@ interface SnapPage {
 class SnapProcessor extends BaseProcessor {
   private symbolResolver: unknown | null = null;
   private loadAudio: boolean = false;
-  private pageLayoutPreference: 'largest' | 'smallest' | 'scanning' | number = 'scanning';  // Default to scanning for metrics
+  private pageLayoutPreference: 'largest' | 'smallest' | 'scanning' | number = 'scanning'; // Default to scanning for metrics
 
   constructor(
     symbolResolver: unknown | null = null,
-    options: ProcessorOptions & { loadAudio?: boolean; pageLayoutPreference?: 'largest' | 'smallest' | 'scanning' | number } = {}
+    options: ProcessorOptions & {
+      loadAudio?: boolean;
+      pageLayoutPreference?: 'largest' | 'smallest' | 'scanning' | number;
+    } = {}
   ) {
     super(options);
     this.symbolResolver = symbolResolver;
     this.loadAudio = options.loadAudio !== undefined ? options.loadAudio : true;
-    this.pageLayoutPreference = options.pageLayoutPreference !== undefined ? options.pageLayoutPreference : 'scanning';  // Default to scanning
+    this.pageLayoutPreference =
+      options.pageLayoutPreference !== undefined ? options.pageLayoutPreference : 'scanning'; // Default to scanning
   }
 
   extractTexts(filePathOrBuffer: string | Buffer): string[] {
@@ -156,7 +160,10 @@ class SnapProcessor extends BaseProcessor {
             if (!groupsByLayout.has(sg.PageLayoutId)) {
               groupsByLayout.set(sg.PageLayoutId, []);
             }
-            groupsByLayout.get(sg.PageLayoutId)!.push(sg);
+            const layoutGroups = groupsByLayout.get(sg.PageLayoutId);
+            if (layoutGroups) {
+              layoutGroups.push(sg);
+            }
           });
 
           // For each PageLayout, assign scan block numbers based on order (1-based index)
@@ -165,7 +172,7 @@ class SnapProcessor extends BaseProcessor {
               // Parse SerializedGridPositions JSON
               let positions: Array<{ Column: number; Row: number }> = [];
               try {
-                positions = JSON.parse(sg.SerializedGridPositions);
+                positions = JSON.parse(sg.SerializedGridPositions as string);
               } catch (e) {
                 // Invalid JSON, skip this group
                 return;
@@ -180,7 +187,10 @@ class SnapProcessor extends BaseProcessor {
               if (!scanGroupsByPageLayout.has(layoutId)) {
                 scanGroupsByPageLayout.set(layoutId, []);
               }
-              scanGroupsByPageLayout.get(layoutId)!.push(scanGroup);
+              const layoutGroups = scanGroupsByPageLayout.get(layoutId);
+              if (layoutGroups) {
+                layoutGroups.push(scanGroup);
+              }
             });
           });
         }
@@ -203,7 +213,7 @@ class SnapProcessor extends BaseProcessor {
 
           if (pageLayouts && pageLayouts.length > 0) {
             // Parse PageLayoutSetting: "columns,rows,hasScanGroups,?"
-            const layoutsWithInfo = pageLayouts.map(pl => {
+            const layoutsWithInfo = pageLayouts.map((pl) => {
               const parts = pl.PageLayoutSetting.split(',');
               const cols = parseInt(parts[0], 10) || 0;
               const rows = parseInt(parts[1], 10) || 0;
@@ -240,7 +250,7 @@ class SnapProcessor extends BaseProcessor {
               selectedPageLayoutId = layoutsWithInfo[0].id;
             } else if (this.pageLayoutPreference === 'scanning') {
               // Select layout with scanning enabled (check against actual ScanGroups)
-              const scanningLayouts = layoutsWithInfo.filter(l =>
+              const scanningLayouts = layoutsWithInfo.filter((l) =>
                 scanGroupsByPageLayout.has(l.id)
               );
               if (scanningLayouts.length > 0) {
@@ -296,7 +306,12 @@ class SnapProcessor extends BaseProcessor {
             );
           }
 
-          selectFields.push('ep.GridPosition', 'ep.PageLayoutId', 'er.PageId as ButtonPageId');
+          const placementColumns = getTableColumns('ElementPlacement');
+          selectFields.push(
+            placementColumns.has('GridPosition') ? 'ep.GridPosition' : 'NULL AS GridPosition',
+            placementColumns.has('PageLayoutId') ? 'ep.PageLayoutId' : 'NULL AS PageLayoutId',
+            'er.PageId as ButtonPageId'
+          );
 
           const buttonQuery = `
             SELECT ${selectFields.join(', ')}
@@ -305,7 +320,10 @@ class SnapProcessor extends BaseProcessor {
             LEFT JOIN ElementPlacement ep ON ep.ElementReferenceId = er.Id
             WHERE er.PageId = ? ${selectedPageLayoutId ? 'AND ep.PageLayoutId = ?' : ''}
           `;
-          buttons = db.prepare(buttonQuery).all(pageRow.Id, selectedPageLayoutId);
+          const queryParams = selectedPageLayoutId
+            ? [pageRow.Id, selectedPageLayoutId]
+            : [pageRow.Id];
+          buttons = db.prepare(buttonQuery).all(...queryParams);
         } catch (err) {
           const errorMessage = err instanceof Error ? err.message : String(err);
           const errorCode =
@@ -462,7 +480,7 @@ class SnapProcessor extends BaseProcessor {
                 // Determine scan block from ScanGroups (TD Snap "Group Scan")
                 // IMPORTANT: Only match against ScanGroups from the SAME PageLayout
                 // A button can exist in multiple layouts with different positions
-                const buttonPageLayoutId = btnRow.PageLayoutId;
+                const buttonPageLayoutId = btnRow.PageLayoutId as number;
                 if (buttonPageLayoutId && scanGroupsByPageLayout.has(buttonPageLayoutId)) {
                   const scanGroups = scanGroupsByPageLayout.get(buttonPageLayoutId);
                   if (scanGroups && scanGroups.length > 0) {

@@ -129,6 +129,7 @@ export interface AACPage {
   clone_ids?: string[];
   // Scanning configuration for this page
   scanningConfig?: ScanningConfig;
+  scanBlocksConfig?: any[];
 }
 
 export interface AACTree {

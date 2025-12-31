@@ -52,6 +52,27 @@ export enum AACSemanticIntent {
   PLATFORM_SPECIFIC = 'PLATFORM_SPECIFIC',
 }
 
+/**
+ * Scanning types for accessibility
+ */
+export enum AACScanType {
+  LINEAR = 'linear', // Left-to-right, top-to-bottom
+  ROW_COLUMN = 'row-column', // Scan rows, then columns
+  COLUMN_ROW = 'column-row', // Scan columns, then rows
+  BLOCK_ROW_COLUMN = 'block-row-column', // Scan blocks, then rows, then columns
+  BLOCK_COLUMN_ROW = 'block-column-row', // Scan blocks, then columns, then rows
+}
+
+/**
+ * Configuration for a scan block
+ */
+export interface AACScanBlock {
+  id: number;
+  name?: string;
+  order?: number; // Sequence in scanning
+  scanType?: AACScanType; // Override scanning within this block
+}
+
 // New semantic action interface for cross-platform compatibility
 export interface AACSemanticAction {
   // Make category optional for backward-compat with older tests constructing minimal actions
@@ -346,6 +367,10 @@ export class AACPage implements IAACPage {
   // Scanning configuration for this page
   scanningConfig?: import('../types/aac').ScanningConfig;
 
+  // Scanning support
+  scanType?: AACScanType;
+  scanBlocksConfig?: AACScanBlock[];
+
   constructor({
     id,
     name = '',
@@ -360,6 +385,8 @@ export class AACPage implements IAACPage {
     semantic_ids,
     clone_ids,
     scanningConfig,
+    scanBlocksConfig,
+    scanType,
   }: {
     id: string;
     name?: string;
@@ -374,6 +401,8 @@ export class AACPage implements IAACPage {
     semantic_ids?: string[];
     clone_ids?: string[];
     scanningConfig?: import('../types/aac').ScanningConfig;
+    scanBlocksConfig?: AACScanBlock[];
+    scanType?: AACScanType;
   }) {
     this.id = id;
     this.name = name;
@@ -396,6 +425,8 @@ export class AACPage implements IAACPage {
     this.semantic_ids = semantic_ids;
     this.clone_ids = clone_ids;
     this.scanningConfig = scanningConfig;
+    this.scanBlocksConfig = scanBlocksConfig;
+    this.scanType = scanType;
   }
 
   addButton(button: AACButton): void {

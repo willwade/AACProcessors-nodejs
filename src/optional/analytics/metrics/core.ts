@@ -7,7 +7,14 @@
  * Based on: aac-metrics/lib/aac-metrics/metrics.rb
  */
 
-import { AACTree, AACPage, AACButton, AACSemanticCategory } from '../../../core/treeStructure';
+import {
+  AACTree,
+  AACPage,
+  AACButton,
+  AACSemanticCategory,
+  AACScanType,
+} from '../../../core/treeStructure';
+import { CellScanningOrder } from '../../../types/aac';
 import { ButtonMetrics, MetricsResult } from './types';
 import {
   baseBoardEffort,
@@ -15,6 +22,7 @@ import {
   visualScanEffort,
   EFFORT_CONSTANTS,
   localScanEffort,
+  scanningEffort,
 } from './effort';
 
 interface ToVisitItem {
@@ -179,7 +187,7 @@ export class MetricsCalculator {
   }
 
   /**
-   * Count scan blocks for visual scanning effort
+   * Count scan items for visual scanning effort
    * When block scanning is enabled, count unique scan blocks instead of individual buttons
    */
   private countScanItems(
@@ -192,33 +200,36 @@ export class MetricsCalculator {
     if (!blockScanEnabled) {
       // Linear scanning: count all buttons before current position
       let count = 0;
-      for (let r = 0; r < board.grid.length; r++) {
-        for (let c = 0; c < (board.grid[r]?.length || 0); c++) {
-          if (r === currentRowIndex && c === currentColIndex) break;
-          const btn = board.grid[r]?.[c];
-          if (btn && btn.label && btn.label.length > 0) {
+      for (let r = 0; r <= currentRowIndex; r++) {
+        const row = board.grid[r];
+        if (!row) continue;
+        for (let c = 0; c < row.length; c++) {
+          if (r === currentRowIndex && c === currentColIndex) return count;
+          const btn = row[c];
+          if (btn && (btn.label || btn.id).length > 0) {
             count++;
           }
         }
-        if (r === currentRowIndex) break;
       }
       return count;
     }
 
     // Block scanning: count unique scan blocks before current position
     const seenBlocks = new Set<number>();
-
-    for (let r = 0; r < board.grid.length; r++) {
-      for (let c = 0; c < (board.grid[r]?.length || 0); c++) {
-        if (r === currentRowIndex && c === currentColIndex) break;
-        const btn = board.grid[r]?.[c];
-        if (btn && btn.label && btn.label.length > 0 && btn.scanBlock) {
-          seenBlocks.add(btn.scanBlock);
+    for (let r = 0; r <= currentRowIndex; r++) {
+      const row = board.grid[r];
+      if (!row) continue;
+      for (let c = 0; c < row.length; c++) {
+        if (r === currentRowIndex && c === currentColIndex) return seenBlocks.size;
+        const btn = row[c];
+        if (btn && (btn.label || btn.id).length > 0) {
+          const block =
+            btn.scanBlock ||
+            (btn.scanBlocks && btn.scanBlocks.length > 0 ? btn.scanBlocks[0] : null);
+          if (block !== null) seenBlocks.add(block);
         }
       }
-      if (r === currentRowIndex) break;
     }
-
     return seenBlocks.size;
   }
 
@@ -290,10 +301,8 @@ export class MetricsCalculator {
 
       // Get scanning configuration from page (if available)
       const blockScanEnabled = board.scanningConfig?.blockScanEnabled || false;
-      const scanOrder = board.scanningConfig?.cellScanningOrder;
 
       // Process each button
-      let priorButtons = 0;
       const priorScanBlocks = new Set<number>();
       const btnHeight = 1.0 / rows;
       const btnWidth = 1.0 / cols;
@@ -311,7 +320,13 @@ export class MetricsCalculator {
 
           // Calculate prior items for visual scan effort
           // If block scanning enabled, count unique scan blocks instead of individual buttons
-          const priorItems = this.countScanItems(board, rowIndex, colIndex, priorScanBlocks, blockScanEnabled);
+          const priorItems = this.countScanItems(
+            board,
+            rowIndex,
+            colIndex,
+            priorScanBlocks,
+            blockScanEnabled
+          );
 
           // Calculate button-level effort
           let buttonEffort = boardEffort;
@@ -361,65 +376,86 @@ export class MetricsCalculator {
             buttonEffort = Math.min(buttonEffort, buttonEffort * discount);
           }
 
-          // Add distance effort
-          let distance = distanceEffort(x, y, entryX, entryY);
+          // Calculate button effort based on access method (Touch vs Scanning)
+          const isScanning = !!board.scanningConfig || !!board.scanType;
+          if (isScanning) {
+            const { steps, selections } = this.calculateScanSteps(board, btn, rowIndex, colIndex);
+            let sEffort = scanningEffort(steps, selections);
 
-          // Apply distance discounts
-          if (btn.semantic_id) {
-            if (boardPcts[btn.semantic_id]) {
+            // Apply discounts to scanning effort (similar to touch)
+            if (btn.semantic_id && boardPcts[btn.semantic_id]) {
               const discount =
                 EFFORT_CONSTANTS.SAME_LOCATION_AS_PRIOR_DISCOUNT / boardPcts[btn.semantic_id];
-              distance = Math.min(distance, distance * discount);
-            } else if (boardPcts[`upstream-${btn.semantic_id}`]) {
-              const discount =
-                EFFORT_CONSTANTS.RECOGNIZABLE_SEMANTIC_FROM_PRIOR_DISCOUNT /
-                boardPcts[`upstream-${btn.semantic_id}`];
-              distance = Math.min(distance, distance * discount);
-            } else if (level > 0 && setPcts[btn.semantic_id]) {
-              const discount =
-                EFFORT_CONSTANTS.RECOGNIZABLE_SEMANTIC_FROM_OTHER_DISCOUNT /
-                setPcts[btn.semantic_id];
-              distance = Math.min(distance, distance * discount);
-            }
-          }
-          if (btn.clone_id) {
-            if (boardPcts[btn.clone_id]) {
+              sEffort = Math.min(sEffort, sEffort * discount);
+            } else if (btn.clone_id && boardPcts[btn.clone_id]) {
               const discount =
                 EFFORT_CONSTANTS.SAME_LOCATION_AS_PRIOR_DISCOUNT / boardPcts[btn.clone_id];
-              distance = Math.min(distance, distance * discount);
-            } else if (boardPcts[`upstream-${btn.clone_id}`]) {
-              const discount =
-                EFFORT_CONSTANTS.RECOGNIZABLE_CLONE_FROM_PRIOR_DISCOUNT /
-                boardPcts[`upstream-${btn.clone_id}`];
-              distance = Math.min(distance, distance * discount);
-            } else if (level > 0 && setPcts[btn.clone_id]) {
-              const discount =
-                EFFORT_CONSTANTS.RECOGNIZABLE_CLONE_FROM_OTHER_DISCOUNT / setPcts[btn.clone_id];
-              distance = Math.min(distance, distance * discount);
+              sEffort = Math.min(sEffort, sEffort * discount);
             }
-          }
 
-          buttonEffort += distance;
-
-          // Add visual scan or local scan effort
-          // Use scan block counting if block scanning is enabled
-          if (
-            distance > EFFORT_CONSTANTS.DISTANCE_THRESHOLD_TO_SKIP_VISUAL_SCAN ||
-            (entryX === 1.0 && entryY === 1.0)
-          ) {
-            buttonEffort += visualScanEffort(priorItems);
+            buttonEffort += sEffort;
           } else {
-            buttonEffort += localScanEffort(distance);
+            // Add distance effort (Touch only)
+            let distance = distanceEffort(x, y, entryX, entryY);
+
+            // Apply distance discounts
+            if (btn.semantic_id) {
+              if (boardPcts[btn.semantic_id]) {
+                const discount =
+                  EFFORT_CONSTANTS.SAME_LOCATION_AS_PRIOR_DISCOUNT / boardPcts[btn.semantic_id];
+                distance = Math.min(distance, distance * discount);
+              } else if (boardPcts[`upstream-${btn.semantic_id}`]) {
+                const discount =
+                  EFFORT_CONSTANTS.RECOGNIZABLE_SEMANTIC_FROM_PRIOR_DISCOUNT /
+                  boardPcts[`upstream-${btn.semantic_id}`];
+                distance = Math.min(distance, distance * discount);
+              } else if (level > 0 && setPcts[btn.semantic_id]) {
+                const discount =
+                  EFFORT_CONSTANTS.RECOGNIZABLE_SEMANTIC_FROM_OTHER_DISCOUNT /
+                  setPcts[btn.semantic_id];
+                distance = Math.min(distance, distance * discount);
+              }
+            }
+            if (btn.clone_id) {
+              if (boardPcts[btn.clone_id]) {
+                const discount =
+                  EFFORT_CONSTANTS.SAME_LOCATION_AS_PRIOR_DISCOUNT / boardPcts[btn.clone_id];
+                distance = Math.min(distance, distance * discount);
+              } else if (boardPcts[`upstream-${btn.clone_id}`]) {
+                const discount =
+                  EFFORT_CONSTANTS.RECOGNIZABLE_CLONE_FROM_PRIOR_DISCOUNT /
+                  boardPcts[`upstream-${btn.clone_id}`];
+                distance = Math.min(distance, distance * discount);
+              } else if (level > 0 && setPcts[btn.clone_id]) {
+                const discount =
+                  EFFORT_CONSTANTS.RECOGNIZABLE_CLONE_FROM_OTHER_DISCOUNT / setPcts[btn.clone_id];
+                distance = Math.min(distance, distance * discount);
+              }
+            }
+
+            buttonEffort += distance;
+
+            // Add visual scan or local scan effort
+            if (
+              distance > EFFORT_CONSTANTS.DISTANCE_THRESHOLD_TO_SKIP_VISUAL_SCAN ||
+              (entryX === 1.0 && entryY === 1.0)
+            ) {
+              buttonEffort += visualScanEffort(priorItems);
+            } else {
+              buttonEffort += localScanEffort(distance);
+            }
           }
 
           // Add cumulative prior effort
           buttonEffort += priorEffort;
 
           // Track scan blocks for block scanning, otherwise track individual buttons
-          if (blockScanEnabled && btn.scanBlock) {
-            priorScanBlocks.add(btn.scanBlock);
+          if (
+            blockScanEnabled &&
+            (btn.scanBlock || (btn.scanBlocks && btn.scanBlocks.length > 0))
+          ) {
+            priorScanBlocks.add(btn.scanBlock || btn.scanBlocks![0]);
           }
-          priorButtons += 1;
 
           // Handle navigation buttons
           if (btn.targetPageId) {
@@ -579,5 +615,95 @@ export class MetricsCalculator {
       rows: Math.round(totalRows / count),
       columns: Math.round(totalCols / count),
     };
+  }
+
+  /**
+   * Calculate scanning steps and selections for a button based on access method
+   */
+  private calculateScanSteps(
+    board: AACPage,
+    btn: AACButton,
+    rowIndex: number,
+    colIndex: number
+  ): { steps: number; selections: number } {
+    // Determine scanning type from local scanType or scanningConfig
+    let type: AACScanType = board.scanType || AACScanType.LINEAR;
+    if (board.scanningConfig?.cellScanningOrder) {
+      const order = board.scanningConfig.cellScanningOrder;
+      // String matching for CellScanningOrder
+      if (order === CellScanningOrder.RowColumnScan) type = AACScanType.ROW_COLUMN;
+      else if (order === CellScanningOrder.ColumnRowScan) type = AACScanType.COLUMN_ROW;
+      else if (order === CellScanningOrder.SimpleScanColumnsFirst) type = AACScanType.COLUMN_ROW;
+      else if (order === CellScanningOrder.SimpleScan) type = AACScanType.LINEAR;
+    }
+
+    // Force block scan if enabled in config
+    const isBlockScan =
+      board.scanningConfig?.blockScanEnabled ||
+      type === AACScanType.BLOCK_ROW_COLUMN ||
+      type === AACScanType.BLOCK_COLUMN_ROW;
+
+    if (isBlockScan) {
+      const blockId =
+        btn.scanBlock || (btn.scanBlocks && btn.scanBlocks.length > 0 ? btn.scanBlocks[0] : null);
+
+      // If no block assigned, treat as its own block at the end (fallback)
+      if (blockId === null) {
+        return { steps: rowIndex + colIndex + 1, selections: 1 };
+      }
+
+      const config = board.scanBlocksConfig?.find((c) => c.id === blockId);
+      const blockOrder = config?.order ?? blockId;
+
+      // Linear scan within the block
+      let btnInBlockIndex = 0;
+      let found = false;
+      for (let r = 0; r < board.grid.length; r++) {
+        for (let c = 0; c < (board.grid[r]?.length || 0); c++) {
+          const b = board.grid[r][c];
+          if (b && (b.scanBlock === blockId || b.scanBlocks?.includes(blockId))) {
+            if (b === btn) {
+              found = true;
+              break;
+            }
+            btnInBlockIndex++;
+          }
+        }
+        if (found) break;
+      }
+
+      // 1 selection for block, 1 for item
+      return { steps: blockOrder + btnInBlockIndex + 1, selections: 2 };
+    }
+
+    switch (type) {
+      case AACScanType.LINEAR: {
+        let index = 0;
+        let found = false;
+        for (let r = 0; r < board.grid.length; r++) {
+          for (let c = 0; c < board.grid[r].length; c++) {
+            const b = board.grid[r][c];
+            if (b && (b.label || '').length > 0) {
+              if (b === btn) {
+                found = true;
+                break;
+              }
+              index++;
+            }
+          }
+          if (found) break;
+        }
+        return { steps: index + 1, selections: 1 };
+      }
+
+      case AACScanType.ROW_COLUMN:
+        return { steps: rowIndex + 1 + (colIndex + 1), selections: 2 };
+
+      case AACScanType.COLUMN_ROW:
+        return { steps: colIndex + 1 + (rowIndex + 1), selections: 2 };
+
+      default:
+        return { steps: rowIndex + 1 + (colIndex + 1), selections: 2 };
+    }
   }
 }
