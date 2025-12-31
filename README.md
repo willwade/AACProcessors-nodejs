@@ -1,8 +1,8 @@
 # AACProcessors
 
-[![Coverage](https://img.shields.io/badge/coverage-77%25-green.svg)](./coverage)
+[![Coverage](https://img.shields.io/badge/coverage-74%25-green.svg)](./coverage)
 [![TypeScript](https://img.shields.io/badge/TypeScript-100%25-blue.svg)](https://www.typescriptlang.org/)
-[![Tests](https://img.shields.io/badge/tests-140%20tests-brightgreen.svg)](./test)
+[![Tests](https://img.shields.io/badge/tests-495%20tests-brightgreen.svg)](./test)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A comprehensive **TypeScript library** for processing AAC (Augmentative and Alternative Communication) file formats with advanced translation support, cross-format conversion, and robust error handling.
@@ -20,6 +20,7 @@ A comprehensive **TypeScript library** for processing AAC (Augmentative and Alte
 - **Apple Panels** (MacOS) - Plist format support
 - **Asterics Grid** - Native Asterics Grid format with audio
 - **Excel** - Export to Microsoft Excel for vocabulary analysis
+- **Analyics & Metrics** - High-parity AAC effort metrics and clinical analysis tools
 
 ### **Advanced Capabilities**
 
@@ -28,6 +29,7 @@ A comprehensive **TypeScript library** for processing AAC (Augmentative and Alte
 - 🎨 **Comprehensive styling support** - Preserve visual appearance across formats
 - 🧪 **Property-based testing** - Robust validation with 140+ tests
 - ✅ **Format validation** - Spec-based validation for all supported formats
+- 📊 **Clinical Metrics** - High-parity AAC effort algorithm (v0.2) and vocabulary coverage analysis
 - ⚡ **Performance optimized** - Memory-efficient processing of large files
 - 🛡️ **Error recovery** - Graceful handling of corrupted data
 - 🔒 **Thread-safe** - Concurrent processing support
@@ -190,6 +192,29 @@ const translatedBuffer = processor.processTexts(
 );
 
 console.log("Translation complete!");
+```
+
+### 📊 AAC Analytics & Clinical Metrics
+
+The library includes an optional high-performance analytics engine for evaluating AAC board sets based on the **AAC Effort Algorithm (v0.2)**.
+
+#### **Key Metrics Features**
+- **Effort Scores**: Calculate the physical/cognitive cost of any word (Distance, Field Size, Motor Planning).
+- **Vocabulary Coverage**: Compare board sets against core vocabulary lists (e.g., Anderson & Bitner).
+- **Sentence Analysis**: Measure the effort required to construct common test sentences.
+- **Comparative Analysis**: Identify gaps and improvements between two pageset versions.
+
+For detailed documentation, see the **[AAC Metrics Guide](./src/optional/analytics/docs/AAC_METRICS_GUIDE.md)** and **[Vocabulary Analysis Guide](./src/optional/analytics/docs/VOCABULARY_ANALYSIS_GUIDE.md)**.
+
+```typescript
+import { ObfsetProcessor, Analytics } from '@willwade/aac-processors';
+
+const processor = new ObfsetProcessor();
+const tree = processor.loadIntoTree('my_pageset.obfset');
+
+// Run clinical effort analysis
+const result = new Analytics.MetricsCalculator().analyze(tree);
+console.log(`Average Effort: ${result.total_words}`);
 ```
 
 ### Format Validation
@@ -710,6 +735,14 @@ npm run coverage:report
 
 **Note**: All test commands automatically run `npm run build` first to ensure CLI tests have the required `dist/` files. CLI integration tests require the compiled JavaScript files to test the command-line interface.
 
+### 🛠️ Utility Scripts
+
+A wide range of utility scripts for batch processing, audio generation, and advanced analysis are available in the **[scripts/](./scripts/README.md)** directory. These include:
+- **Analysis**: Pageset reporting and vocabulary extraction.
+- **Audio**: Automated TTS generation and audio-enhanced pageset creation.
+- **Conversion**: TSV-to-Gridset and other format-shifting tools.
+- **Translation**: Batch translation workflows using Google, Azure, and Gemini.
+
 ### Development Commands
 
 ```bash
@@ -798,57 +831,26 @@ Inspired by the Python AACProcessors project
 
 ### 🔥 Critical Priority (Immediate Action Required)
 
-- [ ] **Fix audio persistence issues** (5 tests failing) - Resolve functional audio recording persistence in SnapProcessor save/load cycle (reduced from 21 failing tests)
-- [ ] **Resolve database constraint violations** - Fix UNIQUE constraint failures in Page.Id and buttons.id when processing real-world data files (blocks production usage)
-- [ ] **Fix Grid3 layout issues** - Grid sizes not reliable and X,Y positions incorrect, particularly affecting Grid3 processor functionality
+- [ ] **Road Testing** - Perform comprehensive layout and formatting validation across diverse pagesets to verify conversion fidelity.
+- [ ] **Fix audio persistence issues** - Resolve functional audio recording persistence in `SnapProcessor` save/load cycle (5 failing tests remaining).
 
 ### 🚨 High Priority (Next Sprint)
 
-- [ ] **Complete SnapProcessor coverage** (currently 48.32% - lowest processor) - Add comprehensive audio handling, database corruption tests, and SQLite schema validation to reach >75% coverage
-- [ ] **Reduce remaining linting issues** (123 remaining) - Address TypeScript eslint errors and warnings in test files and less critical areas
-- [ ] **Improve GridsetProcessor coverage** (currently 71.69%) - Enhance ZIP handling and complex Grid3 archive support to reach >80% coverage
+- [ ] **Complete SnapProcessor coverage** (currently ~60%) - Reach >75% coverage by adding comprehensive audio handling and database corruption tests.
+- [ ] **Symbol System Rethink** - Explore treating "Symbols" as a first-class entity (alongside Pages/Buttons) to support richer metadata (library IDs, synonyms, multi-lang names).
+- [ ] **Language & Locale Persistence** - Ensure current language and locale information is correctly preserved and bubbled up to the `AACTree` level.
 
-### ⚠️ Medium Priority (Following Sprint)
+### ⚠️ Medium Priority
 
-- [ ] **Improve GridsetProcessor coverage** (currently 71.69%) - Enhance ZIP handling and complex Grid3 archive support to reach >80% coverage
-- [ ] **Improve AstericsGridProcessor coverage** (currently 62.5%) - Add comprehensive tests for Asterics Grid format processing to reach >80% coverage
-- [ ] **Add Symbol Tools coverage** (currently 0%) - Implement tests for PCS and ARASAAC symbol lookups to reach >70% coverage
-- [ ] **Fix property-based test failures** - Resolve TypeScript interface compatibility issues in edge case generators
+- [ ] **Access Method Modeling** - Define core rules for AAC systems (Switch scanning, blocks, dwell times) to support diverse access methods. We need to do this for metrics 
 
-### Medium Priority
-
-- [ ] **Performance optimization** - Optimize memory usage for very large communication boards (1000+ buttons)
-- [ ] **Add GridsetProcessor ZIP handling** - Improve support for complex Grid3 ZIP archives
-- [ ] **Enhance error recovery** - Better handling of partially corrupted database files
-- [ ] **Add streaming support** - Process very large files without loading entirely into memory
-- [ ] **Improve translation workflows** - Add support for translation service integrations (Google Translate, Azure, etc.)
-- [ ] **Add symbol library integration** - Complete implementation of PCS, ARASAAC symbol lookups
 
 ### Low Priority
 
-- [ ] **Add more AAC formats** - Look for other common AAC formats to add
-- [ ] **Plugin system** - Allow third-party processors and extensions
-- [ ] **Batch processing CLI** - Process multiple files in parallel
-- [ ] **Configuration file support** - Allow .aacprocessors.json config files
 
-### Testing & Quality
+- [ ] **Batch processing CLI** - Process multiple files/directories in parallel.
 
-- [ ] **Reach 80%+ test coverage** - Current: 65.15% (target: 80%+)
-- [ ] **Add mutation testing** - Use Stryker.js for mutation testing
-- [ ] **Add benchmark suite** - Performance regression testing
-- [ ] **CI/CD improvements** - Add automated releases and npm publishing
-- [ ] **Documentation improvements** - Add more real-world examples and tutorials
-
-## More enhancements
-
-- Much more effort put into fixing the layout issues. Grid sizes are not reliably and X, Y positions too. Particularly in the Grid3
-- Action types on buttons. We have SPEAK, NAVIGATE, but we could also have things like "PLAY_AUDIO", "SEND_MESSAGE", "OPEN_URL", etc. This would allow us to have a more flexible structure for actions, especially if we want to support different types of actions or additional metadata in the future. This needs to be very flexible. eaach system has a very different set of actions. We could have a set of core actions that are supported by all systems, and then allow each system to define its own additional actions. This could be done by having a set of core action types that are defined in the AACSystem type, and then allowing each system to define its own additional action types in the AACPageSet or AACPage types.
-- Current language and locale information of aac pageset
-- Symbols and their associated data. Now we have an optional part but I think this might need rethinking. I wonder if "Symbols" should be a separate type - alongside AACPageSet and AACPage. that then AACPageSet and AACPage can reference. This would allow us to have a more flexible structure for symbols, especially if we want to support different types of symbols or additional metadata in the future. Symbols would have: Library name, ID, Text name, Reference (URL, DB ID, etc.), and an optional part for additional metadata. We could have synoynms, antonyms, also and for different languages somehow.
-- Somehow we need to deal with access. Switch scanning: Blocks probably being the main aspect. But also - we need to identify somewhere a set of core rules for each aac system. Like for example - what access methods are supported, what languages are supported, what symbols are supported, etc. This could be a set of rules that can be referenced by AACSystem - a different type altogether maybe? It could be in a JSON format maybe. (use case here being for a MCP).
 
 ### Contributing
 
 Want to help with any of these items? See our [Contributing Guidelines](#-contributing) and pick an issue that interests you!
-
----
