@@ -28,6 +28,8 @@ export const EFFORT_CONSTANTS = {
   RECOGNIZABLE_CLONE_FROM_PRIOR_DISCOUNT: 0.33,
   RECOGNIZABLE_CLONE_FROM_OTHER_DISCOUNT: 0.33,
   REUSED_CLONE_FROM_OTHER_BONUS: 0.005,
+  SCAN_STEP_COST: 0.015, // Matches visual scan multiplier
+  SCAN_SELECTION_COST: 0.1, // Cost of a switch selection
 } as const;
 
 /**
@@ -216,4 +218,17 @@ export function shouldSkipVisualScan(distance: number): boolean {
  */
 export function localScanEffort(distance: number): number {
   return distance * EFFORT_CONSTANTS.SKIPPED_VISUAL_SCAN_DISTANCE_MULTIPLIER;
+}
+
+/**
+ * Calculate effort for switch scanning
+ *
+ * @param steps - Number of scan steps to reach target
+ * @param selections - Number of switch selections required
+ * @returns Scanning effort score
+ */
+export function scanningEffort(steps: number, selections: number): number {
+  return (
+    steps * EFFORT_CONSTANTS.SCAN_STEP_COST + selections * EFFORT_CONSTANTS.SCAN_SELECTION_COST
+  );
 }

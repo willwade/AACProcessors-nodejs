@@ -522,6 +522,9 @@ class GridsetProcessor extends BaseProcessor {
             const colSpan = parseInt(String(cell['@_ColumnSpan'] || '1'), 10);
             const rowSpan = parseInt(String(cell['@_RowSpan'] || '1'), 10);
 
+            // Extract scan block number (1-8) for block scanning support
+            const scanBlock = parseInt(String(cell['@_ScanBlock'] || '1'), 10);
+
             // Extract label from CaptionAndImage/Caption
             const content = cell.Content;
             const captionAndImage = content.CaptionAndImage || content.captionAndImage;
@@ -995,6 +998,7 @@ class GridsetProcessor extends BaseProcessor {
               y: cellY,
               columnSpan: colSpan,
               rowSpan: rowSpan,
+              scanBlock: scanBlock, // Add scan block number for block scanning metrics
               contentType:
                 pluginMetadata.cellType === Grid3CellType.Regular
                   ? 'Normal'

@@ -61,12 +61,13 @@ export class VocabularyAnalyzer {
     // Load reference data
     const coreLists = this.referenceLoader.loadCoreLists();
 
-    // Create word to effort map
+    // Create word to effort map (using lowercase keys for matching)
     const wordEffortMap = new Map<string, number>();
     metrics.buttons.forEach((btn) => {
-      const existing = wordEffortMap.get(btn.label);
+      const word = btn.label.toLowerCase();
+      const existing = wordEffortMap.get(word);
       if (!existing || btn.effort < existing) {
-        wordEffortMap.set(btn.label, btn.effort);
+        wordEffortMap.set(word, btn.effort);
       }
     });
 
@@ -130,7 +131,8 @@ export class VocabularyAnalyzer {
     let totalEffort = 0;
 
     list.words.forEach((word) => {
-      const effort = wordEffortMap.get(word);
+      const lowerWord = word.toLowerCase();
+      const effort = wordEffortMap.get(lowerWord);
       if (effort !== undefined) {
         covered.push(word);
         totalEffort += effort;

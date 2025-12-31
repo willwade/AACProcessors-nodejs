@@ -26,6 +26,7 @@ Analysis and reporting tools for AAC pagesets.
 - **extract_vocabulary.js** - Extract vocabulary from pagesets
 - **generate_csv.js** - Generate CSV reports from vocabulary
 - **validate_complete_workflow.js** - Validate end-to-end workflows
+- **scanning_benchmark.ts** - Benchmark scanning efficiency and vocabulary coverage across multiple files
 
 Example:
 ```bash

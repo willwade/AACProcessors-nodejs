@@ -22,6 +22,16 @@ The algorithm rewards systems that support motor planning. If a button appears i
 - **Semantic Locations**: Patterns where types of words (e.g., verbs, colors) always appear in the same grid area.
 - **Upstream Matching**: If the button used to _enter_ a board matches the ID of a button _on_ that board, the effort is reduced.
 
+### Switch Scanning Support
+
+For users who use scanning access methods, the implementation supports evaluating scanning effort. Instead of movement distance, the algorithm calculates:
+1.  **Scan Steps**: The number of highlight movements (items or groups) to reach the target.
+2.  **Selections**: The number of switch activations required.
+
+Supported scanning types include `linear`, `row-column`, `column-row`, and `block-based` scanning across Grid 3, TD Snap, and TouchChat.
+
+> 📖 **Detailed Guide**: For comprehensive information on scanning metrics across different platforms, see [SCANNING_METRICS_GUIDE.md](./SCANNING_METRICS_GUIDE.md).
+
 ---
 
 ## 💻 How to Use the Code
@@ -78,7 +88,28 @@ The `analyze` function returns:
 ### 3. Requirements
 
 - **Supported Formats**: Any format with a corresponding processor (`.obf`, `.obz`, `.obfset`, `.gridset`, `.pageSet`, `.spb`, `.zip` for TouchChat, etc.).
-- **Metadata**: For best accuracy, buttons should include `clone_id` or `semantic_id` where applicable.
+- **Metadata**: For best accuracy, buttons should include `clone_id` or `semantic_id`. For scanning analysis, pages should have a `scanType` and buttons should have `scanBlocks` assigned.
+
+### 4. Configuring Scanning
+
+You can evaluate scanning efficiency by setting the `scanType` on `AACPage` objects:
+
+```typescript
+import { AACScanType } from '@willwade/aac-processors';
+
+// Set scanning behavior for a page
+page.scanType = AACScanType.ROW_COLUMN; 
+
+// Or using blocks
+page.scanType = AACScanType.BLOCK_ROW_COLUMN;
+page.scanBlocksConfig = [
+  { id: 1, name: 'Main', order: 1 },
+  { id: 2, name: 'Numbers', order: 2 }
+];
+
+// Assign buttons to blocks
+button.scanBlocks = [2]; 
+```
 
 ---
 

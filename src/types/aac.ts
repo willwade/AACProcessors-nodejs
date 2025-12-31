@@ -1,6 +1,59 @@
 // Import semantic action types from core
 import { AACSemanticAction } from '../core/treeStructure';
 
+/**
+ * Scanning selection methods for switch access
+ * Determines how the scanning advances through items
+ */
+export enum ScanningSelectionMethod {
+  /** Automatically advance through items at timed intervals */
+  AutoScan = 'AutoScan',
+  /** Automatic scanning with overscan (two-stage scanning) */
+  AutoScanWithOverscan = 'AutoScanWithOverscan',
+  /** Hold switch to advance, release to select */
+  HoldToAdvance = 'HoldToAdvance',
+  /** Hold to advance with overscan */
+  HoldToAdvanceWithOverscan = 'HoldToAdvanceWithOverscan',
+  /** Tap switch to advance, tap again to select */
+  TapToAdvance = 'TapToAdvance',
+}
+
+/**
+ * Cell scanning order patterns
+ * Determines the sequence in which cells are highlighted
+ */
+export enum CellScanningOrder {
+  /** Simple linear scan across rows (left-to-right, top-to-bottom) */
+  SimpleScan = 'SimpleScan',
+  /** Simple linear scan down columns (top-to-bottom, left-to-right) */
+  SimpleScanColumnsFirst = 'SimpleScanColumnsFirst',
+  /** Row-group scanning: highlight rows first, then cells within selected row */
+  RowColumnScan = 'RowColumnScan',
+  /** Column-group scanning: highlight columns first, then cells within selected column */
+  ColumnRowScan = 'ColumnRowScan',
+}
+
+/**
+ * Scanning configuration for a page or pageset
+ * Controls how switch scanning operates
+ */
+export interface ScanningConfig {
+  /** Method for advancing through items */
+  selectionMethod?: ScanningSelectionMethod;
+  /** Order in which cells are scanned */
+  cellScanningOrder?: CellScanningOrder;
+  /** Whether block scanning is enabled (group cells by scanBlock number) */
+  blockScanEnabled?: boolean;
+  /** Whether to include the workspace/message bar in scanning */
+  scanWorkspace?: boolean;
+  /** Time in milliseconds to highlight each item */
+  forwardScanSpeed?: number;
+  /** Time in milliseconds to wait before auto-accepting selection */
+  dwellTime?: number;
+  /** How the selection is accepted */
+  acceptScanMethod?: 'Switch' | 'Timeout' | 'Hold';
+}
+
 export interface AACStyle {
   backgroundColor?: string;
   fontColor?: string;
@@ -39,7 +92,18 @@ export interface AACButton {
   y?: number;
   columnSpan?: number;
   rowSpan?: number;
+  /**
+   * Scan block number (1-8) for block scanning
+   * Buttons with the same scanBlock number are highlighted together
+   * @deprecated Use scanBlock instead (singular, not array)
+   */
   scanBlocks?: number[];
+  /**
+   * Scan block number (1-8) for block scanning
+   * Buttons with the same scanBlock number are highlighted together
+   * Reduces scanning effort by grouping buttons
+   */
+  scanBlock?: number;
   visibility?: 'Visible' | 'Hidden' | 'Disabled' | 'PointerAndTouchOnly' | 'Empty';
   directActivate?: boolean;
   audioDescription?: string;
@@ -63,6 +127,9 @@ export interface AACPage {
   // Metrics support: Track semantic/clone IDs used on this page
   semantic_ids?: string[];
   clone_ids?: string[];
+  // Scanning configuration for this page
+  scanningConfig?: ScanningConfig;
+  scanBlocksConfig?: any[];
 }
 
 export interface AACTree {

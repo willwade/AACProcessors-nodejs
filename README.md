@@ -833,6 +833,7 @@ Inspired by the Python AACProcessors project
 
 - [ ] **Road Testing** - Perform comprehensive layout and formatting validation across diverse pagesets to verify conversion fidelity.
 - [ ] **Fix audio persistence issues** - Resolve functional audio recording persistence in `SnapProcessor` save/load cycle (5 failing tests remaining).
+- [x] **Access Method Modeling** - Support for switch scanning (linear, row-column, block) integrated into AAC metrics.
 
 ### 🚨 High Priority (Next Sprint)
 
@@ -842,7 +843,7 @@ Inspired by the Python AACProcessors project
 
 ### ⚠️ Medium Priority
 
-- [ ] **Access Method Modeling** - Define core rules for AAC systems (Switch scanning, blocks, dwell times) to support diverse access methods. We need to do this for metrics 
+- [ ] **Adaptive Metrics** - Expand scanning analysis to include dwell times and more complex switch logic configurations.
 
 
 ### Low Priority
