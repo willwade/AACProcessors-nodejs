@@ -179,6 +179,50 @@ export class MetricsCalculator {
   }
 
   /**
+   * Count scan blocks for visual scanning effort
+   * When block scanning is enabled, count unique scan blocks instead of individual buttons
+   */
+  private countScanItems(
+    board: AACPage,
+    currentRowIndex: number,
+    currentColIndex: number,
+    priorScanBlocks: Set<number>,
+    blockScanEnabled: boolean
+  ): number {
+    if (!blockScanEnabled) {
+      // Linear scanning: count all buttons before current position
+      let count = 0;
+      for (let r = 0; r < board.grid.length; r++) {
+        for (let c = 0; c < (board.grid[r]?.length || 0); c++) {
+          if (r === currentRowIndex && c === currentColIndex) break;
+          const btn = board.grid[r]?.[c];
+          if (btn && btn.label && btn.label.length > 0) {
+            count++;
+          }
+        }
+        if (r === currentRowIndex) break;
+      }
+      return count;
+    }
+
+    // Block scanning: count unique scan blocks before current position
+    const seenBlocks = new Set<number>();
+
+    for (let r = 0; r < board.grid.length; r++) {
+      for (let c = 0; c < (board.grid[r]?.length || 0); c++) {
+        if (r === currentRowIndex && c === currentColIndex) break;
+        const btn = board.grid[r]?.[c];
+        if (btn && btn.label && btn.label.length > 0 && btn.scanBlock) {
+          seenBlocks.add(btn.scanBlock);
+        }
+      }
+      if (r === currentRowIndex) break;
+    }
+
+    return seenBlocks.size;
+  }
+
+  /**
    * Analyze starting from a specific board
    */
   private analyzeFrom(
@@ -244,8 +288,13 @@ export class MetricsCalculator {
       // Calculate board link percentages
       const boardPcts = this.calculateBoardLinkPercentages(tree, board);
 
+      // Get scanning configuration from page (if available)
+      const blockScanEnabled = board.scanningConfig?.blockScanEnabled || false;
+      const scanOrder = board.scanningConfig?.cellScanningOrder;
+
       // Process each button
       let priorButtons = 0;
+      const priorScanBlocks = new Set<number>();
       const btnHeight = 1.0 / rows;
       const btnWidth = 1.0 / cols;
 
@@ -259,6 +308,10 @@ export class MetricsCalculator {
 
           const x = btnWidth / 2 + btnWidth * colIndex;
           const y = btnHeight / 2 + btnHeight * rowIndex;
+
+          // Calculate prior items for visual scan effort
+          // If block scanning enabled, count unique scan blocks instead of individual buttons
+          const priorItems = this.countScanItems(board, rowIndex, colIndex, priorScanBlocks, blockScanEnabled);
 
           // Calculate button-level effort
           let buttonEffort = boardEffort;
@@ -349,11 +402,12 @@ export class MetricsCalculator {
           buttonEffort += distance;
 
           // Add visual scan or local scan effort
+          // Use scan block counting if block scanning is enabled
           if (
             distance > EFFORT_CONSTANTS.DISTANCE_THRESHOLD_TO_SKIP_VISUAL_SCAN ||
             (entryX === 1.0 && entryY === 1.0)
           ) {
-            buttonEffort += visualScanEffort(priorButtons);
+            buttonEffort += visualScanEffort(priorItems);
           } else {
             buttonEffort += localScanEffort(distance);
           }
@@ -361,6 +415,10 @@ export class MetricsCalculator {
           // Add cumulative prior effort
           buttonEffort += priorEffort;
 
+          // Track scan blocks for block scanning, otherwise track individual buttons
+          if (blockScanEnabled && btn.scanBlock) {
+            priorScanBlocks.add(btn.scanBlock);
+          }
           priorButtons += 1;
 
           // Handle navigation buttons

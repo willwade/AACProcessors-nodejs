@@ -140,7 +140,14 @@ export class AACButton implements IAACButton {
   y?: number;
   columnSpan?: number;
   rowSpan?: number;
+  /**
+   * @deprecated Use scanBlock instead (singular, not array)
+   */
   scanBlocks?: number[];
+  /**
+   * Scan block number (1-8) for block scanning
+   */
+  scanBlock?: number;
   visibility?: 'Visible' | 'Hidden' | 'Disabled' | 'PointerAndTouchOnly' | 'Empty';
   directActivate?: boolean;
   audioDescription?: string;
@@ -168,6 +175,7 @@ export class AACButton implements IAACButton {
     columnSpan,
     rowSpan,
     scanBlocks,
+    scanBlock,
     visibility,
     directActivate,
     parameters,
@@ -200,6 +208,7 @@ export class AACButton implements IAACButton {
     columnSpan?: number;
     rowSpan?: number;
     scanBlocks?: number[];
+    scanBlock?: number;
     visibility?: 'Visible' | 'Hidden' | 'Disabled' | 'PointerAndTouchOnly' | 'Empty';
     directActivate?: boolean;
     parameters?: { [key: string]: any };
@@ -231,6 +240,7 @@ export class AACButton implements IAACButton {
     this.columnSpan = columnSpan;
     this.rowSpan = rowSpan;
     this.scanBlocks = scanBlocks;
+    this.scanBlock = scanBlock;
     this.visibility = visibility;
     this.directActivate = directActivate;
     this.parameters = parameters;
@@ -333,6 +343,8 @@ export class AACPage implements IAACPage {
   // Metrics support: Track semantic/clone IDs used on this page
   semantic_ids?: string[];
   clone_ids?: string[];
+  // Scanning configuration for this page
+  scanningConfig?: import('../types/aac').ScanningConfig;
 
   constructor({
     id,
@@ -347,6 +359,7 @@ export class AACPage implements IAACPage {
     sounds,
     semantic_ids,
     clone_ids,
+    scanningConfig,
   }: {
     id: string;
     name?: string;
@@ -360,6 +373,7 @@ export class AACPage implements IAACPage {
     sounds?: any[];
     semantic_ids?: string[];
     clone_ids?: string[];
+    scanningConfig?: import('../types/aac').ScanningConfig;
   }) {
     this.id = id;
     this.name = name;
@@ -381,6 +395,7 @@ export class AACPage implements IAACPage {
     this.sounds = sounds;
     this.semantic_ids = semantic_ids;
     this.clone_ids = clone_ids;
+    this.scanningConfig = scanningConfig;
   }
 
   addButton(button: AACButton): void {
