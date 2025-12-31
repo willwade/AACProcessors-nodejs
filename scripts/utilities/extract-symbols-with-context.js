@@ -15,19 +15,38 @@ const { GridsetProcessor } = require('../../dist/processors');
  *   node extract-symbols-with-context.js "/path/to/Super Core.gridset" "super-core-symbols.csv"
  */
 
+function isAudioFile(path) {
+  if (!path) return false;
+  const lower = path.toLowerCase();
+  const audioExtensions = ['.mp3', '.wav', '.m4a', '.ogg', '.aac', '.wma', '.flac', '.mp4a', '.aiff', '.au'];
+  return audioExtensions.some(ext => lower.endsWith(ext));
+}
+
 function getSymbolId(button) {
   // Construct symbol reference from symbol library and path
   if (button.symbolLibrary) {
     const lib = button.symbolLibrary;
     const symPath = button.symbolPath || '';
+    // Skip if the symbol path is actually an audio file
+    if (isAudioFile(symPath)) {
+      return '';
+    }
     return `[${lib}]${symPath}`;
   }
   // For embedded images, use the resolved entry path
   if (button.resolvedImageEntry) {
+    // Skip audio files
+    if (isAudioFile(button.resolvedImageEntry)) {
+      return '';
+    }
     return `embedded:${button.resolvedImageEntry}`;
   }
   // Fallback to image field
   if (button.image) {
+    // Skip if it's actually an audio file reference
+    if (isAudioFile(button.image)) {
+      return '';
+    }
     return `image:${button.image}`;
   }
   return '';
@@ -96,6 +115,10 @@ function extractSymbolUsage(gridsetFile, vocabName) {
 
       while ((match = wordListRegex.exec(content)) !== null) {
         const symbolRef = match[1];
+        // Skip audio files in wordlists
+        if (isAudioFile(symbolRef)) {
+          continue;
+        }
         const symbolId = symbolRef.startsWith('[') ? symbolRef : `[${symbolRef}]`;
 
         // Extract the word from the Text element
