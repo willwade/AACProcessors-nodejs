@@ -74,6 +74,60 @@ function extractSymbolUsage(gridsetFile, vocabName) {
 
   const symbolMap = new Map(); // symbol-id -> array of usage entries
 
+  // Also extract from wordlists stored in raw grid XML
+  const AdmZip = require('adm-zip');
+  const zip = new AdmZip(gridsetFile);
+  const entries = zip.getEntries();
+
+  // Find all grid.xml files
+  const gridFiles = entries.filter(e => e.entryName.endsWith('/grid.xml'));
+
+  for (const gridEntry of gridFiles) {
+    try {
+      const content = zip.readAsText(gridEntry);
+
+      // Extract page name from path
+      const pathMatch = gridEntry.entryName.match(/Grids\/([^/]+)\/grid\.xml/);
+      const pageName = pathMatch ? pathMatch[1] : gridEntry.entryName;
+
+      // Parse WordList elements
+      const wordListRegex = /<WordListItem>[\s\S]*?<Image>([^<]+)<\/Image>[\s\S]*?<\/WordListItem>/g;
+      let match;
+
+      while ((match = wordListRegex.exec(content)) !== null) {
+        const symbolRef = match[1];
+        const symbolId = symbolRef.startsWith('[') ? symbolRef : `[${symbolRef}]`;
+
+        // Extract the word from the Text element
+        const textMatch = match[0].match(/<r>([^<]+)<\/r>/);
+        const word = textMatch ? textMatch[1] : '';
+
+        // Extract part of speech if available
+        const posMatch = match[0].match(/<PartOfSpeech>([^<]+)<\/PartOfSpeech>/);
+        const partOfSpeech = posMatch ? posMatch[1] : '';
+
+        const entry = {
+          symbolId,
+          cellLabel: word,
+          page: pageName,
+          vocab: vocabName,
+          cellActions: partOfSpeech ? `WORDLIST:${partOfSpeech}` : 'WORDLIST',
+          buttonId: `wordlist-${pageName}`,
+          visibility: 'Wordlist',
+          contentType: 'Wordlist'
+        };
+
+        if (!symbolMap.has(symbolId)) {
+          symbolMap.set(symbolId, []);
+        }
+        symbolMap.get(symbolId).push(entry);
+      }
+    } catch (err) {
+      // Skip files that can't be parsed
+    }
+  }
+
+  // Extract from regular buttons
   for (const pageId in tree.pages) {
     const page = tree.pages[pageId];
 
