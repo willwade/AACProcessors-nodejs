@@ -314,7 +314,12 @@ export function lightenColor(hex: string, amount: number): string {
  * @param hex - Hex color string (#RRGGBB or #RRGGBBAA)
  * @returns RGBA object with r, g, b, a properties (0-1 for alpha)
  */
-export function hexToRgba(hex: string): { r: number; g: number; b: number; a: number } {
+export function hexToRgba(hex: string): {
+  r: number;
+  g: number;
+  b: number;
+  a: number;
+} {
   const normalized = ensureAlphaChannel(hex).substring(1); // strip #
   const rgb = normalized.substring(0, 6);
   const alphaHex = normalized.substring(6) || 'FF';

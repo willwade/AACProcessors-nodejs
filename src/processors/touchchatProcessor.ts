@@ -15,6 +15,7 @@ import {
   AACSemanticCategory,
   AACSemanticIntent,
 } from '../core/treeStructure';
+import { generateCloneId } from '../optional/analytics/utils/idGenerator';
 import { detectCasing, isNumericOrEmpty } from '../core/stringCasing';
 import AdmZip from 'adm-zip';
 import Database from 'better-sqlite3';
@@ -255,6 +256,7 @@ class TouchChatProcessor extends BaseProcessor {
             label: cell.label || '',
             message: cell.message || '',
             semanticAction: semanticAction,
+            semantic_id: (cell as any).symbol_link_id || (cell as any).symbolLinkId || undefined, // Extract semantic_id from symbol_link_id
             style: {
               backgroundColor: intToHex(style?.body_color),
               borderColor: intToHex(style?.border_color),
@@ -347,6 +349,35 @@ class TouchChatProcessor extends BaseProcessor {
           const page = tree.getPage(pageId);
           if (page) {
             page.grid = grid;
+
+            // Generate clone_id for each button in the grid
+            const semanticIds: string[] = [];
+            const cloneIds: string[] = [];
+
+            grid.forEach((row, rowIndex) => {
+              row.forEach((btn, colIndex) => {
+                if (btn) {
+                  // Generate clone_id based on position and label
+                  const rows = grid.length;
+                  const cols = grid[0] ? grid[0].length : 10;
+                  btn.clone_id = generateCloneId(rows, cols, rowIndex, colIndex, btn.label);
+                  cloneIds.push(btn.clone_id);
+
+                  // Track semantic_id if present
+                  if (btn.semantic_id) {
+                    semanticIds.push(btn.semantic_id);
+                  }
+                }
+              });
+            });
+
+            // Track IDs on the page
+            if (semanticIds.length > 0) {
+              page.semantic_ids = semanticIds;
+            }
+            if (cloneIds.length > 0) {
+              page.clone_ids = cloneIds;
+            }
           }
         });
       } catch (e) {

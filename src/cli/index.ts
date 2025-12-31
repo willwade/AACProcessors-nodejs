@@ -17,6 +17,14 @@ function detectFormat(filePath: string): string {
     return 'ascconfig';
   }
 
+  // Map multi-file formats to their base processor
+  if (filePath.endsWith('.obfset')) {
+    return 'obf'; // Use ObfProcessor for .obfset files
+  }
+  if (filePath.endsWith('.gridset')) {
+    return 'gridset';
+  }
+
   // Otherwise use file extension
   return path.extname(filePath).slice(1);
 }

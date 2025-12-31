@@ -44,6 +44,9 @@ export interface AACButton {
   directActivate?: boolean;
   audioDescription?: string;
   parameters?: { [key: string]: any };
+  // Metrics support: Motor planning identifiers
+  semantic_id?: string; // Unique ID for buttons with same semantic meaning across boards
+  clone_id?: string; // Unique ID for buttons with same label+location across boards
 }
 
 export interface AACPage {
@@ -57,6 +60,9 @@ export interface AACPage {
   descriptionHtml?: string;
   images?: any[];
   sounds?: any[];
+  // Metrics support: Track semantic/clone IDs used on this page
+  semantic_ids?: string[];
+  clone_ids?: string[];
 }
 
 export interface AACTree {

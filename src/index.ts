@@ -3,12 +3,13 @@ export * from './core/treeStructure';
 export * from './core/baseProcessor';
 export * from './core/stringCasing';
 export * from './processors';
+export * from './validation';
+export * as Analytics from './optional/analytics';
 export {
   collectUnifiedHistory,
   listGrid3Users as listHistoryGrid3Users,
   listSnapUsers as listHistorySnapUsers,
-} from './analytics/history';
-export * from './validation';
+} from './optional/analytics/history';
 
 import { BaseProcessor } from './core/baseProcessor';
 import { DotProcessor } from './processors/dotProcessor';
@@ -20,6 +21,7 @@ import { SnapProcessor } from './processors/snapProcessor';
 import { TouchChatProcessor } from './processors/touchchatProcessor';
 import { ApplePanelsProcessor } from './processors/applePanelsProcessor';
 import { AstericsGridProcessor } from './processors/astericsGridProcessor';
+import { ObfsetProcessor } from './processors/obfsetProcessor';
 
 /**
  * Factory function to get the appropriate processor for a file extension
@@ -43,6 +45,8 @@ export function getProcessor(filePathOrExtension: string): BaseProcessor {
     case '.obf':
     case '.obz':
       return new ObfProcessor();
+    case '.obfset':
+      return new ObfsetProcessor();
     case '.gridset':
     case '.gridsetx':
       return new GridsetProcessor();
@@ -71,6 +75,7 @@ export function getSupportedExtensions(): string[] {
     '.opml',
     '.obf',
     '.obz',
+    '.obfset',
     '.gridset',
     '.gridsetx',
     '.spb',

@@ -13,10 +13,9 @@ import {
   AACSemanticCategory,
   AACSemanticIntent,
 } from '../core/treeStructure';
-// Removed unused import: FileProcessor
+import { generateCloneId } from '../optional/analytics/utils/idGenerator';
 import AdmZip from 'adm-zip';
 import fs from 'fs';
-// Removed unused import: path
 import { ObfValidator } from '../validation/obfValidator';
 import { ValidationResult } from '../validation/validationTypes';
 
@@ -32,6 +31,7 @@ interface ObfButton {
   box_id?: number;
   background_color?: string;
   border_color?: string;
+  semantic_id?: string; // Optional semantic identifier for motor planning
 }
 
 interface ObfGrid {
@@ -89,6 +89,7 @@ class ObfProcessor extends BaseProcessor {
         },
         semanticAction,
         targetPageId: btn.load_board?.path,
+        semantic_id: btn.semantic_id, // Extract semantic_id if present
       });
     });
 
@@ -155,6 +156,33 @@ class ObfProcessor extends BaseProcessor {
         }
 
         page.grid = grid;
+
+        // Generate clone_id for buttons in the grid
+        const semanticIds: string[] = [];
+        const cloneIds: string[] = [];
+
+        grid.forEach((row, rowIndex) => {
+          row.forEach((btn, colIndex) => {
+            if (btn) {
+              // Generate clone_id based on position and label
+              btn.clone_id = generateCloneId(rows, cols, rowIndex, colIndex, btn.label);
+              cloneIds.push(btn.clone_id);
+
+              // Track semantic_id if present
+              if (btn.semantic_id) {
+                semanticIds.push(btn.semantic_id);
+              }
+            }
+          });
+        });
+
+        // Track IDs on the page
+        if (semanticIds.length > 0) {
+          page.semantic_ids = semanticIds;
+        }
+        if (cloneIds.length > 0) {
+          page.clone_ids = cloneIds;
+        }
       }
     }
 

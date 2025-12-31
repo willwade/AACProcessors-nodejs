@@ -28,6 +28,7 @@ import { detectPluginCellType, Grid3CellType } from './gridset/pluginTypes';
 import { detectCommand } from './gridset/commands';
 import { type SymbolReference, parseSymbolReference } from './gridset/symbols';
 import { isSymbolLibraryReference } from './gridset/resolver';
+import { generateCloneId } from '../optional/analytics/utils/idGenerator';
 
 class GridsetProcessor extends BaseProcessor {
   constructor(options?: ProcessorOptions) {
@@ -987,6 +988,7 @@ class GridsetProcessor extends BaseProcessor {
               message: String(message),
               targetPageId: navigationTarget ? String(navigationTarget) : undefined,
               semanticAction: semanticAction,
+              semantic_id: cell.semantic_id || cell.SemanticId || undefined, // Extract semantic_id if present
               image: declaredImageName,
               resolvedImageEntry: resolvedImageEntry,
               x: cellX,
@@ -1033,6 +1035,33 @@ class GridsetProcessor extends BaseProcessor {
 
           // Set the page's grid layout
           page.grid = gridLayout;
+
+          // Generate clone_id for each button in the grid
+          const semanticIds: string[] = [];
+          const cloneIds: string[] = [];
+
+          gridLayout.forEach((row, rowIndex) => {
+            row.forEach((btn, colIndex) => {
+              if (btn) {
+                // Generate clone_id based on position and label
+                btn.clone_id = generateCloneId(maxRows, maxCols, rowIndex, colIndex, btn.label);
+                cloneIds.push(btn.clone_id);
+
+                // Track semantic_id if present
+                if (btn.semantic_id) {
+                  semanticIds.push(btn.semantic_id);
+                }
+              }
+            });
+          });
+
+          // Track IDs on the page
+          if (semanticIds.length > 0) {
+            page.semantic_ids = semanticIds;
+          }
+          if (cloneIds.length > 0) {
+            page.clone_ids = cloneIds;
+          }
         }
 
         tree.addPage(page);

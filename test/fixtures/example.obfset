@@ -1,0 +1,31 @@
+[
+  {
+    "id": "root",
+    "name": "Home",
+    "grid": { "rows": 2, "columns": 2, "order": [["btn1", "btn2"], [null, null]] },
+    "buttons": [
+      {
+        "id": "btn1",
+        "label": "Hello",
+        "semantic_id": "greeting-1"
+      },
+      {
+        "id": "btn2",
+        "label": "Go To Page 2",
+        "load_board": { "id": "page2" }
+      }
+    ]
+  },
+  {
+    "id": "page2",
+    "name": "Page 2",
+    "grid": { "rows": 2, "columns": 2, "order": [["btn3", null], [null, null]] },
+    "buttons": [
+      {
+        "id": "btn3",
+        "label": "World",
+        "clone_id": "world-1"
+      }
+    ]
+  }
+]

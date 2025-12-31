@@ -1,4 +1,5 @@
 .DS_Store
+tmp/
 # Logs
 logs
 *.log
@@ -177,3 +178,7 @@ scripts/*.output.*
 **/gemini_response.txt
 **/*_cache.json
 examples/gemini_response.txt
+
+# AAC Metrics benchmarking data
+aac-metrics/
+compare-effort-scores.ts

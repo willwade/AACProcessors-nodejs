@@ -107,6 +107,8 @@ export interface AACSemanticAction {
     type: 'SPEAK' | 'NAVIGATE' | 'ACTION';
     message?: string;
     targetPageId?: string;
+    temporary_home?: boolean | string | null;
+    add_to_sentence?: boolean;
   };
 }
 
@@ -143,6 +145,9 @@ export class AACButton implements IAACButton {
   directActivate?: boolean;
   audioDescription?: string;
   parameters?: { [key: string]: any };
+  // Metrics support: Motor planning identifiers
+  semantic_id?: string; // Unique ID for buttons with same semantic meaning across boards
+  clone_id?: string; // Unique ID for buttons with same label+location across boards
 
   constructor({
     id,
@@ -166,6 +171,8 @@ export class AACButton implements IAACButton {
     visibility,
     directActivate,
     parameters,
+    semantic_id,
+    clone_id,
     // Legacy input support
     type,
     action,
@@ -196,6 +203,8 @@ export class AACButton implements IAACButton {
     visibility?: 'Visible' | 'Hidden' | 'Disabled' | 'PointerAndTouchOnly' | 'Empty';
     directActivate?: boolean;
     parameters?: { [key: string]: any };
+    semantic_id?: string;
+    clone_id?: string;
     // Legacy constructor properties for backward compatibility
     type?: 'SPEAK' | 'NAVIGATE' | 'ACTION';
     action?: {
@@ -225,6 +234,8 @@ export class AACButton implements IAACButton {
     this.visibility = visibility;
     this.directActivate = directActivate;
     this.parameters = parameters;
+    this.semantic_id = semantic_id;
+    this.clone_id = clone_id;
 
     // Legacy mapping: if no semanticAction provided, derive from legacy `action` first
     if (!this.semanticAction && action) {
@@ -319,6 +330,9 @@ export class AACPage implements IAACPage {
   descriptionHtml?: string;
   images?: any[];
   sounds?: any[];
+  // Metrics support: Track semantic/clone IDs used on this page
+  semantic_ids?: string[];
+  clone_ids?: string[];
 
   constructor({
     id,
@@ -331,6 +345,8 @@ export class AACPage implements IAACPage {
     descriptionHtml,
     images,
     sounds,
+    semantic_ids,
+    clone_ids,
   }: {
     id: string;
     name?: string;
@@ -342,6 +358,8 @@ export class AACPage implements IAACPage {
     descriptionHtml?: string;
     images?: any[];
     sounds?: any[];
+    semantic_ids?: string[];
+    clone_ids?: string[];
   }) {
     this.id = id;
     this.name = name;
@@ -361,6 +379,8 @@ export class AACPage implements IAACPage {
     this.descriptionHtml = descriptionHtml;
     this.images = images;
     this.sounds = sounds;
+    this.semantic_ids = semantic_ids;
+    this.clone_ids = clone_ids;
   }
 
   addButton(button: AACButton): void {

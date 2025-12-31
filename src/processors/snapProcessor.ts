@@ -13,7 +13,7 @@ import {
   AACSemanticCategory,
   AACSemanticIntent,
 } from '../core/treeStructure';
-// Removed unused import: FileProcessor
+import { generateCloneId } from '../optional/analytics/utils/idGenerator';
 import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
@@ -301,6 +301,9 @@ class SnapProcessor extends BaseProcessor {
             targetPageId: targetPageUniqueId,
             semanticAction: semanticAction,
             audioRecording: audioRecording,
+            semantic_id: btnRow.LibrarySymbolId
+              ? `snap_symbol_${btnRow.LibrarySymbolId}`
+              : undefined, // Extract semantic_id from LibrarySymbolId
             style: {
               backgroundColor: btnRow.BackgroundColor
                 ? `#${btnRow.BackgroundColor.toString(16)}`
@@ -338,6 +341,10 @@ class SnapProcessor extends BaseProcessor {
                 pageGrid[gridY] &&
                 pageGrid[gridY][gridX] === null
               ) {
+                // Generate clone_id for button at this position
+                const rows = pageGrid.length;
+                const cols = pageGrid[0] ? pageGrid[0].length : 10;
+                button.clone_id = generateCloneId(rows, cols, gridY, gridX, button.label);
                 pageGrid[gridY][gridX] = button;
               }
             }
@@ -356,6 +363,30 @@ class SnapProcessor extends BaseProcessor {
         const currentPage = tree.getPage(uniqueId);
         if (currentPage && pageGrid) {
           currentPage.grid = pageGrid;
+
+          // Track semantic_ids and clone_ids on the page
+          const semanticIds: string[] = [];
+          const cloneIds: string[] = [];
+
+          pageGrid.forEach((row) => {
+            row.forEach((btn) => {
+              if (btn) {
+                if (btn.semantic_id) {
+                  semanticIds.push(btn.semantic_id);
+                }
+                if (btn.clone_id) {
+                  cloneIds.push(btn.clone_id);
+                }
+              }
+            });
+          });
+
+          if (semanticIds.length > 0) {
+            currentPage.semantic_ids = semanticIds;
+          }
+          if (cloneIds.length > 0) {
+            currentPage.clone_ids = cloneIds;
+          }
         }
       }
 

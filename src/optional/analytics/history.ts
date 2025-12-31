@@ -1,17 +1,17 @@
-import { dotNetTicksToDate } from '../utils/dotnetTicks';
+import { dotNetTicksToDate } from '../../utils/dotnetTicks';
 import {
   findGrid3Users,
   Grid3UserPath,
   readAllGrid3History as readAllGrid3HistoryImpl,
   readGrid3History as readGrid3HistoryImpl,
   readGrid3HistoryForUser as readGrid3HistoryForUserImpl,
-} from '../processors/gridset/helpers';
+} from '../../processors/gridset/helpers';
 import {
   findSnapUsers,
   readSnapUsage as readSnapUsageImpl,
   readSnapUsageForUser as readSnapUsageForUserImpl,
   SnapUserInfo,
-} from '../processors/snap/helpers';
+} from '../../processors/snap/helpers';
 
 export type HistorySource = 'Grid' | 'Snap';
 

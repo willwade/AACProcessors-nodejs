@@ -7,6 +7,7 @@ export { OpmlProcessor } from './opmlProcessor';
 export { SnapProcessor } from './snapProcessor';
 export { TouchChatProcessor } from './touchchatProcessor';
 export { AstericsGridProcessor } from './astericsGridProcessor';
+export { ObfsetProcessor } from './obfsetProcessor';
 
 // Gridset (Grid 3) helpers
 export {
