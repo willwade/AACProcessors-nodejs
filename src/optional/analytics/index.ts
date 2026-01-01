@@ -21,6 +21,10 @@ export * from './utils/idGenerator';
 // Export history functionality
 export * from './history';
 
+// Export OBL logging support
+export * from './metrics/obl-types';
+export { OblUtil, OblAnonymizer } from './metrics/obl';
+
 // Export core metrics calculator
 export { MetricsCalculator } from './metrics/core';
 

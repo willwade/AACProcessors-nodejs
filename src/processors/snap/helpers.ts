@@ -1,4 +1,4 @@
-import { AACTree } from '../../core/treeStructure';
+import { AACTree, AACSemanticCategory, AACSemanticIntent } from '../../core/treeStructure';
 import * as fs from 'fs';
 import * as path from 'path';
 import Database from 'better-sqlite3';
@@ -92,6 +92,10 @@ export interface SnapUsageEntry {
     timestamp: Date;
     modeling?: boolean;
     accessMethod?: number | null;
+    type?: 'button' | 'action' | 'utterance' | 'note' | 'other';
+    buttonId?: string | null;
+    intent?: AACSemanticIntent | string;
+    category?: AACSemanticCategory;
   }>;
   platform?: {
     label?: string;
@@ -315,6 +319,10 @@ export function readSnapUsage(pagesetPath: string): SnapUsageEntry[] {
       timestamp: dotNetTicksToDate(BigInt(row.TickValue ?? 0)),
       modeling: row.Modeling === 1,
       accessMethod: row.AccessMethod ?? null,
+      type: 'button',
+      buttonId: row.ButtonId,
+      intent: AACSemanticIntent.SPEAK_TEXT,
+      category: AACSemanticCategory.COMMUNICATION,
     });
 
     events.set(buttonId, entry);

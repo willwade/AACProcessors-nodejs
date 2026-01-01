@@ -12,8 +12,9 @@ import {
   readSnapUsageForUser as readSnapUsageForUserImpl,
   SnapUserInfo,
 } from '../../processors/snap/helpers';
+import { AACSemanticCategory, AACSemanticIntent } from '../../core/treeStructure';
 
-export type HistorySource = 'Grid' | 'Snap';
+export type HistorySource = 'Grid' | 'Snap' | 'OBL' | string;
 
 export interface HistoryOccurrence {
   timestamp: Date;
@@ -22,6 +23,17 @@ export interface HistoryOccurrence {
   modeling?: boolean;
   accessMethod?: number | null;
   pageId?: string | null;
+  // OBL-aligned fields
+  buttonId?: string | null;
+  boardId?: string | null;
+  spoken?: boolean;
+  vocalization?: string;
+  imageUrl?: string;
+  actions?: any[]; // For OBL actions
+  type?: 'button' | 'action' | 'utterance' | 'note' | 'other';
+  // Semantic semantic alignment
+  intent?: AACSemanticIntent | string;
+  category?: AACSemanticCategory;
 }
 
 export interface HistoryPlatformExtras {
@@ -29,6 +41,7 @@ export interface HistoryPlatformExtras {
   message?: string;
   buttonId?: string;
   contentXml?: string;
+  [key: string]: any;
 }
 
 export interface HistoryEntry {

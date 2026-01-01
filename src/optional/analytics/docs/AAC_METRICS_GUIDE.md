@@ -111,6 +111,14 @@ page.scanBlocksConfig = [
 button.scanBlocks = [2]; 
 ```
 
+### 5. Unified History & OBL Support
+
+This implementation supports gathering and analyzing historical usage data from multiple sources:
+- **Local History**: Automatically discover and read logs from Grid 3 and TD Snap on the local machine.
+- **OBL Format**: Support for the [Open Board Logging (OBL)](./OBL_SUPPORT_GUIDE.md) standard for cross-platform log sharing.
+
+See [OBL_SUPPORT_GUIDE.md](./OBL_SUPPORT_GUIDE.md) for details on parsing and anonymizing shared AAC logs.
+
 ---
 
 ## ⚖️ Implementation vs. Original Algorithm

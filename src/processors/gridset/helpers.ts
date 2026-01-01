@@ -1,6 +1,12 @@
 import AdmZip from 'adm-zip';
 import { XMLBuilder } from 'fast-xml-parser';
-import { AACTree, AACPage, AACButton } from '../../core/treeStructure';
+import {
+  AACTree,
+  AACPage,
+  AACButton,
+  AACSemanticCategory,
+  AACSemanticIntent,
+} from '../../core/treeStructure';
 import * as fs from 'fs';
 import * as path from 'path';
 import { execSync } from 'child_process';
@@ -173,6 +179,9 @@ export interface Grid3HistoryEntry {
     timestamp: Date;
     latitude?: number | null;
     longitude?: number | null;
+    type?: 'button' | 'action' | 'utterance' | 'note' | 'other';
+    intent?: AACSemanticIntent | string;
+    category?: AACSemanticCategory;
   }>;
   rawXml?: string;
 }
@@ -442,6 +451,9 @@ export function readGrid3History(historyDbPath: string): Grid3HistoryEntry[] {
       timestamp: dotNetTicksToDate(BigInt(row.TickValue ?? 0)),
       latitude: row.Latitude ?? null,
       longitude: row.Longitude ?? null,
+      type: 'utterance',
+      intent: AACSemanticIntent.SPEAK_TEXT,
+      category: AACSemanticCategory.COMMUNICATION,
     });
 
     events.set(phraseId, entry);
