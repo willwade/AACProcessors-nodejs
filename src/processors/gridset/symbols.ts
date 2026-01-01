@@ -13,54 +13,53 @@
  * This module provides symbol resolution and metadata extraction.
  */
 
-import * as fs from "fs";
-import * as path from "path";
-import AdmZip from "adm-zip";
+import * as fs from 'fs';
+import * as path from 'path';
+import AdmZip from 'adm-zip';
 
 /**
  * Default Grid 3 installation paths by platform
  */
 const DEFAULT_GRID3_PATHS = {
-  win32: "C:\\Program Files (x86)\\Smartbox\\Grid 3",
-  darwin: "/Applications/Grid 3.app/Contents/Resources",
-  linux: "/opt/smartbox/grid3",
+  win32: 'C:\\Program Files (x86)\\Smartbox\\Grid 3',
+  darwin: '/Applications/Grid 3.app/Contents/Resources',
+  linux: '/opt/smartbox/grid3',
 };
 
 /**
  * Path to Symbols directory within Grid 3 installation
  * Contains .symbols ZIP archives with actual images
  */
-const SYMBOLS_SUBDIR = "Resources\\Symbols";
+const SYMBOLS_SUBDIR = 'Resources\\Symbols';
 
 /**
  * Path to symbol search indexes within Grid 3 installation
  * Contains .pix index files for searching
  */
-const SYMBOLSEARCH_SUBDIR = "Locale";
+const SYMBOLSEARCH_SUBDIR = 'Locale';
 
 /**
  * Known symbol libraries in Grid 3
  */
 export const SYMBOL_LIBRARIES = {
-  WIDGIT: "widgit",
-  TAWASL: "tawasl",
-  SSNAPS: "ssnaps",
-  GRID3X: "grid3x",
-  GRID2X: "grid2x",
-  BLISSX: "blissx",
-  EYEGAZ: "eyegaz",
-  INTERL: "interl",
-  METACM: "metacm",
-  MJPCS: "mjpcs#",
-  PCSHC: "pcshc#",
-  PCSTL: "pcstl#",
-  SESENS: "sesens",
-  SSTIX: "sstix#",
-  SYMOJI: "symoji",
+  WIDGIT: 'widgit',
+  TAWASL: 'tawasl',
+  SSNAPS: 'ssnaps',
+  GRID3X: 'grid3x',
+  GRID2X: 'grid2x',
+  BLISSX: 'blissx',
+  EYEGAZ: 'eyegaz',
+  INTERL: 'interl',
+  METACM: 'metacm',
+  MJPCS: 'mjpcs#',
+  PCSHC: 'pcshc#',
+  PCSTL: 'pcstl#',
+  SESENS: 'sesens',
+  SSTIX: 'sstix#',
+  SYMOJI: 'symoji',
 } as const;
 
-export type SymbolLibraryName =
-  (typeof SYMBOL_LIBRARIES)[keyof typeof SYMBOL_LIBRARIES];
+export type SymbolLibraryName = (typeof SYMBOL_LIBRARIES)[keyof typeof SYMBOL_LIBRARIES];
 
 /**
  * Symbol reference parsed from Grid 3 format
@@ -108,7 +107,7 @@ export interface SymbolResolutionResult {
 /**
  * Default locale to use
  */
-export const DEFAULT_LOCALE = "en-GB";
+export const DEFAULT_LOCALE = 'en-GB';
 
 /**
  * Parse a symbol reference string
@@ -123,7 +122,7 @@ export function parseSymbolReference(reference: string): SymbolReference {
 
   if (!match) {
     return {
-      library: "",
+      library: '',
       path: trimmed,
       fullReference: trimmed,
       isValid: false,
@@ -134,7 +133,7 @@ export function parseSymbolReference(reference: string): SymbolReference {
 
   return {
     library: library.toLowerCase(),
-    path: symbolPath.replace(/^\\+/, "").trim(), // Remove leading slashes
+    path: symbolPath.replace(/^\\+/, '').trim(), // Remove leading slashes
     fullReference: trimmed,
     isValid: true,
   };
@@ -146,7 +145,7 @@ export function parseSymbolReference(reference: string): SymbolReference {
  * @returns True if it's a symbol reference like [widgit]/...
  */
 export function isSymbolReference(reference: string): boolean {
-  return reference.trim().startsWith("[");
+  return reference.trim().startsWith('[');
 }
 
 /**
@@ -155,7 +154,7 @@ export function isSymbolReference(reference: string): boolean {
  */
 export function getDefaultGrid3Path(): string {
   const platform = process.platform as keyof typeof DEFAULT_GRID3_PATHS;
-  const defaultPath = DEFAULT_GRID3_PATHS[platform] || "";
+  const defaultPath = DEFAULT_GRID3_PATHS[platform] || '';
 
   if (defaultPath && fs.existsSync(defaultPath)) {
     return defaultPath;
@@ -163,11 +162,11 @@ export function getDefaultGrid3Path(): string {
 
   // Try to find Grid 3 in common locations
   const commonPaths = [
-    "C:\\Program Files (x86)\\Smartbox\\Grid 3",
-    "C:\\Program Files\\Smartbox\\Grid 3",
-    "C:\\Program Files\\Smartbox\\Grid 3",
-    "/Applications/Grid 3.app",
-    "/opt/smartbox/grid3",
+    'C:\\Program Files (x86)\\Smartbox\\Grid 3',
+    'C:\\Program Files\\Smartbox\\Grid 3',
+    'C:\\Program Files\\Smartbox\\Grid 3',
+    '/Applications/Grid 3.app',
+    '/opt/smartbox/grid3',
   ];
 
   for (const testPath of commonPaths) {
@@ -176,7 +175,7 @@ export function getDefaultGrid3Path(): string {
     }
   }
 
-  return "";
+  return '';
 }
 
 /**
@@ -198,9 +197,9 @@ export function getSymbolLibrariesDir(grid3Path: string): string {
  */
 export function getSymbolSearchIndexesDir(
   grid3Path: string,
-  locale: string = DEFAULT_LOCALE,
+  locale: string = DEFAULT_LOCALE
 ): string {
-  return path.join(grid3Path, SYMBOLSEARCH_SUBDIR, locale, "symbolsearch");
+  return path.join(grid3Path, SYMBOLSEARCH_SUBDIR, locale, 'symbolsearch');
 }
 
 /**
@@ -209,10 +208,9 @@ export function getSymbolSearchIndexesDir(
  * @returns Array of symbol library information
  */
 export function getAvailableSymbolLibraries(
-  options: SymbolResolutionOptions = {},
+  options: SymbolResolutionOptions = {}
 ): SymbolLibraryInfo[] {
-  const grid3Path =
-    options.grid3Path || options.symbolDir || getDefaultGrid3Path();
+  const grid3Path = options.grid3Path || options.symbolDir || getDefaultGrid3Path();
 
   if (!grid3Path) {
     return [];
@@ -228,17 +226,17 @@ export function getAvailableSymbolLibraries(
   const files = fs.readdirSync(symbolsDir);
 
   for (const file of files) {
-    if (file.endsWith(".symbols")) {
+    if (file.endsWith('.symbols')) {
       const fullPath = path.join(symbolsDir, file);
       const stats = fs.statSync(fullPath);
-      const libraryName = path.basename(file, ".symbols");
+      const libraryName = path.basename(file, '.symbols');
 
       libraries.push({
         name: libraryName,
         pixFile: fullPath, // Reuse this field for the .symbols file path
         exists: true,
         size: stats.size,
-        locale: "global", // .symbols files are not locale-specific
+        locale: 'global', // .symbols files are not locale-specific
       });
     }
   }
@@ -254,10 +252,9 @@ export function getAvailableSymbolLibraries(
  */
 export function getSymbolLibraryInfo(
   libraryName: string,
-  options: SymbolResolutionOptions = {},
+  options: SymbolResolutionOptions = {}
 ): SymbolLibraryInfo | undefined {
-  const grid3Path =
-    options.grid3Path || options.symbolDir || getDefaultGrid3Path();
+  const grid3Path = options.grid3Path || options.symbolDir || getDefaultGrid3Path();
 
   if (!grid3Path) {
     return undefined;
@@ -268,9 +265,9 @@ export function getSymbolLibraryInfo(
 
   // Try different case variations
   const variations = [
-    normalizedLibName + ".symbols",
-    normalizedLibName.toUpperCase() + ".symbols",
-    libraryName + ".symbols",
+    normalizedLibName + '.symbols',
+    normalizedLibName.toUpperCase() + '.symbols',
+    libraryName + '.symbols',
   ];
 
   for (const file of variations) {
@@ -282,7 +279,7 @@ export function getSymbolLibraryInfo(
         pixFile: fullPath,
         exists: true,
         size: stats.size,
-        locale: "global",
+        locale: 'global',
       };
     }
   }
@@ -298,7 +295,7 @@ export function getSymbolLibraryInfo(
  */
 export function resolveSymbolReference(
   reference: string,
-  options: SymbolResolutionOptions = {},
+  options: SymbolResolutionOptions = {}
 ): SymbolResolutionResult {
   const parsed = parseSymbolReference(reference);
 
@@ -306,7 +303,7 @@ export function resolveSymbolReference(
     return {
       reference: parsed,
       found: false,
-      error: "Invalid symbol reference format",
+      error: 'Invalid symbol reference format',
     };
   }
 
@@ -316,7 +313,7 @@ export function resolveSymbolReference(
     return {
       reference: parsed,
       found: false,
-      error: "Grid 3 installation not found. Please specify grid3Path.",
+      error: 'Grid 3 installation not found. Please specify grid3Path.',
     };
   }
 
@@ -326,7 +323,7 @@ export function resolveSymbolReference(
     return {
       reference: parsed,
       found: false,
-      error: `Symbol library '${parsed.library}' not found at ${libraryInfo?.pixFile || "unknown"}`,
+      error: `Symbol library '${parsed.library}' not found at ${libraryInfo?.pixFile || 'unknown'}`,
     };
   }
 
@@ -342,9 +339,7 @@ export function resolveSymbolReference(
 
     if (!entry) {
       // Try without the symbols/ prefix (in case reference already includes it)
-      const altPath = parsed.path.startsWith("symbols/")
-        ? parsed.path
-        : `symbols/${parsed.path}`;
+      const altPath = parsed.path.startsWith('symbols/') ? parsed.path : `symbols/${parsed.path}`;
       const altEntry = zip.getEntry(altPath);
 
       if (!altEntry) {
@@ -408,7 +403,7 @@ export function extractSymbolReferences(tree: any): string[] {
 
         // Check for symbol library metadata
         if (button.symbolLibrary) {
-          const ref = `[${button.symbolLibrary}]${button.symbolPath || ""}`;
+          const ref = `[${button.symbolLibrary}]${button.symbolPath || ''}`;
           references.add(ref);
         }
       }
@@ -424,12 +419,9 @@ export function extractSymbolReferences(tree: any): string[] {
  * @param symbolPath - Path within the library
  * @returns Formatted symbol reference
  */
-export function createSymbolReference(
-  library: string,
-  symbolPath: string,
-): string {
-  const normalizedLib = library.toLowerCase().replace(/\[|\]/g, "");
-  const normalizedPath = symbolPath.replace(/^\\+/, "");
+export function createSymbolReference(library: string, symbolPath: string): string {
+  const normalizedLib = library.toLowerCase().replace(/\[|\]/g, '');
+  const normalizedPath = symbolPath.replace(/^\\+/, '');
   return `[${normalizedLib}]${normalizedPath}`;
 }
 
@@ -459,10 +451,8 @@ export function getSymbolPath(reference: string): string {
  * @returns True if it's a known library
  */
 export function isKnownSymbolLibrary(libraryName: string): boolean {
-  const normalized = libraryName.toLowerCase().replace(/\[|\]/g, "");
-  return Object.values(SYMBOL_LIBRARIES).includes(
-    normalized as SymbolLibraryName,
-  );
+  const normalized = libraryName.toLowerCase().replace(/\[|\]/g, '');
+  return Object.values(SYMBOL_LIBRARIES).includes(normalized as SymbolLibraryName);
 }
 
 /**
@@ -471,30 +461,27 @@ export function isKnownSymbolLibrary(libraryName: string): boolean {
  * @returns Human-readable display name
  */
 export function getSymbolLibraryDisplayName(libraryName: string): string {
-  const normalized = libraryName.toLowerCase().replace(/\[|\]/g, "");
+  const normalized = libraryName.toLowerCase().replace(/\[|\]/g, '');
 
   const displayNames: Record<string, string> = {
-    widgit: "Widgit Symbols",
-    tawasl: "Tawasol (Arabic)",
-    ssnaps: "Smartbox Symbol Snapshots",
-    grid3x: "Grid 3 Extended",
-    grid2x: "Grid 2 Extended",
-    blissx: "Blissymbols",
-    eyegaz: "Eye Gaze Symbols",
-    interl: "International Symbols",
-    metacm: "MetaComm",
-    mjpcs: "Mayer-Johnson PCS",
-    pcshc: "PCS High Contrast",
-    pcstl: "PCS Thin Line",
-    sesens: "Sensory Software",
-    sstix: "Smartbox TIX",
-    symoji: "Symbol Emoji",
+    widgit: 'Widgit Symbols',
+    tawasl: 'Tawasol (Arabic)',
+    ssnaps: 'Smartbox Symbol Snapshots',
+    grid3x: 'Grid 3 Extended',
+    grid2x: 'Grid 2 Extended',
+    blissx: 'Blissymbols',
+    eyegaz: 'Eye Gaze Symbols',
+    interl: 'International Symbols',
+    metacm: 'MetaComm',
+    mjpcs: 'Mayer-Johnson PCS',
+    pcshc: 'PCS High Contrast',
+    pcstl: 'PCS Thin Line',
+    sesens: 'Sensory Software',
+    sstix: 'Smartbox TIX',
+    symoji: 'Symbol Emoji',
   };
 
-  return (
-    displayNames[normalized] ||
-    normalized.charAt(0).toUpperCase() + normalized.slice(1)
-  );
+  return displayNames[normalized] || normalized.charAt(0).toUpperCase() + normalized.slice(1);
 }
 
 /**
@@ -538,13 +525,9 @@ export function analyzeSymbolUsage(tree: any): SymbolUsageStats {
  * @param cellY - Cell Y coordinate
  * @returns Generated filename
  */
-export function symbolReferenceToFilename(
-  reference: string,
-  cellX: number,
-  cellY: number,
-): string {
+export function symbolReferenceToFilename(reference: string, cellX: number, cellY: number): string {
   const parsed = parseSymbolReference(reference);
-  const ext = path.extname(parsed.path) || ".png";
+  const ext = path.extname(parsed.path) || '.png';
 
   // Grid 3 format: {x}-{y}-0-text-0.{ext}
   return `${cellX}-${cellY}-0-text-0${ext}`;
@@ -566,9 +549,6 @@ export function getSymbolsDir(grid3Path: string): string {
  * @deprecated Use getSymbolSearchIndexesDir() instead - more descriptive name
  * Get the symbol search directory for a given locale (where .pix index files are)
  */
-export function getSymbolSearchDir(
-  grid3Path: string,
-  locale: string = DEFAULT_LOCALE,
-): string {
+export function getSymbolSearchDir(grid3Path: string, locale: string = DEFAULT_LOCALE): string {
   return getSymbolSearchIndexesDir(grid3Path, locale);
 }

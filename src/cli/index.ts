@@ -1,10 +1,10 @@
 #!/usr/bin/env node
-import { program } from "commander";
-import { prettyPrintTree } from "./prettyPrint";
-import { getProcessor } from "../core/analyze";
-import { ProcessorOptions } from "../core/baseProcessor";
-import path from "path";
-import fs from "fs";
+import { program } from 'commander';
+import { prettyPrintTree } from './prettyPrint';
+import { getProcessor } from '../core/analyze';
+import { ProcessorOptions } from '../core/baseProcessor';
+import path from 'path';
+import fs from 'fs';
 
 // Helper function to detect format from file/folder path
 function detectFormat(filePath: string): string {
@@ -12,17 +12,17 @@ function detectFormat(filePath: string): string {
   if (
     fs.existsSync(filePath) &&
     fs.statSync(filePath).isDirectory() &&
-    filePath.endsWith(".ascconfig")
+    filePath.endsWith('.ascconfig')
   ) {
-    return "ascconfig";
+    return 'ascconfig';
   }
 
   // Map multi-file formats to their base processor
-  if (filePath.endsWith(".obfset")) {
-    return "obf"; // Use ObfProcessor for .obfset files
+  if (filePath.endsWith('.obfset')) {
+    return 'obf'; // Use ObfProcessor for .obfset files
   }
-  if (filePath.endsWith(".gridset")) {
-    return "gridset";
+  if (filePath.endsWith('.gridset')) {
+    return 'gridset';
   }
 
   // Otherwise use file extension
@@ -60,19 +60,17 @@ function parseFilteringOptions(options: {
   // Handle custom button exclusion list
   if (options.excludeButtons) {
     const excludeList = options.excludeButtons
-      .split(",")
+      .split(',')
       .map((s) => s.trim().toLowerCase())
       .filter((s) => s.length > 0);
 
     if (excludeList.length > 0) {
       processorOptions.customButtonFilter = (button) => {
-        const label = button.label?.toLowerCase() || "";
-        const message = button.message?.toLowerCase() || "";
+        const label = button.label?.toLowerCase() || '';
+        const message = button.message?.toLowerCase() || '';
 
         // Exclude if button label or message contains any of the excluded terms
-        return !excludeList.some(
-          (term) => label.includes(term) || message.includes(term),
-        );
+        return !excludeList.some((term) => label.includes(term) || message.includes(term));
       };
     }
   }
@@ -82,34 +80,19 @@ function parseFilteringOptions(options: {
 
 // Set version from package.json
 const packageJson = JSON.parse(
-  fs.readFileSync(path.join(__dirname, "../../package.json"), "utf8"),
+  fs.readFileSync(path.join(__dirname, '../../package.json'), 'utf8')
 ) as { version: string };
 program.version(packageJson.version);
 
 program
-  .command("analyze <file>")
-  .option("--format <format>", "Format type (auto-detected if not specified)")
-  .option("--pretty", "Pretty print output")
-  .option(
-    "--preserve-all-buttons",
-    "Preserve all buttons including navigation/system buttons",
-  )
-  .option(
-    "--no-exclude-navigation",
-    "Don't exclude navigation buttons (Home, Back)",
-  )
-  .option(
-    "--no-exclude-system",
-    "Don't exclude system buttons (Delete, Clear, etc.)",
-  )
-  .option(
-    "--exclude-buttons <list>",
-    "Comma-separated list of button labels/terms to exclude",
-  )
-  .option(
-    "--gridset-password <password>",
-    "Password for encrypted Grid3 archives (.gridsetx)",
-  )
+  .command('analyze <file>')
+  .option('--format <format>', 'Format type (auto-detected if not specified)')
+  .option('--pretty', 'Pretty print output')
+  .option('--preserve-all-buttons', 'Preserve all buttons including navigation/system buttons')
+  .option('--no-exclude-navigation', "Don't exclude navigation buttons (Home, Back)")
+  .option('--no-exclude-system', "Don't exclude system buttons (Delete, Clear, etc.)")
+  .option('--exclude-buttons <list>', 'Comma-separated list of button labels/terms to exclude')
+  .option('--gridset-password <password>', 'Password for encrypted Grid3 archives (.gridsetx)')
   .action(
     (
       file: string,
@@ -121,7 +104,7 @@ program
         excludeSystem?: boolean;
         excludeButtons?: string;
         gridsetPassword?: string;
-      },
+      }
     ) => {
       try {
         // Parse filtering options
@@ -145,39 +128,24 @@ program
         }
       } catch (error) {
         console.error(
-          "Error analyzing file:",
-          error instanceof Error ? error.message : String(error),
+          'Error analyzing file:',
+          error instanceof Error ? error.message : String(error)
         );
         process.exit(1);
       }
-    },
+    }
   );
 
 program
-  .command("extract <file>")
-  .option("--format <format>", "Format type (auto-detected if not specified)")
-  .option("--verbose", "Verbose output")
-  .option("--quiet", "Quiet output")
-  .option(
-    "--preserve-all-buttons",
-    "Preserve all buttons including navigation/system buttons",
-  )
-  .option(
-    "--no-exclude-navigation",
-    "Don't exclude navigation buttons (Home, Back)",
-  )
-  .option(
-    "--no-exclude-system",
-    "Don't exclude system buttons (Delete, Clear, etc.)",
-  )
-  .option(
-    "--exclude-buttons <list>",
-    "Comma-separated list of button labels/terms to exclude",
-  )
-  .option(
-    "--gridset-password <password>",
-    "Password for encrypted Grid3 archives (.gridsetx)",
-  )
+  .command('extract <file>')
+  .option('--format <format>', 'Format type (auto-detected if not specified)')
+  .option('--verbose', 'Verbose output')
+  .option('--quiet', 'Quiet output')
+  .option('--preserve-all-buttons', 'Preserve all buttons including navigation/system buttons')
+  .option('--no-exclude-navigation', "Don't exclude navigation buttons (Home, Back)")
+  .option('--no-exclude-system', "Don't exclude system buttons (Delete, Clear, etc.)")
+  .option('--exclude-buttons <list>', 'Comma-separated list of button labels/terms to exclude')
+  .option('--gridset-password <password>', 'Password for encrypted Grid3 archives (.gridsetx)')
   .action(
     (
       file: string,
@@ -190,7 +158,7 @@ program
         excludeSystem?: boolean;
         excludeButtons?: string;
         gridsetPassword?: string;
-      },
+      }
     ) => {
       try {
         // Parse filtering options
@@ -208,18 +176,14 @@ program
 
             // Show filtering info in verbose mode
             if (filteringOptions.preserveAllButtons) {
-              console.log("Filtering: All buttons preserved");
+              console.log('Filtering: All buttons preserved');
             } else {
               const filters = [];
-              if (filteringOptions.excludeNavigationButtons !== false)
-                filters.push("navigation");
-              if (filteringOptions.excludeSystemButtons !== false)
-                filters.push("system");
-              if (filteringOptions.customButtonFilter) filters.push("custom");
+              if (filteringOptions.excludeNavigationButtons !== false) filters.push('navigation');
+              if (filteringOptions.excludeSystemButtons !== false) filters.push('system');
+              if (filteringOptions.customButtonFilter) filters.push('custom');
               if (filters.length > 0) {
-                console.log(
-                  `Filtering: Excluding ${filters.join(", ")} buttons`,
-                );
+                console.log(`Filtering: Excluding ${filters.join(', ')} buttons`);
               }
             }
           }
@@ -229,37 +193,22 @@ program
         texts.forEach((text) => console.log(text));
       } catch (error) {
         console.error(
-          "Error extracting texts:",
-          error instanceof Error ? error.message : String(error),
+          'Error extracting texts:',
+          error instanceof Error ? error.message : String(error)
         );
         process.exit(1);
       }
-    },
+    }
   );
 
 program
-  .command("convert <input> <output>")
-  .option("--format <format>", "Output format (required)")
-  .option(
-    "--preserve-all-buttons",
-    "Preserve all buttons including navigation/system buttons",
-  )
-  .option(
-    "--no-exclude-navigation",
-    "Don't exclude navigation buttons (Home, Back)",
-  )
-  .option(
-    "--no-exclude-system",
-    "Don't exclude system buttons (Delete, Clear, etc.)",
-  )
-  .option(
-    "--exclude-buttons <list>",
-    "Comma-separated list of button labels/terms to exclude",
-  )
-  .option(
-    "--gridset-password <password>",
-    "Password for encrypted Grid3 archives (.gridsetx)",
-  )
+  .command('convert <input> <output>')
+  .option('--format <format>', 'Output format (required)')
+  .option('--preserve-all-buttons', 'Preserve all buttons including navigation/system buttons')
+  .option('--no-exclude-navigation', "Don't exclude navigation buttons (Home, Back)")
+  .option('--no-exclude-system', "Don't exclude system buttons (Delete, Clear, etc.)")
+  .option('--exclude-buttons <list>', 'Comma-separated list of button labels/terms to exclude')
+  .option('--gridset-password <password>', 'Password for encrypted Grid3 archives (.gridsetx)')
   .action(
     async (
       input: string,
@@ -271,13 +220,11 @@ program
         excludeSystem?: boolean;
         excludeButtons?: string;
         gridsetPassword?: string;
-      },
+      }
     ) => {
       try {
         if (!options.format) {
-          console.error(
-            "Error: --format option is required for convert command",
-          );
+          console.error('Error: --format option is required for convert command');
           process.exit(1);
         }
 
@@ -296,44 +243,39 @@ program
         await outputProcessor.saveFromTree(tree, output);
 
         // Show filtering summary
-        let filteringSummary = "";
+        let filteringSummary = '';
         if (filteringOptions.preserveAllButtons) {
-          filteringSummary = " (all buttons preserved)";
+          filteringSummary = ' (all buttons preserved)';
         } else {
           const filters = [];
-          if (filteringOptions.excludeNavigationButtons !== false)
-            filters.push("navigation");
-          if (filteringOptions.excludeSystemButtons !== false)
-            filters.push("system");
-          if (filteringOptions.customButtonFilter) filters.push("custom");
+          if (filteringOptions.excludeNavigationButtons !== false) filters.push('navigation');
+          if (filteringOptions.excludeSystemButtons !== false) filters.push('system');
+          if (filteringOptions.customButtonFilter) filters.push('custom');
           if (filters.length > 0) {
-            filteringSummary = ` (filtered: ${filters.join(", ")} buttons)`;
+            filteringSummary = ` (filtered: ${filters.join(', ')} buttons)`;
           }
         }
 
         console.log(
-          `Successfully converted ${input} to ${output} (${options.format} format)${filteringSummary}`,
+          `Successfully converted ${input} to ${output} (${options.format} format)${filteringSummary}`
         );
       } catch (error) {
         console.error(
-          "Error converting file:",
-          error instanceof Error ? error.message : String(error),
+          'Error converting file:',
+          error instanceof Error ? error.message : String(error)
         );
         process.exit(1);
       }
-    },
+    }
   );
 
 program
-  .command("validate <file>")
-  .description("Validate an AAC file format")
-  .option("--format <format>", "Format type (auto-detected if not specified)")
-  .option("--json", "Output results as JSON")
-  .option("--quiet", "Only output validation result (valid/invalid)")
-  .option(
-    "--gridset-password <password>",
-    "Password for encrypted Grid3 archives (.gridsetx)",
-  )
+  .command('validate <file>')
+  .description('Validate an AAC file format')
+  .option('--format <format>', 'Format type (auto-detected if not specified)')
+  .option('--json', 'Output results as JSON')
+  .option('--quiet', 'Only output validation result (valid/invalid)')
+  .option('--gridset-password <password>', 'Password for encrypted Grid3 archives (.gridsetx)')
   .action(
     async (
       file: string,
@@ -342,7 +284,7 @@ program
         json?: boolean;
         quiet?: boolean;
         gridsetPassword?: string;
-      },
+      }
     ) => {
       try {
         // Auto-detect format if not specified
@@ -358,9 +300,7 @@ program
 
         // Check if processor supports validation
         if (!processor.validate) {
-          console.error(
-            `Error: Validation not supported for format '${format}'`,
-          );
+          console.error(`Error: Validation not supported for format '${format}'`);
           process.exit(1);
         }
 
@@ -369,7 +309,7 @@ program
 
         // Output results
         if (options.quiet) {
-          console.log(result.valid ? "valid" : "invalid");
+          console.log(result.valid ? 'valid' : 'invalid');
         } else if (options.json) {
           console.log(JSON.stringify(result, null, 2));
         } else {
@@ -377,13 +317,13 @@ program
           console.log(`\nValidation Results for: ${result.filename}`);
           console.log(`Format: ${result.format}`);
           console.log(`File size: ${result.filesize} bytes`);
-          console.log(`Status: ${result.valid ? "✓ VALID" : "✗ INVALID"}`);
+          console.log(`Status: ${result.valid ? '✓ VALID' : '✗ INVALID'}`);
           console.log(`Errors: ${result.errors}`);
           console.log(`Warnings: ${result.warnings}\n`);
 
           if (result.errors > 0 || result.warnings > 0) {
             if (result.errors > 0) {
-              console.log("Errors:");
+              console.log('Errors:');
               result.results
                 .filter((r) => !r.valid)
                 .forEach((check) => {
@@ -395,7 +335,7 @@ program
             }
 
             if (result.warnings > 0) {
-              console.log("\nWarnings:");
+              console.log('\nWarnings:');
               result.results.forEach((check) => {
                 if (check.warnings && check.warnings.length > 0) {
                   console.log(`  ⚠ ${check.description}`);
@@ -409,28 +349,28 @@ program
 
           // Show sub-results if available
           if (result.sub_results && result.sub_results.length > 0) {
-            console.log("\nSub-results:");
+            console.log('\nSub-results:');
             result.sub_results.forEach((sub, idx) => {
               console.log(`  [${idx + 1}] ${sub.filename}`);
               console.log(
-                `      Status: ${sub.valid ? "✓" : "✗"} (${sub.errors} errors, ${sub.warnings} warnings)`,
+                `      Status: ${sub.valid ? '✓' : '✗'} (${sub.errors} errors, ${sub.warnings} warnings)`
               );
             });
           }
 
-          console.log("");
+          console.log('');
         }
 
         // Exit with appropriate code
         process.exit(result.valid ? 0 : 1);
       } catch (error) {
         console.error(
-          "Error validating file:",
-          error instanceof Error ? error.message : String(error),
+          'Error validating file:',
+          error instanceof Error ? error.message : String(error)
         );
         process.exit(1);
       }
-    },
+    }
   );
 
 // Show help if no command provided

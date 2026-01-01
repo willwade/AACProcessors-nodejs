@@ -9,8 +9,8 @@
  * active family=active family.png=active family
  */
 
-import * as fs from "fs";
-import * as path from "path";
+import * as fs from 'fs';
+import * as path from 'path';
 
 /**
  * Symbol search result
@@ -49,22 +49,22 @@ export interface LibrarySearchIndex {
  * @returns Search index
  */
 export function parsePixFile(pixFilePath: string): LibrarySearchIndex {
-  const content = fs.readFileSync(pixFilePath, "utf-8");
-  const library = path.basename(pixFilePath, ".pix");
+  const content = fs.readFileSync(pixFilePath, 'utf-8');
+  const library = path.basename(pixFilePath, '.pix');
 
   const searchTerms = new Map<string, string>();
   const filenames = new Map<string, string>();
 
-  const lines = content.split("\n");
+  const lines = content.split('\n');
 
   for (const line of lines) {
     const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("encoding=")) {
+    if (!trimmed || trimmed.startsWith('encoding=')) {
       continue;
     }
 
     // Format: searchTerm=symbolFilename=searchTerm
-    const parts = trimmed.split("=");
+    const parts = trimmed.split('=');
     if (parts.length >= 3) {
       const searchTerm = parts[0];
       const symbolFilename = parts[1];
@@ -84,20 +84,15 @@ export function parsePixFile(pixFilePath: string): LibrarySearchIndex {
  * @returns Map of library name to search index
  */
 export function loadSearchIndexes(
-  options: SymbolSearchOptions = {},
+  options: SymbolSearchOptions = {}
 ): Map<string, LibrarySearchIndex> {
-  const { grid3Path, locale = "en-GB", libraries: specifiedLibs } = options;
+  const { grid3Path, locale = 'en-GB', libraries: specifiedLibs } = options;
 
   if (!grid3Path) {
-    throw new Error("grid3Path is required for symbol search");
+    throw new Error('grid3Path is required for symbol search');
   }
 
-  const searchIndexesDir = path.join(
-    grid3Path,
-    "Locale",
-    locale,
-    "symbolsearch",
-  );
+  const searchIndexesDir = path.join(grid3Path, 'Locale', locale, 'symbolsearch');
 
   if (!fs.existsSync(searchIndexesDir)) {
     throw new Error(`Symbol search directory not found: ${searchIndexesDir}`);
@@ -107,19 +102,15 @@ export function loadSearchIndexes(
   const files = fs.readdirSync(searchIndexesDir);
 
   for (const file of files) {
-    if (!file.endsWith(".pix")) {
+    if (!file.endsWith('.pix')) {
       continue;
     }
 
-    const libraryName = path.basename(file, ".pix");
+    const libraryName = path.basename(file, '.pix');
 
     // Filter libraries if specified
     if (specifiedLibs && specifiedLibs.length > 0) {
-      if (
-        !specifiedLibs.some(
-          (lib) => lib.toLowerCase() === libraryName.toLowerCase(),
-        )
-      ) {
+      if (!specifiedLibs.some((lib) => lib.toLowerCase() === libraryName.toLowerCase())) {
         continue;
       }
     }
@@ -144,7 +135,7 @@ export function loadSearchIndexes(
  */
 export function searchSymbols(
   searchTerm: string,
-  options: SymbolSearchOptions = {},
+  options: SymbolSearchOptions = {}
 ): SymbolSearchResult[] {
   const indexes = loadSearchIndexes(options);
   const results: SymbolSearchResult[] = [];
@@ -172,11 +163,7 @@ export function searchSymbols(
         if (term.includes(lowerSearchTerm) || lowerSearchTerm.includes(term)) {
           // Skip if already added as exact match
           if (
-            results.some(
-              (r) =>
-                r.library === libraryName &&
-                r.symbolFilename === symbolFilename,
-            )
+            results.some((r) => r.library === libraryName && r.symbolFilename === symbolFilename)
           ) {
             continue;
           }
@@ -214,7 +201,7 @@ export function searchSymbols(
 export function getSymbolFilename(
   searchTerm: string,
   library: string,
-  options: SymbolSearchOptions = {},
+  options: SymbolSearchOptions = {}
 ): string | undefined {
   const indexes = loadSearchIndexes({
     ...options,
@@ -239,7 +226,7 @@ export function getSymbolFilename(
 export function getSymbolDisplayName(
   symbolFilename: string,
   library: string,
-  options: SymbolSearchOptions = {},
+  options: SymbolSearchOptions = {}
 ): string | undefined {
   const indexes = loadSearchIndexes({
     ...options,
@@ -260,10 +247,7 @@ export function getSymbolDisplayName(
  * @param options - Search options
  * @returns Array of search terms
  */
-export function getAllSearchTerms(
-  library: string,
-  options: SymbolSearchOptions = {},
-): string[] {
+export function getAllSearchTerms(library: string, options: SymbolSearchOptions = {}): string[] {
   const indexes = loadSearchIndexes({
     ...options,
     libraries: [library],
@@ -285,7 +269,7 @@ export function getAllSearchTerms(
  */
 export function getSearchSuggestions(
   partialTerm: string,
-  options: SymbolSearchOptions = {},
+  options: SymbolSearchOptions = {}
 ): string[] {
   const indexes = loadSearchIndexes(options);
   const suggestions = new Set<string>();
@@ -310,7 +294,7 @@ export function getSearchSuggestions(
  */
 export function searchSymbolsWithReferences(
   searchTerm: string,
-  options: SymbolSearchOptions = {},
+  options: SymbolSearchOptions = {}
 ): string[] {
   const results = searchSymbols(searchTerm, options);
 
@@ -322,9 +306,7 @@ export function searchSymbolsWithReferences(
  * @param options - Search options
  * @returns Map of library name to symbol count
  */
-export function countLibrarySymbols(
-  options: SymbolSearchOptions = {},
-): Map<string, number> {
+export function countLibrarySymbols(options: SymbolSearchOptions = {}): Map<string, number> {
   const indexes = loadSearchIndexes(options);
   const counts = new Map<string, number>();
 
@@ -355,9 +337,7 @@ export interface SymbolSearchStats {
  * @param options - Search options
  * @returns Statistics about available symbols
  */
-export function getSymbolSearchStats(
-  options: SymbolSearchOptions = {},
-): SymbolSearchStats {
+export function getSymbolSearchStats(options: SymbolSearchOptions = {}): SymbolSearchStats {
   const indexes = loadSearchIndexes(options);
   const stats: SymbolSearchStats = {
     totalLibraries: indexes.size,

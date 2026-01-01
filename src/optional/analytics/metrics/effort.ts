@@ -80,12 +80,10 @@ export function distanceEffort(
   x: number,
   y: number,
   entryX: number = 1.0,
-  entryY: number = 1.0,
+  entryY: number = 1.0
 ): number {
   const distance = Math.sqrt(Math.pow(x - entryX, 2) + Math.pow(y - entryY, 2));
-  return (
-    (distance / EFFORT_CONSTANTS.SQRT2) * EFFORT_CONSTANTS.DISTANCE_MULTIPLIER
-  );
+  return (distance / EFFORT_CONSTANTS.SQRT2) * EFFORT_CONSTANTS.DISTANCE_MULTIPLIER;
 }
 
 /**
@@ -108,11 +106,7 @@ export function spellingEffort(word: string): number {
  * @param buttonCount - Number of visible buttons
  * @returns Base board effort score
  */
-export function baseBoardEffort(
-  rows: number,
-  cols: number,
-  buttonCount: number,
-): number {
+export function baseBoardEffort(rows: number, cols: number, buttonCount: number): number {
   const sizeEffort = buttonSizeEffort(rows, cols);
   const fieldEffort = fieldSizeEffort(buttonCount);
   return sizeEffort + fieldEffort;
@@ -125,10 +119,7 @@ export function baseBoardEffort(
  * @param reuseDiscount - Calculated reuse discount
  * @returns Adjusted board effort
  */
-export function applyReuseDiscount(
-  boardEffort: number,
-  reuseDiscount: number,
-): number {
+export function applyReuseDiscount(boardEffort: number, reuseDiscount: number): number {
   return Math.max(0, boardEffort - reuseDiscount);
 }
 
@@ -143,23 +134,20 @@ export function applyReuseDiscount(
 export function calculateButtonEffort(
   baseEffort: number,
   boardPcts: { [id: string]: number },
-  button: { semantic_id?: string; clone_id?: string },
+  button: { semantic_id?: string; clone_id?: string }
 ): number {
   let buttonEffort = baseEffort;
 
   // Apply discounts for semantic_id
   if (button.semantic_id && boardPcts[button.semantic_id]) {
     const discount =
-      EFFORT_CONSTANTS.SAME_LOCATION_AS_PRIOR_DISCOUNT /
-      boardPcts[button.semantic_id];
+      EFFORT_CONSTANTS.SAME_LOCATION_AS_PRIOR_DISCOUNT / boardPcts[button.semantic_id];
     buttonEffort = Math.min(buttonEffort, buttonEffort * discount);
   }
 
   // Apply discounts for clone_id
   if (button.clone_id && boardPcts[button.clone_id]) {
-    const discount =
-      EFFORT_CONSTANTS.SAME_LOCATION_AS_PRIOR_DISCOUNT /
-      boardPcts[button.clone_id];
+    const discount = EFFORT_CONSTANTS.SAME_LOCATION_AS_PRIOR_DISCOUNT / boardPcts[button.clone_id];
     buttonEffort = Math.min(buttonEffort, buttonEffort * discount);
   }
 
@@ -179,7 +167,7 @@ export function calculateDistanceWithDiscounts(
   distance: number,
   boardPcts: { [id: string]: number },
   button: { semantic_id?: string; clone_id?: string },
-  setPcts: { [id: string]: number },
+  setPcts: { [id: string]: number }
 ): number {
   let adjustedDistance = distance;
 
@@ -187,20 +175,12 @@ export function calculateDistanceWithDiscounts(
   if (button.semantic_id) {
     if (boardPcts[button.semantic_id]) {
       const discount =
-        EFFORT_CONSTANTS.SAME_LOCATION_AS_PRIOR_DISCOUNT /
-        boardPcts[button.semantic_id];
-      adjustedDistance = Math.min(
-        adjustedDistance,
-        adjustedDistance * discount,
-      );
+        EFFORT_CONSTANTS.SAME_LOCATION_AS_PRIOR_DISCOUNT / boardPcts[button.semantic_id];
+      adjustedDistance = Math.min(adjustedDistance, adjustedDistance * discount);
     } else if (setPcts[button.semantic_id]) {
       const discount =
-        EFFORT_CONSTANTS.RECOGNIZABLE_SEMANTIC_FROM_OTHER_DISCOUNT /
-        setPcts[button.semantic_id];
-      adjustedDistance = Math.min(
-        adjustedDistance,
-        adjustedDistance * discount,
-      );
+        EFFORT_CONSTANTS.RECOGNIZABLE_SEMANTIC_FROM_OTHER_DISCOUNT / setPcts[button.semantic_id];
+      adjustedDistance = Math.min(adjustedDistance, adjustedDistance * discount);
     }
   }
 
@@ -208,20 +188,12 @@ export function calculateDistanceWithDiscounts(
   if (button.clone_id) {
     if (boardPcts[button.clone_id]) {
       const discount =
-        EFFORT_CONSTANTS.SAME_LOCATION_AS_PRIOR_DISCOUNT /
-        boardPcts[button.clone_id];
-      adjustedDistance = Math.min(
-        adjustedDistance,
-        adjustedDistance * discount,
-      );
+        EFFORT_CONSTANTS.SAME_LOCATION_AS_PRIOR_DISCOUNT / boardPcts[button.clone_id];
+      adjustedDistance = Math.min(adjustedDistance, adjustedDistance * discount);
     } else if (setPcts[button.clone_id]) {
       const discount =
-        EFFORT_CONSTANTS.RECOGNIZABLE_CLONE_FROM_OTHER_DISCOUNT /
-        setPcts[button.clone_id];
-      adjustedDistance = Math.min(
-        adjustedDistance,
-        adjustedDistance * discount,
-      );
+        EFFORT_CONSTANTS.RECOGNIZABLE_CLONE_FROM_OTHER_DISCOUNT / setPcts[button.clone_id];
+      adjustedDistance = Math.min(adjustedDistance, adjustedDistance * discount);
     }
   }
 
@@ -257,7 +229,6 @@ export function localScanEffort(distance: number): number {
  */
 export function scanningEffort(steps: number, selections: number): number {
   return (
-    steps * EFFORT_CONSTANTS.SCAN_STEP_COST +
-    selections * EFFORT_CONSTANTS.SCAN_SELECTION_COST
+    steps * EFFORT_CONSTANTS.SCAN_STEP_COST + selections * EFFORT_CONSTANTS.SCAN_SELECTION_COST
   );
 }

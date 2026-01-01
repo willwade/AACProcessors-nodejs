@@ -1,27 +1,27 @@
 // Main entry point for AACProcessors library
-export * from "./core/treeStructure";
-export * from "./core/baseProcessor";
-export * from "./core/stringCasing";
-export * from "./processors";
-export * from "./validation";
-export * as Analytics from "./optional/analytics";
+export * from './core/treeStructure';
+export * from './core/baseProcessor';
+export * from './core/stringCasing';
+export * from './processors';
+export * from './validation';
+export * as Analytics from './optional/analytics';
 export {
   collectUnifiedHistory,
   listGrid3Users as listHistoryGrid3Users,
   listSnapUsers as listHistorySnapUsers,
-} from "./optional/analytics/history";
+} from './optional/analytics/history';
 
-import { BaseProcessor } from "./core/baseProcessor";
-import { DotProcessor } from "./processors/dotProcessor";
-import { ExcelProcessor } from "./processors/excelProcessor";
-import { OpmlProcessor } from "./processors/opmlProcessor";
-import { ObfProcessor } from "./processors/obfProcessor";
-import { GridsetProcessor } from "./processors/gridsetProcessor";
-import { SnapProcessor } from "./processors/snapProcessor";
-import { TouchChatProcessor } from "./processors/touchchatProcessor";
-import { ApplePanelsProcessor } from "./processors/applePanelsProcessor";
-import { AstericsGridProcessor } from "./processors/astericsGridProcessor";
-import { ObfsetProcessor } from "./processors/obfsetProcessor";
+import { BaseProcessor } from './core/baseProcessor';
+import { DotProcessor } from './processors/dotProcessor';
+import { ExcelProcessor } from './processors/excelProcessor';
+import { OpmlProcessor } from './processors/opmlProcessor';
+import { ObfProcessor } from './processors/obfProcessor';
+import { GridsetProcessor } from './processors/gridsetProcessor';
+import { SnapProcessor } from './processors/snapProcessor';
+import { TouchChatProcessor } from './processors/touchchatProcessor';
+import { ApplePanelsProcessor } from './processors/applePanelsProcessor';
+import { AstericsGridProcessor } from './processors/astericsGridProcessor';
+import { ObfsetProcessor } from './processors/obfsetProcessor';
 
 /**
  * Factory function to get the appropriate processor for a file extension
@@ -31,33 +31,33 @@ import { ObfsetProcessor } from "./processors/obfsetProcessor";
  */
 export function getProcessor(filePathOrExtension: string): BaseProcessor {
   // Extract extension from file path
-  const extension = filePathOrExtension.includes(".")
-    ? filePathOrExtension.substring(filePathOrExtension.lastIndexOf("."))
+  const extension = filePathOrExtension.includes('.')
+    ? filePathOrExtension.substring(filePathOrExtension.lastIndexOf('.'))
     : filePathOrExtension;
 
   switch (extension.toLowerCase()) {
-    case ".dot":
+    case '.dot':
       return new DotProcessor();
-    case ".xlsx":
+    case '.xlsx':
       return new ExcelProcessor();
-    case ".opml":
+    case '.opml':
       return new OpmlProcessor();
-    case ".obf":
-    case ".obz":
+    case '.obf':
+    case '.obz':
       return new ObfProcessor();
-    case ".obfset":
+    case '.obfset':
       return new ObfsetProcessor();
-    case ".gridset":
-    case ".gridsetx":
+    case '.gridset':
+    case '.gridsetx':
       return new GridsetProcessor();
-    case ".spb":
-    case ".sps":
+    case '.spb':
+    case '.sps':
       return new SnapProcessor();
-    case ".ce":
+    case '.ce':
       return new TouchChatProcessor();
-    case ".plist":
+    case '.plist':
       return new ApplePanelsProcessor();
-    case ".grd":
+    case '.grd':
       return new AstericsGridProcessor();
     default:
       throw new Error(`Unsupported file extension: ${extension}`);
@@ -70,19 +70,19 @@ export function getProcessor(filePathOrExtension: string): BaseProcessor {
  */
 export function getSupportedExtensions(): string[] {
   return [
-    ".dot",
-    ".xlsx",
-    ".opml",
-    ".obf",
-    ".obz",
-    ".obfset",
-    ".gridset",
-    ".gridsetx",
-    ".spb",
-    ".sps",
-    ".ce",
-    ".plist",
-    ".grd",
+    '.dot',
+    '.xlsx',
+    '.opml',
+    '.obf',
+    '.obz',
+    '.obfset',
+    '.gridset',
+    '.gridsetx',
+    '.spb',
+    '.sps',
+    '.ce',
+    '.plist',
+    '.grd',
   ];
 }
 

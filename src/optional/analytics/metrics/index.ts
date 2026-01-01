@@ -8,10 +8,10 @@
  * - Comparative analysis between board sets
  */
 
-export { MetricsCalculator } from "./core";
-export { VocabularyAnalyzer } from "./vocabulary";
-export { SentenceAnalyzer } from "./sentence";
-export { ComparisonAnalyzer } from "./comparison";
+export { MetricsCalculator } from './core';
+export { VocabularyAnalyzer } from './vocabulary';
+export { SentenceAnalyzer } from './sentence';
+export { ComparisonAnalyzer } from './comparison';
 
-export * from "./types";
-export * from "./effort";
+export * from './types';
+export * from './effort';

@@ -5,9 +5,9 @@
  * and identifies missing/extra words compared to reference lists.
  */
 
-import { MetricsResult, CoreList } from "./types";
-import { ReferenceLoader } from "../reference/index";
-import { spellingEffort } from "./effort";
+import { MetricsResult, CoreList } from './types';
+import { ReferenceLoader } from '../reference/index';
+import { spellingEffort } from './effort';
 
 export interface VocabularyAnalysis {
   // Coverage statistics for each core list
@@ -52,7 +52,7 @@ export class VocabularyAnalyzer {
       locale?: string;
       highEffortThreshold?: number;
       lowEffortThreshold?: number;
-    },
+    }
   ): VocabularyAnalysis {
     // const locale = options?.locale || metrics.locale || 'en';
     const highEffortThreshold = options?.highEffortThreshold || 5.0;
@@ -72,7 +72,7 @@ export class VocabularyAnalyzer {
     });
 
     // Analyze each core list
-    const core_coverage: VocabularyAnalysis["core_coverage"] = {};
+    const core_coverage: VocabularyAnalysis['core_coverage'] = {};
 
     coreLists.forEach((list) => {
       const analysis = this.analyzeCoreList(list, wordEffortMap);
@@ -124,8 +124,8 @@ export class VocabularyAnalyzer {
    */
   private analyzeCoreList(
     list: CoreList,
-    wordEffortMap: Map<string, number>,
-  ): VocabularyAnalysis["core_coverage"][string] {
+    wordEffortMap: Map<string, number>
+  ): VocabularyAnalysis['core_coverage'][string] {
     const covered: string[] = [];
     const missing: string[] = [];
     let totalEffort = 0;
@@ -159,15 +159,13 @@ export class VocabularyAnalyzer {
    */
   calculateCoverage(
     wordList: string[],
-    metrics: MetricsResult,
+    metrics: MetricsResult
   ): {
     covered: string[];
     missing: string[];
     coverage_percent: number;
   } {
-    const wordSet = new Set(
-      metrics.buttons.map((btn) => btn.label.toLowerCase()),
-    );
+    const wordSet = new Set(metrics.buttons.map((btn) => btn.label.toLowerCase()));
 
     const covered: string[] = [];
     const missing: string[] = [];
@@ -191,9 +189,7 @@ export class VocabularyAnalyzer {
    * Get effort for a word, or calculate spelling effort if missing
    */
   getWordEffort(word: string, metrics: MetricsResult): number {
-    const btn = metrics.buttons.find(
-      (b) => b.label.toLowerCase() === word.toLowerCase(),
-    );
+    const btn = metrics.buttons.find((b) => b.label.toLowerCase() === word.toLowerCase());
     if (btn) {
       return btn.effort;
     }
@@ -204,8 +200,6 @@ export class VocabularyAnalyzer {
    * Check if a word is in the board set
    */
   hasWord(word: string, metrics: MetricsResult): boolean {
-    return metrics.buttons.some(
-      (b) => b.label.toLowerCase() === word.toLowerCase(),
-    );
+    return metrics.buttons.some((b) => b.label.toLowerCase() === word.toLowerCase());
   }
 }

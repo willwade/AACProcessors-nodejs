@@ -4,7 +4,7 @@ import {
   ExtractStringsResult,
   TranslatedString,
   SourceString,
-} from "../core/baseProcessor";
+} from '../core/baseProcessor';
 import {
   AACTree,
   AACPage,
@@ -12,8 +12,8 @@ import {
   AACSemanticAction,
   AACSemanticCategory,
   AACSemanticIntent,
-} from "../core/treeStructure";
-import fs from "fs";
+} from '../core/treeStructure';
+import fs from 'fs';
 
 // Asterics Grid data model interfaces
 interface GridData {
@@ -106,334 +106,333 @@ interface ColorSchemeDefinition {
 
 const DEFAULT_COLOR_SCHEME_DEFINITIONS: ColorSchemeDefinition[] = [
   {
-    name: "CS_MODIFIED_FITZGERALD_KEY_VERY_LIGHT",
+    name: 'CS_MODIFIED_FITZGERALD_KEY_VERY_LIGHT',
     categories: [
-      "CC_PRONOUN_PERSON_NAME",
-      "CC_NOUN",
-      "CC_VERB",
-      "CC_DESCRIPTOR",
-      "CC_SOCIAL_EXPRESSIONS",
-      "CC_MISC",
-      "CC_PLACE",
-      "CC_CATEGORY",
-      "CC_IMPORTANT",
-      "CC_OTHERS",
+      'CC_PRONOUN_PERSON_NAME',
+      'CC_NOUN',
+      'CC_VERB',
+      'CC_DESCRIPTOR',
+      'CC_SOCIAL_EXPRESSIONS',
+      'CC_MISC',
+      'CC_PLACE',
+      'CC_CATEGORY',
+      'CC_IMPORTANT',
+      'CC_OTHERS',
     ],
     colors: [
-      "#fafad0",
-      "#fbf3e4",
-      "#dff4df",
-      "#eaeffd",
-      "#fff0f6",
-      "#ffffff",
-      "#fbf2ff",
-      "#ddccc1",
-      "#FCE8E8",
-      "#e4e4e4",
+      '#fafad0',
+      '#fbf3e4',
+      '#dff4df',
+      '#eaeffd',
+      '#fff0f6',
+      '#ffffff',
+      '#fbf2ff',
+      '#ddccc1',
+      '#FCE8E8',
+      '#e4e4e4',
     ],
     mappings: {
-      CC_ADJECTIVE: "CC_DESCRIPTOR",
-      CC_ADVERB: "CC_DESCRIPTOR",
-      CC_ARTICLE: "CC_MISC",
-      CC_PREPOSITION: "CC_MISC",
-      CC_CONJUNCTION: "CC_MISC",
-      CC_INTERJECTION: "CC_SOCIAL_EXPRESSIONS",
+      CC_ADJECTIVE: 'CC_DESCRIPTOR',
+      CC_ADVERB: 'CC_DESCRIPTOR',
+      CC_ARTICLE: 'CC_MISC',
+      CC_PREPOSITION: 'CC_MISC',
+      CC_CONJUNCTION: 'CC_MISC',
+      CC_INTERJECTION: 'CC_SOCIAL_EXPRESSIONS',
     },
   },
   {
-    name: "CS_MODIFIED_FITZGERALD_KEY_LIGHT",
+    name: 'CS_MODIFIED_FITZGERALD_KEY_LIGHT',
     categories: [
-      "CC_PRONOUN_PERSON_NAME",
-      "CC_NOUN",
-      "CC_VERB",
-      "CC_DESCRIPTOR",
-      "CC_SOCIAL_EXPRESSIONS",
-      "CC_MISC",
-      "CC_PLACE",
-      "CC_CATEGORY",
-      "CC_IMPORTANT",
-      "CC_OTHERS",
+      'CC_PRONOUN_PERSON_NAME',
+      'CC_NOUN',
+      'CC_VERB',
+      'CC_DESCRIPTOR',
+      'CC_SOCIAL_EXPRESSIONS',
+      'CC_MISC',
+      'CC_PLACE',
+      'CC_CATEGORY',
+      'CC_IMPORTANT',
+      'CC_OTHERS',
     ],
     colors: [
-      "#fdfd96",
-      "#ffda89",
-      "#c7f3c7",
-      "#84b6f4",
-      "#fdcae1",
-      "#ffffff",
-      "#bc98f3",
-      "#d8af97",
-      "#ff9688",
-      "#bdbfbf",
+      '#fdfd96',
+      '#ffda89',
+      '#c7f3c7',
+      '#84b6f4',
+      '#fdcae1',
+      '#ffffff',
+      '#bc98f3',
+      '#d8af97',
+      '#ff9688',
+      '#bdbfbf',
     ],
     mappings: {
-      CC_ADJECTIVE: "CC_DESCRIPTOR",
-      CC_ADVERB: "CC_DESCRIPTOR",
-      CC_ARTICLE: "CC_MISC",
-      CC_PREPOSITION: "CC_MISC",
-      CC_CONJUNCTION: "CC_MISC",
-      CC_INTERJECTION: "CC_SOCIAL_EXPRESSIONS",
+      CC_ADJECTIVE: 'CC_DESCRIPTOR',
+      CC_ADVERB: 'CC_DESCRIPTOR',
+      CC_ARTICLE: 'CC_MISC',
+      CC_PREPOSITION: 'CC_MISC',
+      CC_CONJUNCTION: 'CC_MISC',
+      CC_INTERJECTION: 'CC_SOCIAL_EXPRESSIONS',
     },
   },
   {
-    name: "CS_MODIFIED_FITZGERALD_KEY_MEDIUM",
+    name: 'CS_MODIFIED_FITZGERALD_KEY_MEDIUM',
     categories: [
-      "CC_PRONOUN_PERSON_NAME",
-      "CC_NOUN",
-      "CC_VERB",
-      "CC_DESCRIPTOR",
-      "CC_SOCIAL_EXPRESSIONS",
-      "CC_MISC",
-      "CC_PLACE",
-      "CC_CATEGORY",
-      "CC_IMPORTANT",
-      "CC_OTHERS",
+      'CC_PRONOUN_PERSON_NAME',
+      'CC_NOUN',
+      'CC_VERB',
+      'CC_DESCRIPTOR',
+      'CC_SOCIAL_EXPRESSIONS',
+      'CC_MISC',
+      'CC_PLACE',
+      'CC_CATEGORY',
+      'CC_IMPORTANT',
+      'CC_OTHERS',
     ],
     colors: [
-      "#ffff6b",
-      "#ffb56b",
-      "#b5ff6b",
-      "#6bb5ff",
-      "#ff6bff",
-      "#ffffff",
-      "#ce6bff",
-      "#bf9075",
-      "#ff704d",
-      "#a3a3a3",
+      '#ffff6b',
+      '#ffb56b',
+      '#b5ff6b',
+      '#6bb5ff',
+      '#ff6bff',
+      '#ffffff',
+      '#ce6bff',
+      '#bf9075',
+      '#ff704d',
+      '#a3a3a3',
     ],
     mappings: {
-      CC_ADJECTIVE: "CC_DESCRIPTOR",
-      CC_ADVERB: "CC_DESCRIPTOR",
-      CC_ARTICLE: "CC_MISC",
-      CC_PREPOSITION: "CC_MISC",
-      CC_CONJUNCTION: "CC_MISC",
-      CC_INTERJECTION: "CC_SOCIAL_EXPRESSIONS",
+      CC_ADJECTIVE: 'CC_DESCRIPTOR',
+      CC_ADVERB: 'CC_DESCRIPTOR',
+      CC_ARTICLE: 'CC_MISC',
+      CC_PREPOSITION: 'CC_MISC',
+      CC_CONJUNCTION: 'CC_MISC',
+      CC_INTERJECTION: 'CC_SOCIAL_EXPRESSIONS',
     },
   },
   {
-    name: "CS_MODIFIED_FITZGERALD_KEY_DARK",
+    name: 'CS_MODIFIED_FITZGERALD_KEY_DARK',
     categories: [
-      "CC_PRONOUN_PERSON_NAME",
-      "CC_NOUN",
-      "CC_VERB",
-      "CC_DESCRIPTOR",
-      "CC_SOCIAL_EXPRESSIONS",
-      "CC_MISC",
-      "CC_PLACE",
-      "CC_CATEGORY",
-      "CC_IMPORTANT",
-      "CC_OTHERS",
+      'CC_PRONOUN_PERSON_NAME',
+      'CC_NOUN',
+      'CC_VERB',
+      'CC_DESCRIPTOR',
+      'CC_SOCIAL_EXPRESSIONS',
+      'CC_MISC',
+      'CC_PLACE',
+      'CC_CATEGORY',
+      'CC_IMPORTANT',
+      'CC_OTHERS',
     ],
     colors: [
-      "#79791F",
-      "#804c26",
-      "#4c8026",
-      "#264c80",
-      "#802680",
-      "#747474",
-      "#602680",
-      "#52331f",
-      "#80261a",
-      "#464646",
+      '#79791F',
+      '#804c26',
+      '#4c8026',
+      '#264c80',
+      '#802680',
+      '#747474',
+      '#602680',
+      '#52331f',
+      '#80261a',
+      '#464646',
     ],
     mappings: {
-      CC_ADJECTIVE: "CC_DESCRIPTOR",
-      CC_ADVERB: "CC_DESCRIPTOR",
-      CC_ARTICLE: "CC_MISC",
-      CC_PREPOSITION: "CC_MISC",
-      CC_CONJUNCTION: "CC_MISC",
-      CC_INTERJECTION: "CC_SOCIAL_EXPRESSIONS",
+      CC_ADJECTIVE: 'CC_DESCRIPTOR',
+      CC_ADVERB: 'CC_DESCRIPTOR',
+      CC_ARTICLE: 'CC_MISC',
+      CC_PREPOSITION: 'CC_MISC',
+      CC_CONJUNCTION: 'CC_MISC',
+      CC_INTERJECTION: 'CC_SOCIAL_EXPRESSIONS',
     },
   },
   {
-    name: "CS_GOOSENS_VERY_LIGHT",
+    name: 'CS_GOOSENS_VERY_LIGHT',
     categories: [
-      "CC_VERB",
-      "CC_DESCRIPTOR",
-      "CC_PREPOSITION",
-      "CC_NOUN",
-      "CC_QUESTION_NEGATION_PRONOUN",
+      'CC_VERB',
+      'CC_DESCRIPTOR',
+      'CC_PREPOSITION',
+      'CC_NOUN',
+      'CC_QUESTION_NEGATION_PRONOUN',
     ],
-    colors: ["#fff0f6", "#eaeffd", "#dff4df", "#fafad0", "#fbf3e4"],
+    colors: ['#fff0f6', '#eaeffd', '#dff4df', '#fafad0', '#fbf3e4'],
   },
   {
-    name: "CS_GOOSENS_LIGHT",
+    name: 'CS_GOOSENS_LIGHT',
     categories: [
-      "CC_VERB",
-      "CC_DESCRIPTOR",
-      "CC_PREPOSITION",
-      "CC_NOUN",
-      "CC_QUESTION_NEGATION_PRONOUN",
+      'CC_VERB',
+      'CC_DESCRIPTOR',
+      'CC_PREPOSITION',
+      'CC_NOUN',
+      'CC_QUESTION_NEGATION_PRONOUN',
     ],
-    colors: ["#fdcae1", "#84b6f4", "#c7f3c7", "#fdfd96", "#ffda89"],
+    colors: ['#fdcae1', '#84b6f4', '#c7f3c7', '#fdfd96', '#ffda89'],
   },
   {
-    name: "CS_GOOSENS_MEDIUM",
+    name: 'CS_GOOSENS_MEDIUM',
     categories: [
-      "CC_VERB",
-      "CC_DESCRIPTOR",
-      "CC_PREPOSITION",
-      "CC_NOUN",
-      "CC_QUESTION_NEGATION_PRONOUN",
+      'CC_VERB',
+      'CC_DESCRIPTOR',
+      'CC_PREPOSITION',
+      'CC_NOUN',
+      'CC_QUESTION_NEGATION_PRONOUN',
     ],
-    colors: ["#ff6bff", "#6bb5ff", "#b5ff6b", "#ffff6b", "#ffb56b"],
+    colors: ['#ff6bff', '#6bb5ff', '#b5ff6b', '#ffff6b', '#ffb56b'],
   },
   {
-    name: "CS_GOOSENS_DARK",
+    name: 'CS_GOOSENS_DARK',
     categories: [
-      "CC_VERB",
-      "CC_DESCRIPTOR",
-      "CC_PREPOSITION",
-      "CC_NOUN",
-      "CC_QUESTION_NEGATION_PRONOUN",
+      'CC_VERB',
+      'CC_DESCRIPTOR',
+      'CC_PREPOSITION',
+      'CC_NOUN',
+      'CC_QUESTION_NEGATION_PRONOUN',
     ],
-    colors: ["#802680", "#264c80", "#4c8026", "#79791F", "#804c26"],
+    colors: ['#802680', '#264c80', '#4c8026', '#79791F', '#804c26'],
   },
   {
-    name: "CS_MONTESSORI_VERY_LIGHT",
+    name: 'CS_MONTESSORI_VERY_LIGHT',
     categories: [
-      "CC_NOUN",
-      "CC_ARTICLE",
-      "CC_ADJECTIVE",
-      "CC_VERB",
-      "CC_PREPOSITION",
-      "CC_ADVERB",
-      "CC_PRONOUN_PERSON_NAME",
-      "CC_CONJUNCTION",
-      "CC_INTERJECTION",
-      "CC_CATEGORY",
+      'CC_NOUN',
+      'CC_ARTICLE',
+      'CC_ADJECTIVE',
+      'CC_VERB',
+      'CC_PREPOSITION',
+      'CC_ADVERB',
+      'CC_PRONOUN_PERSON_NAME',
+      'CC_CONJUNCTION',
+      'CC_INTERJECTION',
+      'CC_CATEGORY',
     ],
     colors: [
-      "#ffffff",
-      "#e3f5fa",
-      "#eaeffd",
-      "#FCE8E8",
-      "#dff4df",
-      "#fbf3e4",
-      "#fbf2ff",
-      "#fff0f6",
-      "#fbf7e4",
-      "#e4e4e4",
+      '#ffffff',
+      '#e3f5fa',
+      '#eaeffd',
+      '#FCE8E8',
+      '#dff4df',
+      '#fbf3e4',
+      '#fbf2ff',
+      '#fff0f6',
+      '#fbf7e4',
+      '#e4e4e4',
     ],
     customBorders: {
-      CC_NOUN: "#353535",
+      CC_NOUN: '#353535',
     },
   },
   {
-    name: "CS_MONTESSORI_LIGHT",
+    name: 'CS_MONTESSORI_LIGHT',
     categories: [
-      "CC_NOUN",
-      "CC_ARTICLE",
-      "CC_ADJECTIVE",
-      "CC_VERB",
-      "CC_PREPOSITION",
-      "CC_ADVERB",
-      "CC_PRONOUN_PERSON_NAME",
-      "CC_CONJUNCTION",
-      "CC_INTERJECTION",
-      "CC_CATEGORY",
+      'CC_NOUN',
+      'CC_ARTICLE',
+      'CC_ADJECTIVE',
+      'CC_VERB',
+      'CC_PREPOSITION',
+      'CC_ADVERB',
+      'CC_PRONOUN_PERSON_NAME',
+      'CC_CONJUNCTION',
+      'CC_INTERJECTION',
+      'CC_CATEGORY',
     ],
     colors: [
-      "#afafaf",
-      "#a8e0f0",
-      "#a5bbf7",
-      "#f4a8a8",
-      "#ace3ac",
-      "#f2d7a6",
-      "#e4a5ff",
-      "#ffa5c9",
-      "#f2e5a6",
-      "#d1d1d1",
+      '#afafaf',
+      '#a8e0f0',
+      '#a5bbf7',
+      '#f4a8a8',
+      '#ace3ac',
+      '#f2d7a6',
+      '#e4a5ff',
+      '#ffa5c9',
+      '#f2e5a6',
+      '#d1d1d1',
     ],
   },
   {
-    name: "CS_MONTESSORI_MEDIUM",
+    name: 'CS_MONTESSORI_MEDIUM',
     categories: [
-      "CC_NOUN",
-      "CC_ARTICLE",
-      "CC_ADJECTIVE",
-      "CC_VERB",
-      "CC_PREPOSITION",
-      "CC_ADVERB",
-      "CC_PRONOUN_PERSON_NAME",
-      "CC_CONJUNCTION",
-      "CC_INTERJECTION",
-      "CC_CATEGORY",
+      'CC_NOUN',
+      'CC_ARTICLE',
+      'CC_ADJECTIVE',
+      'CC_VERB',
+      'CC_PREPOSITION',
+      'CC_ADVERB',
+      'CC_PRONOUN_PERSON_NAME',
+      'CC_CONJUNCTION',
+      'CC_INTERJECTION',
+      'CC_CATEGORY',
     ],
     colors: [
-      "#000000",
-      "#4ca6d9",
-      "#1347ae",
-      "#e73a0f",
-      "#04bf82",
-      "#fd9030",
-      "#6118a2",
-      "#f1c9d1",
-      "#aa996b",
-      "#d1d1d1",
+      '#000000',
+      '#4ca6d9',
+      '#1347ae',
+      '#e73a0f',
+      '#04bf82',
+      '#fd9030',
+      '#6118a2',
+      '#f1c9d1',
+      '#aa996b',
+      '#d1d1d1',
     ],
   },
   {
-    name: "CS_MONTESSORI_DARK",
+    name: 'CS_MONTESSORI_DARK',
     categories: [
-      "CC_NOUN",
-      "CC_ARTICLE",
-      "CC_ADJECTIVE",
-      "CC_VERB",
-      "CC_PREPOSITION",
-      "CC_ADVERB",
-      "CC_PRONOUN_PERSON_NAME",
-      "CC_CONJUNCTION",
-      "CC_INTERJECTION",
-      "CC_CATEGORY",
+      'CC_NOUN',
+      'CC_ARTICLE',
+      'CC_ADJECTIVE',
+      'CC_VERB',
+      'CC_PREPOSITION',
+      'CC_ADVERB',
+      'CC_PRONOUN_PERSON_NAME',
+      'CC_CONJUNCTION',
+      'CC_INTERJECTION',
+      'CC_CATEGORY',
     ],
     colors: [
-      "#464646",
-      "#18728c",
-      "#0d3298",
-      "#931212",
-      "#287728",
-      "#BC5800",
-      "#7500a7",
-      "#a70043",
-      "#807351",
-      "#747474",
+      '#464646',
+      '#18728c',
+      '#0d3298',
+      '#931212',
+      '#287728',
+      '#BC5800',
+      '#7500a7',
+      '#a70043',
+      '#807351',
+      '#747474',
     ],
   },
 ];
 
 const COLOR_SCHEME_ALIASES: Record<string, string> = {
-  CS_DEFAULT: "CS_MODIFIED_FITZGERALD_KEY_LIGHT",
-  CS_MONTESSORI: "CS_MONTESSORI_LIGHT",
-  CS_MONTESSORI_LIGHT: "CS_MONTESSORI_LIGHT",
-  CS_MONTESSORI_MEDIUM: "CS_MONTESSORI_MEDIUM",
-  CS_MONTESSORI_DARK: "CS_MONTESSORI_DARK",
-  CS_MONTESSORI_VERY_LIGHT: "CS_MONTESSORI_VERY_LIGHT",
-  CS_MODIFIED_FITZGERALD_KEY: "CS_MODIFIED_FITZGERALD_KEY_LIGHT",
-  CS_MODIFIED_FITZGERALD_KEY_LIGHT: "CS_MODIFIED_FITZGERALD_KEY_LIGHT",
-  CS_MODIFIED_FITZGERALD_KEY_MEDIUM: "CS_MODIFIED_FITZGERALD_KEY_MEDIUM",
-  CS_MODIFIED_FITZGERALD_KEY_DARK: "CS_MODIFIED_FITZGERALD_KEY_DARK",
-  CS_MODIFIED_FITZGERALD_KEY_VERY_LIGHT:
-    "CS_MODIFIED_FITZGERALD_KEY_VERY_LIGHT",
-  CS_GOOSENS: "CS_GOOSENS_LIGHT",
-  CS_GOOSENS_LIGHT: "CS_GOOSENS_LIGHT",
-  CS_GOOSENS_MEDIUM: "CS_GOOSENS_MEDIUM",
-  CS_GOOSENS_DARK: "CS_GOOSENS_DARK",
-  CS_GOOSENS_VERY_LIGHT: "CS_GOOSENS_VERY_LIGHT",
+  CS_DEFAULT: 'CS_MODIFIED_FITZGERALD_KEY_LIGHT',
+  CS_MONTESSORI: 'CS_MONTESSORI_LIGHT',
+  CS_MONTESSORI_LIGHT: 'CS_MONTESSORI_LIGHT',
+  CS_MONTESSORI_MEDIUM: 'CS_MONTESSORI_MEDIUM',
+  CS_MONTESSORI_DARK: 'CS_MONTESSORI_DARK',
+  CS_MONTESSORI_VERY_LIGHT: 'CS_MONTESSORI_VERY_LIGHT',
+  CS_MODIFIED_FITZGERALD_KEY: 'CS_MODIFIED_FITZGERALD_KEY_LIGHT',
+  CS_MODIFIED_FITZGERALD_KEY_LIGHT: 'CS_MODIFIED_FITZGERALD_KEY_LIGHT',
+  CS_MODIFIED_FITZGERALD_KEY_MEDIUM: 'CS_MODIFIED_FITZGERALD_KEY_MEDIUM',
+  CS_MODIFIED_FITZGERALD_KEY_DARK: 'CS_MODIFIED_FITZGERALD_KEY_DARK',
+  CS_MODIFIED_FITZGERALD_KEY_VERY_LIGHT: 'CS_MODIFIED_FITZGERALD_KEY_VERY_LIGHT',
+  CS_GOOSENS: 'CS_GOOSENS_LIGHT',
+  CS_GOOSENS_LIGHT: 'CS_GOOSENS_LIGHT',
+  CS_GOOSENS_MEDIUM: 'CS_GOOSENS_MEDIUM',
+  CS_GOOSENS_DARK: 'CS_GOOSENS_DARK',
+  CS_GOOSENS_VERY_LIGHT: 'CS_GOOSENS_VERY_LIGHT',
 };
 
 export function normalizeHexColor(hexColor: string): string | null {
-  if (!hexColor || typeof hexColor !== "string") return null;
+  if (!hexColor || typeof hexColor !== 'string') return null;
   let value = hexColor.trim().toLowerCase();
-  if (!value.startsWith("#")) {
+  if (!value.startsWith('#')) {
     return null;
   }
   value = value.slice(1);
   if (value.length === 3) {
     value = value
-      .split("")
+      .split('')
       .map((ch) => ch + ch)
-      .join("");
+      .join('');
   }
   if (value.length !== 6 || /[^0-9a-f]/.test(value)) {
     return null;
@@ -456,24 +455,22 @@ export function adjustHexColor(hexColor: string, amount: number): string {
 export function getHighContrastNeutralColor(backgroundColor: string): string {
   const normalized = normalizeHexColor(backgroundColor);
   if (!normalized) {
-    return "#808080";
+    return '#808080';
   }
-  return calculateLuminance(normalized) < 0.5 ? "#f5f5f5" : "#808080";
+  return calculateLuminance(normalized) < 0.5 ? '#f5f5f5' : '#808080';
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
+  return typeof value === 'object' && value !== null;
 }
 
-function normalizeStringRecord(
-  input: unknown,
-): Record<string, string> | undefined {
+function normalizeStringRecord(input: unknown): Record<string, string> | undefined {
   if (!isRecord(input)) {
     return undefined;
   }
   const entries: [string, string][] = [];
   Object.entries(input).forEach(([key, value]) => {
-    if (typeof value === "string") {
+    if (typeof value === 'string') {
       entries.push([key, value]);
     }
   });
@@ -487,7 +484,7 @@ function normalizeColorScheme(raw: unknown): ColorSchemeDefinition | null {
   if (!isRecord(raw)) return null;
   const scheme = raw;
   const nameCandidate = [scheme.name, scheme.key, scheme.id].find(
-    (value): value is string => typeof value === "string" && value.length > 0,
+    (value): value is string => typeof value === 'string' && value.length > 0
   );
   if (!nameCandidate) return null;
 
@@ -495,17 +492,15 @@ function normalizeColorScheme(raw: unknown): ColorSchemeDefinition | null {
   let colors: string[] = [];
   if (Array.isArray(scheme.categories) && Array.isArray(scheme.colors)) {
     categories = scheme.categories.filter(
-      (value: unknown): value is string => typeof value === "string",
+      (value: unknown): value is string => typeof value === 'string'
     );
-    colors = scheme.colors.filter(
-      (value: unknown): value is string => typeof value === "string",
-    );
+    colors = scheme.colors.filter((value: unknown): value is string => typeof value === 'string');
   } else if (isRecord(scheme.colorMap)) {
     const colorMap = scheme.colorMap;
     categories = Object.keys(colorMap);
     colors = categories.map((category) => {
       const colorValue = colorMap[category];
-      return typeof colorValue === "string" ? colorValue : "#ffffff";
+      return typeof colorValue === 'string' ? colorValue : '#ffffff';
     });
   }
 
@@ -530,25 +525,20 @@ function normalizeColorScheme(raw: unknown): ColorSchemeDefinition | null {
   };
 }
 
-function getAllColorSchemeDefinitions(
-  colorConfig?: AstericsColorConfig,
-): ColorSchemeDefinition[] {
-  const rawAdditional: unknown[] = Array.isArray(
-    colorConfig?.additionalColorSchemes,
-  )
+function getAllColorSchemeDefinitions(colorConfig?: AstericsColorConfig): ColorSchemeDefinition[] {
+  const rawAdditional: unknown[] = Array.isArray(colorConfig?.additionalColorSchemes)
     ? colorConfig.additionalColorSchemes
     : [];
   const additional = rawAdditional
     .map((scheme) => normalizeColorScheme(scheme))
-    .filter(
-      (value: ColorSchemeDefinition | null): value is ColorSchemeDefinition =>
-        Boolean(value),
+    .filter((value: ColorSchemeDefinition | null): value is ColorSchemeDefinition =>
+      Boolean(value)
     );
   return [...DEFAULT_COLOR_SCHEME_DEFINITIONS, ...additional];
 }
 
 function getActiveColorSchemeDefinition(
-  colorConfig?: AstericsColorConfig,
+  colorConfig?: AstericsColorConfig
 ): ColorSchemeDefinition | null {
   if (!colorConfig || colorConfig.colorSchemesActivated === false) {
     return null;
@@ -559,12 +549,9 @@ function getActiveColorSchemeDefinition(
   }
 
   const activeName: string | undefined =
-    (typeof colorConfig.activeColorScheme === "string" &&
-      colorConfig.activeColorScheme) ||
+    (typeof colorConfig.activeColorScheme === 'string' && colorConfig.activeColorScheme) ||
     undefined;
-  const normalizedName = activeName
-    ? COLOR_SCHEME_ALIASES[activeName] || activeName
-    : undefined;
+  const normalizedName = activeName ? COLOR_SCHEME_ALIASES[activeName] || activeName : undefined;
 
   if (normalizedName) {
     const match = schemes.find((scheme) => scheme.name === normalizedName);
@@ -579,7 +566,7 @@ function getActiveColorSchemeDefinition(
 function getSchemeColorForCategory(
   category: string | undefined,
   scheme: ColorSchemeDefinition | null,
-  fallback?: string,
+  fallback?: string
 ): string | undefined {
   if (!scheme || !category) return fallback;
   let index = scheme.categories.indexOf(category);
@@ -590,7 +577,7 @@ function getSchemeColorForCategory(
     return fallback;
   }
   const color = scheme.colors[index];
-  return typeof color === "string" ? color : fallback;
+  return typeof color === 'string' ? color : fallback;
 }
 
 function resolveBorderColor(
@@ -599,83 +586,68 @@ function resolveBorderColor(
   scheme: ColorSchemeDefinition | null,
   backgroundColor: string,
   schemeColor?: string,
-  fallbackBorder?: string,
+  fallbackBorder?: string
 ): string {
-  const defaultBorderColor = (fallbackBorder || "#808080").toLowerCase();
+  const defaultBorderColor = (fallbackBorder || '#808080').toLowerCase();
   const colorMode =
-    typeof colorConfig.colorMode === "string"
-      ? colorConfig.colorMode
-      : "COLOR_MODE_BACKGROUND";
+    typeof colorConfig.colorMode === 'string' ? colorConfig.colorMode : 'COLOR_MODE_BACKGROUND';
 
-  if (colorMode === "COLOR_MODE_BORDER") {
+  if (colorMode === 'COLOR_MODE_BORDER') {
     return (
-      getSchemeColorForCategory(
-        element.colorCategory,
-        scheme,
-        fallbackBorder || "#808080",
-      ) ||
+      getSchemeColorForCategory(element.colorCategory, scheme, fallbackBorder || '#808080') ||
       fallbackBorder ||
-      "#808080"
+      '#808080'
     );
   }
 
-  if (colorMode === "COLOR_MODE_BOTH") {
+  if (colorMode === 'COLOR_MODE_BOTH') {
     if (!element.colorCategory) {
-      return "transparent";
+      return 'transparent';
     }
     const customBorder = scheme?.customBorders?.[element.colorCategory];
-    if (typeof customBorder === "string") {
+    if (typeof customBorder === 'string') {
       return customBorder;
     }
     const baseColor =
       schemeColor ||
-      getSchemeColorForCategory(
-        element.colorCategory,
-        scheme,
-        backgroundColor,
-      ) ||
+      getSchemeColorForCategory(element.colorCategory, scheme, backgroundColor) ||
       backgroundColor;
     const isDark = calculateLuminance(baseColor) < 0.5;
     const adjustment = isDark ? 60 : -40;
     return adjustHexColor(baseColor, adjustment);
   }
 
-  if (defaultBorderColor !== "#808080") {
-    return fallbackBorder || "#808080";
+  if (defaultBorderColor !== '#808080') {
+    return fallbackBorder || '#808080';
   }
 
   const gridBackground =
-    typeof colorConfig.gridBackgroundColor === "string"
+    typeof colorConfig.gridBackgroundColor === 'string'
       ? colorConfig.gridBackgroundColor
-      : "#ffffff";
+      : '#ffffff';
   return getHighContrastNeutralColor(gridBackground);
 }
 
 function resolveButtonColors(
   element: GridElement,
   colorConfig: AstericsColorConfig = {},
-  scheme?: ColorSchemeDefinition | null,
+  scheme?: ColorSchemeDefinition | null
 ): { backgroundColor: string; borderColor: string; fontColor: string } {
   const fallbackBackground =
-    typeof colorConfig.elementBackgroundColor === "string"
+    typeof colorConfig.elementBackgroundColor === 'string'
       ? colorConfig.elementBackgroundColor
-      : "#FFFFFF";
+      : '#FFFFFF';
   const fallbackBorder =
-    typeof colorConfig.elementBorderColor === "string"
-      ? colorConfig.elementBorderColor
-      : "#808080";
+    typeof colorConfig.elementBorderColor === 'string' ? colorConfig.elementBorderColor : '#808080';
   const colorMode =
-    typeof colorConfig.colorMode === "string"
-      ? colorConfig.colorMode
-      : "COLOR_MODE_BACKGROUND";
+    typeof colorConfig.colorMode === 'string' ? colorConfig.colorMode : 'COLOR_MODE_BACKGROUND';
   const isSchemeActive = colorConfig?.colorSchemesActivated !== false;
   const schemeColor =
-    isSchemeActive && colorMode !== "COLOR_MODE_BORDER"
+    isSchemeActive && colorMode !== 'COLOR_MODE_BORDER'
       ? getSchemeColorForCategory(element.colorCategory, scheme || null)
       : undefined;
 
-  const backgroundColor =
-    element.backgroundColor || schemeColor || fallbackBackground || "#FFFFFF";
+  const backgroundColor = element.backgroundColor || schemeColor || fallbackBackground || '#FFFFFF';
 
   const borderColor = resolveBorderColor(
     element,
@@ -683,13 +655,11 @@ function resolveButtonColors(
     scheme || null,
     backgroundColor,
     schemeColor,
-    fallbackBorder,
+    fallbackBorder
   );
 
   const fontColor =
-    element.fontColor ||
-    colorConfig?.fontColor ||
-    getContrastingTextColor(backgroundColor);
+    element.fontColor || colorConfig?.fontColor || getContrastingTextColor(backgroundColor);
 
   return {
     backgroundColor,
@@ -705,7 +675,7 @@ function resolveButtonColors(
  */
 export function calculateLuminance(hexColor: string): number {
   // Remove # if present
-  const hex = hexColor.replace("#", "");
+  const hex = hexColor.replace('#', '');
 
   // Parse RGB values
   const r = parseInt(hex.substring(0, 2), 16) / 255;
@@ -729,7 +699,7 @@ export function calculateLuminance(hexColor: string): number {
 export function getContrastingTextColor(backgroundColor: string): string {
   const luminance = calculateLuminance(backgroundColor);
   // WCAG threshold: use white text if luminance < 0.5, black otherwise
-  return luminance < 0.5 ? "#FFFFFF" : "#000000";
+  return luminance < 0.5 ? '#FFFFFF' : '#000000';
 }
 
 /**
@@ -737,13 +707,11 @@ export function getContrastingTextColor(backgroundColor: string): string {
  * Asterics Grid: true = hidden, false = visible
  * Maps to: 'Hidden' | 'Visible' | undefined
  */
-function mapAstericsVisibility(
-  hidden: boolean | undefined,
-): "Hidden" | "Visible" | undefined {
+function mapAstericsVisibility(hidden: boolean | undefined): 'Hidden' | 'Visible' | undefined {
   if (hidden === undefined) {
     return undefined; // Default to visible
   }
-  return hidden ? "Hidden" : "Visible";
+  return hidden ? 'Hidden' : 'Visible';
 }
 
 class AstericsGridProcessor extends BaseProcessor {
@@ -781,8 +749,8 @@ class AstericsGridProcessor extends BaseProcessor {
 
   private extractRawTexts(filePathOrBuffer: string | Buffer): string[] {
     let content = Buffer.isBuffer(filePathOrBuffer)
-      ? filePathOrBuffer.toString("utf-8")
-      : fs.readFileSync(filePathOrBuffer, "utf-8");
+      ? filePathOrBuffer.toString('utf-8')
+      : fs.readFileSync(filePathOrBuffer, 'utf-8');
 
     // Remove BOM if present
     if (content.charCodeAt(0) === 0xfeff) {
@@ -797,14 +765,14 @@ class AstericsGridProcessor extends BaseProcessor {
       grdFile.grids.forEach((grid: GridData) => {
         // Extract grid labels
         Object.values(grid.label || {}).forEach((label) => {
-          if (label && typeof label === "string") texts.push(label);
+          if (label && typeof label === 'string') texts.push(label);
         });
 
         // Extract element texts
         grid.gridElements.forEach((element: GridElement) => {
           // Element labels
           Object.values(element.label || {}).forEach((label) => {
-            if (label && typeof label === "string") texts.push(label);
+            if (label && typeof label === 'string') texts.push(label);
           });
 
           // Word forms
@@ -827,39 +795,39 @@ class AstericsGridProcessor extends BaseProcessor {
 
   private extractActionTexts(action: GridAction, texts: string[]): void {
     switch (action.modelName) {
-      case "GridActionSpeakCustom":
-        if (action.speakText && typeof action.speakText === "object") {
+      case 'GridActionSpeakCustom':
+        if (action.speakText && typeof action.speakText === 'object') {
           const speakTextMap = action.speakText as Record<string, unknown>;
           Object.values(speakTextMap).forEach((textValue) => {
-            if (typeof textValue === "string" && textValue.length > 0) {
+            if (typeof textValue === 'string' && textValue.length > 0) {
               texts.push(textValue);
             }
           });
         }
         break;
-      case "GridActionChangeLang":
-        if (action.language && typeof action.language === "string") {
+      case 'GridActionChangeLang':
+        if (action.language && typeof action.language === 'string') {
           texts.push(action.language);
         }
-        if (action.voice && typeof action.voice === "string") {
+        if (action.voice && typeof action.voice === 'string') {
           texts.push(action.voice);
         }
         break;
-      case "GridActionHTTP":
-        if (action.restUrl && typeof action.restUrl === "string") {
+      case 'GridActionHTTP':
+        if (action.restUrl && typeof action.restUrl === 'string') {
           texts.push(action.restUrl);
         }
-        if (action.body && typeof action.body === "string") {
+        if (action.body && typeof action.body === 'string') {
           texts.push(action.body);
         }
         break;
-      case "GridActionOpenWebpage":
-        if (action.openURL && typeof action.openURL === "string") {
+      case 'GridActionOpenWebpage':
+        if (action.openURL && typeof action.openURL === 'string') {
           texts.push(action.openURL);
         }
         break;
-      case "GridActionMatrix":
-        if (action.sendText && typeof action.sendText === "string") {
+      case 'GridActionMatrix':
+        if (action.sendText && typeof action.sendText === 'string') {
           texts.push(action.sendText);
         }
         break;
@@ -870,8 +838,8 @@ class AstericsGridProcessor extends BaseProcessor {
   loadIntoTree(filePathOrBuffer: string | Buffer): AACTree {
     const tree = new AACTree();
     let content = Buffer.isBuffer(filePathOrBuffer)
-      ? filePathOrBuffer.toString("utf-8")
-      : fs.readFileSync(filePathOrBuffer, "utf-8");
+      ? filePathOrBuffer.toString('utf-8')
+      : fs.readFileSync(filePathOrBuffer, 'utf-8');
 
     // Remove BOM if present
     if (content.charCodeAt(0) === 0xfeff) {
@@ -885,13 +853,10 @@ class AstericsGridProcessor extends BaseProcessor {
     }
 
     const rawColorConfig = grdFile.metadata?.colorConfig;
-    const colorConfig: AstericsColorConfig | undefined = isRecord(
-      rawColorConfig,
-    )
+    const colorConfig: AstericsColorConfig | undefined = isRecord(rawColorConfig)
       ? (rawColorConfig as AstericsColorConfig)
       : undefined;
-    const activeColorSchemeDefinition =
-      getActiveColorSchemeDefinition(colorConfig);
+    const activeColorSchemeDefinition = getActiveColorSchemeDefinition(colorConfig);
 
     // First pass: create all pages
     grdFile.grids.forEach((grid: GridData) => {
@@ -902,14 +867,12 @@ class AstericsGridProcessor extends BaseProcessor {
         buttons: [],
         parentId: null,
         style: {
-          backgroundColor: colorConfig?.gridBackgroundColor || "#FFFFFF",
-          borderColor: colorConfig?.elementBorderColor || "#CCCCCC",
+          backgroundColor: colorConfig?.gridBackgroundColor || '#FFFFFF',
+          borderColor: colorConfig?.elementBorderColor || '#CCCCCC',
           borderWidth: colorConfig?.borderWidth || 1,
-          fontFamily: colorConfig?.fontFamily || "Arial",
-          fontSize: colorConfig?.fontSizePct
-            ? colorConfig.fontSizePct * 16
-            : 16, // Convert percentage to pixels, default to 16
-          fontColor: colorConfig?.fontColor || "#000000",
+          fontFamily: colorConfig?.fontFamily || 'Arial',
+          fontSize: colorConfig?.fontSizePct ? colorConfig.fontSizePct * 16 : 16, // Convert percentage to pixels, default to 16
+          fontColor: colorConfig?.fontColor || '#000000',
         },
       });
       tree.addPage(page);
@@ -932,7 +895,7 @@ class AstericsGridProcessor extends BaseProcessor {
         const button = this.createButtonFromElement(
           element,
           colorConfig,
-          activeColorSchemeDefinition,
+          activeColorSchemeDefinition
         );
         page.addButton(button);
 
@@ -953,12 +916,10 @@ class AstericsGridProcessor extends BaseProcessor {
 
         // Handle navigation relationships
         const navAction = element.actions.find(
-          (a: GridAction) => a.modelName === "GridActionNavigate",
+          (a: GridAction) => a.modelName === 'GridActionNavigate'
         );
         const targetGridId =
-          navAction && typeof navAction.toGridId === "string"
-            ? navAction.toGridId
-            : undefined;
+          navAction && typeof navAction.toGridId === 'string' ? navAction.toGridId : undefined;
         if (targetGridId) {
           const targetPage = tree.getPage(targetGridId);
           if (targetPage) {
@@ -979,86 +940,66 @@ class AstericsGridProcessor extends BaseProcessor {
     return tree;
   }
 
-  private getLocalizedLabel(
-    labelMap: { [lang: string]: string } | undefined,
-  ): string {
-    if (!labelMap) return "";
+  private getLocalizedLabel(labelMap: { [lang: string]: string } | undefined): string {
+    if (!labelMap) return '';
 
     // Prefer English, then any available language
-    return (
-      labelMap.en ||
-      labelMap.de ||
-      labelMap.es ||
-      Object.values(labelMap)[0] ||
-      ""
-    );
+    return labelMap.en || labelMap.de || labelMap.es || Object.values(labelMap)[0] || '';
   }
 
   private getLocalizedText(text: unknown): string {
-    if (typeof text === "string") return text;
+    if (typeof text === 'string') return text;
     if (isRecord(text)) {
-      const preferred = ["en", "de", "es"];
+      const preferred = ['en', 'de', 'es'];
       for (const lang of preferred) {
         const value = text[lang];
-        if (typeof value === "string" && value.length > 0) {
+        if (typeof value === 'string' && value.length > 0) {
           return value;
         }
       }
       const fallback = Object.values(text).find(
-        (value): value is string =>
-          typeof value === "string" && value.length > 0,
+        (value): value is string => typeof value === 'string' && value.length > 0
       );
       if (fallback) {
         return fallback;
       }
     }
-    return "";
+    return '';
   }
 
   private createButtonFromElement(
     element: GridElement,
     colorConfig?: AstericsColorConfig,
-    activeColorScheme?: ColorSchemeDefinition | null,
+    activeColorScheme?: ColorSchemeDefinition | null
   ): AACButton {
     let audioRecording;
     if (this.loadAudio) {
       const audioAction = element.actions.find(
-        (a: GridAction) => a.modelName === "GridActionAudio",
+        (a: GridAction) => a.modelName === 'GridActionAudio'
       );
-      if (audioAction && typeof audioAction.dataBase64 === "string") {
+      if (audioAction && typeof audioAction.dataBase64 === 'string') {
         const parsedId = Number.parseInt(String(audioAction.id), 10);
         const metadata: Record<string, unknown> = {};
-        if (typeof audioAction.mimeType === "string") {
+        if (typeof audioAction.mimeType === 'string') {
           metadata.mimeType = audioAction.mimeType;
         }
-        if (typeof audioAction.durationMs === "number") {
+        if (typeof audioAction.durationMs === 'number') {
           metadata.durationMs = audioAction.durationMs;
         }
         audioRecording = {
           id: Number.isNaN(parsedId) ? undefined : parsedId,
-          data: Buffer.from(audioAction.dataBase64, "base64"),
-          identifier:
-            typeof audioAction.filename === "string"
-              ? audioAction.filename
-              : undefined,
+          data: Buffer.from(audioAction.dataBase64, 'base64'),
+          identifier: typeof audioAction.filename === 'string' ? audioAction.filename : undefined,
           metadata: JSON.stringify(metadata),
         };
       }
     }
 
-    const colorStyles = resolveButtonColors(
-      element,
-      colorConfig,
-      activeColorScheme,
-    );
+    const colorStyles = resolveButtonColors(element, colorConfig, activeColorScheme);
 
-    const navAction = element.actions.find(
-      (a: GridAction) => a.modelName === "GridActionNavigate",
-    );
+    const navAction = element.actions.find((a: GridAction) => a.modelName === 'GridActionNavigate');
     const targetPageId =
-      navAction && typeof navAction.toGridId === "string"
-        ? navAction.toGridId
-        : null;
+      navAction && typeof navAction.toGridId === 'string' ? navAction.toGridId : null;
 
     const label = this.getLocalizedLabel(element.label);
 
@@ -1077,20 +1018,18 @@ class AstericsGridProcessor extends BaseProcessor {
           },
         },
         fallback: {
-          type: "NAVIGATE",
+          type: 'NAVIGATE',
           targetPageId: targetPageId,
         },
       };
     } else {
       // Check for other action types
-      const collectAction = element.actions.find(
-        (a) => a.modelName === "GridActionCollectElement",
-      );
+      const collectAction = element.actions.find((a) => a.modelName === 'GridActionCollectElement');
 
       if (collectAction) {
         // Handle text editing actions
         switch (collectAction.action) {
-          case "COLLECT_ACTION_REMOVE_WORD":
+          case 'COLLECT_ACTION_REMOVE_WORD':
             semanticAction = {
               category: AACSemanticCategory.TEXT_EDITING,
               intent: AACSemanticIntent.DELETE_WORD,
@@ -1101,13 +1040,13 @@ class AstericsGridProcessor extends BaseProcessor {
                 },
               },
               fallback: {
-                type: "ACTION",
-                message: "Delete word",
+                type: 'ACTION',
+                message: 'Delete word',
               },
             };
             break;
 
-          case "COLLECT_ACTION_REMOVE_CHAR":
+          case 'COLLECT_ACTION_REMOVE_CHAR':
             semanticAction = {
               category: AACSemanticCategory.TEXT_EDITING,
               intent: AACSemanticIntent.DELETE_CHARACTER,
@@ -1118,13 +1057,13 @@ class AstericsGridProcessor extends BaseProcessor {
                 },
               },
               fallback: {
-                type: "ACTION",
-                message: "Delete character",
+                type: 'ACTION',
+                message: 'Delete character',
               },
             };
             break;
 
-          case "COLLECT_ACTION_CLEAR":
+          case 'COLLECT_ACTION_CLEAR':
             semanticAction = {
               category: AACSemanticCategory.TEXT_EDITING,
               intent: AACSemanticIntent.CLEAR_TEXT,
@@ -1135,8 +1074,8 @@ class AstericsGridProcessor extends BaseProcessor {
                 },
               },
               fallback: {
-                type: "ACTION",
-                message: "Clear text",
+                type: 'ACTION',
+                message: 'Clear text',
               },
             };
             break;
@@ -1146,7 +1085,7 @@ class AstericsGridProcessor extends BaseProcessor {
       // Check for navigation actions with special nav types
       if (!semanticAction && navAction) {
         switch (navAction.navType) {
-          case "TO_LAST":
+          case 'TO_LAST':
             semanticAction = {
               category: AACSemanticCategory.NAVIGATION,
               intent: AACSemanticIntent.GO_BACK,
@@ -1157,13 +1096,13 @@ class AstericsGridProcessor extends BaseProcessor {
                 },
               },
               fallback: {
-                type: "ACTION",
-                message: "Go back",
+                type: 'ACTION',
+                message: 'Go back',
               },
             };
             break;
 
-          case "TO_HOME":
+          case 'TO_HOME':
             semanticAction = {
               category: AACSemanticCategory.NAVIGATION,
               intent: AACSemanticIntent.GO_HOME,
@@ -1174,8 +1113,8 @@ class AstericsGridProcessor extends BaseProcessor {
                 },
               },
               fallback: {
-                type: "ACTION",
-                message: "Go home",
+                type: 'ACTION',
+                message: 'Go home',
               },
             };
             break;
@@ -1185,14 +1124,12 @@ class AstericsGridProcessor extends BaseProcessor {
       // Check for speak actions if no other semantic action was found
       if (!semanticAction) {
         const speakAction = element.actions.find(
-          (a) =>
-            a.modelName === "GridActionSpeakCustom" ||
-            a.modelName === "GridActionSpeak",
+          (a) => a.modelName === 'GridActionSpeakCustom' || a.modelName === 'GridActionSpeak'
         );
 
         if (speakAction) {
           const speakText =
-            speakAction.modelName === "GridActionSpeakCustom"
+            speakAction.modelName === 'GridActionSpeakCustom'
               ? this.getLocalizedText(speakAction.speakText)
               : label;
 
@@ -1207,7 +1144,7 @@ class AstericsGridProcessor extends BaseProcessor {
               },
             },
             fallback: {
-              type: "SPEAK",
+              type: 'SPEAK',
               message: speakText,
             },
           };
@@ -1219,12 +1156,12 @@ class AstericsGridProcessor extends BaseProcessor {
             text: label,
             platformData: {
               astericsGrid: {
-                modelName: "GridActionSpeak",
+                modelName: 'GridActionSpeak',
                 properties: {},
               },
             },
             fallback: {
-              type: "SPEAK",
+              type: 'SPEAK',
               message: label,
             },
           };
@@ -1237,7 +1174,7 @@ class AstericsGridProcessor extends BaseProcessor {
       element.backgroundColor ||
       colorStyles.backgroundColor ||
       colorConfig?.elementBackgroundColor ||
-      "#FFFFFF";
+      '#FFFFFF';
 
     // Determine font color with priority:
     // 1. Explicit element.fontColor (highest priority)
@@ -1258,11 +1195,11 @@ class AstericsGridProcessor extends BaseProcessor {
       // We need to strip the Data URL prefix before decoding
       try {
         let base64Data = element.image.data;
-        let imageFormat = "png"; // Default format
+        let imageFormat = 'png'; // Default format
 
         // Check if this is a Data URL and extract the base64 part
         const dataUrlMatch = base64Data.match(
-          /^data:image\/(png|jpeg|jpg|gif|svg\+xml);base64,(.+)/,
+          /^data:image\/(png|jpeg|jpg|gif|svg\+xml);base64,(.+)/
         );
         if (dataUrlMatch) {
           imageFormat = dataUrlMatch[1];
@@ -1270,7 +1207,7 @@ class AstericsGridProcessor extends BaseProcessor {
         }
 
         // Decode the base64 data
-        imageData = Buffer.from(base64Data, "base64");
+        imageData = Buffer.from(base64Data, 'base64');
 
         // Use detected format for filename
         imageName = element.image.id || `image.${imageFormat}`;
@@ -1297,12 +1234,9 @@ class AstericsGridProcessor extends BaseProcessor {
         : undefined,
       style: {
         backgroundColor: finalBackgroundColor,
-        borderColor:
-          colorStyles.borderColor ||
-          colorConfig?.elementBorderColor ||
-          "#CCCCCC",
+        borderColor: colorStyles.borderColor || colorConfig?.elementBorderColor || '#CCCCCC',
         borderWidth: colorConfig?.borderWidth || 1,
-        fontFamily: colorConfig?.fontFamily || "Arial",
+        fontFamily: colorConfig?.fontFamily || 'Arial',
         fontSize: colorConfig?.fontSizePct ? colorConfig.fontSizePct * 16 : 16, // Default to 16px
         fontColor: fontColor,
       },
@@ -1312,12 +1246,12 @@ class AstericsGridProcessor extends BaseProcessor {
   processTexts(
     filePathOrBuffer: string | Buffer,
     translations: Map<string, string>,
-    outputPath: string,
+    outputPath: string
   ): Buffer {
     // Load and parse the original file
     let content = Buffer.isBuffer(filePathOrBuffer)
-      ? filePathOrBuffer.toString("utf-8")
-      : fs.readFileSync(filePathOrBuffer, "utf-8");
+      ? filePathOrBuffer.toString('utf-8')
+      : fs.readFileSync(filePathOrBuffer, 'utf-8');
 
     // Remove BOM if present
     if (content.charCodeAt(0) === 0xfeff) {
@@ -1336,7 +1270,7 @@ class AstericsGridProcessor extends BaseProcessor {
 
   private applyTranslationsToGridFile(
     grdFile: AstericsGridFile,
-    translations: Map<string, string>,
+    translations: Map<string, string>
   ): void {
     grdFile.grids.forEach((grid: GridData) => {
       // Translate grid labels
@@ -1387,20 +1321,14 @@ class AstericsGridProcessor extends BaseProcessor {
     });
   }
 
-  private applyTranslationsToAction(
-    action: GridAction,
-    translations: Map<string, string>,
-  ): void {
+  private applyTranslationsToAction(action: GridAction, translations: Map<string, string>): void {
     switch (action.modelName) {
-      case "GridActionSpeakCustom":
-        if (action.speakText && typeof action.speakText === "object") {
+      case 'GridActionSpeakCustom':
+        if (action.speakText && typeof action.speakText === 'object') {
           const speakTextMap = action.speakText as Record<string, unknown>;
           Object.keys(speakTextMap).forEach((lang) => {
             const originalText = speakTextMap[lang];
-            if (
-              typeof originalText === "string" &&
-              translations.has(originalText)
-            ) {
+            if (typeof originalText === 'string' && translations.has(originalText)) {
               const translation = translations.get(originalText);
               if (translation !== undefined) {
                 speakTextMap[lang] = translation;
@@ -1409,59 +1337,44 @@ class AstericsGridProcessor extends BaseProcessor {
           });
         }
         break;
-      case "GridActionChangeLang":
-        if (
-          typeof action.language === "string" &&
-          translations.has(action.language)
-        ) {
+      case 'GridActionChangeLang':
+        if (typeof action.language === 'string' && translations.has(action.language)) {
           const translation = translations.get(action.language);
           if (translation !== undefined) {
             action.language = translation;
           }
         }
-        if (
-          typeof action.voice === "string" &&
-          translations.has(action.voice)
-        ) {
+        if (typeof action.voice === 'string' && translations.has(action.voice)) {
           const translation = translations.get(action.voice);
           if (translation !== undefined) {
             action.voice = translation;
           }
         }
         break;
-      case "GridActionHTTP":
-        if (
-          typeof action.restUrl === "string" &&
-          translations.has(action.restUrl)
-        ) {
+      case 'GridActionHTTP':
+        if (typeof action.restUrl === 'string' && translations.has(action.restUrl)) {
           const translation = translations.get(action.restUrl);
           if (translation !== undefined) {
             action.restUrl = translation;
           }
         }
-        if (typeof action.body === "string" && translations.has(action.body)) {
+        if (typeof action.body === 'string' && translations.has(action.body)) {
           const translation = translations.get(action.body);
           if (translation !== undefined) {
             action.body = translation;
           }
         }
         break;
-      case "GridActionOpenWebpage":
-        if (
-          typeof action.openURL === "string" &&
-          translations.has(action.openURL)
-        ) {
+      case 'GridActionOpenWebpage':
+        if (typeof action.openURL === 'string' && translations.has(action.openURL)) {
           const translation = translations.get(action.openURL);
           if (translation !== undefined) {
             action.openURL = translation;
           }
         }
         break;
-      case "GridActionMatrix":
-        if (
-          typeof action.sendText === "string" &&
-          translations.has(action.sendText)
-        ) {
+      case 'GridActionMatrix':
+        if (typeof action.sendText === 'string' && translations.has(action.sendText)) {
           const translation = translations.get(action.sendText);
           if (translation !== undefined) {
             action.sendText = translation;
@@ -1476,12 +1389,12 @@ class AstericsGridProcessor extends BaseProcessor {
     // Use default Asterics Grid styling instead of taking from first page
     // This prevents issues where the first page has unusual colors (like purple)
     const defaultPageStyle = {
-      backgroundColor: "#FFFFFF", // White background by default
-      borderColor: "#CCCCCC",
+      backgroundColor: '#FFFFFF', // White background by default
+      borderColor: '#CCCCCC',
       borderWidth: 1,
-      fontFamily: "Arial",
+      fontFamily: 'Arial',
       fontSize: 16,
-      fontColor: "#000000",
+      fontColor: '#000000',
     };
 
     const grids: GridData[] = Object.values(tree.pages).map((page) => {
@@ -1502,165 +1415,138 @@ class AstericsGridProcessor extends BaseProcessor {
       // Filter out navigation/system buttons if configured
       const filteredButtons = this.filterPageButtons(page.buttons);
 
-      const gridElements: GridElement[] = filteredButtons.map(
-        (button, index) => {
-          // Use grid position if available, otherwise arrange in rows of 4
-          const gridWidth = 4;
-          const position = buttonPositions.get(button.id);
-          const calculatedX = position ? position.x : index % gridWidth;
-          const calculatedY = position
-            ? position.y
-            : Math.floor(index / gridWidth);
-          const actions: GridAction[] = [];
+      const gridElements: GridElement[] = filteredButtons.map((button, index) => {
+        // Use grid position if available, otherwise arrange in rows of 4
+        const gridWidth = 4;
+        const position = buttonPositions.get(button.id);
+        const calculatedX = position ? position.x : index % gridWidth;
+        const calculatedY = position ? position.y : Math.floor(index / gridWidth);
+        const actions: GridAction[] = [];
 
-          // Add appropriate actions - prefer semantic actions
-          if (button.semanticAction?.platformData?.astericsGrid) {
-            // Use original AstericsGrid action data
-            const astericsData =
-              button.semanticAction.platformData.astericsGrid;
-            actions.push({
-              id: `grid-action-${button.id}`,
-              ...astericsData.properties,
-              modelName: astericsData.modelName,
-              modelVersion:
-                astericsData.properties.modelVersion ||
-                '{"major": 5, "minor": 0, "patch": 0}',
-            });
-          } else if (
-            button.semanticAction?.intent === AACSemanticIntent.NAVIGATE_TO
-          ) {
-            // Create navigation action from semantic data
-            const targetId =
-              button.semanticAction.targetId || button.targetPageId;
-            actions.push({
-              id: `grid-action-navigate-${button.id}`,
-              modelName: "GridActionNavigate",
-              modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
-              navType: "navigateToGrid",
-              toGridId: targetId,
-            });
-          } else if (
-            button.semanticAction?.intent === AACSemanticIntent.GO_BACK
-          ) {
-            // Create back navigation action
-            actions.push({
-              id: `grid-action-navigate-back-${button.id}`,
-              modelName: "GridActionNavigate",
-              modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
-              navType: "TO_LAST",
-            });
-          } else if (
-            button.semanticAction?.intent === AACSemanticIntent.GO_HOME
-          ) {
-            // Create home navigation action
-            actions.push({
-              id: `grid-action-navigate-home-${button.id}`,
-              modelName: "GridActionNavigate",
-              modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
-              navType: "TO_HOME",
-            });
-          } else if (
-            button.semanticAction?.intent === AACSemanticIntent.DELETE_WORD
-          ) {
-            // Create delete word action
-            actions.push({
-              id: `grid-action-delete-word-${button.id}`,
-              modelName: "GridActionCollectElement",
-              modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
-              action: "COLLECT_ACTION_REMOVE_WORD",
-            });
-          } else if (
-            button.semanticAction?.intent === AACSemanticIntent.DELETE_CHARACTER
-          ) {
-            // Create delete character action
-            actions.push({
-              id: `grid-action-delete-char-${button.id}`,
-              modelName: "GridActionCollectElement",
-              modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
-              action: "COLLECT_ACTION_REMOVE_CHAR",
-            });
-          } else if (
-            button.semanticAction?.intent === AACSemanticIntent.CLEAR_TEXT
-          ) {
-            // Create clear text action
-            actions.push({
-              id: `grid-action-clear-${button.id}`,
-              modelName: "GridActionCollectElement",
-              modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
-              action: "COLLECT_ACTION_CLEAR",
-            });
-          } else if (
-            button.semanticAction?.intent === AACSemanticIntent.SPEAK_TEXT
-          ) {
-            // Create speak action from semantic data
-            if (
-              button.semanticAction.text &&
-              button.semanticAction.text !== button.label
-            ) {
-              actions.push({
-                id: `grid-action-speak-${button.id}`,
-                modelName: "GridActionSpeakCustom",
-                modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
-                speakText: { en: button.semanticAction.text },
-              });
-            } else {
-              actions.push({
-                id: `grid-action-speak-${button.id}`,
-                modelName: "GridActionSpeak",
-                modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
-              });
-            }
-          } else {
-            // Default to speak action if no semantic action
+        // Add appropriate actions - prefer semantic actions
+        if (button.semanticAction?.platformData?.astericsGrid) {
+          // Use original AstericsGrid action data
+          const astericsData = button.semanticAction.platformData.astericsGrid;
+          actions.push({
+            id: `grid-action-${button.id}`,
+            ...astericsData.properties,
+            modelName: astericsData.modelName,
+            modelVersion:
+              astericsData.properties.modelVersion || '{"major": 5, "minor": 0, "patch": 0}',
+          });
+        } else if (button.semanticAction?.intent === AACSemanticIntent.NAVIGATE_TO) {
+          // Create navigation action from semantic data
+          const targetId = button.semanticAction.targetId || button.targetPageId;
+          actions.push({
+            id: `grid-action-navigate-${button.id}`,
+            modelName: 'GridActionNavigate',
+            modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
+            navType: 'navigateToGrid',
+            toGridId: targetId,
+          });
+        } else if (button.semanticAction?.intent === AACSemanticIntent.GO_BACK) {
+          // Create back navigation action
+          actions.push({
+            id: `grid-action-navigate-back-${button.id}`,
+            modelName: 'GridActionNavigate',
+            modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
+            navType: 'TO_LAST',
+          });
+        } else if (button.semanticAction?.intent === AACSemanticIntent.GO_HOME) {
+          // Create home navigation action
+          actions.push({
+            id: `grid-action-navigate-home-${button.id}`,
+            modelName: 'GridActionNavigate',
+            modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
+            navType: 'TO_HOME',
+          });
+        } else if (button.semanticAction?.intent === AACSemanticIntent.DELETE_WORD) {
+          // Create delete word action
+          actions.push({
+            id: `grid-action-delete-word-${button.id}`,
+            modelName: 'GridActionCollectElement',
+            modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
+            action: 'COLLECT_ACTION_REMOVE_WORD',
+          });
+        } else if (button.semanticAction?.intent === AACSemanticIntent.DELETE_CHARACTER) {
+          // Create delete character action
+          actions.push({
+            id: `grid-action-delete-char-${button.id}`,
+            modelName: 'GridActionCollectElement',
+            modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
+            action: 'COLLECT_ACTION_REMOVE_CHAR',
+          });
+        } else if (button.semanticAction?.intent === AACSemanticIntent.CLEAR_TEXT) {
+          // Create clear text action
+          actions.push({
+            id: `grid-action-clear-${button.id}`,
+            modelName: 'GridActionCollectElement',
+            modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
+            action: 'COLLECT_ACTION_CLEAR',
+          });
+        } else if (button.semanticAction?.intent === AACSemanticIntent.SPEAK_TEXT) {
+          // Create speak action from semantic data
+          if (button.semanticAction.text && button.semanticAction.text !== button.label) {
             actions.push({
               id: `grid-action-speak-${button.id}`,
-              modelName: "GridActionSpeak",
+              modelName: 'GridActionSpeakCustom',
               modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
+              speakText: { en: button.semanticAction.text },
             });
-          }
-
-          // Add audio action if present
-          if (button.audioRecording && button.audioRecording.data) {
-            const metadata = JSON.parse(button.audioRecording.metadata || "{}");
+          } else {
             actions.push({
-              id:
-                button.audioRecording.id?.toString() ||
-                `grid-action-audio-${button.id}`,
-              modelName: "GridActionAudio",
+              id: `grid-action-speak-${button.id}`,
+              modelName: 'GridActionSpeak',
               modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
-              dataBase64: button.audioRecording.data.toString("base64"),
-              mimeType: metadata.mimeType || "audio/wav",
-              durationMs: metadata.durationMs || 0,
-              filename:
-                button.audioRecording.identifier || `audio-${button.id}`,
             });
           }
-
-          return {
-            id: button.id,
-            modelName: "GridElement",
+        } else {
+          // Default to speak action if no semantic action
+          actions.push({
+            id: `grid-action-speak-${button.id}`,
+            modelName: 'GridActionSpeak',
             modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
-            width: 1,
-            height: 1,
-            x: calculatedX,
-            y: calculatedY,
-            label: { en: button.label },
-            wordForms: [],
-            image: {
-              data: null,
-              author: undefined,
-              authorURL: undefined,
-            },
-            actions: actions,
-            type: "ELEMENT_TYPE_NORMAL",
-            additionalProps: {},
-            backgroundColor:
-              button.style?.backgroundColor ||
-              page.style?.backgroundColor ||
-              defaultPageStyle.backgroundColor,
-          };
-        },
-      );
+          });
+        }
+
+        // Add audio action if present
+        if (button.audioRecording && button.audioRecording.data) {
+          const metadata = JSON.parse(button.audioRecording.metadata || '{}');
+          actions.push({
+            id: button.audioRecording.id?.toString() || `grid-action-audio-${button.id}`,
+            modelName: 'GridActionAudio',
+            modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
+            dataBase64: button.audioRecording.data.toString('base64'),
+            mimeType: metadata.mimeType || 'audio/wav',
+            durationMs: metadata.durationMs || 0,
+            filename: button.audioRecording.identifier || `audio-${button.id}`,
+          });
+        }
+
+        return {
+          id: button.id,
+          modelName: 'GridElement',
+          modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
+          width: 1,
+          height: 1,
+          x: calculatedX,
+          y: calculatedY,
+          label: { en: button.label },
+          wordForms: [],
+          image: {
+            data: null,
+            author: undefined,
+            authorURL: undefined,
+          },
+          actions: actions,
+          type: 'ELEMENT_TYPE_NORMAL',
+          additionalProps: {},
+          backgroundColor:
+            button.style?.backgroundColor ||
+            page.style?.backgroundColor ||
+            defaultPageStyle.backgroundColor,
+        };
+      });
 
       // Calculate grid dimensions based on button count
       const gridWidth = 4;
@@ -1670,7 +1556,7 @@ class AstericsGridProcessor extends BaseProcessor {
 
       return {
         id: page.id,
-        modelName: "GridData",
+        modelName: 'GridData',
         modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
         label: { en: page.name },
         rowCount: calculatedRows,
@@ -1680,8 +1566,7 @@ class AstericsGridProcessor extends BaseProcessor {
     });
 
     // Determine the home grid ID from tree.rootId, fallback to first grid
-    const homeGridId =
-      tree.rootId || (grids.length > 0 ? grids[0].id : undefined);
+    const homeGridId = tree.rootId || (grids.length > 0 ? grids[0].id : undefined);
 
     const grdFile: AstericsGridFile = {
       grids: grids,
@@ -1698,11 +1583,11 @@ class AstericsGridProcessor extends BaseProcessor {
           // Add additional properties that might be useful
           elementMargin: 2, // Default margin
           borderRadius: 4, // Default border radius
-          colorMode: "default",
+          colorMode: 'default',
           lineHeight: 1.2,
           maxLines: 2,
-          textPosition: "center",
-          fittingMode: "fit",
+          textPosition: 'center',
+          fittingMode: 'fit',
         },
       },
     };
@@ -1717,9 +1602,9 @@ class AstericsGridProcessor extends BaseProcessor {
     filePath: string,
     elementId: string,
     audioData: Buffer,
-    metadata?: string,
+    metadata?: string
   ): void {
-    let content = fs.readFileSync(filePath, "utf-8");
+    let content = fs.readFileSync(filePath, 'utf-8');
 
     // Remove BOM if present
     if (content.charCodeAt(0) === 0xfeff) {
@@ -1736,17 +1621,15 @@ class AstericsGridProcessor extends BaseProcessor {
           elementFound = true;
 
           // Remove existing audio action if present
-          element.actions = element.actions.filter(
-            (a) => a.modelName !== "GridActionAudio",
-          );
+          element.actions = element.actions.filter((a) => a.modelName !== 'GridActionAudio');
 
           // Add new audio action
           const audioAction: GridAction = {
             id: `grid-action-audio-${elementId}`,
-            modelName: "GridActionAudio",
+            modelName: 'GridActionAudio',
             modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
-            dataBase64: audioData.toString("base64"),
-            mimeType: "audio/wav",
+            dataBase64: audioData.toString('base64'),
+            mimeType: 'audio/wav',
             durationMs: 0, // Could be calculated from audio data
             filename: `audio-${elementId}.wav`,
           };
@@ -1754,12 +1637,9 @@ class AstericsGridProcessor extends BaseProcessor {
           if (metadata) {
             try {
               const parsedMetadata = JSON.parse(metadata);
-              audioAction.mimeType =
-                parsedMetadata.mimeType || audioAction.mimeType;
-              audioAction.durationMs =
-                parsedMetadata.durationMs || audioAction.durationMs;
-              audioAction.filename =
-                parsedMetadata.filename || audioAction.filename;
+              audioAction.mimeType = parsedMetadata.mimeType || audioAction.mimeType;
+              audioAction.durationMs = parsedMetadata.durationMs || audioAction.durationMs;
+              audioAction.filename = parsedMetadata.filename || audioAction.filename;
             } catch (e) {
               // Use defaults if metadata parsing fails
             }
@@ -1784,7 +1664,7 @@ class AstericsGridProcessor extends BaseProcessor {
   createAudioEnhancedGridFile(
     sourceFilePath: string,
     targetFilePath: string,
-    audioMappings: Map<string, { audioData: Buffer; metadata?: string }>,
+    audioMappings: Map<string, { audioData: Buffer; metadata?: string }>
   ): void {
     // Copy the source file to target
     fs.copyFileSync(sourceFilePath, targetFilePath);
@@ -1792,12 +1672,7 @@ class AstericsGridProcessor extends BaseProcessor {
     // Add audio recordings to the copy
     audioMappings.forEach((audioInfo, elementId) => {
       try {
-        this.addAudioToElement(
-          targetFilePath,
-          elementId,
-          audioInfo.audioData,
-          audioInfo.metadata,
-        );
+        this.addAudioToElement(targetFilePath, elementId, audioInfo.audioData, audioInfo.metadata);
       } catch (error) {
         // Failed to add audio to element - continue with others
         console.warn(`Failed to add audio to element ${elementId}:`, error);
@@ -1810,8 +1685,8 @@ class AstericsGridProcessor extends BaseProcessor {
    */
   getElementIds(filePathOrBuffer: string | Buffer): string[] {
     let content = Buffer.isBuffer(filePathOrBuffer)
-      ? filePathOrBuffer.toString("utf-8")
-      : fs.readFileSync(filePathOrBuffer, "utf-8");
+      ? filePathOrBuffer.toString('utf-8')
+      : fs.readFileSync(filePathOrBuffer, 'utf-8');
 
     // Remove BOM if present
     if (content.charCodeAt(0) === 0xfeff) {
@@ -1838,13 +1713,10 @@ class AstericsGridProcessor extends BaseProcessor {
   /**
    * Check if an element has audio recording
    */
-  hasAudioRecording(
-    filePathOrBuffer: string | Buffer,
-    elementId: string,
-  ): boolean {
+  hasAudioRecording(filePathOrBuffer: string | Buffer, elementId: string): boolean {
     let content = Buffer.isBuffer(filePathOrBuffer)
-      ? filePathOrBuffer.toString("utf-8")
-      : fs.readFileSync(filePathOrBuffer, "utf-8");
+      ? filePathOrBuffer.toString('utf-8')
+      : fs.readFileSync(filePathOrBuffer, 'utf-8');
 
     // Remove BOM if present
     if (content.charCodeAt(0) === 0xfeff) {
@@ -1857,9 +1729,7 @@ class AstericsGridProcessor extends BaseProcessor {
       for (const grid of grdFile.grids) {
         for (const element of grid.gridElements) {
           if (element.id === elementId) {
-            return element.actions.some(
-              (action) => action.modelName === "GridActionAudio",
-            );
+            return element.actions.some((action) => action.modelName === 'GridActionAudio');
           }
         }
       }
@@ -1885,13 +1755,9 @@ class AstericsGridProcessor extends BaseProcessor {
   generateTranslatedDownload(
     filePath: string,
     translatedStrings: TranslatedString[],
-    sourceStrings: SourceString[],
+    sourceStrings: SourceString[]
   ): Promise<string> {
-    return this.generateTranslatedDownloadGeneric(
-      filePath,
-      translatedStrings,
-      sourceStrings,
-    );
+    return this.generateTranslatedDownloadGeneric(filePath, translatedStrings, sourceStrings);
   }
 }
 

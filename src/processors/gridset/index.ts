@@ -18,7 +18,7 @@ export {
   CATEGORY_STYLES,
   createDefaultStylesXml,
   createCategoryStyle,
-} from "./styleHelpers";
+} from './styleHelpers';
 
 // Plugin cell type detection
 export {
@@ -33,7 +33,7 @@ export {
   isLiveCell,
   isAutoContentCell,
   isRegularCell,
-} from "./pluginTypes";
+} from './pluginTypes';
 
 // Command definitions and detection
 export {
@@ -49,29 +49,23 @@ export {
   type CommandParameter,
   type ExtractedParameters,
   Grid3CommandCategory,
-} from "./commands";
+} from './commands';
 
 // Import for local use in constant definitions
-import { getAllCommandIds, getAllPluginIds } from "./commands";
-import { CellBackgroundShape } from "./styleHelpers";
-import { Grid3CellType } from "./pluginTypes";
-import { Grid3CommandCategory } from "./commands";
+import { getAllCommandIds, getAllPluginIds } from './commands';
+import { CellBackgroundShape } from './styleHelpers';
+import { Grid3CellType } from './pluginTypes';
+import { Grid3CommandCategory } from './commands';
 
 // Color utilities
-export {
-  ensureAlphaChannel,
-  darkenColor,
-  lightenColor,
-  hexToRgba,
-  rgbaToHex,
-} from "./colorUtils";
+export { ensureAlphaChannel, darkenColor, lightenColor, hexToRgba, rgbaToHex } from './colorUtils';
 
 // Password handling
 export {
   resolveGridsetPassword,
   getZipEntriesWithPassword,
   resolveGridsetPasswordFromEnv,
-} from "./password";
+} from './password';
 
 // Helper functions
 export {
@@ -94,7 +88,7 @@ export {
   type Grid3UserPath,
   type Grid3VocabularyPath,
   type Grid3HistoryEntry,
-} from "./helpers";
+} from './helpers';
 
 // Symbol library handling
 export {
@@ -121,17 +115,17 @@ export {
   type SymbolResolutionResult,
   type SymbolUsageStats,
   type SymbolLibraryName,
-} from "./symbols";
+} from './symbols';
 
 // Backward compatibility aliases for old function names
-export { getSymbolsDir, getSymbolSearchDir } from "./symbols";
+export { getSymbolsDir, getSymbolSearchDir } from './symbols';
 
 // Image resolution
 export {
   resolveGrid3CellImage,
   isSymbolLibraryReference,
   parseImageSymbolReference,
-} from "./resolver";
+} from './resolver';
 
 // Symbol extraction and conversion
 export {
@@ -146,7 +140,7 @@ export {
   type SymbolExtractionOptions,
   type SymbolReport,
   type SymbolManifest,
-} from "./symbolExtractor";
+} from './symbolExtractor';
 
 // Symbol search functionality
 export {
@@ -164,7 +158,7 @@ export {
   type SymbolSearchOptions,
   type LibrarySearchIndex,
   type SymbolSearchStats,
-} from "./symbolSearch";
+} from './symbolSearch';
 
 /**
  * Get all Grid 3 command IDs as a readonly array
@@ -181,9 +175,7 @@ export const GRID3_PLUGIN_IDS = Object.freeze(getAllPluginIds());
  * Grid 3 cell shapes enum values
  */
 // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-export const GRID3_CELL_SHAPES = Object.freeze(
-  Object.values(CellBackgroundShape),
-);
+export const GRID3_CELL_SHAPES = Object.freeze(Object.values(CellBackgroundShape));
 
 /**
  * Grid 3 cell types enum values
@@ -195,6 +187,4 @@ export const GRID3_CELL_TYPES = Object.freeze(Object.values(Grid3CellType));
  * Grid 3 command categories enum values
  */
 // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-export const GRID3_COMMAND_CATEGORIES = Object.freeze(
-  Object.values(Grid3CommandCategory),
-);
+export const GRID3_COMMAND_CATEGORIES = Object.freeze(Object.values(Grid3CommandCategory));

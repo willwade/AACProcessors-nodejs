@@ -3,7 +3,7 @@ import {
   ValidationResult,
   ValidationCheck,
   ValidationOptions,
-} from "./validationTypes";
+} from './validationTypes';
 
 /**
  * Base class for all format validators
@@ -46,7 +46,7 @@ export abstract class BaseValidator {
   protected async add_check(
     type: string,
     description: string,
-    checkFn: () => Promise<void>,
+    checkFn: () => Promise<void>
   ): Promise<void> {
     // Skip if blocked by a previous error
     if (this._blocked && this._options.stopOnBlocker) {
@@ -80,11 +80,7 @@ export abstract class BaseValidator {
   /**
    * Add a synchronous validation check
    */
-  protected add_check_sync(
-    type: string,
-    description: string,
-    checkFn: () => void,
-  ): void {
+  protected add_check_sync(type: string, description: string, checkFn: () => void): void {
     // Convert sync to async for consistency
     // eslint-disable-next-line @typescript-eslint/require-await
     void this.add_check(type, description, async () => checkFn());
@@ -154,11 +150,7 @@ export abstract class BaseValidator {
   /**
    * Build the final validation result
    */
-  protected buildResult(
-    filename: string,
-    filesize: number,
-    format: string,
-  ): ValidationResult {
+  protected buildResult(filename: string, filesize: number, format: string): ValidationResult {
     return {
       filename,
       filesize,
@@ -177,11 +169,7 @@ export abstract class BaseValidator {
    * @param filename - Name of the file being validated
    * @param filesize - Size of the file in bytes
    */
-  abstract validate(
-    content: any,
-    filename: string,
-    filesize: number,
-  ): Promise<ValidationResult>;
+  abstract validate(content: any, filename: string, filesize: number): Promise<ValidationResult>;
 
   /**
    * Static helper to validate from file path
@@ -189,17 +177,14 @@ export abstract class BaseValidator {
    */
   // eslint-disable-next-line @typescript-eslint/require-await
   static async validateFile(_filePath: string): Promise<ValidationResult> {
-    throw new Error("validateFile must be implemented by subclass");
+    throw new Error('validateFile must be implemented by subclass');
   }
 
   /**
    * Static helper to identify if content is this validator's format
    */
   // eslint-disable-next-line @typescript-eslint/require-await
-  static async identifyFormat(
-    _content: any,
-    _filename: string,
-  ): Promise<boolean> {
-    throw new Error("identifyFormat must be implemented by subclass");
+  static async identifyFormat(_content: any, _filename: string): Promise<boolean> {
+    throw new Error('identifyFormat must be implemented by subclass');
   }
 }

@@ -1,55 +1,52 @@
-import { OpmlProcessor } from "../processors/opmlProcessor";
-import { ObfProcessor } from "../processors/obfProcessor";
-import { TouchChatProcessor } from "../processors/touchchatProcessor";
-import { GridsetProcessor } from "../processors/gridsetProcessor";
-import { AstericsGridProcessor } from "../processors/astericsGridProcessor";
-import { SnapProcessor } from "../processors/snapProcessor";
-import { DotProcessor } from "../processors/dotProcessor";
-import { ExcelProcessor } from "../processors/excelProcessor";
-import { ApplePanelsProcessor } from "../processors/applePanelsProcessor";
-import { AACTree } from "./treeStructure";
-import { BaseProcessor, ProcessorOptions } from "./baseProcessor";
+import { OpmlProcessor } from '../processors/opmlProcessor';
+import { ObfProcessor } from '../processors/obfProcessor';
+import { TouchChatProcessor } from '../processors/touchchatProcessor';
+import { GridsetProcessor } from '../processors/gridsetProcessor';
+import { AstericsGridProcessor } from '../processors/astericsGridProcessor';
+import { SnapProcessor } from '../processors/snapProcessor';
+import { DotProcessor } from '../processors/dotProcessor';
+import { ExcelProcessor } from '../processors/excelProcessor';
+import { ApplePanelsProcessor } from '../processors/applePanelsProcessor';
+import { AACTree } from './treeStructure';
+import { BaseProcessor, ProcessorOptions } from './baseProcessor';
 
 /**
  * Resolve a processor instance by friendly format name or common extension.
  * @param format Format key or extension (e.g., 'snap', 'obf', 'xlsx')
  * @param options Optional processor configuration
  */
-export function getProcessor(
-  format: string,
-  options?: ProcessorOptions,
-): BaseProcessor {
-  const normalizedFormat = (format || "").toLowerCase();
+export function getProcessor(format: string, options?: ProcessorOptions): BaseProcessor {
+  const normalizedFormat = (format || '').toLowerCase();
 
   switch (normalizedFormat) {
-    case "opml":
+    case 'opml':
       return new OpmlProcessor(options);
-    case "obf":
-    case "obfset": // Obfset files use ObfProcessor
+    case 'obf':
+    case 'obfset': // Obfset files use ObfProcessor
       return new ObfProcessor(options);
-    case "touchchat":
-    case "ce": // TouchChat file extension
+    case 'touchchat':
+    case 'ce': // TouchChat file extension
       return new TouchChatProcessor(options);
-    case "gridset":
-    case "gridsetx":
+    case 'gridset':
+    case 'gridsetx':
       return new GridsetProcessor(options); // Grid3 format
-    case "grd": // Asterics Grid file extension
+    case 'grd': // Asterics Grid file extension
       return new AstericsGridProcessor(options);
-    case "snap":
-    case "sps": // Snap file extension
-    case "spb": // Snap backup file extension
+    case 'snap':
+    case 'sps': // Snap file extension
+    case 'spb': // Snap backup file extension
       return new SnapProcessor(options);
-    case "dot":
+    case 'dot':
       return new DotProcessor(options);
-    case "excel":
-    case "xlsx": // Excel file extension
+    case 'excel':
+    case 'xlsx': // Excel file extension
       return new ExcelProcessor(options);
-    case "applepanels":
-    case "panels": // Apple Panels file extension
-    case "ascconfig": // Apple Panels folder format
+    case 'applepanels':
+    case 'panels': // Apple Panels file extension
+    case 'ascconfig': // Apple Panels folder format
       return new ApplePanelsProcessor(options);
     default:
-      throw new Error("Unknown format: " + format);
+      throw new Error('Unknown format: ' + format);
   }
 }
 

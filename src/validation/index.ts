@@ -9,40 +9,40 @@ export {
   ValidationResult,
   ValidationOptions,
   ValidationRule,
-} from "./validationTypes";
+} from './validationTypes';
 
-export { BaseValidator } from "./baseValidator";
+export { BaseValidator } from './baseValidator';
 
 // Individual format validators
-export { ObfValidator } from "./obfValidator";
-export { GridsetValidator } from "./gridsetValidator";
-export { SnapValidator } from "./snapValidator";
-export { TouchChatValidator } from "./touchChatValidator";
+export { ObfValidator } from './obfValidator';
+export { GridsetValidator } from './gridsetValidator';
+export { SnapValidator } from './snapValidator';
+export { TouchChatValidator } from './touchChatValidator';
 
 /**
  * Main validator factory
  * Returns the appropriate validator for a given format
  */
-import { ObfValidator } from "./obfValidator";
-import { GridsetValidator } from "./gridsetValidator";
-import { SnapValidator } from "./snapValidator";
-import { TouchChatValidator } from "./touchChatValidator";
-import { BaseValidator } from "./baseValidator";
+import { ObfValidator } from './obfValidator';
+import { GridsetValidator } from './gridsetValidator';
+import { SnapValidator } from './snapValidator';
+import { TouchChatValidator } from './touchChatValidator';
+import { BaseValidator } from './baseValidator';
 
 export function getValidatorForFormat(format: string): BaseValidator | null {
   switch (format.toLowerCase()) {
-    case "obf":
-    case "obz":
+    case 'obf':
+    case 'obz':
       return new ObfValidator();
-    case "gridset":
-    case "gridsetx":
+    case 'gridset':
+    case 'gridsetx':
       return new GridsetValidator();
-    case "snap":
-    case "spb":
-    case "sps":
+    case 'snap':
+    case 'spb':
+    case 'sps':
       return new SnapValidator();
-    case "touchchat":
-    case "ce":
+    case 'touchchat':
+    case 'ce':
       return new TouchChatValidator();
     default:
       return null;
@@ -50,20 +50,20 @@ export function getValidatorForFormat(format: string): BaseValidator | null {
 }
 
 export function getValidatorForFile(filename: string): BaseValidator | null {
-  const ext = filename.toLowerCase().split(".").pop();
+  const ext = filename.toLowerCase().split('.').pop();
   if (!ext) return null;
 
   switch (ext) {
-    case "obf":
-    case "obz":
+    case 'obf':
+    case 'obz':
       return new ObfValidator();
-    case "gridset":
-    case "gridsetx":
+    case 'gridset':
+    case 'gridsetx':
       return new GridsetValidator();
-    case "spb":
-    case "sps":
+    case 'spb':
+    case 'sps':
       return new SnapValidator();
-    case "ce":
+    case 'ce':
       return new TouchChatValidator();
     default:
       return null;

@@ -5,18 +5,15 @@
  * for AAC metrics analysis.
  */
 
-import * as fs from "fs";
-import * as path from "path";
-import { CoreList, CommonWordsData, SynonymsData } from "../metrics/types";
+import * as fs from 'fs';
+import * as path from 'path';
+import { CoreList, CommonWordsData, SynonymsData } from '../metrics/types';
 
 export class ReferenceLoader {
   private dataDir: string;
   private locale: string;
 
-  constructor(
-    dataDir: string = path.join(__dirname, "data"),
-    locale: string = "en",
-  ) {
+  constructor(dataDir: string = path.join(__dirname, 'data'), locale: string = 'en') {
     this.dataDir = dataDir;
     this.locale = locale;
   }
@@ -26,7 +23,7 @@ export class ReferenceLoader {
    */
   loadCoreLists(): CoreList[] {
     const filePath = path.join(this.dataDir, `core_lists.${this.locale}.json`);
-    const content = fs.readFileSync(filePath, "utf-8");
+    const content = fs.readFileSync(filePath, 'utf-8');
     return JSON.parse(content) as CoreList[];
   }
 
@@ -34,11 +31,8 @@ export class ReferenceLoader {
    * Load common words with baseline effort scores
    */
   loadCommonWords(): CommonWordsData {
-    const filePath = path.join(
-      this.dataDir,
-      `common_words.${this.locale}.json`,
-    );
-    const content = fs.readFileSync(filePath, "utf-8");
+    const filePath = path.join(this.dataDir, `common_words.${this.locale}.json`);
+    const content = fs.readFileSync(filePath, 'utf-8');
     return JSON.parse(content) as CommonWordsData;
   }
 
@@ -47,7 +41,7 @@ export class ReferenceLoader {
    */
   loadSynonyms(): SynonymsData {
     const filePath = path.join(this.dataDir, `synonyms.${this.locale}.json`);
-    const content = fs.readFileSync(filePath, "utf-8");
+    const content = fs.readFileSync(filePath, 'utf-8');
     return JSON.parse(content) as SynonymsData;
   }
 
@@ -56,7 +50,7 @@ export class ReferenceLoader {
    */
   loadSentences(): string[][] {
     const filePath = path.join(this.dataDir, `sentences.${this.locale}.json`);
-    const content = fs.readFileSync(filePath, "utf-8");
+    const content = fs.readFileSync(filePath, 'utf-8');
     return JSON.parse(content) as string[][];
   }
 
@@ -65,7 +59,7 @@ export class ReferenceLoader {
    */
   loadFringe(): string[] {
     const filePath = path.join(this.dataDir, `fringe.${this.locale}.json`);
-    const content = fs.readFileSync(filePath, "utf-8");
+    const content = fs.readFileSync(filePath, 'utf-8');
     return JSON.parse(content) as string[];
   }
 
@@ -74,7 +68,7 @@ export class ReferenceLoader {
    */
   loadBaseWords(): { [word: string]: boolean } {
     const filePath = path.join(this.dataDir, `base_words.${this.locale}.json`);
-    const content = fs.readFileSync(filePath, "utf-8");
+    const content = fs.readFileSync(filePath, 'utf-8');
     return JSON.parse(content) as { [word: string]: boolean };
   }
 

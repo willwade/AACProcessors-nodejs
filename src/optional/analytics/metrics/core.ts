@@ -13,9 +13,9 @@ import {
   AACButton,
   AACSemanticCategory,
   AACScanType,
-} from "../../../core/treeStructure";
-import { CellScanningOrder } from "../../../types/aac";
-import { ButtonMetrics, MetricsResult } from "./types";
+} from '../../../core/treeStructure';
+import { CellScanningOrder } from '../../../types/aac';
+import { ButtonMetrics, MetricsResult } from './types';
 import {
   baseBoardEffort,
   distanceEffort,
@@ -23,7 +23,7 @@ import {
   EFFORT_CONSTANTS,
   localScanEffort,
   scanningEffort,
-} from "./effort";
+} from './effort';
 
 interface ToVisitItem {
   board: AACPage;
@@ -37,7 +37,7 @@ interface ToVisitItem {
 }
 
 export class MetricsCalculator {
-  private locale: string = "en";
+  private locale: string = 'en';
 
   /**
    * Main analysis function - calculates metrics for an AAC tree
@@ -55,10 +55,10 @@ export class MetricsCalculator {
       rootBoard = Object.values(tree.pages).find((p: AACPage) => !p.parentId);
     }
     if (!rootBoard) {
-      throw new Error("No root board found in tree");
+      throw new Error('No root board found in tree');
     }
 
-    this.locale = (rootBoard as any).locale || "en";
+    this.locale = (rootBoard as any).locale || 'en';
 
     // Step 1: Build semantic/clone reference maps
     const { setRefs, setPcts } = this.buildReferenceMaps(tree);
@@ -72,9 +72,9 @@ export class MetricsCalculator {
         if (btn.targetPageId && btn.semanticAction) {
           // Check for temporary_home in platformData or fallback
           const tempHome =
-            btn.semanticAction.platformData?.grid3?.parameters
-              ?.temporary_home || btn.semanticAction.fallback?.temporary_home;
-          if (tempHome === "prior") {
+            btn.semanticAction.platformData?.grid3?.parameters?.temporary_home ||
+            btn.semanticAction.fallback?.temporary_home;
+          if (tempHome === 'prior') {
             startBoards.push(board);
           } else if (tempHome === true && btn.targetPageId) {
             const targetBoard = tree.getPage(btn.targetPageId);
@@ -92,12 +92,7 @@ export class MetricsCalculator {
 
     // Analyze from each starting board
     startBoards.forEach((startBoard) => {
-      const result = this.analyzeFrom(
-        tree,
-        startBoard,
-        setPcts,
-        startBoard === rootBoard,
-      );
+      const result = this.analyzeFrom(tree, startBoard, setPcts, startBoard === rootBoard);
 
       result.buttons.forEach((btn) => {
         const existing = knownButtons.get(btn.label);
@@ -116,15 +111,13 @@ export class MetricsCalculator {
     });
 
     // Convert to array and sort
-    const buttons = Array.from(knownButtons.values()).sort(
-      (a, b) => a.effort - b.effort,
-    );
+    const buttons = Array.from(knownButtons.values()).sort((a, b) => a.effort - b.effort);
 
     // Calculate grid dimensions
     const grid = this.calculateGridDimensions(tree);
 
     return {
-      analysis_version: "0.2",
+      analysis_version: '0.2',
       locale: this.locale,
       total_boards: Object.keys(tree.pages).length,
       total_buttons: totalButtons,
@@ -176,7 +169,7 @@ export class MetricsCalculator {
 
     Object.entries(setRefs).forEach(([id, count]) => {
       // Extract location from ID (Ruby uses id.split(/-/)[1])
-      const parts = id.split("-");
+      const parts = id.split('-');
       if (parts.length >= 2) {
         const loc = parts[1];
         const cellCount = cellRefs[loc] || totalBoards;
@@ -202,7 +195,7 @@ export class MetricsCalculator {
     currentRowIndex: number,
     currentColIndex: number,
     priorScanBlocks: Set<number>,
-    blockScanEnabled: boolean,
+    blockScanEnabled: boolean
   ): number {
     if (!blockScanEnabled) {
       // Linear scanning: count all buttons before current position
@@ -227,15 +220,12 @@ export class MetricsCalculator {
       const row = board.grid[r];
       if (!row) continue;
       for (let c = 0; c < row.length; c++) {
-        if (r === currentRowIndex && c === currentColIndex)
-          return seenBlocks.size;
+        if (r === currentRowIndex && c === currentColIndex) return seenBlocks.size;
         const btn = row[c];
         if (btn && (btn.label || btn.id).length > 0) {
           const block =
             btn.scanBlock ||
-            (btn.scanBlocks && btn.scanBlocks.length > 0
-              ? btn.scanBlocks[0]
-              : null);
+            (btn.scanBlocks && btn.scanBlocks.length > 0 ? btn.scanBlocks[0] : null);
           if (block !== null) seenBlocks.add(block);
         }
       }
@@ -250,7 +240,7 @@ export class MetricsCalculator {
     tree: AACTree,
     brd: AACPage,
     setPcts: { [id: string]: number },
-    _isRoot: boolean,
+    _isRoot: boolean
   ): {
     buttons: ButtonMetrics[];
     levels: { [level: number]: ButtonMetrics[] };
@@ -272,14 +262,7 @@ export class MetricsCalculator {
     while (toVisit.length > 0) {
       const item = toVisit.shift();
       if (!item) break;
-      const {
-        board,
-        level,
-        entryX,
-        entryY,
-        priorEffort = 0,
-        temporaryHomeId,
-      } = item;
+      const { board, level, entryX, entryY, priorEffort = 0, temporaryHomeId } = item;
 
       // Skip if already visited at a lower level with equal or better prior effort
       // Skip if already visited at a strictly lower level
@@ -304,13 +287,10 @@ export class MetricsCalculator {
           if (!btn) return;
 
           if (btn.clone_id && setPcts[btn.clone_id]) {
-            reuseDiscount +=
-              EFFORT_CONSTANTS.REUSED_CLONE_FROM_OTHER_BONUS *
-              setPcts[btn.clone_id];
+            reuseDiscount += EFFORT_CONSTANTS.REUSED_CLONE_FROM_OTHER_BONUS * setPcts[btn.clone_id];
           } else if (btn.semantic_id && setPcts[btn.semantic_id]) {
             reuseDiscount +=
-              EFFORT_CONSTANTS.REUSED_SEMANTIC_FROM_OTHER_BONUS *
-              setPcts[btn.semantic_id];
+              EFFORT_CONSTANTS.REUSED_SEMANTIC_FROM_OTHER_BONUS * setPcts[btn.semantic_id];
           }
         });
       });
@@ -331,7 +311,7 @@ export class MetricsCalculator {
       board.grid.forEach((row: (AACButton | null)[], rowIndex: number) => {
         row.forEach((btn: AACButton | null, colIndex: number) => {
           // Skip null buttons and buttons with empty labels (matching Ruby behavior)
-          if (!btn || (btn.label || "").length === 0) {
+          if (!btn || (btn.label || '').length === 0) {
             // Don't count these toward prior_buttons (Ruby uses "next unless")
             return;
           }
@@ -346,21 +326,19 @@ export class MetricsCalculator {
             rowIndex,
             colIndex,
             priorScanBlocks,
-            blockScanEnabled,
+            blockScanEnabled
           );
 
           // Calculate button-level effort
           let buttonEffort = boardEffort;
 
           // Debug for specific button (disabled for production)
-          const debugSpecificButton = btn.label === "$938c2cc0dc";
+          const debugSpecificButton = btn.label === '$938c2cc0dc';
           if (debugSpecificButton) {
             console.log(
-              `\n🔍 DEBUG Button ${btn.label} at [${rowIndex},${colIndex}] on ${board.id}:`,
+              `\n🔍 DEBUG Button ${btn.label} at [${rowIndex},${colIndex}] on ${board.id}:`
             );
-            console.log(
-              `   Entry point: (${entryX.toFixed(4)}, ${entryY.toFixed(4)})`,
-            );
+            console.log(`   Entry point: (${entryX.toFixed(4)}, ${entryY.toFixed(4)})`);
             console.log(`   Current level: ${level}`);
             console.log(`   Starting effort: ${buttonEffort.toFixed(6)}`);
           }
@@ -368,18 +346,14 @@ export class MetricsCalculator {
           // Apply semantic_id discounts
           if (btn.semantic_id && boardPcts[btn.semantic_id]) {
             const discount =
-              EFFORT_CONSTANTS.SAME_LOCATION_AS_PRIOR_DISCOUNT /
-              boardPcts[btn.semantic_id];
+              EFFORT_CONSTANTS.SAME_LOCATION_AS_PRIOR_DISCOUNT / boardPcts[btn.semantic_id];
             const old = buttonEffort;
             buttonEffort = Math.min(buttonEffort, buttonEffort * discount);
             if (debugSpecificButton)
               console.log(
-                `   Semantic board discount: ${old.toFixed(6)} -> ${buttonEffort.toFixed(6)} (pct=${boardPcts[btn.semantic_id].toFixed(4)})`,
+                `   Semantic board discount: ${old.toFixed(6)} -> ${buttonEffort.toFixed(6)} (pct=${boardPcts[btn.semantic_id].toFixed(4)})`
               );
-          } else if (
-            btn.semantic_id &&
-            boardPcts[`upstream-${btn.semantic_id}`]
-          ) {
+          } else if (btn.semantic_id && boardPcts[`upstream-${btn.semantic_id}`]) {
             const discount =
               EFFORT_CONSTANTS.RECOGNIZABLE_SEMANTIC_FROM_PRIOR_DISCOUNT /
               boardPcts[`upstream-${btn.semantic_id}`];
@@ -387,15 +361,14 @@ export class MetricsCalculator {
             buttonEffort = Math.min(buttonEffort, buttonEffort * discount);
             if (debugSpecificButton)
               console.log(
-                `   Semantic upstream discount: ${old.toFixed(6)} -> ${buttonEffort.toFixed(6)} (pct=${boardPcts[`upstream-${btn.semantic_id}`].toFixed(4)})`,
+                `   Semantic upstream discount: ${old.toFixed(6)} -> ${buttonEffort.toFixed(6)} (pct=${boardPcts[`upstream-${btn.semantic_id}`].toFixed(4)})`
               );
           }
 
           // Apply clone_id discounts
           if (btn.clone_id && boardPcts[btn.clone_id]) {
             const discount =
-              EFFORT_CONSTANTS.SAME_LOCATION_AS_PRIOR_DISCOUNT /
-              boardPcts[btn.clone_id];
+              EFFORT_CONSTANTS.SAME_LOCATION_AS_PRIOR_DISCOUNT / boardPcts[btn.clone_id];
             buttonEffort = Math.min(buttonEffort, buttonEffort * discount);
           } else if (btn.clone_id && boardPcts[`upstream-${btn.clone_id}`]) {
             const discount =
@@ -407,24 +380,17 @@ export class MetricsCalculator {
           // Calculate button effort based on access method (Touch vs Scanning)
           const isScanning = !!board.scanningConfig || !!board.scanType;
           if (isScanning) {
-            const { steps, selections } = this.calculateScanSteps(
-              board,
-              btn,
-              rowIndex,
-              colIndex,
-            );
+            const { steps, selections } = this.calculateScanSteps(board, btn, rowIndex, colIndex);
             let sEffort = scanningEffort(steps, selections);
 
             // Apply discounts to scanning effort (similar to touch)
             if (btn.semantic_id && boardPcts[btn.semantic_id]) {
               const discount =
-                EFFORT_CONSTANTS.SAME_LOCATION_AS_PRIOR_DISCOUNT /
-                boardPcts[btn.semantic_id];
+                EFFORT_CONSTANTS.SAME_LOCATION_AS_PRIOR_DISCOUNT / boardPcts[btn.semantic_id];
               sEffort = Math.min(sEffort, sEffort * discount);
             } else if (btn.clone_id && boardPcts[btn.clone_id]) {
               const discount =
-                EFFORT_CONSTANTS.SAME_LOCATION_AS_PRIOR_DISCOUNT /
-                boardPcts[btn.clone_id];
+                EFFORT_CONSTANTS.SAME_LOCATION_AS_PRIOR_DISCOUNT / boardPcts[btn.clone_id];
               sEffort = Math.min(sEffort, sEffort * discount);
             }
 
@@ -437,8 +403,7 @@ export class MetricsCalculator {
             if (btn.semantic_id) {
               if (boardPcts[btn.semantic_id]) {
                 const discount =
-                  EFFORT_CONSTANTS.SAME_LOCATION_AS_PRIOR_DISCOUNT /
-                  boardPcts[btn.semantic_id];
+                  EFFORT_CONSTANTS.SAME_LOCATION_AS_PRIOR_DISCOUNT / boardPcts[btn.semantic_id];
                 distance = Math.min(distance, distance * discount);
               } else if (boardPcts[`upstream-${btn.semantic_id}`]) {
                 const discount =
@@ -455,8 +420,7 @@ export class MetricsCalculator {
             if (btn.clone_id) {
               if (boardPcts[btn.clone_id]) {
                 const discount =
-                  EFFORT_CONSTANTS.SAME_LOCATION_AS_PRIOR_DISCOUNT /
-                  boardPcts[btn.clone_id];
+                  EFFORT_CONSTANTS.SAME_LOCATION_AS_PRIOR_DISCOUNT / boardPcts[btn.clone_id];
                 distance = Math.min(distance, distance * discount);
               } else if (boardPcts[`upstream-${btn.clone_id}`]) {
                 const discount =
@@ -465,8 +429,7 @@ export class MetricsCalculator {
                 distance = Math.min(distance, distance * discount);
               } else if (level > 0 && setPcts[btn.clone_id]) {
                 const discount =
-                  EFFORT_CONSTANTS.RECOGNIZABLE_CLONE_FROM_OTHER_DISCOUNT /
-                  setPcts[btn.clone_id];
+                  EFFORT_CONSTANTS.RECOGNIZABLE_CLONE_FROM_OTHER_DISCOUNT / setPcts[btn.clone_id];
                 distance = Math.min(distance, distance * discount);
               }
             }
@@ -475,8 +438,7 @@ export class MetricsCalculator {
 
             // Add visual scan or local scan effort
             if (
-              distance >
-                EFFORT_CONSTANTS.DISTANCE_THRESHOLD_TO_SKIP_VISUAL_SCAN ||
+              distance > EFFORT_CONSTANTS.DISTANCE_THRESHOLD_TO_SKIP_VISUAL_SCAN ||
               (entryX === 1.0 && entryY === 1.0)
             ) {
               buttonEffort += visualScanEffort(priorItems);
@@ -504,14 +466,11 @@ export class MetricsCalculator {
               // The visitedBoardIds map stores the *lowest* level a board was visited.
               // If it's already in the map, it means we've processed it or scheduled it at a lower level.
               if (visitedBoardIds.get(nextBoard.id) === undefined) {
-                const changeEffort =
-                  EFFORT_CONSTANTS.BOARD_CHANGE_PROCESSING_EFFORT;
+                const changeEffort = EFFORT_CONSTANTS.BOARD_CHANGE_PROCESSING_EFFORT;
                 const tempHomeId =
-                  btn.semanticAction?.platformData?.grid3?.parameters
-                    ?.temporary_home === "prior"
+                  btn.semanticAction?.platformData?.grid3?.parameters?.temporary_home === 'prior'
                     ? board.id
-                    : btn.semanticAction?.platformData?.grid3?.parameters
-                          ?.temporary_home === true
+                    : btn.semanticAction?.platformData?.grid3?.parameters?.temporary_home === true
                       ? btn.targetPageId
                       : temporaryHomeId;
 
@@ -530,35 +489,32 @@ export class MetricsCalculator {
           }
 
           // Track word if it speaks or adds to sentence
-          const intent = String(btn.semanticAction?.intent || "");
+          const intent = String(btn.semanticAction?.intent || '');
           const isSpeak =
-            btn.semanticAction?.category ===
-              AACSemanticCategory.COMMUNICATION ||
-            intent === "SPEAK_TEXT" ||
-            intent === "SPEAK_IMMEDIATE" ||
-            intent === "INSERT_TEXT" ||
-            btn.semanticAction?.fallback?.type === "SPEAK";
+            btn.semanticAction?.category === AACSemanticCategory.COMMUNICATION ||
+            intent === 'SPEAK_TEXT' ||
+            intent === 'SPEAK_IMMEDIATE' ||
+            intent === 'INSERT_TEXT' ||
+            btn.semanticAction?.fallback?.type === 'SPEAK';
           const addToSentence =
-            btn.semanticAction?.platformData?.grid3?.parameters
-              ?.add_to_sentence ||
+            btn.semanticAction?.platformData?.grid3?.parameters?.add_to_sentence ||
             btn.semanticAction?.fallback?.add_to_sentence;
 
           if (isSpeak || addToSentence) {
             let finalEffort = buttonEffort;
 
             // Apply Board Change Processing Effort Discount (matching Ruby lines 347-350)
-            const changeEffort =
-              EFFORT_CONSTANTS.BOARD_CHANGE_PROCESSING_EFFORT;
+            const changeEffort = EFFORT_CONSTANTS.BOARD_CHANGE_PROCESSING_EFFORT;
             if (btn.clone_id && boardPcts[btn.clone_id]) {
               const discount = Math.min(
                 changeEffort,
-                (changeEffort * 0.3) / boardPcts[btn.clone_id],
+                (changeEffort * 0.3) / boardPcts[btn.clone_id]
               );
               finalEffort -= discount;
             } else if (btn.semantic_id && boardPcts[btn.semantic_id]) {
               const discount = Math.min(
                 changeEffort,
-                (changeEffort * 0.5) / boardPcts[btn.semantic_id],
+                (changeEffort * 0.5) / boardPcts[btn.semantic_id]
               );
               finalEffort -= discount;
             }
@@ -602,10 +558,7 @@ export class MetricsCalculator {
   /**
    * Calculate what percentage of links to this board match semantic_id/clone_id
    */
-  private calculateBoardLinkPercentages(
-    tree: AACTree,
-    board: AACPage,
-  ): { [id: string]: number } {
+  private calculateBoardLinkPercentages(tree: AACTree, board: AACPage): { [id: string]: number } {
     const boardPcts: { [id: string]: number } = {};
     let totalLinks = 0;
 
@@ -622,12 +575,10 @@ export class MetricsCalculator {
 
           // Also count IDs present on the source board that links to this one
           sourceBoard.semantic_ids?.forEach((id: string) => {
-            boardPcts[`upstream-${id}`] =
-              (boardPcts[`upstream-${id}`] || 0) + 1;
+            boardPcts[`upstream-${id}`] = (boardPcts[`upstream-${id}`] || 0) + 1;
           });
           sourceBoard.clone_ids?.forEach((id: string) => {
-            boardPcts[`upstream-${id}`] =
-              (boardPcts[`upstream-${id}`] || 0) + 1;
+            boardPcts[`upstream-${id}`] = (boardPcts[`upstream-${id}`] || 0) + 1;
           });
         }
       });
@@ -640,7 +591,7 @@ export class MetricsCalculator {
       });
     }
 
-    boardPcts["all"] = totalLinks;
+    boardPcts['all'] = totalLinks;
     return boardPcts;
   }
 
@@ -674,21 +625,17 @@ export class MetricsCalculator {
     board: AACPage,
     btn: AACButton,
     rowIndex: number,
-    colIndex: number,
+    colIndex: number
   ): { steps: number; selections: number } {
     // Determine scanning type from local scanType or scanningConfig
     let type: AACScanType = board.scanType || AACScanType.LINEAR;
     if (board.scanningConfig?.cellScanningOrder) {
       const order = board.scanningConfig.cellScanningOrder;
       // String matching for CellScanningOrder
-      if (order === CellScanningOrder.RowColumnScan)
-        type = AACScanType.ROW_COLUMN;
-      else if (order === CellScanningOrder.ColumnRowScan)
-        type = AACScanType.COLUMN_ROW;
-      else if (order === CellScanningOrder.SimpleScanColumnsFirst)
-        type = AACScanType.COLUMN_ROW;
-      else if (order === CellScanningOrder.SimpleScan)
-        type = AACScanType.LINEAR;
+      if (order === CellScanningOrder.RowColumnScan) type = AACScanType.ROW_COLUMN;
+      else if (order === CellScanningOrder.ColumnRowScan) type = AACScanType.COLUMN_ROW;
+      else if (order === CellScanningOrder.SimpleScanColumnsFirst) type = AACScanType.COLUMN_ROW;
+      else if (order === CellScanningOrder.SimpleScan) type = AACScanType.LINEAR;
     }
 
     // Force block scan if enabled in config
@@ -699,10 +646,7 @@ export class MetricsCalculator {
 
     if (isBlockScan) {
       const blockId =
-        btn.scanBlock ||
-        (btn.scanBlocks && btn.scanBlocks.length > 0
-          ? btn.scanBlocks[0]
-          : null);
+        btn.scanBlock || (btn.scanBlocks && btn.scanBlocks.length > 0 ? btn.scanBlocks[0] : null);
 
       // If no block assigned, treat as its own block at the end (fallback)
       if (blockId === null) {
@@ -718,10 +662,7 @@ export class MetricsCalculator {
       for (let r = 0; r < board.grid.length; r++) {
         for (let c = 0; c < (board.grid[r]?.length || 0); c++) {
           const b = board.grid[r][c];
-          if (
-            b &&
-            (b.scanBlock === blockId || b.scanBlocks?.includes(blockId))
-          ) {
+          if (b && (b.scanBlock === blockId || b.scanBlocks?.includes(blockId))) {
             if (b === btn) {
               found = true;
               break;
@@ -743,7 +684,7 @@ export class MetricsCalculator {
         for (let r = 0; r < board.grid.length; r++) {
           for (let c = 0; c < board.grid[r].length; c++) {
             const b = board.grid[r][c];
-            if (b && (b.label || "").length > 0) {
+            if (b && (b.label || '').length > 0) {
               if (b === btn) {
                 found = true;
                 break;
