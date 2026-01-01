@@ -421,7 +421,7 @@ const COLOR_SCHEME_ALIASES: Record<string, string> = {
   CS_GOOSENS_VERY_LIGHT: 'CS_GOOSENS_VERY_LIGHT',
 };
 
-function normalizeHexColor(hexColor: string): string | null {
+export function normalizeHexColor(hexColor: string): string | null {
   if (!hexColor || typeof hexColor !== 'string') return null;
   let value = hexColor.trim().toLowerCase();
   if (!value.startsWith('#')) {
@@ -440,7 +440,7 @@ function normalizeHexColor(hexColor: string): string | null {
   return `#${value}`;
 }
 
-function adjustHexColor(hexColor: string, amount: number): string {
+export function adjustHexColor(hexColor: string, amount: number): string {
   const normalized = normalizeHexColor(hexColor);
   if (!normalized) return hexColor;
   const hex = normalized.slice(1);
@@ -452,7 +452,7 @@ function adjustHexColor(hexColor: string, amount: number): string {
   return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
 }
 
-function getHighContrastNeutralColor(backgroundColor: string): string {
+export function getHighContrastNeutralColor(backgroundColor: string): string {
   const normalized = normalizeHexColor(backgroundColor);
   if (!normalized) {
     return '#808080';
@@ -673,7 +673,7 @@ function resolveButtonColors(
  * @param hexColor - Hex color string (e.g., "#1d90ff")
  * @returns Relative luminance value between 0 and 1
  */
-function calculateLuminance(hexColor: string): number {
+export function calculateLuminance(hexColor: string): number {
   // Remove # if present
   const hex = hexColor.replace('#', '');
 
@@ -696,7 +696,7 @@ function calculateLuminance(hexColor: string): number {
  * @param backgroundColor - Background color hex string
  * @returns "#FFFFFF" for dark backgrounds, "#000000" for light backgrounds
  */
-function getContrastingTextColor(backgroundColor: string): string {
+export function getContrastingTextColor(backgroundColor: string): string {
   const luminance = calculateLuminance(backgroundColor);
   // WCAG threshold: use white text if luminance < 0.5, black otherwise
   return luminance < 0.5 ? '#FFFFFF' : '#000000';

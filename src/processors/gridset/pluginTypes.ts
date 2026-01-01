@@ -115,11 +115,11 @@ export function detectPluginCellType(content: any): Grid3PluginMetadata {
     return { cellType: Grid3CellType.Regular };
   }
 
-  const contentType = content.ContentType || content.contenttype || content.ContentType;
-  const contentSubType = content.ContentSubType || content.contentsubtype || content.ContentSubType;
+  const contentType = content.ContentType || content.contenttype;
+  const contentSubType = content.ContentSubType || content.contentsubtype;
 
   // Workspace cells - full editing workspaces
-  if (contentType === 'Workspace') {
+  if (contentType === 'Workspace' || content.Style?.BasedOnStyle === 'Workspace') {
     return {
       cellType: Grid3CellType.Workspace,
       subType: contentSubType || undefined,
@@ -129,7 +129,7 @@ export function detectPluginCellType(content: any): Grid3PluginMetadata {
   }
 
   // LiveCell detection - dynamic content displays
-  if (contentType === 'LiveCell') {
+  if (contentType === 'LiveCell' || content.Style?.BasedOnStyle === 'LiveCell') {
     return {
       cellType: Grid3CellType.LiveCell,
       liveCellType: contentSubType || undefined,
@@ -139,7 +139,7 @@ export function detectPluginCellType(content: any): Grid3PluginMetadata {
   }
 
   // AutoContent detection - dynamic word/content suggestions
-  if (contentType === 'AutoContent') {
+  if (contentType === 'AutoContent' || content.Style?.BasedOnStyle === 'AutoContent') {
     const autoContentType = extractAutoContentType(content);
     return {
       cellType: Grid3CellType.AutoContent,
@@ -190,24 +190,25 @@ function inferWorkspacePlugin(subType?: string): string | undefined {
 
   const normalized = subType.toLowerCase();
 
-  if (normalized.includes('chat')) return 'chat';
-  if (normalized.includes('email') || normalized.includes('mail')) return 'email';
-  if (normalized.includes('word') || normalized.includes('processor')) return 'wordprocessor';
-  if (normalized.includes('phone')) return 'phone';
-  if (normalized.includes('sms') || normalized.includes('text')) return 'sms';
-  if (normalized.includes('web') || normalized.includes('browser')) return 'webbrowser';
-  if (normalized.includes('computer') || normalized.includes('control')) return 'computercontrol';
-  if (normalized.includes('calculator') || normalized.includes('calc')) return 'calculator';
-  if (normalized.includes('timer') || normalized.includes('stopwatch')) return 'timer';
-  if (normalized.includes('music') || normalized.includes('video')) return 'musicvideo';
-  if (normalized.includes('photo') || normalized.includes('image')) return 'photos';
-  if (normalized.includes('contact')) return 'contacts';
-  if (normalized.includes('learning')) return 'interactivelearning';
-  if (normalized.includes('message') && normalized.includes('bank')) return 'messagebanking';
-  if (normalized.includes('env') || normalized.includes('ir')) return 'environmentcontrol';
-  if (normalized.includes('setting')) return 'settings';
+  if (normalized.includes('chat')) return 'Grid3.Chat';
+  if (normalized.includes('email') || normalized.includes('mail')) return 'Grid3.Email';
+  if (normalized.includes('word') || normalized.includes('doc')) return 'Grid3.WordProcessor';
+  if (normalized.includes('phone')) return 'Grid3.Phone';
+  if (normalized.includes('sms') || normalized.includes('text')) return 'Grid3.Sms';
+  if (normalized.includes('browser') || normalized.includes('web')) return 'Grid3.WebBrowser';
+  if (normalized.includes('computer')) return 'Grid3.ComputerControl';
+  if (normalized.includes('calc')) return 'Grid3.Calculator';
+  if (normalized.includes('timer')) return 'Grid3.Timer';
+  if (normalized.includes('music') || normalized.includes('video')) return 'Grid3.MusicVideo';
+  if (normalized.includes('photo') || normalized.includes('image')) return 'Grid3.Photos';
+  if (normalized.includes('contact')) return 'Grid3.Contacts';
+  if (normalized.includes('learning')) return 'Grid3.InteractiveLearning';
+  if (normalized.includes('message') && normalized.includes('banking'))
+    return 'Grid3.MessageBanking';
+  if (normalized.includes('control')) return 'Grid3.EnvironmentControl';
+  if (normalized.includes('settings')) return 'Grid3.Settings';
 
-  return undefined;
+  return `Grid3.${subType}`;
 }
 
 /**
@@ -218,18 +219,17 @@ function inferLiveCellPlugin(liveCellType?: string): string | undefined {
 
   const normalized = liveCellType.toLowerCase();
 
-  if (normalized.includes('clock') || normalized.includes('time') || normalized.includes('date')) {
-    return 'clock';
-  }
-  if (normalized.includes('volume')) return 'speech';
-  if (normalized.includes('speed')) return 'speech';
-  if (normalized.includes('voice')) return 'speech';
-  if (normalized.includes('message')) return 'chat';
-  if (normalized.includes('battery')) return 'settings';
-  if (normalized.includes('wifi') || normalized.includes('network')) return 'settings';
-  if (normalized.includes('bluetooth')) return 'settings';
+  if (normalized.includes('clock')) return 'Grid3.Clock';
+  if (normalized.includes('date')) return 'Grid3.Clock';
+  if (normalized.includes('volume')) return 'Grid3.Volume';
+  if (normalized.includes('speed')) return 'Grid3.Speed';
+  if (normalized.includes('voice')) return 'Grid3.Speech';
+  if (normalized.includes('message')) return 'Grid3.Chat';
+  if (normalized.includes('battery')) return 'Grid3.Battery';
+  if (normalized.includes('wifi')) return 'Grid3.Wifi';
+  if (normalized.includes('bluetooth')) return 'Grid3.Bluetooth';
 
-  return undefined;
+  return `Grid3.${liveCellType}`;
 }
 
 /**
@@ -240,20 +240,20 @@ function inferAutoContentPlugin(autoContentType?: string): string | undefined {
 
   const normalized = autoContentType.toLowerCase();
 
-  if (normalized.includes('voice') || normalized.includes('speed')) return 'speech';
-  if (normalized.includes('email') || normalized.includes('mail')) return 'email';
-  if (normalized.includes('phone')) return 'phone';
-  if (normalized.includes('sms') || normalized.includes('text')) return 'sms';
+  if (normalized.includes('voice') || normalized.includes('speed')) return 'Grid3.Speech';
+  if (normalized.includes('email') || normalized.includes('mail')) return 'Grid3.Email';
+  if (normalized.includes('phone')) return 'Grid3.Phone';
+  if (normalized.includes('sms') || normalized.includes('text')) return 'Grid3.Sms';
   if (
     normalized.includes('web') ||
     normalized.includes('favorite') ||
     normalized.includes('history')
   ) {
-    return 'webbrowser';
+    return 'Grid3.WebBrowser';
   }
-  if (normalized.includes('prediction')) return 'prediction';
-  if (normalized.includes('grammar')) return 'grammar';
-  if (normalized.includes('context')) return 'autocontent';
+  if (normalized.includes('prediction')) return 'Grid3.Prediction';
+  if (normalized.includes('grammar')) return 'Grid3.Grammar';
+  if (normalized.includes('context')) return 'Grid3.AutoContent';
 
   return undefined;
 }
