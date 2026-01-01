@@ -4,7 +4,7 @@ import { OpmlProcessor } from '../src/processors/opmlProcessor';
 import { AACTree } from '../src/core/treeStructure';
 
 describe('OPMLProcessor', () => {
-  const opmlPath: string = path.join(__dirname, '../examples/example.opml');
+  const opmlPath: string = path.join(__dirname, 'assets/opml/example.opml');
 
   it('can process .opml files and build a navigation tree', () => {
     const processor = new OpmlProcessor();

@@ -5,8 +5,8 @@ import { ObfProcessor } from '../src/processors/obfProcessor';
 import { AACTree, AACPage, AACButton } from '../src/core/treeStructure';
 
 describe('OBFProcessor round-trip', () => {
-  const obfPath: string = path.join(__dirname, '../examples/example.obf');
-  const obzPath: string = path.join(__dirname, '../examples/example.obz');
+  const obfPath: string = path.join(__dirname, 'assets/obf/example.obf');
+  const obzPath: string = path.join(__dirname, 'assets/obz/example.obz');
   const outObfPath: string = path.join(__dirname, 'out.obf');
   const outObzPath: string = path.join(__dirname, 'out.obz');
 

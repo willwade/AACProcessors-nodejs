@@ -14,7 +14,7 @@ describe("aac-processors CLI (OPML)", () => {
     }
   });
   const cliPath = path.join(__dirname, "../../dist/cli/index.js");
-  const opmlExample = path.join(__dirname, "../../examples/example.opml");
+  const opmlExample = path.join(__dirname, "../assets/opml/example.opml");
 
   it("extracts texts from an opml file", () => {
     const result = execSync(

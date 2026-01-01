@@ -13,7 +13,7 @@ describe("aac-processors CLI (Snap)", () => {
     }
   });
   const cliPath = path.join(__dirname, "../../dist/cli/index.js");
-  const snapExample = path.join(__dirname, "../../examples/example.sps");
+  const snapExample = path.join(__dirname, "../assets/snap/example.sps");
 
   it("extracts texts from a snap file", () => {
     try {

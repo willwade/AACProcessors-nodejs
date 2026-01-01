@@ -7,7 +7,7 @@ import os from 'os';
 import Database from 'better-sqlite3';
 
 describe('TouchChatProcessor Coverage', () => {
-  const _exampleFile: string = path.join(__dirname, '../examples/example.ce');
+  const _exampleFile: string = path.join(__dirname, 'assets/excel/example.ce');
   const tempDir = path.join(os.tmpdir(), 'touchchat-test');
   const tempDbPath = path.join(tempDir, 'vocab.c4v');
   const tempZipPath = path.join(__dirname, 'temp.ce');

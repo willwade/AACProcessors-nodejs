@@ -30,7 +30,7 @@ describe('Alias Methods Integration', () => {
 
   describe('TouchChatProcessor Alias Methods', () => {
     const processor = new TouchChatProcessor();
-    const exampleFile = path.join(__dirname, '../examples/example.ce');
+    const exampleFile = path.join(__dirname, 'assets/excel/example.ce');
 
     it('should extract strings with metadata in expected format', async () => {
       if (!fs.existsSync(exampleFile)) {
@@ -124,7 +124,7 @@ describe('Alias Methods Integration', () => {
 
   describe('ObfProcessor Alias Methods', () => {
     const processor = new ObfProcessor();
-    const exampleFile = path.join(__dirname, '../examples/example.obf');
+    const exampleFile = path.join(__dirname, 'assets/obf/example.obf');
 
     it('should have alias methods available', () => {
       expect(typeof processor.extractStringsWithMetadata).toBe('function');
@@ -148,7 +148,7 @@ describe('Alias Methods Integration', () => {
 
   describe('SnapProcessor Alias Methods', () => {
     const processor = new SnapProcessor();
-    const exampleFile = path.join(__dirname, '../examples/example.spb');
+    const exampleFile = path.join(__dirname, 'assets/snap/example.spb');
 
     it('should have alias methods available', () => {
       expect(typeof processor.extractStringsWithMetadata).toBe('function');
@@ -195,7 +195,7 @@ describe('Alias Methods Integration', () => {
 
     it('should not break existing functionality', async () => {
       const processor = new TouchChatProcessor();
-      const exampleFile = path.join(__dirname, '../examples/example.ce');
+      const exampleFile = path.join(__dirname, 'assets/excel/example.ce');
 
       if (!fs.existsSync(exampleFile)) {
         console.log('Skipping backward compatibility test - example file not found');

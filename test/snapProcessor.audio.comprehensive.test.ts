@@ -8,7 +8,7 @@ import { PageFactory, ButtonFactory } from './utils/testFactories';
 describe('SnapProcessor - Comprehensive Coverage Tests', () => {
   let processor: SnapProcessor;
   const tempDir = path.join(__dirname, 'temp_snap');
-  const _exampleFile = path.join(__dirname, '../examples/example.sps');
+  const _exampleFile = path.join(__dirname, 'assets/snap/example.sps');
 
   beforeAll(() => {
     if (!fs.existsSync(tempDir)) {

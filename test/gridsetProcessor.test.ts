@@ -5,7 +5,7 @@ import path from 'path';
 import fs from 'fs';
 
 describe('GridsetProcessor', () => {
-  const exampleFile: string = path.join(__dirname, '../examples/example.gridset');
+  const exampleFile: string = path.join(__dirname, 'assets/gridset/example.gridset');
 
   it('should load a .gridset file into a tree', () => {
     const processor = new GridsetProcessor();

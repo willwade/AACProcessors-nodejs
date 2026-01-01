@@ -6,11 +6,11 @@ import fs from 'fs';
 describe('SnapProcessor Audio Support', () => {
   const exampleSPSFile: string = path.join(
     __dirname,
-    '../examples/Aphasia Page Set With Sound.sps'
+    'assets/snap/Aphasia Page Set With Sound.sps'
   );
   const enhancedSPSFile: string = path.join(
     __dirname,
-    '../Aphasia_Page_Set_With_Punjabi_Audio.sps'
+    'assets/snap/Aphasia_Page_Set_With_Punjabi_Audio.sps'
   );
 
   it('should load pageset without audio by default', () => {

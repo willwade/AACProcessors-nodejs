@@ -15,7 +15,7 @@ console.log(
 );
 
 describe("OpmlProcessor round-trip", () => {
-  const opmlPath = path.join(__dirname, "../examples/example.opml");
+  const opmlPath = path.join(__dirname, "assets/opml/example.opml");
   afterAll(() => {
     if (fs.existsSync(outPath)) fs.unlinkSync(outPath);
   });

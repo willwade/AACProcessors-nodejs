@@ -14,7 +14,7 @@ describe("aac-processors CLI (DOT)", () => {
     }
   });
   const cliPath = path.join(__dirname, "../../dist/cli/index.js");
-  const dotExample = path.join(__dirname, "../../examples/example.dot");
+  const dotExample = path.join(__dirname, "../assets/dot/example.dot");
 
   it("extracts texts from a dot file", () => {
     const result = execSync(

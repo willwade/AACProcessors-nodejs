@@ -3,7 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const GridsetProcessor = require("../src/processors/gridsetProcessor");
 describe("GridsetProcessor.saveFromTree", () => {
-  const gsPath = path.join(__dirname, "../examples/example.gridset.json");
+  const gsPath = path.join(__dirname, "assets/gridset/example.gridset.json");
   const outPath = path.join(__dirname, "out.gridset.json");
   afterAll(() => {
     if (fs.existsSync(outPath)) fs.unlinkSync(outPath);

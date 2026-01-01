@@ -3,7 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const TouchChatProcessor = require("../src/processors/touchchatProcessor");
 describe("TouchChatProcessor.saveFromTree", () => {
-  const tcPath = path.join(__dirname, "../examples/example.touchchat.json");
+  const tcPath = path.join(__dirname, "assets/excel/example.touchchat.json");
   const outPath = path.join(__dirname, "out.touchchat.json");
   afterAll(() => {
     if (fs.existsSync(outPath)) fs.unlinkSync(outPath);

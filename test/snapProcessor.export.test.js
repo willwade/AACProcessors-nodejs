@@ -3,8 +3,8 @@ const fs = require("fs");
 const path = require("path");
 const { SnapProcessor } = require("../dist/processors/snapProcessor");
 describe("SnapProcessor.saveFromTree", () => {
-  const snapPath = path.join(__dirname, "../examples/example.snap.json");
-  const spsPath = path.join(__dirname, "../examples/example.sps");
+  const snapPath = path.join(__dirname, "assets/snap/example.snap.json");
+  const spsPath = path.join(__dirname, "assets/snap/example.sps");
   const outPath = path.join(__dirname, "out.snap.json");
   afterAll(() => {
     if (fs.existsSync(outPath)) fs.unlinkSync(outPath);

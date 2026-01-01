@@ -3,7 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const { OpmlProcessor } = require("../dist/processors/opmlProcessor");
 describe("OPMLProcessor.saveFromTree", () => {
-  const opmlPath = path.join(__dirname, "../examples/example.opml");
+  const opmlPath = path.join(__dirname, "assets/opml/example.opml");
   const outPath = path.join(__dirname, "out.opml");
   afterAll(() => {
     if (fs.existsSync(outPath)) fs.unlinkSync(outPath);

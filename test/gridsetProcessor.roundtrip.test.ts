@@ -5,7 +5,7 @@ import { GridsetProcessor } from '../src/processors/gridsetProcessor';
 import { AACTree, AACPage, AACButton } from '../src/core/treeStructure';
 
 describe('GridsetProcessor round-trip', () => {
-  const exampleFile: string = path.join(__dirname, '../examples/example.gridset');
+  const exampleFile: string = path.join(__dirname, 'assets/gridset/example.gridset');
   const outPath: string = path.join(__dirname, 'out.gridset');
 
   afterAll(() => {

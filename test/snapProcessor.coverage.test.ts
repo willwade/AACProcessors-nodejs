@@ -5,7 +5,7 @@ import fs from 'fs';
 import Database from 'better-sqlite3';
 
 describe('SnapProcessor Coverage', () => {
-  const exampleFile: string = path.join(__dirname, '../examples/example.sps');
+  const exampleFile: string = path.join(__dirname, 'assets/snap/example.sps');
   const tempDbPath = path.join(__dirname, 'temp_snap.db');
 
   beforeEach(() => {

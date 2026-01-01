@@ -8,7 +8,7 @@ import { TreeFactory, PageFactory, ButtonFactory } from './utils/testFactories';
 describe('TouchChatProcessor - Comprehensive Coverage Tests', () => {
   let processor: TouchChatProcessor;
   const tempDir = path.join(__dirname, 'temp_touchchat');
-  const exampleFile = path.join(__dirname, '../examples/example.ce');
+  const exampleFile = path.join(__dirname, 'assets/excel/example.ce');
 
   beforeAll(() => {
     if (!fs.existsSync(tempDir)) {

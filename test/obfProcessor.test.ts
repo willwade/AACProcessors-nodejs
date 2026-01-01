@@ -5,7 +5,7 @@ import { ObfProcessor } from '../src/processors/obfProcessor';
 import { AACTree } from '../src/core/treeStructure';
 
 describe('OBFProcessor', () => {
-  const obzPath: string = path.join(__dirname, '../examples/example.obz');
+  const obzPath: string = path.join(__dirname, 'assets/obz/example.obz');
 
   it('can process .obz (zip) files with manifest', async () => {
     const processor = new ObfProcessor();

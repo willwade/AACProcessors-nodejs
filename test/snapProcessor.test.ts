@@ -3,8 +3,8 @@ import { AACTree } from '../src/core/treeStructure';
 import path from 'path';
 
 describe('SnapProcessor', () => {
-  const exampleFile: string = path.join(__dirname, '../examples/example.spb');
-  const exampleSPSFile: string = path.join(__dirname, '../examples/example.sps');
+  const exampleFile: string = path.join(__dirname, 'assets/snap/example.spb');
+  const exampleSPSFile: string = path.join(__dirname, 'assets/snap/example.sps');
 
   it('should extract all texts from a .spb file', () => {
     const processor = new SnapProcessor();

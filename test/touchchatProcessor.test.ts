@@ -4,7 +4,7 @@ import { AACTree } from '../src/core/treeStructure';
 import path from 'path';
 
 describe('TouchChatProcessor', () => {
-  const exampleFile: string = path.join(__dirname, '../examples/example.ce');
+  const exampleFile: string = path.join(__dirname, 'assets/excel/example.ce');
 
   it('should load a .ce file into a tree', () => {
     const processor = new TouchChatProcessor();

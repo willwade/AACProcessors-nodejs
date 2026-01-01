@@ -4,7 +4,7 @@ import { DotProcessor } from '../src/processors/dotProcessor';
 import { AACTree } from '../src/core/treeStructure';
 
 describe('DotProcessor', () => {
-  const dotPath: string = path.join(__dirname, '../examples/example.dot');
+  const dotPath: string = path.join(__dirname, 'assets/dot/example.dot');
 
   it('can process .dot files and build a navigation tree', () => {
     const processor = new DotProcessor();

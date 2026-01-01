@@ -4,7 +4,7 @@ import path from 'path';
 import fs from 'fs';
 
 describe('AstericsGridProcessor', () => {
-  const exampleGrdFile = path.join(__dirname, '../examples/example2.grd');
+  const exampleGrdFile = path.join(__dirname, 'assets/asterics/example2.grd');
   const tempOutputPath = path.join(__dirname, 'temp_test.grd');
 
   afterEach(() => {
