@@ -4,7 +4,7 @@ import {
   ExtractStringsResult,
   TranslatedString,
   SourceString,
-} from '../core/baseProcessor';
+} from "../core/baseProcessor";
 import {
   AACTree,
   AACPage,
@@ -12,23 +12,30 @@ import {
   AACSemanticAction,
   AACSemanticCategory,
   AACSemanticIntent,
-} from '../core/treeStructure';
-import { AACStyle } from '../types/aac';
-import AdmZip from 'adm-zip';
-import fs from 'fs';
-import { XMLParser, XMLBuilder } from 'fast-xml-parser';
-import { resolveGrid3CellImage } from './gridset/resolver';
-import { getZipEntriesWithPassword, resolveGridsetPassword } from './gridset/password';
-import crypto from 'crypto';
-import zlib from 'zlib';
-import { GridsetValidator } from '../validation/gridsetValidator';
-import { ValidationResult } from '../validation/validationTypes';
+} from "../core/treeStructure";
+import { AACStyle } from "../types/aac";
+import AdmZip from "adm-zip";
+import fs from "fs";
+import { XMLParser, XMLBuilder } from "fast-xml-parser";
+import { resolveGrid3CellImage } from "./gridset/resolver";
+import {
+  getZipEntriesWithPassword,
+  resolveGridsetPassword,
+} from "./gridset/password";
+import crypto from "crypto";
+import zlib from "zlib";
+import { GridsetValidator } from "../validation/gridsetValidator";
+import { ValidationResult } from "../validation/validationTypes";
 // New imports for enhanced Grid 3 support
-import { detectPluginCellType, Grid3CellType } from './gridset/pluginTypes';
-import { detectCommand } from './gridset/commands';
-import { type SymbolReference, parseSymbolReference } from './gridset/symbols';
-import { isSymbolLibraryReference } from './gridset/resolver';
-import { generateCloneId } from '../optional/analytics/utils/idGenerator';
+import { detectPluginCellType, Grid3CellType } from "./gridset/pluginTypes";
+import { detectCommand } from "./gridset/commands";
+import { type SymbolReference, parseSymbolReference } from "./gridset/symbols";
+import { isSymbolLibraryReference } from "./gridset/resolver";
+import { generateCloneId } from "../optional/analytics/utils/idGenerator";
+import {
+  translateWithSymbols,
+  extractSymbolsFromButton,
+} from "./gridset/symbolAlignment";
 
 class GridsetProcessor extends BaseProcessor {
   constructor(options?: ProcessorOptions) {
@@ -41,13 +48,16 @@ class GridsetProcessor extends BaseProcessor {
    * and then Deflate decompression.
    */
   private decryptGridsetEntry(buffer: Buffer, password?: string): Buffer {
-    const pwd = (password || 'Chocolate').padEnd(32, ' ');
-    const key = Buffer.from(pwd.slice(0, 32), 'utf8');
-    const iv = Buffer.from(pwd.slice(0, 16), 'utf8');
+    const pwd = (password || "Chocolate").padEnd(32, " ");
+    const key = Buffer.from(pwd.slice(0, 32), "utf8");
+    const iv = Buffer.from(pwd.slice(0, 16), "utf8");
 
     try {
-      const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
-      const decrypted = Buffer.concat([decipher.update(buffer), decipher.final()]);
+      const decipher = crypto.createDecipheriv("aes-256-cbc", key, iv);
+      const decrypted = Buffer.concat([
+        decipher.update(buffer),
+        decipher.final(),
+      ]);
       try {
         return zlib.inflateSync(decrypted);
       } catch {
@@ -66,11 +76,11 @@ class GridsetProcessor extends BaseProcessor {
 
   // Helper function to ensure color has alpha channel (Grid3 format)
   private ensureAlphaChannel(color: string | undefined): string {
-    if (!color) return '#FFFFFFFF';
+    if (!color) return "#FFFFFFFF";
     // If already 8 digits (with alpha), return as is
     if (color.match(/^#[0-9A-Fa-f]{8}$/)) return color;
     // If 6 digits (no alpha), add FF for fully opaque
-    if (color.match(/^#[0-9A-Fa-f]{6}$/)) return color + 'FF';
+    if (color.match(/^#[0-9A-Fa-f]{6}$/)) return color + "FF";
     // If 3 digits (shorthand), expand to 8
     if (color.match(/^#[0-9A-Fa-f]{3}$/)) {
       const r = color[1];
@@ -79,33 +89,36 @@ class GridsetProcessor extends BaseProcessor {
       return `#${r}${r}${g}${g}${b}${b}FF`;
     }
     // Invalid or unknown format, return white
-    return '#FFFFFFFF';
+    return "#FFFFFFFF";
   }
 
   // Helper function to generate Grid3 commands from semantic actions
-  private generateCommandsFromSemanticAction(button: AACButton, tree?: AACTree): any {
+  private generateCommandsFromSemanticAction(
+    button: AACButton,
+    tree?: AACTree,
+  ): any {
     const semanticAction = button.semanticAction;
 
     if (!semanticAction) {
       // Default to insert text action with structured XML format
       // Use two <s> elements: one for the word, one for the space (CDATA preserves whitespace)
-      let text = button.message || button.label || '';
+      let text = button.message || button.label || "";
       // Remove trailing space from message if present (we'll add it as separate segment)
-      if (text.endsWith(' ')) {
+      if (text.endsWith(" ")) {
         text = text.slice(0, -1);
       }
       return {
         Command: {
-          '@_ID': 'Action.InsertText',
+          "@_ID": "Action.InsertText",
           Parameter: {
-            '@_Key': 'text',
+            "@_Key": "text",
             p: {
               s: [
                 {
                   r: text,
                 },
                 {
-                  r: { __cdata: ' ' },
+                  r: { __cdata: " " },
                 },
               ],
             },
@@ -117,14 +130,16 @@ class GridsetProcessor extends BaseProcessor {
     // Use platform-specific Grid3 data if available
     if (semanticAction.platformData?.grid3) {
       const grid3Data = semanticAction.platformData.grid3;
-      const params = Object.entries(grid3Data.parameters || {}).map(([key, value]) => ({
-        '@_Key': key,
-        '#text': String(value),
-      }));
+      const params = Object.entries(grid3Data.parameters || {}).map(
+        ([key, value]) => ({
+          "@_Key": key,
+          "#text": String(value),
+        }),
+      );
 
       return {
         Command: {
-          '@_ID': grid3Data.commandId,
+          "@_ID": grid3Data.commandId,
           ...(params.length > 0 ? { Parameter: params } : {}),
         },
       };
@@ -133,9 +148,9 @@ class GridsetProcessor extends BaseProcessor {
     // Convert semantic actions to Grid3 commands
     const intentStr = String(semanticAction.intent);
     switch (intentStr) {
-      case 'NAVIGATE_TO': {
+      case "NAVIGATE_TO": {
         // For Grid3, we need to use the grid name, not the ID
-        let targetGridName = semanticAction.targetId || '';
+        let targetGridName = semanticAction.targetId || "";
         if (tree && semanticAction.targetId) {
           const targetPage = tree.getPage(semanticAction.targetId);
           if (targetPage) {
@@ -144,70 +159,70 @@ class GridsetProcessor extends BaseProcessor {
         }
         return {
           Command: {
-            '@_ID': 'Jump.To',
+            "@_ID": "Jump.To",
             Parameter: {
-              '@_Key': 'grid',
-              '#text': targetGridName,
+              "@_Key": "grid",
+              "#text": targetGridName,
             },
           },
         };
       }
 
-      case 'GO_BACK':
+      case "GO_BACK":
         return {
           Command: {
-            '@_ID': 'Jump.Back',
+            "@_ID": "Jump.Back",
           },
         };
 
-      case 'GO_HOME':
+      case "GO_HOME":
         return {
           Command: {
-            '@_ID': 'Jump.Home',
+            "@_ID": "Jump.Home",
           },
         };
 
-      case 'DELETE_WORD':
+      case "DELETE_WORD":
         return {
           Command: {
-            '@_ID': 'Action.DeleteWord',
+            "@_ID": "Action.DeleteWord",
           },
         };
 
-      case 'DELETE_CHARACTER':
+      case "DELETE_CHARACTER":
         return {
           Command: {
-            '@_ID': 'Action.DeleteLetter',
+            "@_ID": "Action.DeleteLetter",
           },
         };
 
-      case 'CLEAR_TEXT':
+      case "CLEAR_TEXT":
         return {
           Command: {
-            '@_ID': 'Action.Clear',
+            "@_ID": "Action.Clear",
           },
         };
 
-      case 'SPEAK_TEXT':
-      case 'SPEAK_IMMEDIATE': {
+      case "SPEAK_TEXT":
+      case "SPEAK_IMMEDIATE": {
         // Users can speak the complete sentence with a dedicated Speak button // Use two <s> elements: one for the word, one for the space (CDATA preserves whitespace) // Grid3 requires explicit trailing space for automatic word spacing // For communication buttons, insert text into message bar (sentence building)
-        let text = semanticAction.text || button.message || button.label || '';
+        let text = semanticAction.text || button.message || button.label || "";
         // Remove trailing space from message if present (we'll add it as separate segment)
-        if (text.endsWith(' ')) {
+        if (text.endsWith(" ")) {
           text = text.slice(0, -1);
         }
         return {
           Command: {
-            '@_ID': 'Action.InsertText',
+            "@_ID": "Action.InsertText",
             Parameter: {
-              '@_Key': 'text',
+              "@_Key": "text",
               p: {
                 s: [
                   {
                     r: text,
                   },
                   {
-                    r: { __cdata: ' ' },
+                    r: { __cdata: " " },
                   },
                 ],
               },
@@ -216,25 +231,25 @@ class GridsetProcessor extends BaseProcessor {
         };
       }
 
-      case 'INSERT_TEXT': {
+      case "INSERT_TEXT": {
         // Use two <s> elements: one for the word, one for the space (CDATA preserves whitespace) // Add trailing space for word buttons to enable sentence building
-        let text = semanticAction.text || button.message || button.label || '';
+        let text = semanticAction.text || button.message || button.label || "";
         // Remove trailing space from message if present (we'll add it as separate segment)
-        if (text.endsWith(' ')) {
+        if (text.endsWith(" ")) {
           text = text.slice(0, -1);
         }
         return {
           Command: {
-            '@_ID': 'Action.InsertText',
+            "@_ID": "Action.InsertText",
             Parameter: {
-              '@_Key': 'text',
+              "@_Key": "text",
               p: {
                 s: [
                   {
                     r: text,
                   },
                   {
-                    r: { __cdata: ' ' },
+                    r: { __cdata: " " },
                   },
                 ],
               },
@@ -246,23 +261,23 @@ class GridsetProcessor extends BaseProcessor {
       default: {
         // Use two <s> elements: one for the word, one for the space (CDATA preserves whitespace)
         // Fallback to insert text with structured XML format
-        let text = semanticAction.text || button.message || button.label || '';
+        let text = semanticAction.text || button.message || button.label || "";
         // Remove trailing space from message if present (we'll add it as separate segment)
-        if (text.endsWith(' ')) {
+        if (text.endsWith(" ")) {
           text = text.slice(0, -1);
         }
         return {
           Command: {
-            '@_ID': 'Action.InsertText',
+            "@_ID": "Action.InsertText",
             Parameter: {
-              '@_Key': 'text',
+              "@_Key": "text",
               p: {
                 s: [
                   {
                     r: text,
                   },
                   {
-                    r: { __cdata: ' ' },
+                    r: { __cdata: " " },
                   },
                 ],
               },
@@ -282,7 +297,9 @@ class GridsetProcessor extends BaseProcessor {
       borderColor: grid3Style.BorderColour,
       fontColor: grid3Style.FontColour,
       fontFamily: grid3Style.FontName,
-      fontSize: grid3Style.FontSize ? parseInt(String(grid3Style.FontSize)) : undefined,
+      fontSize: grid3Style.FontSize
+        ? parseInt(String(grid3Style.FontSize))
+        : undefined,
       backgroundShape:
         grid3Style.BackgroundShape !== undefined
           ? parseInt(String(grid3Style.BackgroundShape))
@@ -300,8 +317,8 @@ class GridsetProcessor extends BaseProcessor {
   // Helper to safely extract text from XML parser values
   private textOf(val: any): string | undefined {
     if (!val) return undefined;
-    if (typeof val === 'string') return val;
-    if (typeof val === 'object' && '#text' in val) return String(val['#text']);
+    if (typeof val === "string") return val;
+    if (typeof val === "object" && "#text" in val) return String(val["#text"]);
     return undefined;
   }
 
@@ -334,7 +351,8 @@ class GridsetProcessor extends BaseProcessor {
     const entries = getZipEntriesWithPassword(zip, password);
     const parser = new XMLParser({ ignoreAttributes: false });
     const isEncryptedArchive =
-      typeof filePathOrBuffer === 'string' && filePathOrBuffer.toLowerCase().endsWith('.gridsetx');
+      typeof filePathOrBuffer === "string" &&
+      filePathOrBuffer.toLowerCase().endsWith(".gridsetx");
     const encryptedContentPassword = this.getGridsetPassword(filePathOrBuffer);
     const readEntryBuffer = (entry: AdmZip.IZipEntry): Buffer => {
       const raw = entry.getData();
@@ -345,27 +363,35 @@ class GridsetProcessor extends BaseProcessor {
     // Parse FileMap.xml if present to index dynamic files per grid
     const fileMapIndex = new Map<string, string[]>();
     try {
-      const fmEntry = entries.find((e) => e.entryName.endsWith('FileMap.xml'));
+      const fmEntry = entries.find((e) => e.entryName.endsWith("FileMap.xml"));
       if (fmEntry) {
-        const fmXml = readEntryBuffer(fmEntry).toString('utf8');
+        const fmXml = readEntryBuffer(fmEntry).toString("utf8");
         const fmData = parser.parse(fmXml);
-        const entries = fmData?.FileMap?.Entries?.Entry || fmData?.fileMap?.entries?.entry;
+        const entries =
+          fmData?.FileMap?.Entries?.Entry || fmData?.fileMap?.entries?.entry;
         if (entries) {
           const arr = Array.isArray(entries) ? entries : [entries];
           for (const ent of arr) {
-            const rawStaticFile = ent['@_StaticFile'] || ent.StaticFile || ent.staticFile;
+            const rawStaticFile =
+              ent["@_StaticFile"] || ent.StaticFile || ent.staticFile;
             const staticFile =
-              typeof rawStaticFile === 'string' ? rawStaticFile.replace(/\\/g, '/') : '';
+              typeof rawStaticFile === "string"
+                ? rawStaticFile.replace(/\\/g, "/")
+                : "";
             if (!staticFile) continue;
             const df = ent.DynamicFiles || ent.dynamicFiles;
             const candidates = df?.File || df?.file || df?.Files || df?.files;
-            const list = Array.isArray(candidates) ? candidates : candidates ? [candidates] : [];
+            const list = Array.isArray(candidates)
+              ? candidates
+              : candidates
+                ? [candidates]
+                : [];
             const files: string[] = [];
             for (const v of list) {
               if (!v) continue;
-              if (typeof v === 'string') files.push(v.replace(/\\/g, '/'));
-              else if (typeof v === 'object' && '#text' in v)
-                files.push(String(v['#text']).replace(/\\/g, '/'));
+              if (typeof v === "string") files.push(v.replace(/\\/g, "/"));
+              else if (typeof v === "object" && "#text" in v)
+                files.push(String(v["#text"]).replace(/\\/g, "/"));
             }
             fileMapIndex.set(staticFile, files);
           }
@@ -378,11 +404,13 @@ class GridsetProcessor extends BaseProcessor {
     // First, load styles from Settings0/Styles/styles.xml (Grid3 format)
     const styles = new Map<string, any>();
     const styleEntry = entries.find(
-      (entry) => entry.entryName.endsWith('styles.xml') || entry.entryName.endsWith('style.xml')
+      (entry) =>
+        entry.entryName.endsWith("styles.xml") ||
+        entry.entryName.endsWith("style.xml"),
     );
     if (styleEntry) {
       try {
-        const styleXmlContent = readEntryBuffer(styleEntry).toString('utf8');
+        const styleXmlContent = readEntryBuffer(styleEntry).toString("utf8");
         const styleData = parser.parse(styleXmlContent);
         // Parse styles and store them in the map
         // Grid3 uses StyleData.Styles.Style with Key attribute
@@ -391,8 +419,8 @@ class GridsetProcessor extends BaseProcessor {
             ? styleData.StyleData.Styles.Style
             : [styleData.StyleData.Styles.Style];
           styleArray.forEach((style: any) => {
-            if (style['@_Key']) {
-              styles.set(String(style['@_Key']), style);
+            if (style["@_Key"]) {
+              styles.set(String(style["@_Key"]), style);
             }
           });
         }
@@ -402,13 +430,13 @@ class GridsetProcessor extends BaseProcessor {
             ? styleData.Styles.Style
             : [styleData.Styles.Style];
           styleArray.forEach((style: any) => {
-            if (style['@_ID']) {
-              styles.set(String(style['@_ID']), style);
+            if (style["@_ID"]) {
+              styles.set(String(style["@_ID"]), style);
             }
           });
         }
       } catch (e) {
-        console.warn('Failed to parse styles.xml:', e);
+        console.warn("Failed to parse styles.xml:", e);
       }
     }
 
@@ -420,16 +448,21 @@ class GridsetProcessor extends BaseProcessor {
     const gridIdToNameMap = new Map<string, string>();
 
     entries.forEach((entry) => {
-      if (entry.entryName.startsWith('Grids/') && entry.entryName.endsWith('grid.xml')) {
+      if (
+        entry.entryName.startsWith("Grids/") &&
+        entry.entryName.endsWith("grid.xml")
+      ) {
         try {
-          const xmlContent = readEntryBuffer(entry).toString('utf8');
+          const xmlContent = readEntryBuffer(entry).toString("utf8");
           const data = parser.parse(xmlContent);
           const grid = data.Grid || data.grid;
           if (!grid) return;
 
           const gridId = this.textOf(grid.GridGuid || grid.gridGuid || grid.id);
           let gridName =
-            this.textOf(grid.Name) || this.textOf(grid.name) || this.textOf(grid['@_Name']);
+            this.textOf(grid.Name) ||
+            this.textOf(grid.name) ||
+            this.textOf(grid["@_Name"]);
           if (!gridName) {
             const match = entry.entryName.match(/^Grids\/([^/]+)\//);
             if (match) gridName = match[1];
@@ -448,10 +481,13 @@ class GridsetProcessor extends BaseProcessor {
     // Second pass: process each grid file in the gridset
     entries.forEach((entry) => {
       // Only process files named grid.xml under Grids/ (any subdir)
-      if (entry.entryName.startsWith('Grids/') && entry.entryName.endsWith('grid.xml')) {
+      if (
+        entry.entryName.startsWith("Grids/") &&
+        entry.entryName.endsWith("grid.xml")
+      ) {
         let xmlContent: string;
         try {
-          xmlContent = readEntryBuffer(entry).toString('utf8');
+          xmlContent = readEntryBuffer(entry).toString("utf8");
         } catch (e) {
           // Skip unreadable files
           return;
@@ -473,7 +509,9 @@ class GridsetProcessor extends BaseProcessor {
         // Defensive: GridGuid and Name required
         const gridId = this.textOf(grid.GridGuid || grid.gridGuid || grid.id);
         let gridName =
-          this.textOf(grid.Name) || this.textOf(grid.name) || this.textOf(grid['@_Name']);
+          this.textOf(grid.Name) ||
+          this.textOf(grid.name) ||
+          this.textOf(grid["@_Name"]);
         if (!gridName) {
           // Fallback: get folder name from entry path
           const match = entry.entryName.match(/^Grids\/([^/]+)\//);
@@ -497,8 +535,16 @@ class GridsetProcessor extends BaseProcessor {
         // Calculate grid dimensions from ColumnDefinitions and RowDefinitions
         const columnDefs = grid.ColumnDefinitions?.ColumnDefinition || [];
         const rowDefs = grid.RowDefinitions?.RowDefinition || [];
-        const maxCols = Array.isArray(columnDefs) ? columnDefs.length : columnDefs ? 1 : 5;
-        const maxRows = Array.isArray(rowDefs) ? rowDefs.length : rowDefs ? 1 : 4;
+        const maxCols = Array.isArray(columnDefs)
+          ? columnDefs.length
+          : columnDefs
+            ? 1
+            : 5;
+        const maxRows = Array.isArray(rowDefs)
+          ? rowDefs.length
+          : rowDefs
+            ? 1
+            : 4;
 
         // Process buttons: <Cells><Cell>
         const cells = grid.Cells?.Cell || grid.cells?.cell;
@@ -517,13 +563,19 @@ class GridsetProcessor extends BaseProcessor {
 
             // Extract position information from cell attributes
             // Grid3 uses 1-based coordinates, convert to 0-based for internal use
-            const cellX = Math.max(0, parseInt(String(cell['@_X'] || '1'), 10) - 1);
-            const cellY = Math.max(0, parseInt(String(cell['@_Y'] || '1'), 10) - 1);
-            const colSpan = parseInt(String(cell['@_ColumnSpan'] || '1'), 10);
-            const rowSpan = parseInt(String(cell['@_RowSpan'] || '1'), 10);
+            const cellX = Math.max(
+              0,
+              parseInt(String(cell["@_X"] || "1"), 10) - 1,
+            );
+            const cellY = Math.max(
+              0,
+              parseInt(String(cell["@_Y"] || "1"), 10) - 1,
+            );
+            const colSpan = parseInt(String(cell["@_ColumnSpan"] || "1"), 10);
+            const rowSpan = parseInt(String(cell["@_RowSpan"] || "1"), 10);
 
             // Extract scan block number (1-8) for block scanning support
-            const scanBlock = parseInt(String(cell['@_ScanBlock'] || '1'), 10);
+            const scanBlock = parseInt(String(cell["@_ScanBlock"] || "1"), 10);
 
             // Extract visibility from Grid 3's <Visibility> child element
             // Grid 3 stores visibility as a child element, not an attribute
@@ -533,30 +585,30 @@ class GridsetProcessor extends BaseProcessor {
             // Map Grid 3 visibility values to AAC standard values
             // Grid 3 can have additional values like TouchOnly, PointerOnly that map to PointerAndTouchOnly
             let cellVisibility:
-              | 'Visible'
-              | 'Hidden'
-              | 'Disabled'
-              | 'PointerAndTouchOnly'
-              | 'Empty'
+              | "Visible"
+              | "Hidden"
+              | "Disabled"
+              | "PointerAndTouchOnly"
+              | "Empty"
               | undefined;
             if (grid3Visibility) {
               const vis = String(grid3Visibility);
               // Direct mapping for standard values
               if (
-                vis === 'Visible' ||
-                vis === 'Hidden' ||
-                vis === 'Disabled' ||
-                vis === 'PointerAndTouchOnly'
+                vis === "Visible" ||
+                vis === "Hidden" ||
+                vis === "Disabled" ||
+                vis === "PointerAndTouchOnly"
               ) {
                 cellVisibility = vis;
               }
               // Map Grid 3 specific values to AAC standard
-              else if (vis === 'TouchOnly' || vis === 'PointerOnly') {
-                cellVisibility = 'PointerAndTouchOnly';
+              else if (vis === "TouchOnly" || vis === "PointerOnly") {
+                cellVisibility = "PointerAndTouchOnly";
               }
               // Grid 3 may use 'Empty' for cells that exist but have no content
-              else if (vis === 'Empty') {
-                cellVisibility = 'Empty';
+              else if (vis === "Empty") {
+                cellVisibility = "Empty";
               }
               // Unknown visibility - default to Visible
               else {
@@ -566,8 +618,10 @@ class GridsetProcessor extends BaseProcessor {
 
             // Extract label from CaptionAndImage/Caption
             const content = cell.Content;
-            const captionAndImage = content.CaptionAndImage || content.captionAndImage;
-            let label = captionAndImage?.Caption || captionAndImage?.caption || '';
+            const captionAndImage =
+              content.CaptionAndImage || content.captionAndImage;
+            let label =
+              captionAndImage?.Caption || captionAndImage?.caption || "";
 
             // Check if cell has an image/symbol (needed to decide if we should keep it)
             const hasImageCandidate = !!(
@@ -582,12 +636,12 @@ class GridsetProcessor extends BaseProcessor {
             // If no caption, try other sources or create a placeholder
             if (!label) {
               // For cells without captions, check if they have images/symbols before skipping
-              if (content.ContentType === 'AutoContent') {
+              if (content.ContentType === "AutoContent") {
                 label = `AutoContent_${idx}`;
               } else if (
                 hasImageCandidate ||
-                content.ContentType === 'Workspace' ||
-                content.ContentType === 'LiveCell'
+                content.ContentType === "Workspace" ||
+                content.ContentType === "LiveCell"
               ) {
                 // Keep cells with images/symbols even if no caption
                 label = `Cell_${idx}`;
@@ -608,7 +662,8 @@ class GridsetProcessor extends BaseProcessor {
             let navigationTarget: string | undefined;
             let detectedCommands: any[] = []; // Store detected command metadata
 
-            const commands = content.Commands?.Command || content.commands?.command;
+            const commands =
+              content.Commands?.Command || content.commands?.command;
 
             // Resolve image for this cell using FileMap and coordinate heuristics
             const imageCandidate =
@@ -618,9 +673,11 @@ class GridsetProcessor extends BaseProcessor {
               captionAndImage?.imageName ||
               captionAndImage?.Symbol ||
               captionAndImage?.symbol;
-            const declaredImageName = imageCandidate ? this.textOf(imageCandidate) : undefined;
-            const gridEntryPath = entry.entryName.replace(/\\/g, '/');
-            const baseDir = gridEntryPath.replace(/\/grid\.xml$/, '/');
+            const declaredImageName = imageCandidate
+              ? this.textOf(imageCandidate)
+              : undefined;
+            const gridEntryPath = entry.entryName.replace(/\\/g, "/");
+            const baseDir = gridEntryPath.replace(/\/grid\.xml$/, "/");
             const dynamicFiles = fileMapIndex.get(gridEntryPath) || [];
             const resolvedImageEntry =
               resolveGrid3CellImage(
@@ -632,21 +689,26 @@ class GridsetProcessor extends BaseProcessor {
                   y: cellY + 1,
                   dynamicFiles,
                 },
-                entries
+                entries,
               ) || undefined;
 
             // Check if image is a symbol library reference
             let symbolLibraryRef: SymbolReference | null = null;
-            if (declaredImageName && isSymbolLibraryReference(declaredImageName)) {
+            if (
+              declaredImageName &&
+              isSymbolLibraryReference(declaredImageName)
+            ) {
               symbolLibraryRef = parseSymbolReference(declaredImageName);
             }
 
             if (commands) {
-              const commandArr = Array.isArray(commands) ? commands : [commands];
+              const commandArr = Array.isArray(commands)
+                ? commands
+                : [commands];
               detectedCommands = commandArr.map((cmd) => detectCommand(cmd));
 
               for (const command of commandArr) {
-                const commandId = command['@_ID'] || command.ID || command.id;
+                const commandId = command["@_ID"] || command.ID || command.id;
                 const parameters = command.Parameter || command.parameter;
 
                 const paramArr = parameters
@@ -656,12 +718,18 @@ class GridsetProcessor extends BaseProcessor {
                   : [];
 
                 // Helper to extract text from Grid3's structured format <p><s><r>text</r></s></p>
-                const extractStructuredText = (param: any): string | undefined => {
+                const extractStructuredText = (
+                  param: any,
+                ): string | undefined => {
                   // Try to extract from nested p.s structure
                   if (param.p) {
                     const p = param.p;
                     // Handle p.s array or single s element
-                    const sElements = Array.isArray(p.s) ? p.s : p.s ? [p.s] : [];
+                    const sElements = Array.isArray(p.s)
+                      ? p.s
+                      : p.s
+                        ? [p.s]
+                        : [];
                     // Extract all r values and concatenate
                     const parts: string[] = [];
                     for (const s of sElements) {
@@ -670,7 +738,7 @@ class GridsetProcessor extends BaseProcessor {
                       }
                     }
                     if (parts.length > 0) {
-                      return parts.join('');
+                      return parts.join("");
                     }
                   }
                   return undefined;
@@ -680,10 +748,15 @@ class GridsetProcessor extends BaseProcessor {
                 const getParam = (key: string): string | undefined => {
                   if (!parameters) return undefined;
                   for (const param of paramArr) {
-                    if (param['@_Key'] === key || param.Key === key || param.key === key) {
+                    if (
+                      param["@_Key"] === key ||
+                      param.Key === key ||
+                      param.key === key
+                    ) {
                       // First try simple #text value
-                      const simpleValue = param['#text'] ?? param.text ?? param.value;
-                      if (typeof simpleValue === 'string') {
+                      const simpleValue =
+                        param["#text"] ?? param.text ?? param.value;
+                      if (typeof simpleValue === "string") {
                         return simpleValue;
                       }
                       // Try to extract from structured format (Grid3's <p><s><r> format)
@@ -692,7 +765,7 @@ class GridsetProcessor extends BaseProcessor {
                         return structuredValue;
                       }
                       // Fallback to string conversion
-                      if (typeof param === 'string') {
+                      if (typeof param === "string") {
                         return param;
                       }
                     }
@@ -701,11 +774,12 @@ class GridsetProcessor extends BaseProcessor {
                 };
 
                 switch (commandId) {
-                  case 'Jump.To': {
-                    const gridTarget = getParam('grid');
+                  case "Jump.To": {
+                    const gridTarget = getParam("grid");
                     if (gridTarget) {
                       // Resolve grid name to grid ID for navigation
-                      const targetGridId = gridNameToIdMap.get(gridTarget) || gridTarget;
+                      const targetGridId =
+                        gridNameToIdMap.get(gridTarget) || gridTarget;
                       navigationTarget = targetGridId;
                       // navigate action
                       semanticAction = {
@@ -719,19 +793,19 @@ class GridsetProcessor extends BaseProcessor {
                           },
                         },
                         fallback: {
-                          type: 'NAVIGATE',
+                          type: "NAVIGATE",
                           targetPageId: targetGridId,
                         },
                       };
                       legacyAction = {
-                        type: 'NAVIGATE',
+                        type: "NAVIGATE",
                         targetPageId: targetGridId,
                       };
                     }
                     break;
                   }
 
-                  case 'Jump.Back':
+                  case "Jump.Back":
                     // action
                     semanticAction = {
                       category: AACSemanticCategory.NAVIGATION,
@@ -743,16 +817,16 @@ class GridsetProcessor extends BaseProcessor {
                         },
                       },
                       fallback: {
-                        type: 'ACTION',
-                        message: 'Go back',
+                        type: "ACTION",
+                        message: "Go back",
                       },
                     };
                     legacyAction = {
-                      type: 'GO_BACK',
+                      type: "GO_BACK",
                     };
                     break;
 
-                  case 'Jump.Home':
+                  case "Jump.Home":
                     // action
                     semanticAction = {
                       category: AACSemanticCategory.NAVIGATION,
@@ -764,19 +838,19 @@ class GridsetProcessor extends BaseProcessor {
                         },
                       },
                       fallback: {
-                        type: 'ACTION',
-                        message: 'Go home',
+                        type: "ACTION",
+                        message: "Go home",
                       },
                     };
                     legacyAction = {
-                      type: 'GO_HOME',
+                      type: "GO_HOME",
                     };
                     break;
 
-                  case 'Action.Speak': {
+                  case "Action.Speak": {
                     // speak
-                    const speakUnit = getParam('unit');
-                    const moveCaret = getParam('movecaret');
+                    const speakUnit = getParam("unit");
+                    const moveCaret = getParam("movecaret");
                     semanticAction = {
                       category: AACSemanticCategory.COMMUNICATION,
                       intent: AACSemanticIntent.SPEAK_TEXT,
@@ -790,21 +864,23 @@ class GridsetProcessor extends BaseProcessor {
                         },
                       },
                       fallback: {
-                        type: 'SPEAK',
-                        message: 'Speak text',
+                        type: "SPEAK",
+                        message: "Speak text",
                       },
                     };
                     legacyAction = {
-                      type: 'SPEAK',
+                      type: "SPEAK",
                       unit: speakUnit,
-                      moveCaret: moveCaret ? parseInt(String(moveCaret)) : undefined,
+                      moveCaret: moveCaret
+                        ? parseInt(String(moveCaret))
+                        : undefined,
                     };
                     break;
                   }
 
-                  case 'Action.InsertText': {
+                  case "Action.InsertText": {
                     // speak
-                    const insertText = getParam('text');
+                    const insertText = getParam("text");
                     semanticAction = {
                       category: AACSemanticCategory.COMMUNICATION,
                       intent: AACSemanticIntent.INSERT_TEXT,
@@ -816,18 +892,18 @@ class GridsetProcessor extends BaseProcessor {
                         },
                       },
                       fallback: {
-                        type: 'SPEAK',
+                        type: "SPEAK",
                         message: insertText,
                       },
                     };
                     legacyAction = {
-                      type: 'INSERT_TEXT',
+                      type: "INSERT_TEXT",
                       text: insertText,
                     };
                     break;
                   }
 
-                  case 'Action.DeleteWord':
+                  case "Action.DeleteWord":
                     // action
                     semanticAction = {
                       category: AACSemanticCategory.TEXT_EDITING,
@@ -839,16 +915,16 @@ class GridsetProcessor extends BaseProcessor {
                         },
                       },
                       fallback: {
-                        type: 'ACTION',
-                        message: 'Delete word',
+                        type: "ACTION",
+                        message: "Delete word",
                       },
                     };
                     legacyAction = {
-                      type: 'DELETE_WORD',
+                      type: "DELETE_WORD",
                     };
                     break;
 
-                  case 'Action.DeleteLetter':
+                  case "Action.DeleteLetter":
                     // action
                     semanticAction = {
                       category: AACSemanticCategory.TEXT_EDITING,
@@ -860,16 +936,16 @@ class GridsetProcessor extends BaseProcessor {
                         },
                       },
                       fallback: {
-                        type: 'ACTION',
-                        message: 'Delete character',
+                        type: "ACTION",
+                        message: "Delete character",
                       },
                     };
                     legacyAction = {
-                      type: 'DELETE_CHARACTER',
+                      type: "DELETE_CHARACTER",
                     };
                     break;
 
-                  case 'Action.Clear':
+                  case "Action.Clear":
                     // action
                     semanticAction = {
                       category: AACSemanticCategory.TEXT_EDITING,
@@ -881,18 +957,18 @@ class GridsetProcessor extends BaseProcessor {
                         },
                       },
                       fallback: {
-                        type: 'ACTION',
-                        message: 'Clear text',
+                        type: "ACTION",
+                        message: "Clear text",
                       },
                     };
                     legacyAction = {
-                      type: 'CLEAR_TEXT',
+                      type: "CLEAR_TEXT",
                     };
                     break;
 
-                  case 'Action.Letter': {
+                  case "Action.Letter": {
                     // action
-                    const letter = getParam('letter');
+                    const letter = getParam("letter");
                     semanticAction = {
                       category: AACSemanticCategory.TEXT_EDITING,
                       intent: AACSemanticIntent.INSERT_TEXT,
@@ -904,18 +980,18 @@ class GridsetProcessor extends BaseProcessor {
                         },
                       },
                       fallback: {
-                        type: 'ACTION',
+                        type: "ACTION",
                         message: letter,
                       },
                     };
                     legacyAction = {
-                      type: 'INSERT_LETTER',
+                      type: "INSERT_LETTER",
                       letter,
                     };
                     break;
                   }
 
-                  case 'Settings.RestAll':
+                  case "Settings.RestAll":
                     // action
                     semanticAction = {
                       category: AACSemanticCategory.CUSTOM,
@@ -924,24 +1000,24 @@ class GridsetProcessor extends BaseProcessor {
                         grid3: {
                           commandId,
                           parameters: {
-                            indicatorenabled: getParam('indicatorenabled'),
-                            action: getParam('action'),
+                            indicatorenabled: getParam("indicatorenabled"),
+                            action: getParam("action"),
                           },
                         },
                       },
                       fallback: {
-                        type: 'ACTION',
-                        message: 'Settings action',
+                        type: "ACTION",
+                        message: "Settings action",
                       },
                     };
                     legacyAction = {
-                      type: 'SETTINGS',
-                      indicatorEnabled: getParam('indicatorenabled') === '1',
-                      settingsAction: getParam('action'),
+                      type: "SETTINGS",
+                      indicatorEnabled: getParam("indicatorenabled") === "1",
+                      settingsAction: getParam("action"),
                     };
                     break;
 
-                  case 'AutoContent.Activate':
+                  case "AutoContent.Activate":
                     // action
                     semanticAction = {
                       category: AACSemanticCategory.CUSTOM,
@@ -950,18 +1026,18 @@ class GridsetProcessor extends BaseProcessor {
                         grid3: {
                           commandId,
                           parameters: {
-                            autocontenttype: getParam('autocontenttype'),
+                            autocontenttype: getParam("autocontenttype"),
                           },
                         },
                       },
                       fallback: {
-                        type: 'ACTION',
-                        message: 'Auto content',
+                        type: "ACTION",
+                        message: "Auto content",
                       },
                     };
                     legacyAction = {
-                      type: 'AUTO_CONTENT',
-                      autoContentType: getParam('autocontenttype'),
+                      type: "AUTO_CONTENT",
+                      autoContentType: getParam("autocontenttype"),
                     };
                     break;
 
@@ -970,7 +1046,7 @@ class GridsetProcessor extends BaseProcessor {
                     if (commandId) {
                       // action
                       const allParams = Object.fromEntries(
-                        paramArr.map((p) => [p.Key || p.key, p['#text']])
+                        paramArr.map((p) => [p.Key || p.key, p["#text"]]),
                       );
                       semanticAction = {
                         category: AACSemanticCategory.CUSTOM,
@@ -982,12 +1058,12 @@ class GridsetProcessor extends BaseProcessor {
                           },
                         },
                         fallback: {
-                          type: 'ACTION',
-                          message: 'Unknown command',
+                          type: "ACTION",
+                          message: "Unknown command",
                         },
                       };
                       legacyAction = {
-                        type: 'SPEAK',
+                        type: "SPEAK",
                         parameters: { commandId, ...allParams },
                       };
                     }
@@ -1006,14 +1082,14 @@ class GridsetProcessor extends BaseProcessor {
                 intent: AACSemanticIntent.SPEAK_TEXT,
                 text: String(message),
                 fallback: {
-                  type: 'SPEAK',
+                  type: "SPEAK",
                   message: String(message),
                 },
               };
             }
 
             // Get style information from cell attributes and Content.Style
-            let cellStyleId = cell['@_StyleID'] || cell['@_styleid'];
+            let cellStyleId = cell["@_StyleID"] || cell["@_styleid"];
 
             // Grid3 format: check Content.Style.BasedOnStyle
             if (!cellStyleId && content.Style?.BasedOnStyle) {
@@ -1022,21 +1098,28 @@ class GridsetProcessor extends BaseProcessor {
 
             const cellStyle = this.getStyleById(
               styles,
-              cellStyleId ? String(cellStyleId) : undefined
+              cellStyleId ? String(cellStyleId) : undefined,
             );
 
             // Also check for inline style overrides
             const inlineStyle: any = {};
-            if (cell['@_BackColour']) inlineStyle.backgroundColor = cell['@_BackColour'];
-            if (cell['@_FontColour']) inlineStyle.fontColor = cell['@_FontColour'];
-            if (cell['@_BorderColour']) inlineStyle.borderColor = cell['@_BorderColour'];
+            if (cell["@_BackColour"])
+              inlineStyle.backgroundColor = cell["@_BackColour"];
+            if (cell["@_FontColour"])
+              inlineStyle.fontColor = cell["@_FontColour"];
+            if (cell["@_BorderColour"])
+              inlineStyle.borderColor = cell["@_BorderColour"];
 
             // Grid3 inline styles from Content.Style
             if (content.Style) {
-              if (content.Style.BackColour) inlineStyle.backgroundColor = content.Style.BackColour;
-              if (content.Style.FontColour) inlineStyle.fontColor = content.Style.FontColour;
-              if (content.Style.BorderColour) inlineStyle.borderColor = content.Style.BorderColour;
-              if (content.Style.FontName) inlineStyle.fontFamily = content.Style.FontName;
+              if (content.Style.BackColour)
+                inlineStyle.backgroundColor = content.Style.BackColour;
+              if (content.Style.FontColour)
+                inlineStyle.fontColor = content.Style.FontColour;
+              if (content.Style.BorderColour)
+                inlineStyle.borderColor = content.Style.BorderColour;
+              if (content.Style.FontName)
+                inlineStyle.fontFamily = content.Style.FontName;
               if (content.Style.FontSize)
                 inlineStyle.fontSize = parseInt(String(content.Style.FontSize));
             }
@@ -1045,7 +1128,9 @@ class GridsetProcessor extends BaseProcessor {
               id: `${gridId}_btn_${idx}`,
               label: String(label),
               message: String(message),
-              targetPageId: navigationTarget ? String(navigationTarget) : undefined,
+              targetPageId: navigationTarget
+                ? String(navigationTarget)
+                : undefined,
               semanticAction: semanticAction,
               semantic_id: cell.semantic_id || cell.SemanticId || undefined, // Extract semantic_id if present
               image: declaredImageName,
@@ -1057,12 +1142,12 @@ class GridsetProcessor extends BaseProcessor {
               scanBlock: scanBlock, // Add scan block number for block scanning metrics
               contentType:
                 pluginMetadata.cellType === Grid3CellType.Regular
-                  ? 'Normal'
+                  ? "Normal"
                   : pluginMetadata.cellType === Grid3CellType.Workspace
-                    ? 'Workspace'
+                    ? "Workspace"
                     : pluginMetadata.cellType === Grid3CellType.LiveCell
-                      ? 'LiveCell'
-                      : 'AutoContent',
+                      ? "LiveCell"
+                      : "AutoContent",
               contentSubType:
                 pluginMetadata.subType ||
                 pluginMetadata.liveCellType ||
@@ -1105,7 +1190,13 @@ class GridsetProcessor extends BaseProcessor {
             row.forEach((btn, colIndex) => {
               if (btn) {
                 // Generate clone_id based on position and label
-                btn.clone_id = generateCloneId(maxRows, maxCols, rowIndex, colIndex, btn.label);
+                btn.clone_id = generateCloneId(
+                  maxRows,
+                  maxCols,
+                  rowIndex,
+                  colIndex,
+                  btn.label,
+                );
                 cloneIds.push(btn.clone_id);
 
                 // Track semantic_id if present
@@ -1133,7 +1224,10 @@ class GridsetProcessor extends BaseProcessor {
     for (const pageId in tree.pages) {
       const page = tree.pages[pageId];
       page.buttons.forEach((btn: AACButton) => {
-        if (btn.semanticAction?.intent === AACSemanticIntent.NAVIGATE_TO && btn.targetPageId) {
+        if (
+          btn.semanticAction?.intent === AACSemanticIntent.NAVIGATE_TO &&
+          btn.targetPageId
+        ) {
           const targetPage = tree.getPage(btn.targetPageId);
           if (targetPage) {
             targetPage.parentId = page.id;
@@ -1144,16 +1238,18 @@ class GridsetProcessor extends BaseProcessor {
 
     // Read settings.xml to get the StartGrid (home page)
     try {
-      const settingsEntry = entries.find((e) => e.entryName.endsWith('settings.xml'));
+      const settingsEntry = entries.find((e) =>
+        e.entryName.endsWith("settings.xml"),
+      );
       if (settingsEntry) {
-        const settingsXml = readEntryBuffer(settingsEntry).toString('utf8');
+        const settingsXml = readEntryBuffer(settingsEntry).toString("utf8");
         const settingsData = parser.parse(settingsXml);
         const startGridName =
           settingsData?.GridSetSettings?.StartGrid ||
           settingsData?.gridSetSettings?.startGrid ||
           settingsData?.GridsetSettings?.StartGrid;
 
-        if (startGridName && typeof startGridName === 'string') {
+        if (startGridName && typeof startGridName === "string") {
           // Resolve the grid name to grid ID
           const homeGridId = gridNameToIdMap.get(startGridName);
           if (homeGridId) {
@@ -1171,7 +1267,7 @@ class GridsetProcessor extends BaseProcessor {
   processTexts(
     filePathOrBuffer: string | Buffer,
     translations: Map<string, string>,
-    outputPath: string
+    outputPath: string,
   ): Buffer {
     // Load the tree, apply translations, and save to new file
     const tree = this.loadIntoTree(filePathOrBuffer);
@@ -1184,20 +1280,224 @@ class GridsetProcessor extends BaseProcessor {
         if (tPage) page.name = tPage;
       }
 
-      // Translate button labels and messages
+      // Translate button labels and messages, preserving symbol positions
       page.buttons.forEach((button) => {
+        // Translate label
         if (button.label && translations.has(button.label)) {
           const tLabel = translations.get(button.label);
           if (tLabel) button.label = tLabel;
         }
+
+        // Translate message with symbol preservation
         if (button.message && translations.has(button.message)) {
-          const tMsg = translations.get(button.message);
-          if (tMsg) button.message = tMsg;
+          const originalMessage = button.message;
+          const translatedText = translations.get(originalMessage);
+
+          if (translatedText) {
+            // Extract symbols from the button (from richText or image fields)
+            const symbols = extractSymbolsFromButton(button);
+
+            if (symbols && symbols.length > 0) {
+              // Use symbol-aware translation to preserve symbol positions
+              const result = translateWithSymbols(
+                originalMessage,
+                translatedText,
+                symbols,
+              );
+
+              // Update the message
+              button.message = result.text;
+
+              // Update the rich text structure if it exists
+              if (button.semanticAction?.richText) {
+                button.semanticAction.richText.text = result.text;
+                button.semanticAction.richText.symbols = result.richTextSymbols;
+              } else if (result.richTextSymbols.length > 0) {
+                // Create rich text structure if it doesn't exist but we have symbols
+                if (!button.semanticAction) {
+                  button.semanticAction = {
+                    category: AACSemanticCategory.COMMUNICATION,
+                    intent: AACSemanticIntent.SPEAK_TEXT,
+                    text: result.text,
+                  };
+                }
+                button.semanticAction.richText = {
+                  text: result.text,
+                  symbols: result.richTextSymbols,
+                };
+              }
+            } else {
+              // No symbols to preserve, simple translation
+              button.message = translatedText;
+            }
+          }
         }
       });
     });
 
     // Save the translated tree and return its content
+    this.saveFromTree(tree, outputPath);
+    return fs.readFileSync(outputPath);
+  }
+
+  /**
+   * Extract symbol information from a gridset for LLM-based translation.
+   * Returns a structured format showing which buttons have symbols and their context.
+   *
+   * @param filePathOrBuffer - Path to gridset file or buffer
+   * @returns Array of symbol information for LLM processing
+   */
+  extractSymbolsForLLM(filePathOrBuffer: string | Buffer): Array<{
+    buttonId: string;
+    pageId: string;
+    pageName: string;
+    label: string;
+    message: string;
+    textToTranslate: string;
+    symbols: Array<{
+      text: string;
+      image?: string;
+      symbolLibrary?: string;
+      symbolPath?: string;
+    }>;
+  }> {
+    const tree = this.loadIntoTree(filePathOrBuffer);
+    const symbolInfo: Array<{
+      buttonId: string;
+      pageId: string;
+      pageName: string;
+      label: string;
+      message: string;
+      textToTranslate: string;
+      symbols: Array<{
+        text: string;
+        image?: string;
+        symbolLibrary?: string;
+        symbolPath?: string;
+      }>;
+    }> = [];
+
+    Object.values(tree.pages).forEach((page) => {
+      page.buttons.forEach((button) => {
+        // Extract symbols from various sources
+        const symbols: Array<{
+          text: string;
+          image?: string;
+          symbolLibrary?: string;
+          symbolPath?: string;
+        }> = [];
+
+        // Check richText.symbols
+        if (button.semanticAction?.richText?.symbols) {
+          symbols.push(...button.semanticAction.richText.symbols);
+        }
+
+        // Check symbolLibrary + symbolPath
+        if (button.symbolLibrary && button.symbolPath) {
+          const text = button.label || button.message || "";
+          if (text) {
+            symbols.push({
+              text,
+              symbolLibrary: button.symbolLibrary,
+              symbolPath: button.symbolPath,
+            });
+          }
+        }
+
+        // Check image field for symbol reference
+        if (button.image && button.image.startsWith("[")) {
+          const text = button.label || button.message || "";
+          if (text) {
+            symbols.push({
+              text,
+              image: button.image,
+            });
+          }
+        }
+
+        // Only include buttons that have symbols
+        if (symbols.length > 0) {
+          const textToTranslate = button.message || button.label || "";
+          if (textToTranslate) {
+            symbolInfo.push({
+              buttonId: button.id,
+              pageId: page.id,
+              pageName: page.name || page.id,
+              label: button.label || "",
+              message: button.message || "",
+              textToTranslate,
+              symbols,
+            });
+          }
+        }
+      });
+    });
+
+    return symbolInfo;
+  }
+
+  /**
+   * Apply LLM translations with symbol information.
+   * The LLM should provide translations with symbol attachments in the correct positions.
+   *
+   * @param filePathOrBuffer - Path to gridset file or buffer
+   * @param llmTranslations - Array of LLM translations with symbol info
+   * @param outputPath - Where to save the translated gridset
+   * @returns Buffer of the translated gridset
+   */
+  processLLMTranslations(
+    filePathOrBuffer: string | Buffer,
+    llmTranslations: Array<{
+      buttonId: string;
+      translatedLabel?: string;
+      translatedMessage?: string;
+      symbols?: Array<{
+        text: string;
+        image?: string;
+      }>;
+    }>,
+    outputPath: string,
+  ): Buffer {
+    const tree = this.loadIntoTree(filePathOrBuffer);
+
+    // Create a map for quick lookup
+    const translationMap = new Map(llmTranslations.map((t) => [t.buttonId, t]));
+
+    // Apply translations
+    Object.values(tree.pages).forEach((page) => {
+      page.buttons.forEach((button) => {
+        const translation = translationMap.get(button.id);
+        if (!translation) return;
+
+        // Apply label translation
+        if (translation.translatedLabel) {
+          button.label = translation.translatedLabel;
+        }
+
+        // Apply message translation
+        if (translation.translatedMessage) {
+          button.message = translation.translatedMessage;
+
+          // Update rich text if symbols provided
+          if (translation.symbols && translation.symbols.length > 0) {
+            if (!button.semanticAction) {
+              button.semanticAction = {
+                category: AACSemanticCategory.COMMUNICATION,
+                intent: AACSemanticIntent.SPEAK_TEXT,
+                text: translation.translatedMessage,
+              };
+            }
+
+            button.semanticAction.richText = {
+              text: translation.translatedMessage,
+              symbols: translation.symbols,
+            };
+          }
+        }
+      });
+    });
+
+    // Save and return
     this.saveFromTree(tree, outputPath);
     return fs.readFileSync(outputPath);
   }
@@ -1224,7 +1524,7 @@ class GridsetProcessor extends BaseProcessor {
 
     // Helper function to add style and return its ID
     const addStyle = (style: AACStyle | undefined): string => {
-      if (!style) return '';
+      if (!style) return "";
       const normalizedStyle: AACStyle = { ...style };
       const styleKey = JSON.stringify(normalizedStyle);
       const existing = uniqueStyles.get(styleKey);
@@ -1245,7 +1545,7 @@ class GridsetProcessor extends BaseProcessor {
 
     // Get the home/start grid from tree.rootId, fallback to first page
     const pages = Object.values(tree.pages);
-    let startGrid = '';
+    let startGrid = "";
 
     if (tree.rootId) {
       const homePage = tree.getPage(tree.rootId);
@@ -1261,50 +1561,55 @@ class GridsetProcessor extends BaseProcessor {
 
     // Create Settings0/settings.xml with proper Grid3 structure
     const settingsData = {
-      '?xml': { '@_version': '1.0', '@_encoding': 'UTF-8' },
+      "?xml": { "@_version": "1.0", "@_encoding": "UTF-8" },
       GridSetSettings: {
-        '@_xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
+        "@_xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
         StartGrid: startGrid,
         // Add other common Grid3 settings
-        ScanEnabled: 'false',
-        ScanTimeoutMs: '2000',
-        HoverEnabled: 'false',
-        HoverTimeoutMs: '1000',
-        MouseclickEnabled: 'true',
-        Language: 'en-US',
+        ScanEnabled: "false",
+        ScanTimeoutMs: "2000",
+        HoverEnabled: "false",
+        HoverTimeoutMs: "1000",
+        MouseclickEnabled: "true",
+        Language: "en-US",
       },
     };
 
     const settingsBuilder = new XMLBuilder({
       ignoreAttributes: false,
       format: true,
-      indentBy: '  ',
+      indentBy: "  ",
       suppressEmptyNode: true,
     });
     const settingsXmlContent = settingsBuilder.build(settingsData);
-    zip.addFile('Settings0/settings.xml', Buffer.from(settingsXmlContent, 'utf8'));
+    zip.addFile(
+      "Settings0/settings.xml",
+      Buffer.from(settingsXmlContent, "utf8"),
+    );
 
     // Create Settings0/Styles/style.xml if there are styles
     if (uniqueStyles.size > 0) {
-      const stylesArray = Array.from(uniqueStyles.values()).map(({ id, style }) => {
-        const styleObj = {
-          '@_Key': id,
-          // When TileColour is present, BackColour is the surround (outer area)
-          // For "None" surround, just use BackColour for the fill (no TileColour)
-          BackColour: this.ensureAlphaChannel(style.backgroundColor),
-          BorderColour: this.ensureAlphaChannel(style.borderColor),
-          FontColour: this.ensureAlphaChannel(style.fontColor),
-          FontName: style.fontFamily || 'Arial',
-          FontSize: style.fontSize?.toString() || '16',
-        };
-        // Don't add TileColour - just use BackColour as the fill color
-        return styleObj;
-      });
+      const stylesArray = Array.from(uniqueStyles.values()).map(
+        ({ id, style }) => {
+          const styleObj = {
+            "@_Key": id,
+            // When TileColour is present, BackColour is the surround (outer area)
+            // For "None" surround, just use BackColour for the fill (no TileColour)
+            BackColour: this.ensureAlphaChannel(style.backgroundColor),
+            BorderColour: this.ensureAlphaChannel(style.borderColor),
+            FontColour: this.ensureAlphaChannel(style.fontColor),
+            FontName: style.fontFamily || "Arial",
+            FontSize: style.fontSize?.toString() || "16",
+          };
+          // Don't add TileColour - just use BackColour as the fill color
+          return styleObj;
+        },
+      );
 
       const styleData = {
-        '?xml': { '@_version': '1.0', '@_encoding': 'UTF-8' },
+        "?xml": { "@_version": "1.0", "@_encoding": "UTF-8" },
         StyleData: {
-          '@_xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
+          "@_xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
           Styles: {
             Style: stylesArray,
           },
@@ -1314,10 +1619,13 @@ class GridsetProcessor extends BaseProcessor {
       const styleBuilder = new XMLBuilder({
         ignoreAttributes: false,
         format: true,
-        indentBy: '  ',
+        indentBy: "  ",
       });
       const styleXmlContent = styleBuilder.build(styleData);
-      zip.addFile('Settings0/Styles/styles.xml', Buffer.from(styleXmlContent, 'utf8'));
+      zip.addFile(
+        "Settings0/Styles/styles.xml",
+        Buffer.from(styleXmlContent, "utf8"),
+      );
     }
 
     // Collect grid file paths for FileMap.xml
@@ -1327,116 +1635,135 @@ class GridsetProcessor extends BaseProcessor {
     Object.values(tree.pages).forEach((page) => {
       const gridData = {
         Grid: {
-          '@_xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
+          "@_xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
           GridGuid: page.id,
           // Calculate grid dimensions based on actual layout
           ColumnDefinitions: this.calculateColumnDefinitions(page),
           RowDefinitions: this.calculateRowDefinitions(page, false), // No automatic workspace row injection
-          AutoContentCommands: '',
+          AutoContentCommands: "",
           Cells:
             page.buttons.length > 0
               ? {
                   Cell: [
                     // Regular button cells
-                    ...this.filterPageButtons(page.buttons).map((button, btnIndex) => {
-                      const buttonStyleId = button.style ? addStyle(button.style) : '';
+                    ...this.filterPageButtons(page.buttons).map(
+                      (button, btnIndex) => {
+                        const buttonStyleId = button.style
+                          ? addStyle(button.style)
+                          : "";
 
-                      // Find button position in grid layout
-                      const position = this.findButtonPosition(page, button, btnIndex);
+                        // Find button position in grid layout
+                        const position = this.findButtonPosition(
+                          page,
+                          button,
+                          btnIndex,
+                        );
 
-                      // Use position directly from tree
-                      const yOffset = 0;
+                        // Use position directly from tree
+                        const yOffset = 0;
 
-                      // Build CaptionAndImage object
-                      const captionAndImage: Record<string, unknown> = {
-                        Caption: button.label || '',
-                      };
+                        // Build CaptionAndImage object
+                        const captionAndImage: Record<string, unknown> = {
+                          Caption: button.label || "",
+                        };
 
-                      // Add image reference if button has an image
-                      // Grid3 uses coordinate-based naming: {x}-{y}-0-text-0.{ext}
-                      if (button.image) {
-                        // Try to determine file extension from image name or default to PNG
-                        let imageExt = 'png';
-                        const imageMatch = button.image.match(/\.(png|jpg|jpeg|gif|svg)$/i);
-                        if (imageMatch) {
-                          imageExt = imageMatch[1].toLowerCase();
-                        }
-
-                        // Grid3 dynamically constructs image filenames by prepending cell coordinates
-                        // The XML should only contain the suffix: -0-text-0.{ext}
-                        // Grid3 automatically adds the X-Y prefix based on the Cell's position
-                        captionAndImage.Image = `-0-text-0.${imageExt}`;
-
-                        // Extract image data from button parameters if available
-                        // (AstericsGridProcessor stores it there during loadIntoTree)
-                        let imageData = Buffer.alloc(0);
-                        if (
-                          button.parameters &&
-                          button.parameters.imageData &&
-                          Buffer.isBuffer(button.parameters.imageData)
-                        ) {
-                          imageData = button.parameters.imageData;
-                        }
-
-                        // Store image data for later writing to ZIP
-                        buttonImages.set(button.id, {
-                          imageData: imageData,
-                          ext: imageExt,
-                          pageName: page.name || page.id,
-                          x: position.x,
-                          y: position.y + yOffset,
-                        });
-                      }
-
-                      const cellData: Record<string, unknown> = {
-                        '@_X': position.x, // Grid3 uses 0-based X coordinates (defaults to 0 when omitted)
-                        '@_Y': position.y + yOffset, // Grid3 uses 0-based Y coordinates with workspace offset
-                        '@_ColumnSpan': position.columnSpan,
-                        '@_RowSpan': position.rowSpan,
-                        Content: {
-                          ContentType:
-                            button.contentType === 'Normal' ? undefined : button.contentType,
-                          ContentSubType: button.contentSubType,
-                          Commands: this.generateCommandsFromSemanticAction(button, tree),
-                          CaptionAndImage: captionAndImage,
-                        },
-                      };
-
-                      // Add style reference and inline color overrides if available
-                      // Some Grid3 versions need inline colors in addition to style references
-                      if (buttonStyleId || button.style) {
-                        const styleObj: any = {};
-
-                        // Add style reference if we have one
-                        if (buttonStyleId) {
-                          styleObj.BasedOnStyle = buttonStyleId;
-                        }
-
-                        // Add inline color overrides for better Grid3 compatibility
-                        if (button.style?.backgroundColor) {
-                          // Use BackColour for fill (no TileColour means no surround, just the fill)
-                          styleObj.BackColour = this.ensureAlphaChannel(
-                            button.style.backgroundColor
+                        // Add image reference if button has an image
+                        // Grid3 uses coordinate-based naming: {x}-{y}-0-text-0.{ext}
+                        if (button.image) {
+                          // Try to determine file extension from image name or default to PNG
+                          let imageExt = "png";
+                          const imageMatch = button.image.match(
+                            /\.(png|jpg|jpeg|gif|svg)$/i,
                           );
-                        }
-                        if (button.style?.borderColor) {
-                          styleObj.BorderColour = this.ensureAlphaChannel(button.style.borderColor);
-                        }
-                        if (button.style?.fontColor) {
-                          styleObj.FontColour = this.ensureAlphaChannel(button.style.fontColor);
-                        }
-                        if (button.style?.fontFamily) {
-                          styleObj.FontName = button.style.fontFamily;
-                        }
-                        if (button.style?.fontSize) {
-                          styleObj.FontSize = button.style.fontSize;
+                          if (imageMatch) {
+                            imageExt = imageMatch[1].toLowerCase();
+                          }
+
+                          // Grid3 dynamically constructs image filenames by prepending cell coordinates
+                          // The XML should only contain the suffix: -0-text-0.{ext}
+                          // Grid3 automatically adds the X-Y prefix based on the Cell's position
+                          captionAndImage.Image = `-0-text-0.${imageExt}`;
+
+                          // Extract image data from button parameters if available
+                          // (AstericsGridProcessor stores it there during loadIntoTree)
+                          let imageData = Buffer.alloc(0);
+                          if (
+                            button.parameters &&
+                            button.parameters.imageData &&
+                            Buffer.isBuffer(button.parameters.imageData)
+                          ) {
+                            imageData = button.parameters.imageData;
+                          }
+
+                          // Store image data for later writing to ZIP
+                          buttonImages.set(button.id, {
+                            imageData: imageData,
+                            ext: imageExt,
+                            pageName: page.name || page.id,
+                            x: position.x,
+                            y: position.y + yOffset,
+                          });
                         }
 
-                        (cellData as any).Content.Style = styleObj;
-                      }
+                        const cellData: Record<string, unknown> = {
+                          "@_X": position.x, // Grid3 uses 0-based X coordinates (defaults to 0 when omitted)
+                          "@_Y": position.y + yOffset, // Grid3 uses 0-based Y coordinates with workspace offset
+                          "@_ColumnSpan": position.columnSpan,
+                          "@_RowSpan": position.rowSpan,
+                          Content: {
+                            ContentType:
+                              button.contentType === "Normal"
+                                ? undefined
+                                : button.contentType,
+                            ContentSubType: button.contentSubType,
+                            Commands: this.generateCommandsFromSemanticAction(
+                              button,
+                              tree,
+                            ),
+                            CaptionAndImage: captionAndImage,
+                          },
+                        };
 
-                      return cellData;
-                    }),
+                        // Add style reference and inline color overrides if available
+                        // Some Grid3 versions need inline colors in addition to style references
+                        if (buttonStyleId || button.style) {
+                          const styleObj: any = {};
+
+                          // Add style reference if we have one
+                          if (buttonStyleId) {
+                            styleObj.BasedOnStyle = buttonStyleId;
+                          }
+
+                          // Add inline color overrides for better Grid3 compatibility
+                          if (button.style?.backgroundColor) {
+                            // Use BackColour for fill (no TileColour means no surround, just the fill)
+                            styleObj.BackColour = this.ensureAlphaChannel(
+                              button.style.backgroundColor,
+                            );
+                          }
+                          if (button.style?.borderColor) {
+                            styleObj.BorderColour = this.ensureAlphaChannel(
+                              button.style.borderColor,
+                            );
+                          }
+                          if (button.style?.fontColor) {
+                            styleObj.FontColour = this.ensureAlphaChannel(
+                              button.style.fontColor,
+                            );
+                          }
+                          if (button.style?.fontFamily) {
+                            styleObj.FontName = button.style.fontFamily;
+                          }
+                          if (button.style?.fontSize) {
+                            styleObj.FontSize = button.style.fontSize;
+                          }
+
+                          (cellData as any).Content.Style = styleObj;
+                        }
+
+                        return cellData;
+                      },
+                    ),
                   ],
                 }
               : { Cell: [] },
@@ -1447,16 +1774,16 @@ class GridsetProcessor extends BaseProcessor {
       const builder = new XMLBuilder({
         ignoreAttributes: false,
         format: true,
-        indentBy: '  ',
+        indentBy: "  ",
         suppressEmptyNode: true,
-        cdataPropName: '__cdata',
+        cdataPropName: "__cdata",
       });
       const xmlContent = builder.build(gridData);
 
       // Add to zip in Grids folder with proper Grid3 naming
       const gridPath = `Grids\\${page.name || page.id}\\grid.xml`;
       gridFilePaths.push(gridPath);
-      zip.addFile(gridPath, Buffer.from(xmlContent, 'utf8'));
+      zip.addFile(gridPath, Buffer.from(xmlContent, "utf8"));
     });
 
     // Write image files to ZIP
@@ -1470,26 +1797,30 @@ class GridsetProcessor extends BaseProcessor {
 
     // Create FileMap.xml to map all grid files with their dynamic image files
     const fileMapData = {
-      '?xml': { '@_version': '1.0', '@_encoding': 'UTF-8' },
+      "?xml": { "@_version": "1.0", "@_encoding": "UTF-8" },
       FileMap: {
-        '@_xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
+        "@_xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
         Entries: {
           Entry: gridFilePaths.map((gridPath) => {
             // Find all image files for this grid
-            const gridName = gridPath.match(/Grids\\([^\\]+)\\grid\.xml$/)?.[1] || '';
+            const gridName =
+              gridPath.match(/Grids\\([^\\]+)\\grid\.xml$/)?.[1] || "";
             const imageFiles: string[] = [];
 
             // Collect image filenames for buttons on this page
             // IMPORTANT: FileMap.xml requires full paths like "Grids\PageName\1-5-0-text-0.png"
             buttonImages.forEach((imgData) => {
-              if (imgData.pageName === gridName && imgData.imageData.length > 0) {
+              if (
+                imgData.pageName === gridName &&
+                imgData.imageData.length > 0
+              ) {
                 const imagePath = `Grids\\${gridName}\\${imgData.x}-${imgData.y}-0-text-0.${imgData.ext}`;
                 imageFiles.push(imagePath);
               }
             });
 
             return {
-              '@_StaticFile': gridPath,
+              "@_StaticFile": gridPath,
               DynamicFiles:
                 imageFiles.length > 0
                   ? {
@@ -1505,10 +1836,10 @@ class GridsetProcessor extends BaseProcessor {
     const fileMapBuilder = new XMLBuilder({
       ignoreAttributes: false,
       format: true,
-      indentBy: '  ',
+      indentBy: "  ",
     });
     const fileMapXmlContent = fileMapBuilder.build(fileMapData);
-    zip.addFile('FileMap.xml', Buffer.from(fileMapXmlContent, 'utf8'));
+    zip.addFile("FileMap.xml", Buffer.from(fileMapXmlContent, "utf8"));
 
     // Write the zip file
     zip.writeZip(outputPath);
@@ -1535,7 +1866,7 @@ class GridsetProcessor extends BaseProcessor {
   // Helper method to calculate row definitions based on page layout
   private calculateRowDefinitions(
     page: AACPage,
-    addWorkspaceOffset = false
+    addWorkspaceOffset = false,
   ): { RowDefinition: any[] } {
     let maxRows = 4; // Default minimum
     const offset = addWorkspaceOffset ? 1 : 0;
@@ -1545,7 +1876,8 @@ class GridsetProcessor extends BaseProcessor {
     } else {
       // Fallback: estimate from button count
       const estimatedCols = Math.ceil(Math.sqrt(page.buttons.length));
-      maxRows = Math.max(4, Math.ceil(page.buttons.length / estimatedCols)) + offset;
+      maxRows =
+        Math.max(4, Math.ceil(page.buttons.length / estimatedCols)) + offset;
     }
 
     return {
@@ -1557,7 +1889,7 @@ class GridsetProcessor extends BaseProcessor {
   private findButtonPosition(
     page: AACPage,
     button: AACButton,
-    fallbackIndex: number
+    fallbackIndex: number,
   ): {
     x: number;
     y: number;
@@ -1601,7 +1933,8 @@ class GridsetProcessor extends BaseProcessor {
     }
 
     // Fallback positioning
-    const gridCols = page.grid?.[0]?.length || Math.ceil(Math.sqrt(page.buttons.length));
+    const gridCols =
+      page.grid?.[0]?.length || Math.ceil(Math.sqrt(page.buttons.length));
     return {
       x: fallbackIndex % gridCols,
       y: Math.floor(fallbackIndex / gridCols),
@@ -1625,9 +1958,13 @@ class GridsetProcessor extends BaseProcessor {
   generateTranslatedDownload(
     filePath: string,
     translatedStrings: TranslatedString[],
-    sourceStrings: SourceString[]
+    sourceStrings: SourceString[],
   ): Promise<string> {
-    return this.generateTranslatedDownloadGeneric(filePath, translatedStrings, sourceStrings);
+    return this.generateTranslatedDownloadGeneric(
+      filePath,
+      translatedStrings,
+      sourceStrings,
+    );
   }
 
   /**

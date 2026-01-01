@@ -5,8 +5,8 @@
  * from the AAC board set, including spelling fallback for missing words.
  */
 
-import { MetricsResult } from './types';
-import { spellingEffort } from './effort';
+import { MetricsResult } from "./types";
+import { spellingEffort } from "./effort";
 
 export interface SentenceAnalysis {
   sentence: string; // Full sentence text
@@ -22,7 +22,10 @@ export class SentenceAnalyzer {
   /**
    * Analyze effort to construct a set of test sentences
    */
-  analyzeSentences(metrics: MetricsResult, sentences: string[][]): SentenceAnalysis[] {
+  analyzeSentences(
+    metrics: MetricsResult,
+    sentences: string[][],
+  ): SentenceAnalysis[] {
     return sentences.map((words) => this.analyzeSentence(metrics, words));
   }
 
@@ -30,7 +33,8 @@ export class SentenceAnalyzer {
    * Analyze effort to construct a single sentence
    */
   analyzeSentence(metrics: MetricsResult, words: string[]): SentenceAnalysis {
-    const wordEfforts: Array<{ word: string; effort: number; typed: boolean }> = [];
+    const wordEfforts: Array<{ word: string; effort: number; typed: boolean }> =
+      [];
     let totalEffort = 0;
     let typing = false;
     const missingWords: string[] = [];
@@ -90,7 +94,7 @@ export class SentenceAnalyzer {
         }
         return word.toLowerCase();
       })
-      .join(' ');
+      .join(" ");
   }
 
   /**
@@ -113,7 +117,8 @@ export class SentenceAnalyzer {
     const sentencesWithoutTyping = totalSentences - sentencesRequiringTyping;
 
     const efforts = analyses.map((a) => a.effort);
-    const averageEffort = efforts.reduce((sum, e) => sum + e, 0) / efforts.length;
+    const averageEffort =
+      efforts.reduce((sum, e) => sum + e, 0) / efforts.length;
     const minEffort = Math.min(...efforts);
     const maxEffort = Math.max(...efforts);
 
@@ -121,12 +126,16 @@ export class SentenceAnalyzer {
     const sortedEfforts = [...efforts].sort((a, b) => a - b);
     const medianEffort =
       sortedEfforts.length % 2 === 0
-        ? (sortedEfforts[sortedEfforts.length / 2 - 1] + sortedEfforts[sortedEfforts.length / 2]) /
+        ? (sortedEfforts[sortedEfforts.length / 2 - 1] +
+            sortedEfforts[sortedEfforts.length / 2]) /
           2
         : sortedEfforts[Math.floor(sortedEfforts.length / 2)];
 
     const totalWords = analyses.reduce((sum, a) => sum + a.words.length, 0);
-    const wordsRequiringTyping = analyses.reduce((sum, a) => sum + a.missing_words.length, 0);
+    const wordsRequiringTyping = analyses.reduce(
+      (sum, a) => sum + a.missing_words.length,
+      0,
+    );
     const typingPercent = (wordsRequiringTyping / totalWords) * 100;
 
     return {

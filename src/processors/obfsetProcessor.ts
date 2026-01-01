@@ -3,16 +3,16 @@
  * These are pre-extracted board sets in JSON array format
  */
 
-import { AACTree } from '../core/treeStructure';
+import { AACTree } from "../core/treeStructure";
 import {
   AACPage,
   AACButton,
   AACSemanticAction,
   AACSemanticCategory,
   AACSemanticIntent,
-} from '../core/treeStructure';
-import fs from 'fs';
-import { BaseProcessor, ProcessorOptions } from '../core/baseProcessor';
+} from "../core/treeStructure";
+import fs from "fs";
+import { BaseProcessor, ProcessorOptions } from "../core/baseProcessor";
 
 interface ObfsetButton {
   id: string;
@@ -66,9 +66,9 @@ export class ObfsetProcessor extends BaseProcessor {
     let content: string;
 
     if (Buffer.isBuffer(filePathOrBuffer)) {
-      content = filePathOrBuffer.toString('utf-8');
+      content = filePathOrBuffer.toString("utf-8");
     } else {
-      content = fs.readFileSync(filePathOrBuffer, 'utf-8');
+      content = fs.readFileSync(filePathOrBuffer, "utf-8");
     }
 
     const boards: ObfsetBoard[] = JSON.parse(content);
@@ -102,7 +102,9 @@ export class ObfsetProcessor extends BaseProcessor {
       const cols = boardData.grid?.columns || 6;
 
       // Initialize grid with nulls
-      page.grid = Array.from({ length: rows }, () => Array.from({ length: cols }, () => null));
+      page.grid = Array.from({ length: rows }, () =>
+        Array.from({ length: cols }, () => null),
+      );
 
       // Create button map by ID
       const buttonMap = new Map<string, any>();
@@ -131,14 +133,14 @@ export class ObfsetProcessor extends BaseProcessor {
                 intent: AACSemanticIntent.NAVIGATE_TO,
                 targetId: btnData.load_board.id,
                 fallback: {
-                  type: 'NAVIGATE',
+                  type: "NAVIGATE",
                   targetPageId: btnData.load_board.id,
                   add_to_sentence: btnData.load_board.add_to_sentence,
                   temporary_home: btnData.load_board.temporary_home,
                 },
                 platformData: {
                   grid3: {
-                    commandId: 'GO_TO_BOARD',
+                    commandId: "GO_TO_BOARD",
                     parameters: {
                       add_to_sentence: btnData.load_board.add_to_sentence,
                       temporary_home: btnData.load_board.temporary_home,
@@ -151,15 +153,15 @@ export class ObfsetProcessor extends BaseProcessor {
               semanticAction = {
                 category: AACSemanticCategory.COMMUNICATION,
                 intent: AACSemanticIntent.SPEAK_TEXT,
-                text: btnData.label || '',
-                fallback: { type: 'SPEAK', message: btnData.label || '' },
+                text: btnData.label || "",
+                fallback: { type: "SPEAK", message: btnData.label || "" },
               };
             }
 
             const button = new AACButton({
               id: btnData.id,
-              label: btnData.label || '',
-              message: btnData.label || '',
+              label: btnData.label || "",
+              message: btnData.label || "",
               targetPageId: btnData.load_board?.id,
               semanticAction,
               semantic_id: btnData.semantic_id,
@@ -212,19 +214,19 @@ export class ObfsetProcessor extends BaseProcessor {
   processTexts(
     _filePathOrBuffer: string | Buffer,
     _translations: Map<string, string>,
-    _outputPath: string
+    _outputPath: string,
   ): Buffer {
-    throw new Error('processTexts is not supported for .obfset currently');
+    throw new Error("processTexts is not supported for .obfset currently");
   }
 
   /**
    * Save tree structure back to file
    */
   saveFromTree(_tree: AACTree, _outputPath: string): void {
-    throw new Error('saveFromTree is not supported for .obfset currently');
+    throw new Error("saveFromTree is not supported for .obfset currently");
   }
 
   supportsExtension(extension: string): boolean {
-    return extension === '.obfset';
+    return extension === ".obfset";
   }
 }

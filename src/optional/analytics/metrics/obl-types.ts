@@ -15,7 +15,7 @@ export interface OblAction {
 export interface OblEventBase {
   id: string;
   timestamp: string; // ISO 8601
-  type: 'button' | 'action' | 'utterance' | 'note' | 'other' | string;
+  type: "button" | "action" | "utterance" | "note" | "other" | string;
   locale?: string;
   geo?: [number, number, number?]; // lat, long, alt
   location_id?: string;
@@ -29,7 +29,7 @@ export interface OblEventBase {
 }
 
 export interface OblButtonEvent extends OblEventBase {
-  type: 'button';
+  type: "button";
   label: string;
   spoken: boolean;
   button_id?: string;
@@ -40,7 +40,7 @@ export interface OblButtonEvent extends OblEventBase {
 }
 
 export interface OblActionEvent extends OblEventBase {
-  type: 'action';
+  type: "action";
   action: string;
   destination_board_id?: string;
   text?: string;
@@ -48,7 +48,7 @@ export interface OblActionEvent extends OblEventBase {
 }
 
 export interface OblUtteranceEvent extends OblEventBase {
-  type: 'utterance';
+  type: "utterance";
   text: string;
   buttons?: Array<{
     id?: string;
@@ -61,7 +61,7 @@ export interface OblUtteranceEvent extends OblEventBase {
 }
 
 export interface OblNoteEvent extends OblEventBase {
-  type: 'note';
+  type: "note";
   text: string;
   author_name?: string;
   author_email?: string;
@@ -77,7 +77,7 @@ export type OblEvent =
 
 export interface OblSession {
   id: string;
-  type: 'log' | string;
+  type: "log" | string;
   started: string; // ISO 8601
   ended: string; // ISO 8601
   device_id?: string;
@@ -88,7 +88,7 @@ export interface OblSession {
 }
 
 export interface OblFile {
-  format: 'open-board-log-0.1' | string;
+  format: "open-board-log-0.1" | string;
   user_id: string;
   user_name?: string;
   source?: string;

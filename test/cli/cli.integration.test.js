@@ -13,7 +13,10 @@ describe("aac-processors CLI", () => {
     }
   });
   const cliPath = path.join(__dirname, "../../dist/cli/index.js");
-  const gridsetExample = path.join(__dirname, "../assets/gridset/example.gridset");
+  const gridsetExample = path.join(
+    __dirname,
+    "../assets/gridset/example.gridset",
+  );
   const touchchatExample = path.join(__dirname, "../assets/excel/example.ce");
 
   it("extracts texts from a gridset file", () => {

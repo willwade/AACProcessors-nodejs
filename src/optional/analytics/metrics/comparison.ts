@@ -5,10 +5,10 @@
  * analyze vocabulary differences, and generate CARE component scores.
  */
 
-import { MetricsResult, ButtonMetrics, ComparisonResult } from './types';
-import { SentenceAnalyzer } from './sentence';
-import { VocabularyAnalyzer } from './vocabulary';
-import { ReferenceLoader } from '../reference/index';
+import { MetricsResult, ButtonMetrics, ComparisonResult } from "./types";
+import { SentenceAnalyzer } from "./sentence";
+import { VocabularyAnalyzer } from "./vocabulary";
+import { ReferenceLoader } from "../reference/index";
 
 export class ComparisonAnalyzer {
   private vocabAnalyzer: VocabularyAnalyzer;
@@ -30,7 +30,7 @@ export class ComparisonAnalyzer {
     options?: {
       includeSentences?: boolean;
       locale?: string;
-    }
+    },
   ): ComparisonResult {
     // Create base result from target
     const baseResult = { ...targetResult };
@@ -92,7 +92,7 @@ export class ComparisonAnalyzer {
     const careComponents = this.calculateCareComponents(
       targetResult,
       compareResult,
-      overlappingWords
+      overlappingWords,
     );
 
     // Analyze high/low effort words
@@ -116,16 +116,20 @@ export class ComparisonAnalyzer {
     highEffortWords.sort((a, b) => {
       const targetBtnA = targetWords.get(a);
       const targetBtnB = targetWords.get(b);
-      const diffA = (targetBtnA?.effort || 0) - (compareWords.get(a)?.effort || 0);
-      const diffB = (targetBtnB?.effort || 0) - (compareWords.get(b)?.effort || 0);
+      const diffA =
+        (targetBtnA?.effort || 0) - (compareWords.get(a)?.effort || 0);
+      const diffB =
+        (targetBtnB?.effort || 0) - (compareWords.get(b)?.effort || 0);
       return diffB - diffA;
     });
 
     lowEffortWords.sort((a, b) => {
       const targetBtnA = targetWords.get(a);
       const targetBtnB = targetWords.get(b);
-      const diffA = (compareWords.get(a)?.effort || 0) - (targetBtnA?.effort || 0);
-      const diffB = (compareWords.get(b)?.effort || 0) - (targetBtnB?.effort || 0);
+      const diffA =
+        (compareWords.get(a)?.effort || 0) - (targetBtnA?.effort || 0);
+      const diffB =
+        (compareWords.get(b)?.effort || 0) - (targetBtnB?.effort || 0);
       return diffB - diffA;
     });
 
@@ -133,8 +137,14 @@ export class ComparisonAnalyzer {
     let sentences: any[] = [];
     if (options?.includeSentences) {
       const testSentences = this.referenceLoader.loadSentences();
-      const targetSentences = this.sentenceAnalyzer.analyzeSentences(targetResult, testSentences);
-      const compareSentences = this.sentenceAnalyzer.analyzeSentences(compareResult, testSentences);
+      const targetSentences = this.sentenceAnalyzer.analyzeSentences(
+        targetResult,
+        testSentences,
+      );
+      const compareSentences = this.sentenceAnalyzer.analyzeSentences(
+        compareResult,
+        testSentences,
+      );
 
       sentences = targetSentences.map((ts, idx) => ({
         sentence: ts.sentence,
@@ -198,7 +208,10 @@ export class ComparisonAnalyzer {
 
     // Fringe vocabulary analysis
     const fringeWords = this.analyzeFringe(targetWords, compareWords);
-    const commonFringeWords = this.analyzeCommonFringe(targetWords, compareWords);
+    const commonFringeWords = this.analyzeCommonFringe(
+      targetWords,
+      compareWords,
+    );
 
     return {
       ...baseResult,
@@ -247,8 +260,8 @@ export class ComparisonAnalyzer {
   private calculateCareComponents(
     targetResult: MetricsResult,
     compareResult: MetricsResult,
-    _overlappingWords: string[]
-  ): ComparisonResult['care_components'] {
+    _overlappingWords: string[],
+  ): ComparisonResult["care_components"] {
     // Create word maps
     const targetWords = new Map<string, ButtonMetrics>();
     targetResult.buttons.forEach((btn) => {
@@ -310,7 +323,8 @@ export class ComparisonAnalyzer {
       });
     });
 
-    const avgSentenceEffort = sentenceWordCount > 0 ? sentenceEffort / sentenceWordCount : 0;
+    const avgSentenceEffort =
+      sentenceWordCount > 0 ? sentenceEffort / sentenceWordCount : 0;
     const compAvgSentenceEffort =
       sentenceWordCount > 0 ? compSentenceEffort / sentenceWordCount : 0;
 
@@ -345,10 +359,11 @@ export class ComparisonAnalyzer {
    */
   private analyzeFringe(
     targetWords: Map<string, ButtonMetrics>,
-    compareWords: Map<string, ButtonMetrics>
+    compareWords: Map<string, ButtonMetrics>,
   ): Array<{ word: string; effort: number; comp_effort: number }> {
     const fringe = this.referenceLoader.loadFringe();
-    const result: Array<{ word: string; effort: number; comp_effort: number }> = [];
+    const result: Array<{ word: string; effort: number; comp_effort: number }> =
+      [];
 
     fringe.forEach((word) => {
       const targetBtn = targetWords.get(word);
@@ -372,10 +387,11 @@ export class ComparisonAnalyzer {
    */
   private analyzeCommonFringe(
     targetWords: Map<string, ButtonMetrics>,
-    compareWords: Map<string, ButtonMetrics>
+    compareWords: Map<string, ButtonMetrics>,
   ): Array<{ word: string; effort: number; comp_effort: number }> {
     const fringe = this.referenceLoader.loadFringe();
-    const result: Array<{ word: string; effort: number; comp_effort: number }> = [];
+    const result: Array<{ word: string; effort: number; comp_effort: number }> =
+      [];
 
     fringe.forEach((word) => {
       const targetBtn = targetWords.get(word);

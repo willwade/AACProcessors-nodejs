@@ -1,9 +1,9 @@
-import { isSymbolReference, parseSymbolReference } from './symbols';
+import { isSymbolReference, parseSymbolReference } from "./symbols";
 
 function normalizeZipPathLocal(p: string): string {
-  const unified = p.replace(/\\/g, '/');
+  const unified = p.replace(/\\/g, "/");
   try {
-    return unified.normalize('NFC');
+    return unified.normalize("NFC");
   } catch {
     return unified;
   }
@@ -14,7 +14,7 @@ function listZipEntries(zip: any, zipEntries?: any[]): string[] {
     const raw: unknown =
       Array.isArray(zipEntries) && zipEntries.length > 0
         ? zipEntries
-        : typeof zip?.getEntries === 'function'
+        : typeof zip?.getEntries === "function"
           ? zip.getEntries()
           : [];
     let entries: unknown[] = [];
@@ -33,8 +33,8 @@ function extFromName(name?: string): string | undefined {
 }
 
 function joinBaseDir(baseDir: string, leaf: string): string {
-  const base = normalizeZipPathLocal(baseDir).replace(/\/?$/, '/');
-  return normalizeZipPathLocal(base + leaf.replace(/^\//, ''));
+  const base = normalizeZipPathLocal(baseDir).replace(/\/?$/, "/");
+  return normalizeZipPathLocal(base + leaf.replace(/^\//, ""));
 }
 
 export function resolveGrid3CellImage(
@@ -47,7 +47,7 @@ export function resolveGrid3CellImage(
     dynamicFiles?: string[];
     builtinHandler?: (name: string) => string | null;
   },
-  zipEntries?: any[]
+  zipEntries?: any[],
 ): string | null {
   const { baseDir, dynamicFiles } = args;
   const imageName = args.imageName?.trim();
@@ -59,13 +59,13 @@ export function resolveGrid3CellImage(
 
   // Built-in resource like [grid3x]... (old format, not symbol library)
   // Check this BEFORE general symbol references to avoid misclassification
-  if (imageName && imageName.startsWith('[')) {
+  if (imageName && imageName.startsWith("[")) {
     // Check if it's a symbol library reference like [widgit]/food/apple.png
     // Symbol library references have a path after the library name
     if (isSymbolReference(imageName)) {
       const parsed = parseSymbolReference(imageName);
       // If it's grid3x, it's a built-in resource, not a symbol library
-      if (parsed.library !== 'grid3x') {
+      if (parsed.library !== "grid3x") {
         // Symbol library references are NOT stored as files in the gridset
         // They are resolved from the external Grid 3 installation
         // Return null to indicate this is an external symbol reference
@@ -142,7 +142,7 @@ export function isSymbolLibraryReference(imageName?: string): boolean {
  * @returns Parsed reference or null if not a symbol reference
  */
 export function parseImageSymbolReference(
-  imageName: string
+  imageName: string,
 ): ReturnType<typeof parseSymbolReference> | null {
   if (!isSymbolLibraryReference(imageName)) {
     return null;

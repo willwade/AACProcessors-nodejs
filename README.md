@@ -199,6 +199,7 @@ console.log("Translation complete!");
 The library includes an optional high-performance analytics engine for evaluating AAC board sets based on the **AAC Effort Algorithm (v0.2)**.
 
 #### **Key Metrics Features**
+
 - **Effort Scores**: Calculate the physical/cognitive cost of any word (Distance, Field Size, Motor Planning).
 - **Vocabulary Coverage**: Compare board sets against core vocabulary lists (e.g., Anderson & Bitner).
 - **Sentence Analysis**: Measure the effort required to construct common test sentences.
@@ -207,10 +208,10 @@ The library includes an optional high-performance analytics engine for evaluatin
 For detailed documentation, see the **[AAC Metrics Guide](./src/optional/analytics/docs/AAC_METRICS_GUIDE.md)** and **[Vocabulary Analysis Guide](./src/optional/analytics/docs/VOCABULARY_ANALYSIS_GUIDE.md)**.
 
 ```typescript
-import { ObfsetProcessor, Analytics } from '@willwade/aac-processors';
+import { ObfsetProcessor, Analytics } from "@willwade/aac-processors";
 
 const processor = new ObfsetProcessor();
-const tree = processor.loadIntoTree('my_pageset.obfset');
+const tree = processor.loadIntoTree("my_pageset.obfset");
 
 // Run clinical effort analysis
 const result = new Analytics.MetricsCalculator().analyze(tree);
@@ -738,6 +739,7 @@ npm run coverage:report
 ### 🛠️ Utility Scripts
 
 A wide range of utility scripts for batch processing, audio generation, and advanced analysis are available in the **[scripts/](./scripts/README.md)** directory. These include:
+
 - **Analysis**: Pageset reporting and vocabulary extraction.
 - **Audio**: Automated TTS generation and audio-enhanced pageset creation.
 - **Conversion**: TSV-to-Gridset and other format-shifting tools.
@@ -845,12 +847,9 @@ Inspired by the Python AACProcessors project
 
 - [ ] **Adaptive Metrics** - Expand scanning analysis to include dwell times and more complex switch logic configurations.
 
-
 ### Low Priority
 
-
 - [ ] **Batch processing CLI** - Process multiple files/directories in parallel.
-
 
 ### Contributing
 

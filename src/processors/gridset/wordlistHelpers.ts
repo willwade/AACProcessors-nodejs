@@ -9,9 +9,12 @@
  * do not have equivalent wordlist functionality.
  */
 
-import AdmZip from 'adm-zip';
-import { XMLParser, XMLBuilder } from 'fast-xml-parser';
-import { getZipEntriesWithPassword, resolveGridsetPasswordFromEnv } from './password';
+import AdmZip from "adm-zip";
+import { XMLParser, XMLBuilder } from "fast-xml-parser";
+import {
+  getZipEntriesWithPassword,
+  resolveGridsetPasswordFromEnv,
+} from "./password";
 
 /**
  * Represents a single item in a wordlist
@@ -51,22 +54,22 @@ export interface WordList {
  * ]);
  */
 export function createWordlist(
-  input: string[] | WordListItem[] | Record<string, string | WordListItem>
+  input: string[] | WordListItem[] | Record<string, string | WordListItem>,
 ): WordList {
   let items: WordListItem[] = [];
 
   if (Array.isArray(input)) {
     // Handle array input
     items = input.map((item) => {
-      if (typeof item === 'string') {
+      if (typeof item === "string") {
         return { text: item };
       }
       return item;
     });
-  } else if (typeof input === 'object') {
+  } else if (typeof input === "object") {
     // Handle dictionary/object input
     items = Object.entries(input).map(([, value]) => {
-      if (typeof value === 'string') {
+      if (typeof value === "string") {
         return { text: value };
       }
       return value;
@@ -88,19 +91,22 @@ export function wordlistToXml(wordlist: WordList): string {
     WordListItem: {
       Text: {
         s: {
-          '@_Image': item.image || '',
+          "@_Image": item.image || "",
           r: item.text,
         },
       },
-      Image: item.image || '',
-      PartOfSpeech: item.partOfSpeech || 'Unknown',
+      Image: item.image || "",
+      PartOfSpeech: item.partOfSpeech || "Unknown",
     },
   }));
 
   const wordlistData = {
     WordList: {
       Items: {
-        WordListItem: items.length === 1 ? items[0].WordListItem : items.map((i) => i.WordListItem),
+        WordListItem:
+          items.length === 1
+            ? items[0].WordListItem
+            : items.map((i) => i.WordListItem),
       },
     },
   };
@@ -128,7 +134,7 @@ export function wordlistToXml(wordlist: WordList): string {
  */
 export function extractWordlists(
   gridsetBuffer: Buffer,
-  password = resolveGridsetPasswordFromEnv()
+  password = resolveGridsetPasswordFromEnv(),
 ): Map<string, WordList> {
   const wordlists = new Map<string, WordList>();
   const parser = new XMLParser();
@@ -143,9 +149,12 @@ export function extractWordlists(
 
   // Process each grid file
   entries.forEach((entry) => {
-    if (entry.entryName.startsWith('Grids/') && entry.entryName.endsWith('grid.xml')) {
+    if (
+      entry.entryName.startsWith("Grids/") &&
+      entry.entryName.endsWith("grid.xml")
+    ) {
       try {
-        const xmlContent = entry.getData().toString('utf8');
+        const xmlContent = entry.getData().toString("utf8");
         const data = parser.parse(xmlContent);
         const grid = data.Grid || data.grid;
 
@@ -172,9 +181,9 @@ export function extractWordlists(
             : [];
 
         const items: WordListItem[] = itemArray.map((item: any) => ({
-          text: item.Text?.s?.r || item.text?.s?.r || '',
+          text: item.Text?.s?.r || item.text?.s?.r || "",
           image: item.Image || item.image || undefined,
-          partOfSpeech: item.PartOfSpeech || item.partOfSpeech || 'Unknown',
+          partOfSpeech: item.PartOfSpeech || item.partOfSpeech || "Unknown",
         }));
 
         if (items.length > 0) {
@@ -182,7 +191,10 @@ export function extractWordlists(
         }
       } catch (error) {
         // Skip grids with parsing errors
-        console.warn(`Failed to extract wordlist from ${entry.entryName}:`, error);
+        console.warn(
+          `Failed to extract wordlist from ${entry.entryName}:`,
+          error,
+        );
       }
     }
   });
@@ -208,13 +220,13 @@ export function updateWordlist(
   gridsetBuffer: Buffer,
   gridName: string,
   wordlist: WordList,
-  password = resolveGridsetPasswordFromEnv()
+  password = resolveGridsetPasswordFromEnv(),
 ): Buffer {
   const parser = new XMLParser();
   const builder = new XMLBuilder({
     ignoreAttributes: false,
     format: true,
-    indentBy: '  ',
+    indentBy: "  ",
     suppressEmptyNode: false,
   });
 
@@ -230,13 +242,16 @@ export function updateWordlist(
 
   // Find and update the grid
   entries.forEach((entry) => {
-    if (entry.entryName.startsWith('Grids/') && entry.entryName.endsWith('grid.xml')) {
+    if (
+      entry.entryName.startsWith("Grids/") &&
+      entry.entryName.endsWith("grid.xml")
+    ) {
       const match = entry.entryName.match(/^Grids\/([^/]+)\//);
       const currentGridName = match ? match[1] : null;
 
       if (currentGridName === gridName) {
         try {
-          const xmlContent = entry.getData().toString('utf8');
+          const xmlContent = entry.getData().toString("utf8");
           const data = parser.parse(xmlContent);
           const grid = data.Grid || data.grid;
 
@@ -249,29 +264,34 @@ export function updateWordlist(
             WordListItem: {
               Text: {
                 s: {
-                  '@_Image': item.image || '',
+                  "@_Image": item.image || "",
                   r: item.text,
                 },
               },
-              Image: item.image || '',
-              PartOfSpeech: item.partOfSpeech || 'Unknown',
+              Image: item.image || "",
+              PartOfSpeech: item.partOfSpeech || "Unknown",
             },
           }));
 
           grid.WordList = {
             Items: {
               WordListItem:
-                items.length === 1 ? items[0].WordListItem : items.map((i) => i.WordListItem),
+                items.length === 1
+                  ? items[0].WordListItem
+                  : items.map((i) => i.WordListItem),
             },
           };
 
           // Rebuild the XML
           const updatedXml = builder.build(data);
-          zip.updateFile(entry, Buffer.from(updatedXml, 'utf8'));
+          zip.updateFile(entry, Buffer.from(updatedXml, "utf8"));
           found = true;
         } catch (error) {
-          const message = error instanceof Error ? error.message : String(error);
-          throw new Error(`Failed to update wordlist in grid "${gridName}": ${message}`);
+          const message =
+            error instanceof Error ? error.message : String(error);
+          throw new Error(
+            `Failed to update wordlist in grid "${gridName}": ${message}`,
+          );
         }
       }
     }
