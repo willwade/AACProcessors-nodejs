@@ -84,6 +84,18 @@ function intToHex(colorInt: number | null | undefined): string | undefined {
   return `#${(colorInt & 0x00ffffff).toString(16).padStart(6, '0')}`;
 }
 
+/**
+ * Map TouchChat visible value to AAC standard visibility
+ * TouchChat: 0 = Hidden, 1 = Visible
+ * Maps to: 'Hidden' | 'Visible' | undefined
+ */
+function mapTouchChatVisibility(visible: number | null | undefined): 'Visible' | 'Hidden' | undefined {
+  if (visible === null || visible === undefined) {
+    return undefined; // Default to visible
+  }
+  return visible === 0 ? 'Hidden' : 'Visible';
+}
+
 class TouchChatProcessor extends BaseProcessor {
   private tree: AACTree | null = null;
   private sourceFile: string | Buffer | null = null;
@@ -257,6 +269,7 @@ class TouchChatProcessor extends BaseProcessor {
             message: cell.message || '',
             semanticAction: semanticAction,
             semantic_id: (cell as any).symbol_link_id || (cell as any).symbolLinkId || undefined, // Extract semantic_id from symbol_link_id
+            visibility: mapTouchChatVisibility((cell as any).visible),
             // Note: TouchChat does not use scan blocks in the file
             // Scanning is a runtime feature (linear/row-column patterns)
             // scanBlock defaults to 1 (no grouping)
@@ -422,6 +435,7 @@ class TouchChatProcessor extends BaseProcessor {
             label: btnRow.label || '',
             message: btnRow.message || '',
             semanticAction: semanticAction,
+            visibility: mapTouchChatVisibility(btnRow.visible),
             // Note: TouchChat does not use scan blocks in the file
             // Scanning is a runtime feature (linear/row-column patterns)
             // scanBlock defaults to 1 (no grouping)

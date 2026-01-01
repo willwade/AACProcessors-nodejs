@@ -525,18 +525,59 @@ class GridsetProcessor extends BaseProcessor {
             // Extract scan block number (1-8) for block scanning support
             const scanBlock = parseInt(String(cell['@_ScanBlock'] || '1'), 10);
 
+            // Extract visibility from Grid 3's <Visibility> child element
+            // Grid 3 stores visibility as a child element, not an attribute
+            // Valid values: Visible, Hidden, Disabled, PointerAndTouchOnly, TouchOnly, PointerOnly
+            const grid3Visibility = cell.Visibility || cell.visibility;
+
+            // Map Grid 3 visibility values to AAC standard values
+            // Grid 3 can have additional values like TouchOnly, PointerOnly that map to PointerAndTouchOnly
+            let cellVisibility: 'Visible' | 'Hidden' | 'Disabled' | 'PointerAndTouchOnly' | 'Empty' | undefined;
+            if (grid3Visibility) {
+              const vis = String(grid3Visibility);
+              // Direct mapping for standard values
+              if (vis === 'Visible' || vis === 'Hidden' || vis === 'Disabled' || vis === 'PointerAndTouchOnly') {
+                cellVisibility = vis;
+              }
+              // Map Grid 3 specific values to AAC standard
+              else if (vis === 'TouchOnly' || vis === 'PointerOnly') {
+                cellVisibility = 'PointerAndTouchOnly';
+              }
+              // Grid 3 may use 'Empty' for cells that exist but have no content
+              else if (vis === 'Empty') {
+                cellVisibility = 'Empty';
+              }
+              // Unknown visibility - default to Visible
+              else {
+                cellVisibility = undefined; // Let it default
+              }
+            }
+
             // Extract label from CaptionAndImage/Caption
             const content = cell.Content;
             const captionAndImage = content.CaptionAndImage || content.captionAndImage;
             let label = captionAndImage?.Caption || captionAndImage?.caption || '';
 
+            // Check if cell has an image/symbol (needed to decide if we should keep it)
+            const hasImageCandidate = !!(
+              captionAndImage?.Image ||
+              captionAndImage?.image ||
+              captionAndImage?.ImageName ||
+              captionAndImage?.imageName ||
+              captionAndImage?.Symbol ||
+              captionAndImage?.symbol
+            );
+
             // If no caption, try other sources or create a placeholder
             if (!label) {
-              // For cells without captions (like AutoContent cells), create a meaningful label
+              // For cells without captions, check if they have images/symbols before skipping
               if (content.ContentType === 'AutoContent') {
                 label = `AutoContent_${idx}`;
+              } else if (hasImageCandidate || content.ContentType === 'Workspace' || content.ContentType === 'LiveCell') {
+                // Keep cells with images/symbols even if no caption
+                label = `Cell_${idx}`;
               } else {
-                return; // Skip cells without labels
+                return; // Skip cells without labels AND without images/symbols
               }
             }
 
@@ -1013,6 +1054,7 @@ class GridsetProcessor extends BaseProcessor {
                 pluginMetadata.autoContentType,
               symbolLibrary: symbolLibraryRef?.library || undefined,
               symbolPath: symbolLibraryRef?.path || undefined,
+              visibility: cellVisibility,
               style: {
                 ...cellStyle,
                 ...inlineStyle, // Inline styles override referenced styles

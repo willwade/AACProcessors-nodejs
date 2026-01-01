@@ -49,6 +49,7 @@ interface GridElement {
   dontCollect?: boolean;
   type?: string;
   additionalProps?: any;
+  hidden?: boolean; // Asterics Grid uses boolean hidden field
 }
 
 interface GridImage {
@@ -701,6 +702,18 @@ function getContrastingTextColor(backgroundColor: string): string {
   return luminance < 0.5 ? '#FFFFFF' : '#000000';
 }
 
+/**
+ * Map Asterics Grid hidden value to AAC standard visibility
+ * Asterics Grid: true = hidden, false = visible
+ * Maps to: 'Hidden' | 'Visible' | undefined
+ */
+function mapAstericsVisibility(hidden: boolean | undefined): 'Hidden' | 'Visible' | undefined {
+  if (hidden === undefined) {
+    return undefined; // Default to visible
+  }
+  return hidden ? 'Hidden' : 'Visible';
+}
+
 class AstericsGridProcessor extends BaseProcessor {
   private loadAudio: boolean = false;
 
@@ -1212,6 +1225,7 @@ class AstericsGridProcessor extends BaseProcessor {
 
       semanticAction: semanticAction,
       audioRecording: audioRecording,
+      visibility: mapAstericsVisibility(element.hidden),
       image: imageName, // Store image filename/reference
       parameters: imageData
         ? {

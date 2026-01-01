@@ -32,6 +32,19 @@ interface ObfButton {
   background_color?: string;
   border_color?: string;
   semantic_id?: string; // Optional semantic identifier for motor planning
+  hidden?: boolean; // OBF uses boolean hidden field
+}
+
+/**
+ * Map OBF hidden value to AAC standard visibility
+ * OBF: true = hidden, false/undefined = visible
+ * Maps to: 'Hidden' | 'Visible' | undefined
+ */
+function mapObfVisibility(hidden: boolean | undefined): 'Hidden' | 'Visible' | undefined {
+  if (hidden === undefined) {
+    return undefined; // Default to visible
+  }
+  return hidden ? 'Hidden' : 'Visible';
 }
 
 interface ObfGrid {
@@ -83,6 +96,7 @@ class ObfProcessor extends BaseProcessor {
         id: String(btn?.id || ''),
         label: String(btn?.label || ''),
         message: String(btn?.vocalization || btn?.label || ''),
+        visibility: mapObfVisibility(btn.hidden),
         style: {
           backgroundColor: btn.background_color,
           borderColor: btn.border_color,

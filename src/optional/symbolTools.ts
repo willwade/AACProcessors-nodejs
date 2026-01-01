@@ -4,6 +4,7 @@ import {
   getZipEntriesWithPassword,
   resolveGridsetPasswordFromEnv,
 } from '../processors/gridset/password';
+import { extractSymbolReferences } from '../processors/gridset/symbols';
 
 // Dynamic imports for optional dependencies
 type Database = typeof import('better-sqlite3');
@@ -79,21 +80,14 @@ try {
 export class Grid3SymbolExtractor extends SymbolExtractor {
   getSymbolReferences(filePath: string): string[] {
     if (!AdmZip || !XMLParser) throw new Error('adm-zip or fast-xml-parser not installed');
-    const zip = new AdmZip(filePath);
-    const parser = new XMLParser();
-    const refs = new Set<string>();
 
-    const entries = getZipEntriesWithPassword(zip, resolveGridsetPasswordFromEnv());
-    entries.forEach((entry) => {
-      if (entry.entryName.endsWith('.gridset') || entry.entryName.endsWith('.gridsetx')) {
-        const xmlBuffer = entry.getData();
-        // Parse to validate XML structure (future: extract refs)
-        parser.parse(xmlBuffer.toString('utf8'));
-        // TODO: Extract symbol references from Grid 3 XML structure when needed
-      }
-    });
+    // Import GridsetProcessor dynamically to avoid circular dependencies
+    const { GridsetProcessor } = require('../processors/gridsetProcessor');
+    const proc = new GridsetProcessor();
+    const tree = proc.loadIntoTree(filePath);
 
-    return Array.from(refs);
+    // Use the existing extractSymbolReferences function from gridset/symbols.ts
+    return extractSymbolReferences(tree);
   }
 }
 
