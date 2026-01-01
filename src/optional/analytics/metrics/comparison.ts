@@ -114,14 +114,18 @@ export class ComparisonAnalyzer {
     });
 
     highEffortWords.sort((a, b) => {
-      const diffA = targetWords.get(a)!.effort - (compareWords.get(a)?.effort || 0);
-      const diffB = targetWords.get(b)!.effort - (compareWords.get(b)?.effort || 0);
+      const targetBtnA = targetWords.get(a);
+      const targetBtnB = targetWords.get(b);
+      const diffA = (targetBtnA?.effort || 0) - (compareWords.get(a)?.effort || 0);
+      const diffB = (targetBtnB?.effort || 0) - (compareWords.get(b)?.effort || 0);
       return diffB - diffA;
     });
 
     lowEffortWords.sort((a, b) => {
-      const diffA = (compareWords.get(a)?.effort || 0) - targetWords.get(a)!.effort;
-      const diffB = (compareWords.get(b)?.effort || 0) - targetWords.get(b)!.effort;
+      const targetBtnA = targetWords.get(a);
+      const targetBtnB = targetWords.get(b);
+      const diffA = (compareWords.get(a)?.effort || 0) - (targetBtnA?.effort || 0);
+      const diffB = (compareWords.get(b)?.effort || 0) - (targetBtnB?.effort || 0);
       return diffB - diffA;
     });
 

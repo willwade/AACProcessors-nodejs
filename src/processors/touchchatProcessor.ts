@@ -89,7 +89,9 @@ function intToHex(colorInt: number | null | undefined): string | undefined {
  * TouchChat: 0 = Hidden, 1 = Visible
  * Maps to: 'Hidden' | 'Visible' | undefined
  */
-function mapTouchChatVisibility(visible: number | null | undefined): 'Visible' | 'Hidden' | undefined {
+function mapTouchChatVisibility(
+  visible: number | null | undefined
+): 'Visible' | 'Hidden' | undefined {
   if (visible === null || visible === undefined) {
     return undefined; // Default to visible
   }
@@ -268,8 +270,13 @@ class TouchChatProcessor extends BaseProcessor {
             label: cell.label || '',
             message: cell.message || '',
             semanticAction: semanticAction,
-            semantic_id: (cell as any).symbol_link_id || (cell as any).symbolLinkId || undefined, // Extract semantic_id from symbol_link_id
-            visibility: mapTouchChatVisibility((cell as any).visible),
+            semantic_id:
+              (((cell as any).symbol_link_id || (cell as any).symbolLinkId) as
+                | string
+                | undefined) || undefined, // Extract semantic_id from symbol_link_id
+            visibility: mapTouchChatVisibility(
+              ((cell as any).visible as number | null | undefined) || undefined
+            ),
             // Note: TouchChat does not use scan blocks in the file
             // Scanning is a runtime feature (linear/row-column patterns)
             // scanBlock defaults to 1 (no grouping)
@@ -289,9 +296,9 @@ class TouchChatProcessor extends BaseProcessor {
           });
           buttonBoxes.get(cell.box_id)?.push({
             button,
-            location: (cell as any).location,
-            spanX: (cell as any).span_x,
-            spanY: (cell as any).span_y,
+            location: ((cell as any).location as number) || 0,
+            spanX: ((cell as any).span_x as number) || 1,
+            spanY: ((cell as any).span_y as number) || 1,
           });
         });
 

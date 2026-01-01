@@ -260,7 +260,8 @@ export class MetricsCalculator {
     const levels: { [level: number]: ButtonMetrics[] } = {};
 
     while (toVisit.length > 0) {
-      const item = toVisit.shift()!;
+      const item = toVisit.shift();
+      if (!item) break;
       const { board, level, entryX, entryY, priorEffort = 0, temporaryHomeId } = item;
 
       // Skip if already visited at a lower level with equal or better prior effort
@@ -450,11 +451,11 @@ export class MetricsCalculator {
           buttonEffort += priorEffort;
 
           // Track scan blocks for block scanning, otherwise track individual buttons
-          if (
-            blockScanEnabled &&
-            (btn.scanBlock || (btn.scanBlocks && btn.scanBlocks.length > 0))
-          ) {
-            priorScanBlocks.add(btn.scanBlock || btn.scanBlocks![0]);
+          if (blockScanEnabled) {
+            const scanBlockId = btn.scanBlock ?? btn.scanBlocks?.[0];
+            if (scanBlockId !== undefined && scanBlockId !== null) {
+              priorScanBlocks.add(scanBlockId);
+            }
           }
 
           // Handle navigation buttons

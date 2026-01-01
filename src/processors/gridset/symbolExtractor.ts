@@ -180,10 +180,11 @@ export function extractSymbolLibraryImage(
   }
 
   // Successfully extracted!
-  const format = detectImageFormat(resolved.data!);
+  const data = resolved.data;
+  const format = data ? detectImageFormat(data) : 'unknown';
   return {
     found: true,
-    data: resolved.data,
+    data,
     format,
     source: 'symbol-library',
     reference: reference,

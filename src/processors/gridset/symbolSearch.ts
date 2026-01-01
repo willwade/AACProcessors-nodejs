@@ -145,14 +145,16 @@ export function searchSymbols(
   for (const [libraryName, index] of indexes.entries()) {
     // Exact match first
     if (index.searchTerms.has(lowerSearchTerm)) {
-      const symbolFilename = index.searchTerms.get(lowerSearchTerm)!;
-      results.push({
-        searchTerm: lowerSearchTerm,
-        symbolFilename,
-        displayName: index.filenames.get(symbolFilename) || lowerSearchTerm,
-        library: libraryName,
-        exactMatch: true,
-      });
+      const symbolFilename = index.searchTerms.get(lowerSearchTerm);
+      if (symbolFilename) {
+        results.push({
+          searchTerm: lowerSearchTerm,
+          symbolFilename,
+          displayName: index.filenames.get(symbolFilename) || lowerSearchTerm,
+          library: libraryName,
+          exactMatch: true,
+        });
+      }
     }
 
     // Fuzzy match if enabled

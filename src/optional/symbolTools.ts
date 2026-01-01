@@ -1,9 +1,5 @@
 import path from 'path';
 import fs from 'fs';
-import {
-  getZipEntriesWithPassword,
-  resolveGridsetPasswordFromEnv,
-} from '../processors/gridset/password';
 import { extractSymbolReferences } from '../processors/gridset/symbols';
 
 // Dynamic imports for optional dependencies
@@ -68,10 +64,13 @@ export class SnapSymbolResolver extends SymbolResolver {
 let AdmZip: AdmZip | null = null;
 let XMLParser: XMLParser | null = null;
 try {
+  // Dynamic requires for optional dependencies
   // eslint-disable-next-line @typescript-eslint/no-var-requires
-  AdmZip = require('adm-zip');
+  const admZipModule = require('adm-zip');
   // eslint-disable-next-line @typescript-eslint/no-var-requires
-  XMLParser = require('fast-xml-parser').XMLParser;
+  const fxpModule = require('fast-xml-parser');
+  AdmZip = admZipModule;
+  XMLParser = fxpModule.XMLParser;
 } catch {
   AdmZip = null;
   XMLParser = null;
@@ -82,6 +81,7 @@ export class Grid3SymbolExtractor extends SymbolExtractor {
     if (!AdmZip || !XMLParser) throw new Error('adm-zip or fast-xml-parser not installed');
 
     // Import GridsetProcessor dynamically to avoid circular dependencies
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { GridsetProcessor } = require('../processors/gridsetProcessor');
     const proc = new GridsetProcessor();
     const tree = proc.loadIntoTree(filePath);

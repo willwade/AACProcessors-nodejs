@@ -14,13 +14,19 @@ describe('ObfsetProcessor', () => {
     expect(tree.rootId).toBe('root');
     expect(Object.keys(tree.pages).length).toBe(2);
 
-    const rootPage = tree.getPage('root')!;
+    const rootPage = tree.getPage('root');
+    if (!rootPage) {
+      throw new Error('Expected root page to exist');
+    }
     expect(rootPage.name).toBe('Home');
     expect(rootPage.grid[0][0]?.label).toBe('Hello');
     expect(rootPage.grid[0][0]?.semantic_id).toBe('greeting-1');
     expect(rootPage.buttons.length).toBe(2);
 
-    const page2 = tree.getPage('page2')!;
+    const page2 = tree.getPage('page2');
+    if (!page2) {
+      throw new Error('Expected page2 to exist');
+    }
     expect(page2.parentId).toBe('root');
     expect(page2.grid[0][0]?.label).toBe('World');
     expect(page2.grid[0][0]?.clone_id).toBe('world-1');

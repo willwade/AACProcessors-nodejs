@@ -532,11 +532,22 @@ class GridsetProcessor extends BaseProcessor {
 
             // Map Grid 3 visibility values to AAC standard values
             // Grid 3 can have additional values like TouchOnly, PointerOnly that map to PointerAndTouchOnly
-            let cellVisibility: 'Visible' | 'Hidden' | 'Disabled' | 'PointerAndTouchOnly' | 'Empty' | undefined;
+            let cellVisibility:
+              | 'Visible'
+              | 'Hidden'
+              | 'Disabled'
+              | 'PointerAndTouchOnly'
+              | 'Empty'
+              | undefined;
             if (grid3Visibility) {
               const vis = String(grid3Visibility);
               // Direct mapping for standard values
-              if (vis === 'Visible' || vis === 'Hidden' || vis === 'Disabled' || vis === 'PointerAndTouchOnly') {
+              if (
+                vis === 'Visible' ||
+                vis === 'Hidden' ||
+                vis === 'Disabled' ||
+                vis === 'PointerAndTouchOnly'
+              ) {
                 cellVisibility = vis;
               }
               // Map Grid 3 specific values to AAC standard
@@ -573,7 +584,11 @@ class GridsetProcessor extends BaseProcessor {
               // For cells without captions, check if they have images/symbols before skipping
               if (content.ContentType === 'AutoContent') {
                 label = `AutoContent_${idx}`;
-              } else if (hasImageCandidate || content.ContentType === 'Workspace' || content.ContentType === 'LiveCell') {
+              } else if (
+                hasImageCandidate ||
+                content.ContentType === 'Workspace' ||
+                content.ContentType === 'LiveCell'
+              ) {
                 // Keep cells with images/symbols even if no caption
                 label = `Cell_${idx}`;
               } else {
