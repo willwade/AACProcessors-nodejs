@@ -38,6 +38,7 @@ describe('GridsetProcessor round-trip', () => {
       const page1 = tree1.pages[pageId];
       const page2 = tree2.pages[pageId];
 
+      // Expect exactly the same number of buttons
       expect(page2.buttons.length).toBe(page1.buttons.length);
 
       // Compare button labels (allowing for some differences in processing)
@@ -97,6 +98,7 @@ describe('GridsetProcessor round-trip', () => {
     const reloadedPage = tree2.pages['grid1'];
     expect(reloadedPage).toBeDefined();
     expect(reloadedPage.name).toBe('Test Grid');
+    // We expect exactly 2 buttons - zero injection of mandatory workspace cells
     expect(reloadedPage.buttons).toHaveLength(2);
 
     // Check that we have buttons with the expected labels

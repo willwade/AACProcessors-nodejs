@@ -1331,24 +1331,12 @@ class GridsetProcessor extends BaseProcessor {
           GridGuid: page.id,
           // Calculate grid dimensions based on actual layout
           ColumnDefinitions: this.calculateColumnDefinitions(page),
-          RowDefinitions: this.calculateRowDefinitions(page),
+          RowDefinitions: this.calculateRowDefinitions(page, false), // No automatic workspace row injection
           AutoContentCommands: '',
           Cells:
             page.buttons.length > 0
               ? {
                   Cell: [
-                    // Add workspace/message bar cell at the top of ALL pages
-                    // Grid3 uses 0-based coordinates; omit X and Y to use defaults (0, 0)
-                    {
-                      '@_ColumnSpan': 4,
-                      Content: {
-                        ContentType: 'Workspace',
-                        ContentSubType: 'Chat',
-                        Style: {
-                          BasedOnStyle: 'Workspace',
-                        },
-                      },
-                    },
                     // Regular button cells
                     ...this.filterPageButtons(page.buttons).map((button, btnIndex) => {
                       const buttonStyleId = button.style ? addStyle(button.style) : '';
@@ -1356,8 +1344,8 @@ class GridsetProcessor extends BaseProcessor {
                       // Find button position in grid layout
                       const position = this.findButtonPosition(page, button, btnIndex);
 
-                      // Shift all buttons down by 1 row to make room for workspace
-                      const yOffset = 1;
+                      // Use position directly from tree
+                      const yOffset = 0;
 
                       // Build CaptionAndImage object
                       const captionAndImage: Record<string, unknown> = {
@@ -1406,6 +1394,9 @@ class GridsetProcessor extends BaseProcessor {
                         '@_ColumnSpan': position.columnSpan,
                         '@_RowSpan': position.rowSpan,
                         Content: {
+                          ContentType:
+                            button.contentType === 'Normal' ? undefined : button.contentType,
+                          ContentSubType: button.contentSubType,
                           Commands: this.generateCommandsFromSemanticAction(button, tree),
                           CaptionAndImage: captionAndImage,
                         },
@@ -1542,15 +1533,19 @@ class GridsetProcessor extends BaseProcessor {
   }
 
   // Helper method to calculate row definitions based on page layout
-  private calculateRowDefinitions(page: AACPage): { RowDefinition: any[] } {
+  private calculateRowDefinitions(
+    page: AACPage,
+    addWorkspaceOffset = false
+  ): { RowDefinition: any[] } {
     let maxRows = 4; // Default minimum
+    const offset = addWorkspaceOffset ? 1 : 0;
 
     if (page.grid && page.grid.length > 0) {
-      maxRows = Math.max(maxRows, page.grid.length);
+      maxRows = Math.max(maxRows, page.grid.length + offset);
     } else {
       // Fallback: estimate from button count
       const estimatedCols = Math.ceil(Math.sqrt(page.buttons.length));
-      maxRows = Math.max(4, Math.ceil(page.buttons.length / estimatedCols));
+      maxRows = Math.max(4, Math.ceil(page.buttons.length / estimatedCols)) + offset;
     }
 
     return {

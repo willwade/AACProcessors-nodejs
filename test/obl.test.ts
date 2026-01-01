@@ -137,7 +137,7 @@ describe('OBL Support', () => {
   });
 
   test('should parse real OBLA data from dataset', () => {
-    const oblaPath = path.join(__dirname, '../obla-improvements/small-obla/small/0036a290e0.obla');
+    const oblaPath = path.join(__dirname, 'assets/obla/0036a290e0.obla');
     const content = fs.readFileSync(oblaPath, 'utf8');
     const parsed = OblUtil.parse(content);
 
@@ -151,7 +151,7 @@ describe('OBL Support', () => {
   });
 
   test('bulk test real OBLA files (first 10)', () => {
-    const oblaDir = path.join(__dirname, '../obla-improvements/small-obla/small');
+    const oblaDir = path.join(__dirname, 'assets/obla');
     const files = fs
       .readdirSync(oblaDir)
       .filter((f) => f.endsWith('.obla'))
