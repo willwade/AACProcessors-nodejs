@@ -1,0 +1,99 @@
+{
+  "format": "open-board-log-0.1",
+  "user_id": "coughdrop:0036a290e02585d0342cf7da2615928464c377faa2dd80cf8e31337c8b395bbce9358098b51306fca1d025a9885a159e10ab49476c98ad4d014af2d3c6493dda",
+  "source": "coughdrop",
+  "locale": "en",
+  "sessions": [
+    {
+      "id": "7d4c7b11debf865",
+      "type": "log",
+      "started": "2000-01-24T01:15:27Z",
+      "ended": "2000-01-24T01:15:32Z",
+      "device_id": "144e0",
+      "events": [
+        {
+          "id": "7d4c7b11debf865",
+          "timestamp": "2000-01-24T01:15:26Z",
+          "type": "action",
+          "action": ":clear",
+          "modeling": true,
+          "orientation": {
+            "alpha": 351.05,
+            "beta": 3.55,
+            "gamma": 34.89,
+            "layout": "landscape-secondary"
+          },
+          "ip_address": "a08899306cb66ef",
+          "window_width": 0,
+          "window_height": 0,
+          "volume": 0,
+          "screen_brightness": 0.406637
+        },
+        {
+          "id": "7d4c7b11debf865",
+          "timestamp": "2000-01-24T01:15:30Z",
+          "type": "action",
+          "action": ":home",
+          "modeling": true,
+          "orientation": {
+            "alpha": 354.37,
+            "beta": -1.95,
+            "gamma": 38.11,
+            "layout": "landscape-secondary"
+          },
+          "ip_address": "a08899306cb66ef",
+          "window_width": 0,
+          "window_height": 0,
+          "volume": 0,
+          "screen_brightness": 0.406637
+        }
+      ],
+      "anonymized": true
+    },
+    {
+      "id": "3a114236f9b44c8",
+      "type": "log",
+      "started": "2000-05-15T00:30:52Z",
+      "ended": "2000-05-15T00:30:57Z",
+      "device_id": "f071a",
+      "events": [
+        {
+          "id": "3a114236f9b44c8",
+          "timestamp": "2000-05-15T00:30:52Z",
+          "type": "button",
+          "button_id": "16274a1d78ff1b5",
+          "board_id": "56f1d3bcddaf1fc",
+          "spoken": true,
+          "label": "07e533cc38a047b86d274472ea4a9acc230e8857c8fca22ebc845732d0cd62aca8d70ffdcdc4fc9d878868c0036dfc84c13f3a9746824c8b20db58e5b89df221",
+          "core_word": false,
+          "vocalization": "0036a290e02585d0342cf7da2615928464c377faa2dd80cf8e31337c8b395bbce9358098b51306fca1d025a9885a159e10ab49476c98ad4d014af2d3c6493dda",
+          "actions": [
+            {
+              "action": ":open_board",
+              "destination_board_id": "ec9d398f15be2cf0877ca2074e1beb40be89235a679eeffff8d0210cf1d356ecd352abb4cd51fc6df93d184f91fa9c16f24364d762e8ec1f7ce34a205da9f851"
+            }
+          ],
+          "modeling": false,
+          "parts_of_speech": [
+            "other"
+          ],
+          "orientation": {
+            "alpha": 359.93,
+            "beta": -0.99,
+            "gamma": 0.67,
+            "layout": "landscape-primary"
+          },
+          "ip_address": "4187d89c42e4620",
+          "window_width": 0,
+          "window_height": 0,
+          "volume": 0.25,
+          "screen_brightness": 1,
+          "percent_x": 0.276,
+          "percent_y": 0.426
+        }
+      ],
+      "anonymized": true
+    }
+  ],
+  "anonymized": true
+}

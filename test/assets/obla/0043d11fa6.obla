@@ -1,0 +1,163 @@
+{
+  "format": "open-board-log-0.1",
+  "user_id": "coughdrop:0043d11fa6b0497f1d92f1305569c1f8da8cf1cc4aea4a1cdeb03d2a190e164fb7aa1ffe33b1c1cf474b1916566f420c3badbc16e3eb6ae3e0311f06f24c7333",
+  "source": "coughdrop",
+  "locale": "en",
+  "sessions": [
+    {
+      "id": "ad0ac4a7dc28b61",
+      "type": "log",
+      "started": "2000-01-10T18:44:40Z",
+      "ended": "2000-01-10T18:45:20Z",
+      "device_id": "8436e",
+      "events": [
+        {
+          "id": "ad0ac4a7dc28b61",
+          "timestamp": "2000-01-10T18:44:27Z",
+          "type": "action",
+          "action": ":backspace",
+          "modeling": false,
+          "location_id": "c004c1ac1b4be5881982775e6daeb00ff83cc1a720b2aafc4f7ec5b98ca26436996e417d199a62f660f3cc7741962db10c81faeb93232f59fb80b36a717d19e8",
+          "orientation": {
+            "alpha": 73.53,
+            "beta": -13.53,
+            "gamma": -16.58,
+            "layout": "landscape-secondary"
+          },
+          "ip_address": "2c2d9b0bf2369f0",
+          "window_width": 1024,
+          "window_height": 600
+        },
+        {
+          "id": "ad0ac4a7dc28b61",
+          "timestamp": "2000-01-10T18:45:02Z",
+          "type": "button",
+          "button_id": "e2104157473dece",
+          "board_id": "34d5b13e40ff0d3",
+          "spoken": true,
+          "label": "like",
+          "core_word": true,
+          "modeling": false,
+          "location_id": "c004c1ac1b4be5881982775e6daeb00ff83cc1a720b2aafc4f7ec5b98ca26436996e417d199a62f660f3cc7741962db10c81faeb93232f59fb80b36a717d19e8",
+          "parts_of_speech": [
+            "verb",
+            "adjective",
+            "preposition",
+            "adverb",
+            "conjunction",
+            "noun",
+            "transitive verb"
+          ],
+          "orientation": {
+            "alpha": 75.48,
+            "beta": 4.55,
+            "gamma": -14.18,
+            "layout": "landscape-secondary"
+          },
+          "ip_address": "2c2d9b0bf2369f0",
+          "window_width": 1024,
+          "window_height": 600,
+          "percent_x": 0.5367187857627869,
+          "percent_y": 0.5835514246860397
+        },
+        {
+          "id": "ad0ac4a7dc28b61",
+          "timestamp": "2000-01-10T18:45:17Z",
+          "type": "action",
+          "action": ":backspace",
+          "modeling": false,
+          "location_id": "c004c1ac1b4be5881982775e6daeb00ff83cc1a720b2aafc4f7ec5b98ca26436996e417d199a62f660f3cc7741962db10c81faeb93232f59fb80b36a717d19e8",
+          "orientation": {
+            "alpha": 74.59,
+            "beta": 6.28,
+            "gamma": -17.5,
+            "layout": "landscape-secondary"
+          },
+          "ip_address": "2c2d9b0bf2369f0",
+          "window_width": 1024,
+          "window_height": 600
+        },
+        {
+          "id": "ad0ac4a7dc28b61",
+          "timestamp": "2000-01-10T18:45:20Z",
+          "type": "action",
+          "action": ":backspace",
+          "modeling": false,
+          "location_id": "c004c1ac1b4be5881982775e6daeb00ff83cc1a720b2aafc4f7ec5b98ca26436996e417d199a62f660f3cc7741962db10c81faeb93232f59fb80b36a717d19e8",
+          "orientation": {
+            "alpha": 72.38,
+            "beta": 8.52,
+            "gamma": -21.88,
+            "layout": "landscape-secondary"
+          },
+          "ip_address": "2c2d9b0bf2369f0",
+          "window_width": 1024,
+          "window_height": 600
+        }
+      ],
+      "anonymized": true
+    },
+    {
+      "id": "eddc4fc73fbd4da",
+      "type": "log",
+      "started": "2000-01-28T18:50:02Z",
+      "ended": "2000-01-28T18:50:03Z",
+      "device_id": "8436e",
+      "events": [
+        {
+          "id": "eddc4fc73fbd4da",
+          "timestamp": "2000-01-28T18:50:02Z",
+          "type": "action",
+          "action": ":backspace",
+          "modeling": false,
+          "location_id": "29b3d126b2a467b0ed2ecec5aaaee0c1269749f876124f5c9169f8f3a879016de5482689933523c59baa2d9ffac41df70376afe9ebeb069599d6b3bd7cd31dd4",
+          "orientation": {
+            "alpha": 73.17,
+            "beta": 2.15,
+            "gamma": -10.0,
+            "layout": "landscape-primary"
+          },
+          "ip_address": "44079b03615add6",
+          "window_width": 1024,
+          "window_height": 600
+        },
+        {
+          "id": "eddc4fc73fbd4da",
+          "timestamp": "2000-01-28T18:50:02Z",
+          "type": "action",
+          "action": ":backspace",
+          "modeling": false,
+          "location_id": "29b3d126b2a467b0ed2ecec5aaaee0c1269749f876124f5c9169f8f3a879016de5482689933523c59baa2d9ffac41df70376afe9ebeb069599d6b3bd7cd31dd4",
+          "orientation": {
+            "alpha": 73.17,
+            "beta": 2.15,
+            "gamma": -10.0,
+            "layout": "landscape-primary"
+          },
+          "ip_address": "44079b03615add6",
+          "window_width": 1024,
+          "window_height": 600
+        },
+        {
+          "id": "eddc4fc73fbd4da",
+          "timestamp": "2000-01-28T18:50:03Z",
+          "type": "action",
+          "action": ":backspace",
+          "modeling": false,
+          "location_id": "29b3d126b2a467b0ed2ecec5aaaee0c1269749f876124f5c9169f8f3a879016de5482689933523c59baa2d9ffac41df70376afe9ebeb069599d6b3bd7cd31dd4",
+          "orientation": {
+            "alpha": 73.07,
+            "beta": 2.16,
+            "gamma": -10.52,
+            "layout": "landscape-primary"
+          },
+          "ip_address": "44079b03615add6",
+          "window_width": 1024,
+          "window_height": 600
+        }
+      ],
+      "anonymized": true
+    }
+  ],
+  "anonymized": true
+}
