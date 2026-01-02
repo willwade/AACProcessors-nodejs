@@ -121,6 +121,28 @@ export class MetricsCalculator {
     // Calculate grid dimensions
     const grid = this.calculateGridDimensions(tree);
 
+    // Identify prediction metrics
+    let predictionPageId: string | undefined;
+    let hasDynamicPrediction = false;
+
+    // A page is prediction-capable if it has an AutoContent Prediction button reachable from root
+    // We already have analyzed from rootBoard
+    if (rootBoard) {
+      const rootAnalysis = this.analyzeFrom(tree, rootBoard, setPcts, true, options);
+      // Scan reached pages for prediction slots
+      for (const [pageId, _] of rootAnalysis.visitedBoardEfforts) {
+        const page = tree.getPage(pageId);
+        const hasPredictionSlot = page?.buttons.some(
+          (b) => b.contentType === 'AutoContent' && b.contentSubType === 'Prediction'
+        );
+        if (hasPredictionSlot) {
+          hasDynamicPrediction = true;
+          predictionPageId = pageId;
+          break;
+        }
+      }
+    }
+
     return {
       analysis_version: '0.2',
       locale: this.locale,
@@ -134,6 +156,8 @@ export class MetricsCalculator {
       spelling_effort_base: spellingBaseEffort,
       spelling_effort_per_letter: spellingAvgLetterEffort,
       spelling_page_id: spellingPage?.id,
+      has_dynamic_prediction: hasDynamicPrediction,
+      prediction_page_id: predictionPageId,
     };
   }
 

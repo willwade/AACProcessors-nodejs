@@ -121,6 +121,27 @@ See [OBL_SUPPORT_GUIDE.md](./OBL_SUPPORT_GUIDE.md) for details on parsing and an
 
 ---
 
+## 🛠️ Processor-Specific Enhancements
+
+Some AAC formats include advanced dynamic features that require specialized modeling to produce accurate effort scores.
+
+### Grid 3 (.gridset) Special Handling
+
+1.  **Prediction Bar Modeling**:
+    - The processor automatically detects `AutoContent` cells of the type `Prediction`.
+    - If a `Prediction.PredictThis` command is found (either on buttons or as a grid-level command), the processor extracts the associated wordlist.
+    - These words are **mathematically placed** into the actual physical slots defined in the grid. This ensures they receive the correctly low "Scan Block" and "Distance" effort scores as intended by the pageset designer.
+
+2.  **SwiftKey / Dynamic Dictionary Support**:
+    - If a pageset is "Prediction-capable" but a word is not found in a static wordlist, the algorithm detects whether a dynamic dictionary (SwiftKey) is available.
+    - **Predictive Effort Model**: Instead of falling back to full spelling, the model assumes the user types approximately 40% of the word and then selects it from the prediction bar.
+    - This results in a much more realistic effort score for systems that leverage deep word prediction vs. static folder-based systems.
+
+3.  **Logical Navigation Mapping**:
+    - Grid 3 often uses folder names rather than unique IDs for `Jump.To` targets. The processor automatically maps folder names to original Page IDs to ensure BFS pathfinding is 100% accurate.
+
+---
+
 ## ⚖️ Implementation vs. Original Algorithm
 
 This version is optimized for Node.js and adheres strictly to the **v0.2 Algorithm Specification**.

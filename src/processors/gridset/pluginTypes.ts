@@ -140,12 +140,12 @@ export function detectPluginCellType(content: any): Grid3PluginMetadata {
 
   // AutoContent detection - dynamic word/content suggestions
   if (contentType === 'AutoContent' || content.Style?.BasedOnStyle === 'AutoContent') {
-    const autoContentType = extractAutoContentType(content);
+    const autoContentType = extractAutoContentType(content) || contentSubType;
     return {
       cellType: Grid3CellType.AutoContent,
-      autoContentType: autoContentType || undefined,
-      pluginId: inferAutoContentPlugin(autoContentType),
-      displayName: autoContentType || 'Auto Content',
+      autoContentType: autoContentType ? String(autoContentType) : undefined,
+      pluginId: inferAutoContentPlugin(autoContentType ? String(autoContentType) : undefined),
+      displayName: autoContentType ? String(autoContentType) : 'Auto Content',
     };
   }
 

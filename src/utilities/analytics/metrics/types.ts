@@ -56,6 +56,8 @@ export interface MetricsResult {
   spelling_effort_base?: number;
   spelling_effort_per_letter?: number;
   spelling_page_id?: string;
+  has_dynamic_prediction?: boolean;
+  prediction_page_id?: string;
   obfset?: any; // Full board set data (if include_obfset=true)
 }
 
@@ -110,6 +112,13 @@ export interface ComparisonResult extends MetricsResult {
   comp_words: number;
   comp_grid: { rows: number; columns: number };
   comp_effort_score: number;
+  comp_spelling_effort_base?: number;
+  comp_spelling_effort_per_letter?: number;
+  comp_spelling_page_id?: string;
+  has_dynamic_prediction?: boolean;
+  prediction_page_id?: string;
+  comp_has_dynamic_prediction?: boolean;
+  comp_prediction_page_id?: string;
 
   // Vocabulary comparison
   missing_words: string[]; // Words in comparison but not in target

@@ -60,7 +60,20 @@ export class ReferenceLoader {
   loadFringe(): string[] {
     const filePath = path.join(this.dataDir, `fringe.${this.locale}.json`);
     const content = fs.readFileSync(filePath, 'utf-8');
-    return JSON.parse(content) as string[];
+    const data = JSON.parse(content);
+
+    // Flatten nested category words if needed
+    if (Array.isArray(data) && data.length > 0 && data[0].categories) {
+      const flattened: string[] = [];
+      data.forEach((list: any) => {
+        list.categories.forEach((cat: any) => {
+          flattened.push(...(cat.words as string[]));
+        });
+      });
+      return flattened;
+    }
+
+    return data as string[];
   }
 
   /**

@@ -213,6 +213,13 @@ export class ComparisonAnalyzer {
       comp_words: compareResult.total_words,
       comp_grid: compareResult.grid,
       comp_effort_score: this.calculateEffortScore(compareResult),
+      comp_spelling_effort_base: compareResult.spelling_effort_base,
+      comp_spelling_effort_per_letter: compareResult.spelling_effort_per_letter,
+      comp_spelling_page_id: compareResult.spelling_page_id,
+      has_dynamic_prediction: targetResult.has_dynamic_prediction,
+      prediction_page_id: targetResult.prediction_page_id,
+      comp_has_dynamic_prediction: compareResult.has_dynamic_prediction,
+      comp_prediction_page_id: compareResult.prediction_page_id,
 
       // Vocabulary comparison
       missing_words: missingWords,

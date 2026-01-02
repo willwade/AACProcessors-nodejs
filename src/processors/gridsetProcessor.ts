@@ -89,6 +89,35 @@ class GridsetProcessor extends BaseProcessor {
     return '#FFFFFFFF';
   }
 
+  /**
+   * Extract words from Grid3 WordList structure
+   */
+  private _extractWordsFromWordList(param: any): string[] {
+    if (!param) return [];
+
+    // Sometimes the param itself is the WordList, sometimes it has a WordList property
+    const wordList =
+      param.WordList || param.wordlist || (param.Items || param.items ? param : undefined);
+    if (!wordList || !(wordList.Items || wordList.items)) return [];
+
+    const items = wordList.Items?.WordListItem || wordList.items?.wordlistitem || [];
+    const itemArr = Array.isArray(items) ? items : [items];
+    const words: string[] = [];
+
+    for (const item of itemArr) {
+      const text = item.Text || item.text;
+      if (text) {
+        const val = this.textOf(text);
+        if (val) words.push(val);
+      } else if (item['#text'] !== undefined) {
+        words.push(String(item['#text']));
+      } else if (typeof item === 'string') {
+        words.push(item);
+      }
+    }
+    return words;
+  }
+
   // Helper function to generate Grid3 commands from semantic actions
   private generateCommandsFromSemanticAction(button: AACButton, tree?: AACTree): any {
     const semanticAction = button.semanticAction;
@@ -308,7 +337,43 @@ class GridsetProcessor extends BaseProcessor {
   private textOf(val: any): string | undefined {
     if (!val) return undefined;
     if (typeof val === 'string') return val;
-    if (typeof val === 'object' && '#text' in val) return String(val['#text']);
+    if (typeof val === 'number') return String(val);
+
+    if (typeof val === 'object') {
+      if ('#text' in val) return String(val['#text']);
+
+      // Handle Grid3 structured format <p><s><r>text</r></s></p>
+      // Can start at p, s, or r level
+      const parts: string[] = [];
+      const processS = (s: any): void => {
+        if (!s) return;
+        if (s.r !== undefined) {
+          const rElements = Array.isArray(s.r) ? s.r : [s.r];
+          for (const r of rElements) {
+            if (typeof r === 'object' && r !== null && '#text' in r) {
+              parts.push(String(r['#text']));
+            } else {
+              parts.push(String(r));
+            }
+          }
+        }
+      };
+
+      if (val.p) {
+        const p = val.p;
+        const sElements = Array.isArray(p.s) ? p.s : p.s ? [p.s] : [];
+        sElements.forEach(processS);
+      } else if (val.s) {
+        const sElements = Array.isArray(val.s) ? val.s : [val.s];
+        sElements.forEach(processS);
+      } else if (val.r !== undefined) {
+        processS(val);
+      }
+
+      if (parts.length > 0) {
+        return parts.join('').trim();
+      }
+    }
     return undefined;
   }
 
@@ -435,16 +500,24 @@ class GridsetProcessor extends BaseProcessor {
           if (!grid) return;
 
           const gridId = this.textOf(grid.GridGuid || grid.gridGuid || grid.id);
-          let gridName =
+          const gridName =
             this.textOf(grid.Name) || this.textOf(grid.name) || this.textOf(grid['@_Name']);
-          if (!gridName) {
-            const match = entry.entryName.match(/^Grids\/([^/]+)\//);
-            if (match) gridName = match[1];
-          }
 
-          if (gridId && gridName) {
-            gridNameToIdMap.set(gridName, gridId);
-            gridIdToNameMap.set(gridId, gridName);
+          const folderMatch = entry.entryName.match(/^Grids\/([^/]+)\//);
+          const folderName = folderMatch ? folderMatch[1] : undefined;
+
+          if (gridId) {
+            if (gridName) {
+              gridNameToIdMap.set(gridName, gridId);
+              gridIdToNameMap.set(gridId, gridName);
+            }
+            if (folderName) {
+              // Folder name is often used as the grid name in Jump.To commands
+              gridNameToIdMap.set(folderName, gridId);
+              if (!gridName) {
+                gridIdToNameMap.set(gridId, folderName);
+              }
+            }
           }
         } catch (e) {
           // Skip errors in first pass
@@ -519,6 +592,39 @@ class GridsetProcessor extends BaseProcessor {
             gridLayout[r] = new Array(maxCols).fill(null);
           }
 
+          const pagePredictedWords = new Set<string>();
+
+          // Extract words from grid-level AutoContentCommands (e.g., Prediction Bar)
+          if (grid.AutoContentCommands) {
+            const collections = grid.AutoContentCommands.AutoContentCommandCollection;
+            const collectionArr = Array.isArray(collections)
+              ? collections
+              : collections
+                ? [collections]
+                : [];
+
+            collectionArr.forEach((collection: any) => {
+              const commands = collection.Commands?.Command;
+              const commandArr = Array.isArray(commands) ? commands : commands ? [commands] : [];
+
+              commandArr.forEach((command: any) => {
+                const commandId = command['@_ID'] || command.ID || command.id;
+                if (commandId === 'Prediction.PredictThis') {
+                  const params = command.Parameter;
+                  const paramArr = Array.isArray(params) ? params : params ? [params] : [];
+                  const wordListParam = paramArr.find(
+                    (p: any) => (p['@_Key'] || p.Key || p.key) === 'wordlist'
+                  );
+
+                  if (wordListParam) {
+                    const words = this._extractWordsFromWordList(wordListParam);
+                    words.forEach((w) => pagePredictedWords.add(w));
+                  }
+                }
+              });
+            });
+          }
+
           cellArr.forEach((cell: any, idx: number) => {
             if (!cell || !cell.Content) return;
 
@@ -574,7 +680,7 @@ class GridsetProcessor extends BaseProcessor {
             // Extract label from CaptionAndImage/Caption
             const content = cell.Content;
             const captionAndImage = content.CaptionAndImage || content.captionAndImage;
-            let label = captionAndImage?.Caption || captionAndImage?.caption || '';
+            let label = this.textOf(captionAndImage?.Caption || captionAndImage?.caption) || '';
 
             // Check if cell has an image/symbol (needed to decide if we should keep it)
             const hasImageCandidate = !!(
@@ -652,32 +758,40 @@ class GridsetProcessor extends BaseProcessor {
               const commandArr = Array.isArray(commands) ? commands : [commands];
               detectedCommands = commandArr.map((cmd) => detectCommand(cmd));
 
+              // Scan all commands for vocabulary (predictions) before identifying primary action
+              commandArr.forEach((cmd) => {
+                const id = cmd['@_ID'] || cmd.ID || cmd.id;
+                if (id === 'Prediction.PredictThis') {
+                  const params = cmd.Parameter || cmd.parameter;
+                  const pArr = params ? (Array.isArray(params) ? params : [params]) : [];
+                  let wlP: any;
+                  for (const p of pArr) {
+                    if (p['@_Key'] === 'wordlist' || p.Key === 'wordlist' || p.key === 'wordlist') {
+                      wlP = p;
+                      break;
+                    }
+                  }
+                  if (wlP) {
+                    const words = this._extractWordsFromWordList(wlP);
+                    words.forEach((w) => pagePredictedWords.add(w));
+                  }
+                }
+              });
+
               for (const command of commandArr) {
                 const commandId = command['@_ID'] || command.ID || command.id;
                 const parameters = command.Parameter || command.parameter;
-
                 const paramArr = parameters
                   ? Array.isArray(parameters)
                     ? parameters
                     : [parameters]
                   : [];
 
-                // Helper to extract text from Grid3's structured format <p><s><r>text</r></s></p>
-                const extractStructuredText = (param: any): string | undefined => {
-                  // Try to extract from nested p.s structure
-                  if (param.p) {
-                    const p = param.p;
-                    // Handle p.s array or single s element
-                    const sElements = Array.isArray(p.s) ? p.s : p.s ? [p.s] : [];
-                    // Extract all r values and concatenate
-                    const parts: string[] = [];
-                    for (const s of sElements) {
-                      if (s && s.r !== undefined) {
-                        parts.push(String(s.r));
-                      }
-                    }
-                    if (parts.length > 0) {
-                      return parts.join('');
+                // Helper to get raw parameter object
+                const getRawParam = (key: string): any | undefined => {
+                  for (const param of paramArr) {
+                    if (param['@_Key'] === key || param.Key === key || param.key === key) {
+                      return param;
                     }
                   }
                   return undefined;
@@ -685,27 +799,37 @@ class GridsetProcessor extends BaseProcessor {
 
                 // Helper to get parameter value
                 const getParam = (key: string): string | undefined => {
-                  if (!parameters) return undefined;
-                  for (const param of paramArr) {
-                    if (param['@_Key'] === key || param.Key === key || param.key === key) {
-                      // First try simple #text value
-                      const simpleValue = param['#text'] ?? param.text ?? param.value;
-                      if (typeof simpleValue === 'string') {
-                        return simpleValue;
-                      }
-                      // Try to extract from structured format (Grid3's <p><s><r> format)
-                      const structuredValue = extractStructuredText(param);
-                      if (structuredValue !== undefined) {
-                        return structuredValue;
-                      }
-                      // Fallback to string conversion
-                      if (typeof param === 'string') {
-                        return param;
-                      }
-                    }
-                  }
+                  const param = getRawParam(key);
+                  if (param === undefined) return undefined;
+                  const simpleValue = param['#text'] ?? param.text ?? param.value;
+                  if (typeof simpleValue === 'string') return simpleValue;
+                  if (typeof simpleValue === 'number') return String(simpleValue);
+                  const structuredValue = this.textOf(param);
+                  if (structuredValue !== undefined) return structuredValue;
+                  if (typeof param === 'string') return param;
                   return undefined;
                 };
+
+                // Skip PredictThis in primary action loop as it was handled in pre-pass
+                // unless we need a primary action and nothing else exists
+                if (commandId === 'Prediction.PredictThis') {
+                  if (!semanticAction) {
+                    const wlParam = getRawParam('wordlist');
+                    if (wlParam) {
+                      const words = this._extractWordsFromWordList(wlParam);
+                      semanticAction = {
+                        category: AACSemanticCategory.COMMUNICATION,
+                        intent: AACSemanticIntent.PLATFORM_SPECIFIC,
+                        text: words.slice(0, 3).join(', '),
+                        platformData: {
+                          grid3: { commandId, parameters: { wordlist: words } },
+                        },
+                        fallback: { type: 'ACTION', message: 'Predict words' },
+                      };
+                    }
+                  }
+                  continue;
+                }
 
                 switch (commandId) {
                   case 'Jump.To': {
@@ -760,10 +884,13 @@ class GridsetProcessor extends BaseProcessor {
                     break;
 
                   case 'Jump.Home':
+                  case 'Jump.SetHome':
                     // action
+                    navigationTarget = tree.rootId || undefined;
                     semanticAction = {
                       category: AACSemanticCategory.NAVIGATION,
                       intent: AACSemanticIntent.GO_HOME,
+                      targetId: tree.rootId || undefined,
                       platformData: {
                         grid3: {
                           commandId,
@@ -779,6 +906,83 @@ class GridsetProcessor extends BaseProcessor {
                       type: 'GO_HOME',
                     };
                     break;
+
+                  case 'Jump.ToKeyboard': {
+                    // Navigate to the set keyboard if we found one in settings
+                    const keyboardGridName = (tree as any).keyboardGridName as string;
+                    const keyboardPageId = gridNameToIdMap.get(keyboardGridName);
+                    if (keyboardPageId) {
+                      navigationTarget = keyboardPageId;
+                    }
+                    semanticAction = {
+                      category: AACSemanticCategory.NAVIGATION,
+                      intent: AACSemanticIntent.GO_HOME, // Close enough to 'navigation to keyboard'
+                      targetId: keyboardPageId,
+                      platformData: {
+                        grid3: {
+                          commandId,
+                          parameters: {},
+                        },
+                      },
+                      fallback: {
+                        type: 'NAVIGATE',
+                        targetPageId: keyboardPageId,
+                      },
+                    };
+                    break;
+                  }
+
+                  case 'Action.InsertTextAndSpeak': {
+                    const insertText = getParam('text');
+                    semanticAction = {
+                      category: AACSemanticCategory.COMMUNICATION,
+                      intent: AACSemanticIntent.SPEAK_IMMEDIATE,
+                      text: insertText,
+                      platformData: {
+                        grid3: {
+                          commandId,
+                          parameters: { text: insertText },
+                        },
+                      },
+                      fallback: {
+                        type: 'SPEAK',
+                        message: insertText,
+                      },
+                    };
+                    break;
+                  }
+
+                  case 'Prediction.PredictThis': {
+                    const wlParam = getRawParam('wordlist');
+                    if (wlParam) {
+                      const words = this._extractWordsFromWordList(wlParam);
+                      // Add to page-wide set of predicted words
+                      words.forEach((w) => pagePredictedWords.add(w));
+
+                      // Store words in a way that analyzer can find them
+                      // For now, we'll attach to semanticAction so it can be used later
+                      // We only set this as the primary action if we don't have one yet
+                      if (!semanticAction) {
+                        semanticAction = {
+                          category: AACSemanticCategory.COMMUNICATION,
+                          intent: AACSemanticIntent.PLATFORM_SPECIFIC,
+                          text: words.slice(0, 3).join(', '), // Provide first few as preview
+                          platformData: {
+                            grid3: {
+                              commandId,
+                              parameters: { wordlist: words },
+                            },
+                          },
+                          fallback: {
+                            type: 'ACTION',
+                            message: 'Predict words',
+                          },
+                        };
+                      }
+                    }
+                    // Continue to check other commands (e.g. Action.InsertText)
+                    continue;
+                  }
 
                   case 'Action.Speak': {
                     // speak
@@ -1101,6 +1305,65 @@ class GridsetProcessor extends BaseProcessor {
             }
           });
 
+          // Process predicted words: Populate AutoContent slots first, then add virtual buttons at bottom
+          if (pagePredictedWords.size > 0) {
+            const extraWords = Array.from(pagePredictedWords).filter((w) => w.trim().length > 0);
+            if (extraWords.length > 0) {
+              let wordIdx = 0;
+
+              // Step 1: Fill dedicated AutoContent prediction slots (e.g. at the top)
+              page.buttons.forEach((btn) => {
+                if (
+                  btn.contentType === 'AutoContent' &&
+                  btn.contentSubType === 'Prediction' &&
+                  wordIdx < extraWords.length
+                ) {
+                  const word = extraWords[wordIdx++];
+                  btn.label = word;
+                  btn.message = word;
+                  btn.semanticAction = {
+                    category: AACSemanticCategory.COMMUNICATION,
+                    intent: AACSemanticIntent.INSERT_TEXT,
+                    text: word,
+                    fallback: { type: 'SPEAK', message: word },
+                  };
+                }
+              });
+
+              // Step 2: Add remaining words as virtual buttons at the bottom
+              if (wordIdx < extraWords.length) {
+                const remainingWords = extraWords.slice(wordIdx);
+                const extraRowsCount = Math.ceil(remainingWords.length / maxCols);
+
+                for (let r = 0; r < extraRowsCount; r++) {
+                  const row: (AACButton | null)[] = new Array(maxCols).fill(null);
+                  for (let c = 0; c < maxCols; c++) {
+                    const idx = r * maxCols + c;
+                    if (idx < remainingWords.length) {
+                      const word = remainingWords[idx];
+                      const vBtn = new AACButton({
+                        id: `${gridId}_vpredict_${wordIdx + idx}`,
+                        label: word,
+                        message: word,
+                        x: c,
+                        y: maxRows + r,
+                        semanticAction: {
+                          category: AACSemanticCategory.COMMUNICATION,
+                          intent: AACSemanticIntent.INSERT_TEXT,
+                          text: word,
+                          fallback: { type: 'SPEAK', message: word },
+                        },
+                      });
+                      row[c] = vBtn;
+                      page.addButton(vBtn);
+                    }
+                  }
+                  gridLayout.push(row);
+                }
+              }
+            }
+          }
+
           // Set the page's grid layout
           page.grid = gridLayout;
 
@@ -1166,6 +1429,13 @@ class GridsetProcessor extends BaseProcessor {
           if (homeGridId) {
             tree.rootId = homeGridId;
           }
+        }
+
+        const keyboardGridName =
+          settingsData?.GridSetSettings?.KeyboardGrid ||
+          settingsData?.gridSetSettings?.keyboardGrid;
+        if (keyboardGridName && typeof keyboardGridName === 'string') {
+          (tree as any).keyboardGridName = keyboardGridName;
         }
       }
     } catch (e) {
@@ -1516,7 +1786,7 @@ class GridsetProcessor extends BaseProcessor {
                           button.parameters.imageData &&
                           Buffer.isBuffer(button.parameters.imageData)
                         ) {
-                          imageData = button.parameters.imageData;
+                          imageData = button.parameters.imageData as any;
                         }
 
                         // Store image data for later writing to ZIP

@@ -53,14 +53,31 @@ export class SentenceAnalyzer {
         wordEfforts.push({ word, effort: found.effort, typed: false });
         totalEffort += found.effort;
       } else {
-        // Word not found - use spelling effort
-        const spellEffort = spellingEffort(
+        // Word not found - check for dynamic prediction fallback
+        let wordEffort = 0;
+        const isTyped = true;
+
+        const baseSpell = spellingEffort(
           word,
-          metrics.spelling_effort_base,
-          metrics.spelling_effort_per_letter
+          metrics.spelling_effort_base || 10,
+          metrics.spelling_effort_per_letter || 2.5
         );
-        wordEfforts.push({ word, effort: spellEffort, typed: true });
-        totalEffort += spellEffort;
+
+        if (metrics.has_dynamic_prediction) {
+          // Predictive fallback: Base + (limited letters) + selection
+          // We assume on average typing 40% of the word finds it in the dictionary
+          const predictiveEffort =
+            (metrics.spelling_effort_base || 10) +
+            word.length * 0.4 * (metrics.spelling_effort_per_letter || 2.5) +
+            6.0; // Fixed selection cost from prediction bar
+
+          wordEffort = Math.min(baseSpell, predictiveEffort);
+        } else {
+          wordEffort = baseSpell;
+        }
+
+        wordEfforts.push({ word, effort: wordEffort, typed: isTyped });
+        totalEffort += wordEffort;
         typing = true;
         missingWords.push(word);
       }

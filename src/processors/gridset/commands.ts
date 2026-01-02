@@ -724,6 +724,21 @@ export const GRID3_COMMANDS: Record<string, Grid3CommandDefinition> = {
     description: 'Clear word prediction buffer',
     platforms: ['desktop', 'ios', 'medicare', 'medicareBionics'],
   },
+  'Prediction.PredictThis': {
+    id: 'Prediction.PredictThis',
+    category: Grid3CommandCategory.AUTO_CONTENT,
+    pluginId: 'prediction',
+    displayName: 'Predict This',
+    description: 'Provide suggestions based on word list',
+    parameters: [
+      {
+        key: 'wordlist',
+        type: 'string', // Actually highly structured, but string type is a placeholder
+        required: true,
+        description: 'Word list for prediction',
+      },
+    ],
+  },
   'Grammar.Change': {
     id: 'Grammar.Change',
     category: Grid3CommandCategory.AUTO_CONTENT,
