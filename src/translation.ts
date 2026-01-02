@@ -10,6 +10,7 @@
  * Or use the lower-level utilities directly:
  */
 
+// LLM translation utilities
 export {
   normalizeButtonForTranslation,
   extractSymbolsFromButton,
@@ -20,3 +21,6 @@ export {
   type ButtonForTranslation,
   type LLMLTranslationResult,
 } from './utilities/translation/translationProcessor';
+
+// Translation types
+export { type TranslatedString, type SourceString } from './core/baseProcessor';

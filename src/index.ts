@@ -19,14 +19,16 @@ export * from './core/stringCasing';
 export * from './processors';
 
 // ===================================================================
-// VALIDATION
+// NAMESPACES
 // ===================================================================
-export * from './validation';
 
-// ===================================================================
-// NAMESPACES (platform-specific utilities)
-// ===================================================================
+// Analytics namespace
 export * as Analytics from './utilities/analytics';
+
+// Validation namespace
+export * as Validation from './validation';
+
+// Processor namespaces (platform-specific utilities)
 export * as Gridset from './gridset';
 export * as Snap from './snap';
 export * as OBF from './obf';

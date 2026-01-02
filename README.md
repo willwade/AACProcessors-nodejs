@@ -56,7 +56,7 @@ npm run build
 
 ### Requirements
 
-- **Node.js** 16.0.0 or higher
+- **Node.js** 20.0.0 or higher
 - **TypeScript** 5.5+ (for development)
 
 ---

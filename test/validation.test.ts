@@ -1,9 +1,9 @@
-import { ObfValidator } from '../src/validation/obfValidator';
-import { GridsetValidator } from '../src/validation/gridsetValidator';
-import { SnapValidator } from '../src/validation/snapValidator';
-import { TouchChatValidator } from '../src/validation/touchChatValidator';
-import { ValidationResult } from '../src/validation/validationTypes';
+import { Validation } from '../src/index';
 import path from 'path';
+
+// Destructure for convenience
+const { ObfValidator, GridsetValidator, SnapValidator, TouchChatValidator } = Validation;
+type ValidationResult = Validation.ValidationResult;
 
 const samplesDir = path.join(__dirname, '..', 'examples', 'obf');
 

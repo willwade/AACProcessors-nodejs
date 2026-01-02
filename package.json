@@ -52,6 +52,10 @@
     "./translation": {
       "types": "./dist/translation.d.ts",
       "default": "./dist/translation.js"
+    },
+    "./validation": {
+      "types": "./dist/validation.d.ts",
+      "default": "./dist/validation.js"
     }
   },
   "files": [
@@ -119,8 +123,8 @@
   },
   "homepage": "https://github.com/willwade/AACProcessors-nodejs#readme",
   "engines": {
-    "node": ">=16.0.0",
-    "npm": ">=8.0.0"
+    "node": ">=20.0.0",
+    "npm": ">=9.0.0"
   },
   "devDependencies": {
     "@types/adm-zip": "^0.5.7",
@@ -146,7 +150,7 @@
     "@types/xml2js": "^0.4.14",
     "adm-zip": "^0.5.16",
     "axios": "^1.11.0",
-    "better-sqlite3": "^11.9.1",
+    "better-sqlite3": "^12.5.0",
     "commander": "^13.1.0",
     "exceljs": "^4.4.0",
     "fast-xml-parser": "^5.2.0",
