@@ -898,3 +898,7 @@ Inspired by the Python AACProcessors project
 ### Contributing
 
 Want to help with any of these items? See our [Contributing Guidelines](#-contributing) and pick an issue that interests you!
+
+### Credits
+
+Some of the OBF work is directly from https://github.com/open-aac/obf and https://github.com/open-aac/aac-metrics - OBLA too https://www.openboardformat.org/logs 
