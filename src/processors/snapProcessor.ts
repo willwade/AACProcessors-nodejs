@@ -38,6 +38,19 @@ interface SnapButton {
   FontSize?: number;
   FontFamily?: string;
   FontStyle?: number;
+  Visible?: number; // 0 = hidden, 1 (or non-zero) = visible
+}
+
+/**
+ * Map Snap Visible value to AAC standard visibility
+ * Snap: 0 = hidden, 1 (or non-zero) = visible
+ * Maps to: 'Hidden' | 'Visible' | undefined
+ */
+function mapSnapVisibility(visible: number | null | undefined): 'Hidden' | 'Visible' | undefined {
+  if (visible === null || visible === undefined) {
+    return undefined; // Default to visible
+  }
+  return visible === 0 ? 'Hidden' : 'Visible';
 }
 
 interface SnapPage {
@@ -312,6 +325,7 @@ class SnapProcessor extends BaseProcessor {
           selectFields.push(
             placementColumns.has('GridPosition') ? 'ep.GridPosition' : 'NULL AS GridPosition',
             placementColumns.has('PageLayoutId') ? 'ep.PageLayoutId' : 'NULL AS PageLayoutId',
+            placementColumns.has('Visible') ? 'ep.Visible' : 'NULL AS Visible',
             'er.PageId as ButtonPageId'
           );
 
@@ -454,6 +468,7 @@ class SnapProcessor extends BaseProcessor {
             targetPageId: targetPageUniqueId,
             semanticAction: semanticAction,
             audioRecording: audioRecording,
+            visibility: mapSnapVisibility(btnRow.Visible),
             semantic_id: btnRow.LibrarySymbolId
               ? `snap_symbol_${btnRow.LibrarySymbolId}`
               : undefined, // Extract semantic_id from LibrarySymbolId
