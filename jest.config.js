@@ -33,7 +33,6 @@ module.exports = {
     "!src/**/*.test.{js,ts}",
     "!src/**/__tests__/**",
     "!src/cli/**",
-    "!src/optional/**",
     "!src/utilities/**",
   ],
   coveragePathIgnorePatterns: ["/node_modules/", "/dist/", "/__tests__/"],

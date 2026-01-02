@@ -61,7 +61,7 @@ describe('History analytics wrappers (mocked)', () => {
 
       // Import after mocks are in place
       // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const history = require('../src/optional/analytics/history'); // eslint-disable-line @typescript-eslint/no-var-requires
+      const history = require('../src/utilities/analytics/history'); // eslint-disable-line @typescript-eslint/no-var-requires
 
       const gridUserEntries = history.readGrid3HistoryForUser('alice');
       expect(gridUserEntries[0].source).toBe('Grid');
