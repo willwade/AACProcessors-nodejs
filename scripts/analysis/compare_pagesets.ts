@@ -70,8 +70,9 @@ function printDetailedComparison(comp: any, name1: string, name2: string) {
   console.log(line);
   
   Object.entries(comp.cores || {}).forEach(([id, data]: [string, any]) => {
-    // We need coverage from separate analysis if comparison doesn't have it
-    console.log(`${data.name.substring(0, 25).padEnd(25)} | ${'---'.padEnd(15)} | ${data.average_effort.toFixed(3).padEnd(15)} | ${'---'.padEnd(15)} | ${data.comp_effort.toFixed(3).padEnd(15)}`);
+    const coverage1 = `${data.target_covered}/${data.total_words}`;
+    const coverage2 = `${data.compare_covered}/${data.total_words}`;
+    console.log(`${data.name.substring(0, 25).padEnd(25)} | ${coverage1.padEnd(15)} | ${data.average_effort.toFixed(3).padEnd(15)} | ${coverage2.padEnd(15)} | ${data.comp_effort.toFixed(3).padEnd(15)}`);
   });
 
   console.log(`\n💬 SENTENCE ANALYSIS (Average Effort)`);

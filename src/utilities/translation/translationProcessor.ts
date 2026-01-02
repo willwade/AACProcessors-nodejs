@@ -41,6 +41,7 @@ export interface ButtonForTranslation {
   message: string; // Button message/speak text
   textToTranslate: string; // The actual text to translate (usually message or label)
   symbols: SymbolInfo[]; // Symbols attached to this button
+  grammar?: any; // Optional grammar tags (e.g., pos, person, number)
 }
 
 /**
@@ -77,7 +78,8 @@ export function normalizeButtonForTranslation(
   context?: {
     pageId?: string;
     pageName?: string;
-  }
+  },
+  grammar?: any
 ): ButtonForTranslation {
   return {
     buttonId,
@@ -85,6 +87,7 @@ export function normalizeButtonForTranslation(
     message,
     textToTranslate: message || label, // Translate message if present, otherwise label
     symbols,
+    grammar,
     ...context,
   };
 }
@@ -170,8 +173,11 @@ export function extractAllButtonsForTranslation(
     if (!label && !message) continue;
 
     const context = contextFn ? contextFn(button) : undefined;
+    const grammar = button.parameters?.grammar || undefined;
 
-    results.push(normalizeButtonForTranslation(buttonId, label, message, symbols || [], context));
+    results.push(
+      normalizeButtonForTranslation(buttonId, label, message, symbols || [], context, grammar)
+    );
   }
 
   return results;
@@ -202,6 +208,7 @@ Each button has:
 - message: The text spoken when the button is activated
 - textToTranslate: The actual text to translate (usually the message)
 - symbols: Visual symbols attached to specific words
+- grammar: Grammatical context (e.g., pos: Part of Speech, person, number)
 
 IMPORTANT: After translation, you MUST reattach symbols to the correct translated words based on MEANING, not position.
 

@@ -21,6 +21,13 @@ export class ComparisonAnalyzer {
     this.referenceLoader = new ReferenceLoader();
   }
 
+  private normalize(word: string): string {
+    return word
+      .toLowerCase()
+      .trim()
+      .replace(/[.?!,]/g, '');
+  }
+
   /**
    * Compare two board sets
    */
@@ -35,20 +42,22 @@ export class ComparisonAnalyzer {
     // Create base result from target
     const baseResult = { ...targetResult };
 
-    // Create word maps
+    // Create word maps with normalized keys
     const targetWords = new Map<string, ButtonMetrics>();
     targetResult.buttons.forEach((btn) => {
-      const existing = targetWords.get(btn.label);
+      const key = this.normalize(btn.label);
+      const existing = targetWords.get(key);
       if (!existing || btn.effort < existing.effort) {
-        targetWords.set(btn.label, btn);
+        targetWords.set(key, btn);
       }
     });
 
     const compareWords = new Map<string, ButtonMetrics>();
     compareResult.buttons.forEach((btn) => {
-      const existing = compareWords.get(btn.label);
+      const key = this.normalize(btn.label);
+      const existing = compareWords.get(key);
       if (!existing || btn.effort < existing.effort) {
-        compareWords.set(btn.label, btn);
+        compareWords.set(key, btn);
       }
     });
 
@@ -80,7 +89,8 @@ export class ComparisonAnalyzer {
 
     // Add comparison metrics to buttons
     const enrichedButtons = targetResult.buttons.map((btn) => {
-      const compBtn = compareWords.get(btn.label);
+      const key = this.normalize(btn.label);
+      const compBtn = compareWords.get(key);
       return {
         ...btn,
         comp_level: compBtn?.level,
@@ -157,8 +167,9 @@ export class ComparisonAnalyzer {
       let compareCovered = 0;
 
       list.words.forEach((word) => {
-        const targetBtn = targetWords.get(word);
-        const compareBtn = compareWords.get(word);
+        const key = this.normalize(word);
+        const targetBtn = targetWords.get(key);
+        const compareBtn = compareWords.get(key);
 
         if (targetBtn) {
           targetCovered++;
@@ -175,6 +186,9 @@ export class ComparisonAnalyzer {
         list: list.words,
         average_effort: targetCovered > 0 ? targetTotal / targetCovered : 0,
         comp_effort: compareCovered > 0 ? compareTotal / compareCovered : 0,
+        target_covered: targetCovered,
+        compare_covered: compareCovered,
+        total_words: list.words.length,
       };
     });
 
@@ -183,7 +197,8 @@ export class ComparisonAnalyzer {
     coreLists.forEach((list) => {
       const listMissing: string[] = [];
       list.words.forEach((word) => {
-        if (!targetWords.has(word)) {
+        const key = this.normalize(word);
+        if (!targetWords.has(key)) {
           listMissing.push(word);
         }
       });
@@ -256,20 +271,22 @@ export class ComparisonAnalyzer {
     compareResult: MetricsResult,
     _overlappingWords: string[]
   ): ComparisonResult['care_components'] {
-    // Create word maps
+    // Create word maps with normalized keys
     const targetWords = new Map<string, ButtonMetrics>();
     targetResult.buttons.forEach((btn) => {
-      const existing = targetWords.get(btn.label);
+      const key = this.normalize(btn.label);
+      const existing = targetWords.get(key);
       if (!existing || btn.effort < existing.effort) {
-        targetWords.set(btn.label, btn);
+        targetWords.set(key, btn);
       }
     });
 
     const compareWords = new Map<string, ButtonMetrics>();
     compareResult.buttons.forEach((btn) => {
-      const existing = compareWords.get(btn.label);
+      const key = this.normalize(btn.label);
+      const existing = compareWords.get(key);
       if (!existing || btn.effort < existing.effort) {
-        compareWords.set(btn.label, btn);
+        compareWords.set(key, btn);
       }
     });
 
@@ -287,8 +304,9 @@ export class ComparisonAnalyzer {
     });
 
     allCoreWords.forEach((word) => {
-      if (targetWords.has(word)) coreCount++;
-      if (compareWords.has(word)) compCoreCount++;
+      const key = this.normalize(word);
+      if (targetWords.has(key)) coreCount++;
+      if (compareWords.has(key)) compCoreCount++;
     });
 
     // Calculate sentence construction effort
@@ -298,8 +316,9 @@ export class ComparisonAnalyzer {
 
     sentences.forEach((words) => {
       words.forEach((word) => {
-        const targetBtn = targetWords.get(word);
-        const compareBtn = compareWords.get(word);
+        const key = this.normalize(word);
+        const targetBtn = targetWords.get(key);
+        const compareBtn = compareWords.get(key);
 
         if (targetBtn) {
           sentenceEffort += targetBtn.effort;
@@ -327,8 +346,9 @@ export class ComparisonAnalyzer {
     let commonFringeCount = 0;
 
     fringe.forEach((word) => {
-      const inTarget = targetWords.has(word);
-      const inCompare = compareWords.has(word);
+      const key = this.normalize(word);
+      const inTarget = targetWords.has(key);
+      const inCompare = compareWords.has(key);
 
       if (inTarget) fringeCount++;
       if (inCompare) compFringeCount++;
@@ -358,8 +378,9 @@ export class ComparisonAnalyzer {
     const result: Array<{ word: string; effort: number; comp_effort: number }> = [];
 
     fringe.forEach((word) => {
-      const targetBtn = targetWords.get(word);
-      const compareBtn = compareWords.get(word);
+      const key = this.normalize(word);
+      const targetBtn = targetWords.get(key);
+      const compareBtn = compareWords.get(key);
 
       if (targetBtn) {
         result.push({
@@ -385,8 +406,9 @@ export class ComparisonAnalyzer {
     const result: Array<{ word: string; effort: number; comp_effort: number }> = [];
 
     fringe.forEach((word) => {
-      const targetBtn = targetWords.get(word);
-      const compareBtn = compareWords.get(word);
+      const key = this.normalize(word);
+      const targetBtn = targetWords.get(key);
+      const compareBtn = compareWords.get(key);
 
       if (targetBtn && compareBtn) {
         result.push({

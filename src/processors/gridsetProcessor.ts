@@ -1252,6 +1252,16 @@ class GridsetProcessor extends BaseProcessor {
                 inlineStyle.fontSize = parseInt(String(content.Style.FontSize));
             }
 
+            // Extract grammar tags from commands (Smart Grammar)
+            const grammar: Record<string, string> = {};
+            detectedCommands.forEach((cmd) => {
+              if (cmd.parameters.pos) grammar.pos = cmd.parameters.pos;
+              if (cmd.parameters.person) grammar.person = cmd.parameters.person;
+              if (cmd.parameters.number) grammar.number = cmd.parameters.number;
+              if (cmd.parameters.feature) grammar.feature = cmd.parameters.feature;
+            });
+            const isSmartGrammarCell = Object.keys(grammar).length > 0;
+
             const button = new AACButton({
               id: `${gridId}_btn_${idx}`,
               label: String(label),
@@ -1289,6 +1299,8 @@ class GridsetProcessor extends BaseProcessor {
                 pluginMetadata: pluginMetadata, // Store full plugin metadata for future use
                 grid3Commands: detectedCommands, // Store detected command metadata
                 symbolLibraryRef: symbolLibraryRef, // Store full symbol reference
+                grammar: isSmartGrammarCell ? grammar : undefined,
+                isSmartGrammarCell: isSmartGrammarCell,
               },
             });
 
