@@ -127,6 +127,44 @@ class SnapProcessor extends BaseProcessor {
 
       // Load pages first, using UniqueId as canonical id
       const pages = db.prepare('SELECT * FROM Page').all() as any[];
+
+      // Load PageSetProperties to find default Keyboard and Home pages
+      let defaultKeyboardPageId: string | undefined;
+      let defaultHomePageId: string | undefined;
+      let dashboardPageId: string | undefined;
+      try {
+        const properties = db.prepare('SELECT * FROM PageSetProperties').get();
+        if (properties) {
+          defaultKeyboardPageId = properties.DefaultKeyboardPageUniqueId;
+          defaultHomePageId = properties.DefaultHomePageUniqueId;
+          dashboardPageId = properties.DashboardUniqueId;
+
+          const toolbarId = properties.ToolBarUniqueId;
+          const hasGlobalToolbar =
+            toolbarId && toolbarId !== '00000000-0000-0000-0000-000000000000';
+
+          if (hasGlobalToolbar) {
+            tree.rootId = toolbarId;
+          } else if (defaultHomePageId) {
+            tree.rootId = defaultHomePageId;
+          }
+        }
+      } catch (e) {
+        console.warn('[SnapProcessor] Failed to load PageSetProperties:', e);
+      }
+
+      // If still no root, look for a page titled "Tool Bar" or similar
+      if (!tree.rootId || tree.rootId === defaultHomePageId) {
+        const toolbarPage = pages.find((p) => p.Title === 'Tool Bar' || p.Name === 'Tool Bar');
+        if (toolbarPage) {
+          tree.rootId = String(toolbarPage.UniqueId || toolbarPage.Id);
+        }
+      }
+
+      // If still no root, fallback to first page
+      if (!tree.rootId && pages.length > 0) {
+        tree.rootId = String(pages[0].UniqueId || pages[0].Id);
+      }
       // Map from numeric Id -> UniqueId for later lookup
       const idToUniqueId: Record<string, string> = {};
       pages.forEach((pageRow: SnapPage) => {
@@ -299,6 +337,7 @@ class SnapProcessor extends BaseProcessor {
             buttonColumns.has('LabelColor') ? 'b.LabelColor' : 'NULL AS LabelColor',
             buttonColumns.has('BackgroundColor') ? 'b.BackgroundColor' : 'NULL AS BackgroundColor',
             buttonColumns.has('NavigatePageId') ? 'b.NavigatePageId' : 'NULL AS NavigatePageId',
+            buttonColumns.has('ContentType') ? 'b.ContentType' : 'NULL AS ContentType',
           ];
 
           if (this.loadAudio) {
@@ -335,14 +374,22 @@ class SnapProcessor extends BaseProcessor {
             selectFields.push('NULL AS LinkedPageUniqueId');
           }
 
+          const hasCommandSequence = getTableColumns('CommandSequence').size > 0;
+          if (hasCommandSequence) {
+            selectFields.push('cs.SerializedCommands');
+          } else {
+            selectFields.push('NULL AS SerializedCommands');
+          }
+
           const buttonQuery = `
-            SELECT ${selectFields.join(', ')}
-            FROM Button b
-            INNER JOIN ElementReference er ON b.ElementReferenceId = er.Id
-            LEFT JOIN ElementPlacement ep ON ep.ElementReferenceId = er.Id
-            ${hasButtonPageLink ? 'LEFT JOIN ButtonPageLink bpl ON b.Id = bpl.ButtonId' : ''}
-            WHERE er.PageId = ? ${selectedPageLayoutId ? 'AND ep.PageLayoutId = ?' : ''}
-          `;
+             SELECT ${selectFields.join(', ')}
+             FROM Button b
+             INNER JOIN ElementReference er ON b.ElementReferenceId = er.Id
+             LEFT JOIN ElementPlacement ep ON ep.ElementReferenceId = er.Id
+             ${hasButtonPageLink ? 'LEFT JOIN ButtonPageLink bpl ON b.Id = bpl.ButtonId' : ''}
+             ${hasCommandSequence ? 'LEFT JOIN CommandSequence cs ON b.Id = cs.ButtonId' : ''}
+             WHERE er.PageId = ? ${selectedPageLayoutId ? 'AND ep.PageLayoutId = ?' : ''}
+           `;
           const queryParams = selectedPageLayoutId
             ? [pageRow.Id, selectedPageLayoutId]
             : [pageRow.Id];
@@ -391,6 +438,31 @@ class SnapProcessor extends BaseProcessor {
             targetPageUniqueId = String(btnRow.LinkedPageUniqueId);
           } else if (btnRow.PageUniqueId) {
             targetPageUniqueId = String(btnRow.PageUniqueId);
+          }
+
+          // Parse CommandSequence for navigation targets if not found yet
+          if (btnRow.SerializedCommands) {
+            try {
+              const commands = JSON.parse(btnRow.SerializedCommands as string);
+              const values = commands.$values || [];
+              for (const cmd of values) {
+                if (cmd.$type === '2' && cmd.LinkedPageId) {
+                  // Normal Navigation
+                  targetPageUniqueId = String(cmd.LinkedPageId);
+                } else if (cmd.$type === '16') {
+                  // Go to Home
+                  targetPageUniqueId = defaultHomePageId;
+                } else if (cmd.$type === '17') {
+                  // Go to Keyboard
+                  targetPageUniqueId = defaultKeyboardPageId;
+                } else if (cmd.$type === '18') {
+                  // Go to Dashboard
+                  targetPageUniqueId = dashboardPageId;
+                }
+              }
+            } catch (e) {
+              // Ignore JSON parse errors in commands
+            }
           }
 
           // Determine parent page association for this button
@@ -463,12 +535,15 @@ class SnapProcessor extends BaseProcessor {
 
           const button = new AACButton({
             id: String(btnRow.Id),
-            label: btnRow.Label || '',
-            message: btnRow.Message || btnRow.Label || '',
+            label: btnRow.Label || (btnRow.ContentType === 1 ? '[Prediction]' : ''),
+            message:
+              btnRow.Message || (btnRow.ContentType === 1 ? '[Prediction]' : btnRow.Label || ''),
             targetPageId: targetPageUniqueId,
             semanticAction: semanticAction,
+            contentType: btnRow.ContentType === 1 ? 'AutoContent' : undefined,
+            contentSubType: btnRow.ContentType === 1 ? 'Prediction' : undefined,
             audioRecording: audioRecording,
-            visibility: mapSnapVisibility(btnRow.Visible),
+            visibility: mapSnapVisibility(btnRow.Visible as number),
             semantic_id: btnRow.LibrarySymbolId
               ? `snap_symbol_${btnRow.LibrarySymbolId}`
               : undefined, // Extract semantic_id from LibrarySymbolId
