@@ -163,8 +163,21 @@ class TouchChatProcessor extends BaseProcessor {
       // Set root ID to the first page ID (will be updated if we find a better root)
       let rootPageId: string | null = null;
 
+      const getTableColumns = (tableName: string): Set<string> => {
+        if (!db) return new Set();
+        try {
+          const rows = db.prepare(`PRAGMA table_info(${tableName})`).all() as Array<{
+            name: string;
+          }>;
+          return new Set(rows.map((row) => row.name));
+        } catch {
+          return new Set();
+        }
+      };
+
       // Load ID mappings first
       const idMappings = new Map<number, string>();
+      const numericToRid = new Map<number, string>();
       try {
         const mappingQuery = 'SELECT numeric_id, string_id FROM page_id_mapping';
         const mappings = db.prepare(mappingQuery).all() as {
@@ -197,17 +210,23 @@ class TouchChatProcessor extends BaseProcessor {
       }
 
       // First, load all pages and get their names from resources
+      const resourceColumns = getTableColumns('resources');
+      const hasRid = resourceColumns.has('rid');
+
       const pageQuery = `
-        SELECT p.*, r.name
+        SELECT p.*, r.name${hasRid ? ', r.rid' : ''}
         FROM pages p
         JOIN resources r ON r.id = p.resource_id
       `;
       const pages = db.prepare(pageQuery).all() as (TouchChatPage & {
         name: string;
+        rid?: string;
       })[];
       pages.forEach((pageRow) => {
-        // Use mapped string ID if available, otherwise use numeric ID as string
-        const pageId = idMappings.get(pageRow.id) || String(pageRow.id);
+        // Use resource RID (UUID) if available, otherwise mapped string ID, then numeric ID
+        const pageId =
+          (hasRid ? pageRow.rid : null) || idMappings.get(pageRow.id) || String(pageRow.id);
+        numericToRid.set(pageRow.id, pageId);
         const style = pageStyles.get(pageRow.page_style_id);
 
         const page = new AACPage({
@@ -263,6 +282,7 @@ class TouchChatProcessor extends BaseProcessor {
               touchChat: {
                 actionCode: 0, // Default speak action
                 actionData: cell.message || cell.label || '',
+                resourceId: cell.resource_id,
               },
             },
             fallback: {
@@ -324,7 +344,7 @@ class TouchChatProcessor extends BaseProcessor {
 
         boxInstances.forEach((instance) => {
           // Use mapped string ID if available, otherwise use numeric ID as string
-          const pageId = idMappings.get(instance.page_id) || String(instance.page_id);
+          const pageId = numericToRid.get(instance.page_id) || String(instance.page_id);
           const page = tree.getPage(pageId);
           const buttons = buttonBoxes.get(instance.button_box_id);
           if (page && buttons) {
@@ -467,7 +487,9 @@ class TouchChatProcessor extends BaseProcessor {
             },
           });
           // Find the page that references this resource
-          const page = Object.values(tree.pages).find((p) => p.id === String(btnRow.id));
+          const page = Object.values(tree.pages).find(
+            (p) => p.id === (numericToRid.get(btnRow.id) || String(btnRow.id))
+          );
           if (page) page.addButton(button);
         });
       } catch (e) {
@@ -476,27 +498,32 @@ class TouchChatProcessor extends BaseProcessor {
 
       // Load navigation actions
       const navActionsQuery = `
-        SELECT b.id as button_id, ad.value as target_page_id
-        FROM buttons b
-        JOIN actions a ON a.resource_id = b.resource_id
+        SELECT a.resource_id, COALESCE(${hasRid ? 'r_rid.rid, r_id.rid, ' : ''}r_id.id, ad.value) as target_page_id
+        FROM actions a
         JOIN action_data ad ON ad.action_id = a.id
-        WHERE a.code = 1
+        ${hasRid ? 'LEFT JOIN resources r_rid ON r_rid.rid = ad.value AND r_rid.type = 7' : ''}
+        LEFT JOIN resources r_id ON (CASE WHEN ad.value GLOB '[0-9]*' THEN CAST(ad.value AS INTEGER) ELSE -1 END) = r_id.id AND r_id.type = 7
+        WHERE a.code IN (1, 8, 9)
       `;
       try {
         const navActions = db.prepare(navActionsQuery).all() as {
-          button_id: number;
+          resource_id: number;
           target_page_id: string;
         }[];
         navActions.forEach((nav) => {
-          // Find button in any page
+          // Find button in any page by its resourceId
           for (const pageId in tree.pages) {
             const page = tree.pages[pageId];
-            const button = page.buttons.find((b) => b.id === String(nav.button_id));
+            const button = page.buttons.find(
+              (b) => b.semanticAction?.platformData?.touchChat?.resourceId === nav.resource_id
+            );
             if (button) {
               // Use mapped string ID for target page if available
-              const targetPageId =
-                idMappings.get(parseInt(nav.target_page_id)) || nav.target_page_id;
-              button.targetPageId = String(targetPageId);
+              const numericTargetId = parseInt(String(nav.target_page_id));
+              const targetPageId = !isNaN(numericTargetId)
+                ? numericToRid.get(numericTargetId) || String(numericTargetId)
+                : String(nav.target_page_id);
+              button.targetPageId = targetPageId;
 
               // Create semantic action for navigation
               button.semanticAction = {

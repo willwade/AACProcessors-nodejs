@@ -307,17 +307,26 @@ class SnapProcessor extends BaseProcessor {
           }
 
           const placementColumns = getTableColumns('ElementPlacement');
+          const hasButtonPageLink = getTableColumns('ButtonPageLink').size > 0;
+
           selectFields.push(
             placementColumns.has('GridPosition') ? 'ep.GridPosition' : 'NULL AS GridPosition',
             placementColumns.has('PageLayoutId') ? 'ep.PageLayoutId' : 'NULL AS PageLayoutId',
             'er.PageId as ButtonPageId'
           );
 
+          if (hasButtonPageLink) {
+            selectFields.push('bpl.PageUniqueId AS LinkedPageUniqueId');
+          } else {
+            selectFields.push('NULL AS LinkedPageUniqueId');
+          }
+
           const buttonQuery = `
             SELECT ${selectFields.join(', ')}
             FROM Button b
             INNER JOIN ElementReference er ON b.ElementReferenceId = er.Id
             LEFT JOIN ElementPlacement ep ON ep.ElementReferenceId = er.Id
+            ${hasButtonPageLink ? 'LEFT JOIN ButtonPageLink bpl ON b.Id = bpl.ButtonId' : ''}
             WHERE er.PageId = ? ${selectedPageLayoutId ? 'AND ep.PageLayoutId = ?' : ''}
           `;
           const queryParams = selectedPageLayoutId
@@ -364,6 +373,8 @@ class SnapProcessor extends BaseProcessor {
           let targetPageUniqueId: string | undefined = undefined;
           if (btnRow.NavigatePageId && idToUniqueId[String(btnRow.NavigatePageId)]) {
             targetPageUniqueId = idToUniqueId[String(btnRow.NavigatePageId)];
+          } else if (btnRow.LinkedPageUniqueId) {
+            targetPageUniqueId = String(btnRow.LinkedPageUniqueId);
           } else if (btnRow.PageUniqueId) {
             targetPageUniqueId = String(btnRow.PageUniqueId);
           }

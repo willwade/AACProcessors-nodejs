@@ -112,6 +112,7 @@ export interface AACSemanticAction {
     touchChat?: {
       actionCode: number;
       actionData: string;
+      resourceId?: number;
     };
     snap?: {
       navigatePageId?: number;
