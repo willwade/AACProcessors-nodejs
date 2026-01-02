@@ -30,6 +30,8 @@ export const EFFORT_CONSTANTS = {
   REUSED_CLONE_FROM_OTHER_BONUS: 0.005,
   SCAN_STEP_COST: 0.015, // Matches visual scan multiplier
   SCAN_SELECTION_COST: 0.1, // Cost of a switch selection
+  DEFAULT_SCAN_ERROR_RATE: 0.1, // 10% chance of missing a selection
+  SCAN_RETRY_PENALTY: 1.0, // Cost multiplier for a full loop retry
 } as const;
 
 /**
@@ -225,10 +227,15 @@ export function localScanEffort(distance: number): number {
  *
  * @param steps - Number of scan steps to reach target
  * @param selections - Number of switch selections required
+ * @param stepCost - Optional override for scan step cost
+ * @param selectionCost - Optional override for scan selection cost
  * @returns Scanning effort score
  */
-export function scanningEffort(steps: number, selections: number): number {
-  return (
-    steps * EFFORT_CONSTANTS.SCAN_STEP_COST + selections * EFFORT_CONSTANTS.SCAN_SELECTION_COST
-  );
+export function scanningEffort(
+  steps: number,
+  selections: number,
+  stepCost: number = EFFORT_CONSTANTS.SCAN_STEP_COST,
+  selectionCost: number = EFFORT_CONSTANTS.SCAN_SELECTION_COST
+): number {
+  return steps * stepCost + selections * selectionCost;
 }

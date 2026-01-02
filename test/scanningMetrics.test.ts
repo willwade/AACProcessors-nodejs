@@ -130,4 +130,38 @@ describe('Scanning Metrics', () => {
 
     expect(metrics?.effort).toBeCloseTo(0.7, 4);
   });
+  it('calculates error correction effort correctly', () => {
+    const tree = new AACTree();
+    const page = new AACPage({
+      id: 'root',
+      name: 'Home',
+      grid: { columns: 10, rows: 1 },
+      scanningConfig: {
+        errorCorrectionEnabled: true,
+        errorRate: 0.2, // 20% error rate
+      },
+    });
+
+    const btn1 = new AACButton({ id: 'btn1', label: 'B1', type: 'SPEAK' });
+    page.grid[0][0] = btn1;
+    page.addButton(btn1);
+    tree.addPage(page);
+
+    const calculator = new MetricsCalculator();
+    const result = calculator.analyze(tree);
+
+    const metrics = result.buttons.find((b) => b.label === 'B1');
+    // B1 is at root, index 0.
+    // Steps = 1, Selections = 1
+    // Ideal Scan Effort = 1 * 0.015 + 1 * 0.1 = 0.115
+    // LoopSteps = 1 (only 1 visible button)
+    // Error Penalty = errorRate (0.2) * (loopSteps (1) * stepCost (0.015)) = 0.2 * 0.015 = 0.003
+    // Total Scan Effort = 0.115 + 0.003 = 0.118
+    // baseBoardEffort(1, 10, 10):
+    // buttonSize = 0.09 * (1+10)/2 = 0.495
+    // fieldSize = 0.005 * 10 = 0.05
+    // total = 0.545 + 0.118 = 0.663
+
+    expect(metrics?.effort).toBeCloseTo(0.663, 4);
+  });
 });

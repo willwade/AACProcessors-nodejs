@@ -46,6 +46,19 @@ async function runBenchmark() {
 
   console.log(`Found ${files.length} pageset(s) to analyze.\n`);
 
+  // Parse command line arguments for scanning costs
+  let stepCost: number | undefined;
+  let selectionCost: number | undefined;
+
+  for (let i = 0; i < process.argv.length; i++) {
+    if (process.argv[i] === '--step-cost' && process.argv[i + 1]) {
+      stepCost = parseFloat(process.argv[i + 1]);
+    }
+    if (process.argv[i] === '--selection-cost' && process.argv[i + 1]) {
+      selectionCost = parseFloat(process.argv[i + 1]);
+    }
+  }
+
   const calculator = new Analytics.MetricsCalculator();
   const vocabAnalyzer = new Analytics.VocabularyAnalyzer();
 
@@ -57,15 +70,16 @@ async function runBenchmark() {
     
     try {
       // Use standard processor factory
-      // TouchChat specifically often comes in .zip, so we map it if needed
       const processorExt = ext === '.zip' ? '.ce' : ext;
       const processor = getProcessor(processorExt);
       
       const tree = processor.loadIntoTree(filePath);
       
-      // Analyze with default settings (auto-detects scanning if configured in properties)
-      // or we can force scanning for the benchmark
-      const metrics = calculator.analyze(tree);
+      // Analyze with custom scanning costs if provided
+      const metrics = calculator.analyze(tree, {
+        scanStepCost: stepCost,
+        scanSelectionCost: selectionCost
+      });
       
       // Vocabulary analysis
       const vocabAnalysis = vocabAnalyzer.analyze(metrics);

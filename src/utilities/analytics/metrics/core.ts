@@ -14,8 +14,8 @@ import {
   AACSemanticCategory,
   AACScanType,
 } from '../../../core/treeStructure';
-import { CellScanningOrder } from '../../../types/aac';
-import { ButtonMetrics, MetricsResult } from './types';
+import { CellScanningOrder, ScanningSelectionMethod } from '../../../types/aac';
+import { ButtonMetrics, MetricsOptions, MetricsResult } from './types';
 import {
   baseBoardEffort,
   distanceEffort,
@@ -43,9 +43,10 @@ export class MetricsCalculator {
    * Main analysis function - calculates metrics for an AAC tree
    *
    * @param tree - The AAC tree to analyze
+   * @param options - Optional configuration for metrics calculation
    * @returns Complete metrics result
    */
-  analyze(tree: AACTree): MetricsResult {
+  analyze(tree: AACTree, options: MetricsOptions = {}): MetricsResult {
     // Get root board - prioritize tree.rootId, then fall back to boards with no parentId
     let rootBoard: AACPage | undefined;
     if (tree.rootId) {
@@ -92,7 +93,7 @@ export class MetricsCalculator {
 
     // Analyze from each starting board
     startBoards.forEach((startBoard) => {
-      const result = this.analyzeFrom(tree, startBoard, setPcts, startBoard === rootBoard);
+      const result = this.analyzeFrom(tree, startBoard, setPcts, startBoard === rootBoard, options);
 
       result.buttons.forEach((btn) => {
         const existing = knownButtons.get(btn.label);
@@ -240,7 +241,8 @@ export class MetricsCalculator {
     tree: AACTree,
     brd: AACPage,
     setPcts: { [id: string]: number },
-    _isRoot: boolean
+    _isRoot: boolean,
+    options: MetricsOptions = {}
   ): {
     buttons: ButtonMetrics[];
     levels: { [level: number]: ButtonMetrics[] };
@@ -300,8 +302,9 @@ export class MetricsCalculator {
       // Calculate board link percentages
       const boardPcts = this.calculateBoardLinkPercentages(tree, board);
 
-      // Get scanning configuration from page (if available)
-      const blockScanEnabled = board.scanningConfig?.blockScanEnabled || false;
+      // Get scanning configuration from page (if available) or options
+      const scanningConfig = options.scanningConfig || board.scanningConfig;
+      const blockScanEnabled = scanningConfig?.blockScanEnabled || false;
 
       // Process each button
       const priorScanBlocks = new Set<number>();
@@ -378,10 +381,43 @@ export class MetricsCalculator {
           }
 
           // Calculate button effort based on access method (Touch vs Scanning)
-          const isScanning = !!board.scanningConfig || !!board.scanType;
+          const isScanning = !!scanningConfig || !!board.scanType;
           if (isScanning) {
-            const { steps, selections } = this.calculateScanSteps(board, btn, rowIndex, colIndex);
-            let sEffort = scanningEffort(steps, selections);
+            const { steps, selections, loopSteps } = this.calculateScanSteps(
+              board,
+              btn,
+              rowIndex,
+              colIndex,
+              scanningConfig
+            );
+
+            // Determine effective costs based on selection method
+            let currentStepCost = options.scanStepCost ?? EFFORT_CONSTANTS.SCAN_STEP_COST;
+            const currentSelectionCost =
+              options.scanSelectionCost ?? EFFORT_CONSTANTS.SCAN_SELECTION_COST;
+
+            // Step Scan 2 Switch: Every step is a physical selection with Switch 1
+            if (scanningConfig?.selectionMethod === ScanningSelectionMethod.StepScan2Switch) {
+              // The cost of moving is now a selection cost
+              currentStepCost = currentSelectionCost;
+            } else if (
+              scanningConfig?.selectionMethod === ScanningSelectionMethod.StepScan1Switch
+            ) {
+              // Single switch step scan: every step is a physical selection
+              currentStepCost = currentSelectionCost;
+            }
+
+            let sEffort = scanningEffort(steps, selections, currentStepCost, currentSelectionCost);
+
+            // Factor in error correction if enabled
+            if (scanningConfig?.errorCorrectionEnabled) {
+              const errorRate =
+                scanningConfig.errorRate ?? EFFORT_CONSTANTS.DEFAULT_SCAN_ERROR_RATE;
+              // A "miss" results in needing to wait for a loop (or part of one)
+              // We model this as errorRate * (loopSteps * stepCost)
+              const retryPenalty = loopSteps * currentStepCost;
+              sEffort += errorRate * retryPenalty;
+            }
 
             // Apply discounts to scanning effort (similar to touch)
             if (btn.semantic_id && boardPcts[btn.semantic_id]) {
@@ -625,12 +661,14 @@ export class MetricsCalculator {
     board: AACPage,
     btn: AACButton,
     rowIndex: number,
-    colIndex: number
-  ): { steps: number; selections: number } {
+    colIndex: number,
+    overrideConfig?: any
+  ): { steps: number; selections: number; loopSteps: number } {
+    const config = overrideConfig || board.scanningConfig;
     // Determine scanning type from local scanType or scanningConfig
     let type: AACScanType = board.scanType || AACScanType.LINEAR;
-    if (board.scanningConfig?.cellScanningOrder) {
-      const order = board.scanningConfig.cellScanningOrder;
+    if (config?.cellScanningOrder) {
+      const order = config.cellScanningOrder;
       // String matching for CellScanningOrder
       if (order === CellScanningOrder.RowColumnScan) type = AACScanType.ROW_COLUMN;
       else if (order === CellScanningOrder.ColumnRowScan) type = AACScanType.COLUMN_ROW;
@@ -640,7 +678,7 @@ export class MetricsCalculator {
 
     // Force block scan if enabled in config
     const isBlockScan =
-      board.scanningConfig?.blockScanEnabled ||
+      config?.blockScanEnabled ||
       type === AACScanType.BLOCK_ROW_COLUMN ||
       type === AACScanType.BLOCK_COLUMN_ROW;
 
@@ -650,61 +688,86 @@ export class MetricsCalculator {
 
       // If no block assigned, treat as its own block at the end (fallback)
       if (blockId === null) {
-        return { steps: rowIndex + colIndex + 1, selections: 1 };
+        const loop = board.grid.length + (board.grid[0]?.length || 0);
+        return { steps: rowIndex + colIndex + 1, selections: 1, loopSteps: loop };
       }
 
-      const config = board.scanBlocksConfig?.find((c) => c.id === blockId);
-      const blockOrder = config?.order ?? blockId;
+      const blockConfig = board.scanBlocksConfig?.find((c) => c.id === blockId);
+      const blockOrder = blockConfig?.order ?? blockId;
 
-      // Linear scan within the block
+      // Count unique blocks
+      const blocks = new Set<number>();
       let btnInBlockIndex = 0;
-      let found = false;
+      let itemsInBlock = 0;
+
       for (let r = 0; r < board.grid.length; r++) {
         for (let c = 0; c < (board.grid[r]?.length || 0); c++) {
           const b = board.grid[r][c];
-          if (b && (b.scanBlock === blockId || b.scanBlocks?.includes(blockId))) {
-            if (b === btn) {
-              found = true;
-              break;
+          if (b) {
+            const id = b.scanBlock ?? b.scanBlocks?.[0];
+            if (id !== undefined && id !== null) blocks.add(id);
+
+            if (id === blockId) {
+              itemsInBlock++;
+              if (b === btn) {
+                btnInBlockIndex = itemsInBlock - 1;
+              }
             }
-            btnInBlockIndex++;
           }
         }
-        if (found) break;
       }
 
       // 1 selection for block, 1 for item
-      return { steps: blockOrder + btnInBlockIndex + 1, selections: 2 };
+      return {
+        steps: blockOrder + btnInBlockIndex + 1,
+        selections: 2,
+        loopSteps: blocks.size + itemsInBlock,
+      };
     }
 
     switch (type) {
       case AACScanType.LINEAR: {
         let index = 0;
         let found = false;
+        let totalVisible = 0;
         for (let r = 0; r < board.grid.length; r++) {
           for (let c = 0; c < board.grid[r].length; c++) {
             const b = board.grid[r][c];
             if (b && (b.label || '').length > 0) {
-              if (b === btn) {
-                found = true;
-                break;
+              totalVisible++;
+              if (!found) {
+                if (b === btn) {
+                  found = true;
+                } else {
+                  index++;
+                }
               }
-              index++;
             }
           }
-          if (found) break;
         }
-        return { steps: index + 1, selections: 1 };
+        return { steps: index + 1, selections: 1, loopSteps: totalVisible };
       }
 
       case AACScanType.ROW_COLUMN:
-        return { steps: rowIndex + 1 + (colIndex + 1), selections: 2 };
+        return {
+          steps: rowIndex + 1 + (colIndex + 1),
+          selections: 2,
+          loopSteps: board.grid.length + (board.grid[0]?.length || 0),
+        };
 
       case AACScanType.COLUMN_ROW:
-        return { steps: colIndex + 1 + (rowIndex + 1), selections: 2 };
+        return {
+          steps: colIndex + 1 + (rowIndex + 1),
+          selections: 2,
+          loopSteps: (board.grid[0]?.length || 0) + board.grid.length,
+        };
 
       default:
-        return { steps: rowIndex + 1 + (colIndex + 1), selections: 2 };
+        return {
+          steps: rowIndex + 1 + (colIndex + 1),
+          selections: 2,
+          loopSteps: board.grid.length + (board.grid[0]?.length || 0),
+        };
     }
   }
 }

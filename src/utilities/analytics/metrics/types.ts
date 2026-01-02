@@ -4,6 +4,8 @@
  * Defines the data structures used for AAC metrics analysis
  */
 
+import { ScanningConfig } from '../../../types/aac';
+
 // import { AACTree } from '../../../types/aac';
 
 /**
@@ -60,6 +62,32 @@ export interface MetricsResult {
 export interface AlternateBoardMetrics {
   buttons: ButtonMetrics[];
   levels: { [level: number]: ButtonMetrics[] };
+}
+
+/**
+ * Options for metrics calculation
+ */
+export interface MetricsOptions {
+  /**
+   * Override scanning configuration
+   */
+  scanningConfig?: ScanningConfig;
+
+  /**
+   * Path to core vocabulary lists to use for analysis
+   */
+  coreLists?: string[];
+
+  /**
+   * Test sentences for sentence-level effort analysis
+   */
+  testSentences?: string[];
+
+  /**
+   * Custom scanning costs
+   */
+  scanStepCost?: number;
+  scanSelectionCost?: number;
 }
 
 /**

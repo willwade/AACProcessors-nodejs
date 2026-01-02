@@ -6,7 +6,7 @@ import { AACSemanticAction } from '../core/treeStructure';
  * Determines how the scanning advances through items
  */
 export enum ScanningSelectionMethod {
-  /** Automatically advance through items at timed intervals */
+  /** Automatically advance through items at timed intervals (1 Switch) */
   AutoScan = 'AutoScan',
   /** Automatic scanning with overscan (two-stage scanning) */
   AutoScanWithOverscan = 'AutoScanWithOverscan',
@@ -14,8 +14,12 @@ export enum ScanningSelectionMethod {
   HoldToAdvance = 'HoldToAdvance',
   /** Hold to advance with overscan */
   HoldToAdvanceWithOverscan = 'HoldToAdvanceWithOverscan',
-  /** Tap switch to advance, tap again to select */
+  /** Tap switch to advance, tap again to select (Automatic) */
   TapToAdvance = 'TapToAdvance',
+  /** Tap switch to advance, another switch to select (2 Switch Step Scan) */
+  StepScan2Switch = 'StepScan2Switch',
+  /** Tap switch 1 to advance, tap switch 1 again to select (1 Switch Step Scan) */
+  StepScan1Switch = 'StepScan1Switch',
 }
 
 /**
@@ -52,6 +56,12 @@ export interface ScanningConfig {
   dwellTime?: number;
   /** How the selection is accepted */
   acceptScanMethod?: 'Switch' | 'Timeout' | 'Hold';
+  /** Whether to factor in error correction effort (e.g., missed hits) */
+  errorCorrectionEnabled?: boolean;
+  /** Maximum number of loops before the scan times out */
+  maxLoops?: number;
+  /** Estimated probability of missing a target (0.0 to 1.0) */
+  errorRate?: number;
 }
 
 export interface AACStyle {
