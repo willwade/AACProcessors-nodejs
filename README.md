@@ -194,6 +194,45 @@ const translatedBuffer = processor.processTexts(
 console.log("Translation complete!");
 ```
 
+### 🤖 LLM-Based Translation with Symbol Preservation
+
+For advanced AI-powered translation that preserves symbol-to-word associations across languages, see the **[Translation Utilities Guide](./src/utilities/translation/README.md)**.
+
+**Features:**
+- 🧠 **Intelligent symbol mapping**: LLMs understand grammar, not just word position
+- 🎯 **Cross-format support**: Works with Gridset, OBF/OBZ, TouchChat, and Snap
+- 🔗 **Symbol preservation**: Symbols stay attached to correct translated words
+- ✅ **Validated output**: Built-in validation catches translation errors
+
+**Quick Demo:**
+```bash
+# Translate a Grid 3 file to Spanish using Gemini 2.0 Flash
+export GEMINI_API_KEY="your-key-here"
+node scripts/translation/gemini-translate-gridset.js "./tmp/Voco Chat.gridset" Spanish
+```
+
+**Complete Example:**
+```typescript
+import { GridsetProcessor } from "@willwade/aac-processors";
+
+const processor = new GridsetProcessor();
+
+// 1. Extract buttons with symbol information
+const buttons = processor.extractSymbolsForLLM("board.gridset");
+
+// 2. Create LLM prompt (or call your LLM API directly)
+// See: src/utilities/translation/README.md
+
+// 3. Apply translations with preserved symbols
+processor.processLLMTranslations(
+  "board.gridset",
+  llmTranslations,
+  "board-spanish.gridset"
+);
+```
+
+See **[scripts/translation/](./scripts/translation/)** for complete working examples with Gemini, GPT-4, and other LLMs.
+
 ### 📊 AAC Analytics & Clinical Metrics
 
 The library includes an optional high-performance analytics engine for evaluating AAC board sets based on the **AAC Effort Algorithm (v0.2)**.
@@ -205,7 +244,7 @@ The library includes an optional high-performance analytics engine for evaluatin
 - **Sentence Analysis**: Measure the effort required to construct common test sentences.
 - **Comparative Analysis**: Identify gaps and improvements between two pageset versions.
 
-For detailed documentation, see the **[AAC Metrics Guide](./src/optional/analytics/docs/AAC_METRICS_GUIDE.md)** and **[Vocabulary Analysis Guide](./src/optional/analytics/docs/VOCABULARY_ANALYSIS_GUIDE.md)**.
+For detailed documentation, see the **[AAC Metrics Guide](./src/utilities/analytics/docs/AAC_METRICS_GUIDE.md)** and **[Vocabulary Analysis Guide](./src/utilities/analytics/docs/VOCABULARY_ANALYSIS_GUIDE.md)**.
 
 ```typescript
 import { ObfsetProcessor, Analytics } from "@willwade/aac-processors";
