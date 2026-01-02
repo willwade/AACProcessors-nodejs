@@ -13,7 +13,7 @@ import {
   AACSemanticCategory,
   AACSemanticIntent,
 } from '../core/treeStructure';
-import { generateCloneId } from '../optional/analytics/utils/idGenerator';
+import { generateCloneId } from '../utilities/analytics/utils/idGenerator';
 import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';

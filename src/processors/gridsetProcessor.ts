@@ -18,6 +18,12 @@ import AdmZip from 'adm-zip';
 import fs from 'fs';
 import { XMLParser, XMLBuilder } from 'fast-xml-parser';
 import { resolveGrid3CellImage } from './gridset/resolver';
+import {
+  extractAllButtonsForTranslation,
+  validateTranslationResults,
+  type ButtonForTranslation,
+  type LLMLTranslationResult,
+} from '../utilities/translation/translationProcessor';
 import { getZipEntriesWithPassword, resolveGridsetPassword } from './gridset/password';
 import crypto from 'crypto';
 import zlib from 'zlib';
@@ -28,7 +34,7 @@ import { detectPluginCellType, Grid3CellType } from './gridset/pluginTypes';
 import { detectCommand } from './gridset/commands';
 import { type SymbolReference, parseSymbolReference } from './gridset/symbols';
 import { isSymbolLibraryReference } from './gridset/resolver';
-import { generateCloneId } from '../optional/analytics/utils/idGenerator';
+import { generateCloneId } from '../utilities/analytics/utils/idGenerator';
 import { translateWithSymbols, extractSymbolsFromButton } from './gridset/symbolAlignment';
 
 class GridsetProcessor extends BaseProcessor {
@@ -1245,121 +1251,55 @@ class GridsetProcessor extends BaseProcessor {
    * Extract symbol information from a gridset for LLM-based translation.
    * Returns a structured format showing which buttons have symbols and their context.
    *
+   * This method uses shared translation utilities that work across all AAC formats.
+   *
    * @param filePathOrBuffer - Path to gridset file or buffer
    * @returns Array of symbol information for LLM processing
    */
-  extractSymbolsForLLM(filePathOrBuffer: string | Buffer): Array<{
-    buttonId: string;
-    pageId: string;
-    pageName: string;
-    label: string;
-    message: string;
-    textToTranslate: string;
-    symbols: Array<{
-      text: string;
-      image?: string;
-      symbolLibrary?: string;
-      symbolPath?: string;
-    }>;
-  }> {
+  extractSymbolsForLLM(filePathOrBuffer: string | Buffer): ButtonForTranslation[] {
     const tree = this.loadIntoTree(filePathOrBuffer);
-    const symbolInfo: Array<{
-      buttonId: string;
-      pageId: string;
-      pageName: string;
-      label: string;
-      message: string;
-      textToTranslate: string;
-      symbols: Array<{
-        text: string;
-        image?: string;
-        symbolLibrary?: string;
-        symbolPath?: string;
-      }>;
-    }> = [];
 
+    // Collect all buttons from all pages
+    const allButtons: any[] = [];
     Object.values(tree.pages).forEach((page) => {
       page.buttons.forEach((button) => {
-        // Extract symbols from various sources
-        const symbols: Array<{
-          text: string;
-          image?: string;
-          symbolLibrary?: string;
-          symbolPath?: string;
-        }> = [];
-
-        // Check richText.symbols
-        if (button.semanticAction?.richText?.symbols) {
-          symbols.push(...button.semanticAction.richText.symbols);
-        }
-
-        // Check symbolLibrary + symbolPath
-        if (button.symbolLibrary && button.symbolPath) {
-          const text = button.label || button.message || '';
-          if (text) {
-            symbols.push({
-              text,
-              symbolLibrary: button.symbolLibrary,
-              symbolPath: button.symbolPath,
-            });
-          }
-        }
-
-        // Check image field for symbol reference
-        if (button.image && button.image.startsWith('[')) {
-          const text = button.label || button.message || '';
-          if (text) {
-            symbols.push({
-              text,
-              image: button.image,
-            });
-          }
-        }
-
-        // Only include buttons that have symbols
-        if (symbols.length > 0) {
-          const textToTranslate = button.message || button.label || '';
-          if (textToTranslate) {
-            symbolInfo.push({
-              buttonId: button.id,
-              pageId: page.id,
-              pageName: page.name || page.id,
-              label: button.label || '',
-              message: button.message || '',
-              textToTranslate,
-              symbols,
-            });
-          }
-        }
+        // Add page context to each button
+        (button as any).pageId = page.id;
+        (button as any).pageName = page.name || page.id;
+        allButtons.push(button);
       });
     });
 
-    return symbolInfo;
+    // Use shared utility to extract buttons with translation context
+    return extractAllButtonsForTranslation(allButtons, (button) => ({
+      pageId: button.pageId,
+      pageName: button.pageName,
+    }));
   }
 
   /**
    * Apply LLM translations with symbol information.
    * The LLM should provide translations with symbol attachments in the correct positions.
    *
+   * This method uses shared translation utilities that work across all AAC formats.
+   *
    * @param filePathOrBuffer - Path to gridset file or buffer
    * @param llmTranslations - Array of LLM translations with symbol info
    * @param outputPath - Where to save the translated gridset
+   * @param options - Translation options (e.g., allowPartial for testing)
    * @returns Buffer of the translated gridset
    */
   processLLMTranslations(
     filePathOrBuffer: string | Buffer,
-    llmTranslations: Array<{
-      buttonId: string;
-      translatedLabel?: string;
-      translatedMessage?: string;
-      symbols?: Array<{
-        text: string;
-        image?: string;
-      }>;
-    }>,
-    outputPath: string
+    llmTranslations: LLMLTranslationResult[],
+    outputPath: string,
+    options?: { allowPartial?: boolean }
   ): Buffer {
     const tree = this.loadIntoTree(filePathOrBuffer);
+
+    // Validate translations using shared utility
+    const buttonIds = Object.values(tree.pages).flatMap((page) => page.buttons.map((b) => b.id));
+    validateTranslationResults(llmTranslations, buttonIds, options);
 
     // Create a map for quick lookup
     const translationMap = new Map(llmTranslations.map((t) => [t.buttonId, t]));

@@ -103,6 +103,17 @@ async function main() {
   // Step 1: Extract symbol information
   console.log('STEP 1: Extracting symbol information from gridset...');
   const symbolInfo = processor.extractSymbolsForLLM(inputPath);
+
+  // NOTE: This script uses batch processing - sends ALL buttons in a single API call.
+  // For large vocabularies (1000+ buttons), consider chunking by page to avoid:
+  // - Hitting LLM context window limits
+  // - API rate limits
+  // - Better error recovery and progress tracking
+  //
+  // Example chunking approach:
+  // - Group buttons by page
+  // - Process each page separately
+  // - Combine results before applying to gridset
   
   console.log(`  Found ${symbolInfo.length} buttons with symbols`);
   console.log(`  Processing first ${Math.min(maxItems, symbolInfo.length)} items`);

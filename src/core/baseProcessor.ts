@@ -1,3 +1,45 @@
+/**
+ * Base Processor for AAC File Formats
+ *
+ * This module provides base functionality for processing AAC (Augmentative and Alternative
+ * Communication) files across various formats (gridset, OBF, Snap, TouchChat, etc.).
+ *
+ * ## LLM-Based Translation with Symbol Preservation
+ *
+ * All processor formats support LLM-based translation that preserves symbol-to-word
+ * associations across languages. This is critical for AAC systems where visual symbols
+ * are attached to specific words.
+ *
+ * ### Usage Example:
+ *
+ * ```typescript
+ * import { extractAllButtonsForTranslation, createTranslationPrompt } from '../optional/translation/translationProcessor';
+ *
+ * // 1. Extract buttons from your format
+ * const buttons = extractAllButtonsForTranslation(myFormatButtons, (button) => ({
+ *   pageId: button.pageId,
+ *   pageName: button.pageName
+ * }));
+ *
+ * // 2. Create prompt for LLM
+ * const prompt = createTranslationPrompt(buttons, 'Spanish');
+ *
+ * // 3. Send to LLM (Gemini, GPT, etc.) and get response
+ * const llmResponse = await callLLMAPI(prompt);
+ *
+ * // 4. Apply translations to your format
+ * processor.processLLMTranslations(filePath, llmResponse, outputPath);
+ * ```
+ *
+ * ### Format-Specific Implementation:
+ *
+ * Each processor should implement:
+ * - `extractSymbolsForLLM()` - Uses extractAllButtonsForTranslation() utility
+ * - `processLLMTranslations()` - Applies translations using format-specific logic
+ *
+ * See `src/utilities/translation/translationProcessor.ts` for shared utilities.
+ */
+
 import { AACTree, AACButton, AACSemanticCategory } from './treeStructure';
 import { StringCasing, detectCasing, isNumericOrEmpty } from './stringCasing';
 import { ValidationResult } from '../validation/validationTypes';

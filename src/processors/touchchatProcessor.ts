@@ -15,7 +15,7 @@ import {
   AACSemanticCategory,
   AACSemanticIntent,
 } from '../core/treeStructure';
-import { generateCloneId } from '../optional/analytics/utils/idGenerator';
+import { generateCloneId } from '../utilities/analytics/utils/idGenerator';
 import { detectCasing, isNumericOrEmpty } from '../core/stringCasing';
 import AdmZip from 'adm-zip';
 import Database from 'better-sqlite3';
@@ -24,6 +24,12 @@ import fs from 'fs';
 import os from 'os';
 import { TouchChatValidator } from '../validation/touchChatValidator';
 import { ValidationResult } from '../validation/validationTypes';
+import {
+  extractAllButtonsForTranslation,
+  validateTranslationResults,
+  type ButtonForTranslation,
+  type LLMLTranslationResult,
+} from '../utilities/translation/translationProcessor';
 
 interface TouchChatButton {
   id: number;
@@ -1087,6 +1093,102 @@ class TouchChatProcessor extends BaseProcessor {
    */
   async validate(filePath: string): Promise<ValidationResult> {
     return TouchChatValidator.validateFile(filePath);
+  }
+
+  /**
+   * Extract symbol information from a TouchChat file for LLM-based translation.
+   * Returns a structured format showing which buttons have symbols and their context.
+   *
+   * This method uses shared translation utilities that work across all AAC formats.
+   *
+   * @param filePathOrBuffer - Path to TouchChat .ce file or buffer
+   * @returns Array of symbol information for LLM processing
+   */
+  extractSymbolsForLLM(filePathOrBuffer: string | Buffer): ButtonForTranslation[] {
+    const tree = this.loadIntoTree(filePathOrBuffer);
+
+    // Collect all buttons from all pages
+    const allButtons: any[] = [];
+    Object.values(tree.pages).forEach((page) => {
+      page.buttons.forEach((button) => {
+        // Add page context to each button
+        (button as any).pageId = page.id;
+        (button as any).pageName = page.name || page.id;
+        allButtons.push(button);
+      });
+    });
+
+    // Use shared utility to extract buttons with translation context
+    return extractAllButtonsForTranslation(allButtons, (button) => ({
+      pageId: button.pageId,
+      pageName: button.pageName,
+    }));
+  }
+
+  /**
+   * Apply LLM translations with symbol information.
+   * The LLM should provide translations with symbol attachments in the correct positions.
+   *
+   * This method uses shared translation utilities that work across all AAC formats.
+   *
+   * @param filePathOrBuffer - Path to TouchChat .ce file or buffer
+   * @param llmTranslations - Array of LLM translations with symbol info
+   * @param outputPath - Where to save the translated TouchChat file
+   * @param options - Translation options (e.g., allowPartial for testing)
+   * @returns Buffer of the translated TouchChat file
+   */
+  processLLMTranslations(
+    filePathOrBuffer: string | Buffer,
+    llmTranslations: LLMLTranslationResult[],
+    outputPath: string,
+    options?: { allowPartial?: boolean }
+  ): Buffer {
+    const tree = this.loadIntoTree(filePathOrBuffer);
+
+    // Validate translations using shared utility
+    const buttonIds = Object.values(tree.pages).flatMap((page) => page.buttons.map((b) => b.id));
+    validateTranslationResults(llmTranslations, buttonIds, options);
+
+    // Create a map for quick lookup
+    const translationMap = new Map(llmTranslations.map((t) => [t.buttonId, t]));
+
+    // Apply translations
+    Object.values(tree.pages).forEach((page) => {
+      page.buttons.forEach((button) => {
+        const translation = translationMap.get(button.id);
+        if (!translation) return;
+
+        // Apply label translation
+        if (translation.translatedLabel) {
+          button.label = translation.translatedLabel;
+        }
+
+        // Apply message translation
+        if (translation.translatedMessage) {
+          button.message = translation.translatedMessage;
+
+          // Update semantic action if symbols provided
+          if (translation.symbols && translation.symbols.length > 0) {
+            if (!button.semanticAction) {
+              button.semanticAction = {
+                category: AACSemanticCategory.COMMUNICATION,
+                intent: AACSemanticIntent.SPEAK_TEXT,
+                text: translation.translatedMessage,
+              };
+            }
+
+            button.semanticAction.richText = {
+              text: translation.translatedMessage,
+              symbols: translation.symbols,
+            };
+          }
+        }
+      });
+    });
+
+    // Save and return
+    this.saveFromTree(tree, outputPath);
+    return fs.readFileSync(outputPath);
   }
 }
 

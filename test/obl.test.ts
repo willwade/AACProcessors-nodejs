@@ -1,4 +1,4 @@
-import { OblUtil, OblAnonymizer } from '../src/optional/analytics/index';
+import { OblUtil, OblAnonymizer } from '../src/utilities/analytics/index';
 import * as fs from 'fs';
 import * as path from 'path';
 import { AACSemanticIntent, AACSemanticCategory } from '../src/core/treeStructure';

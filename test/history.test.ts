@@ -7,7 +7,7 @@ import {
   readGrid3History,
   readSnapUsage,
   type HistoryEntry,
-} from '../src/optional/analytics/history';
+} from '../src/utilities/analytics/history';
 
 const EPOCH_TICKS = 621355968000000000n;
 const TICKS_PER_MS = 10000n;

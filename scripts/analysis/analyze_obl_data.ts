@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { OblUtil } from '../../src/optional/analytics/index';
+import { OblUtil } from '../../src/utilities/analytics/index';
 
 /**
  * Script to bulk-analyze OBLA clinical data and extract utterances to a CSV.

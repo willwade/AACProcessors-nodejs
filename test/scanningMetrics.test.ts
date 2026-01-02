@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 import { AACTree, AACPage, AACButton, AACScanType } from '../src/core/treeStructure';
-import { MetricsCalculator } from '../src/optional/analytics/metrics/core';
+import { MetricsCalculator } from '../src/utilities/analytics/metrics/core';
 
 describe('Scanning Metrics', () => {
   it('calculates linear scanning effort correctly', () => {
