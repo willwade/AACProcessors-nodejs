@@ -2,8 +2,8 @@
 const fs = require('fs');
 const path = require('path');
 
-// Use compiled dist outputs
-const { GridsetProcessor, getPageTokenImageMap, getAllowedImageEntries, openImage } = require('../dist/processors');
+// Use compiled dist outputs with new namespace structure
+const { GridsetProcessor, Gridset } = require('../dist/index');
 
 (async () => {
   try {
@@ -17,25 +17,20 @@ const { GridsetProcessor, getPageTokenImageMap, getAllowedImageEntries, openImag
     const rootId = tree.rootId || pageIds[0];
     console.log('Pages:', pageIds.length, 'root:', rootId);
 
-    const map = getPageTokenImageMap(tree, rootId);
+    const map = Gridset.getPageTokenImageMap(tree, rootId);
     console.log('Resolved images on root page:', map.size);
     for (const [token, entry] of map.entries()) {
       console.log('  token', token, '=>', entry);
     }
 
-    const allow = getAllowedImageEntries(tree);
+    const allow = Gridset.getAllowedImageEntries(tree);
     console.log('Allow-list size:', allow.size);
 
     // Try to read the first image entry
     const first = Array.from(allow)[0];
     if (first) {
-      const buf = fs.readFileSync(file);
-      const data = openImage(buf, first);
-      if (data) {
-        console.log('Read image bytes for', first, 'len=', data.length);
-      } else {
-        console.warn('Could not read image for', first);
-      }
+      const img = Gridset.openImage(first);
+      console.log('First image:', img);
     }
   } catch (e) {
     console.error('Error:', e && e.message ? e.message : e);

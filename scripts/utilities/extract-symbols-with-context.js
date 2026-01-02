@@ -2,7 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { GridsetProcessor } = require('../../dist/processors');
+const { GridsetProcessor } = require('../../dist/index');
 
 /**
  * Extract all unique symbols with their usage context from Grid3 gridsets

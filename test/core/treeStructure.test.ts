@@ -1,4 +1,4 @@
-import { AACTree, AACPage, AACButton } from '../../src/core/treeStructure';
+import { AACTree, AACPage, AACButton } from '../../src/index';
 
 describe('AACButton', () => {
   it('should create a button with default values', () => {

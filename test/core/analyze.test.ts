@@ -1,12 +1,14 @@
 import { getProcessor, analyze } from '../../src/core/analyze';
-import { DotProcessor } from '../../src/processors/dotProcessor';
-import { OpmlProcessor } from '../../src/processors/opmlProcessor';
-import { ObfProcessor } from '../../src/processors/obfProcessor';
-import { SnapProcessor } from '../../src/processors/snapProcessor';
-import { GridsetProcessor } from '../../src/processors/gridsetProcessor';
-import { AstericsGridProcessor } from '../../src/processors/astericsGridProcessor';
-import { TouchChatProcessor } from '../../src/processors/touchchatProcessor';
-import { ApplePanelsProcessor } from '../../src/processors/applePanelsProcessor';
+import {
+  DotProcessor,
+  OpmlProcessor,
+  ObfProcessor,
+  SnapProcessor,
+  GridsetProcessor,
+  AstericsGridProcessor,
+  TouchChatProcessor,
+  ApplePanelsProcessor,
+} from '../../src/index';
 import { TreeFactory } from '../utils/testFactories';
 import path from 'path';
 import fs from 'fs';

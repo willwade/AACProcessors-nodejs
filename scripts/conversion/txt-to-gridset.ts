@@ -2,8 +2,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import { GridsetProcessor } from '../src/processors/gridsetProcessor';
-import { AACTree, AACPage, AACButton, AACSemanticCategory, AACSemanticIntent } from '../src/core/treeStructure';
+import { GridsetProcessor, AACTree, AACPage, AACButton, AACSemanticCategory, AACSemanticIntent } from '../src/index';
 
 interface Cell {
   text: string;

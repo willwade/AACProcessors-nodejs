@@ -9,8 +9,7 @@
  * 3. Convert a page to markdown format
  */
 
-import { GridsetProcessor } from '../src/processors/gridsetProcessor';
-import { AACTree, AACPage, AACButton } from '../src/core/treeStructure';
+import { GridsetProcessor, AACTree, AACPage, AACButton } from '../src/index';
 import fs from 'fs';
 import path from 'path';
 

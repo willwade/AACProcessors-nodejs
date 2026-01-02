@@ -1,4 +1,4 @@
-const { GridsetProcessor } = require('../../dist/processors/gridsetProcessor');
+const { GridsetProcessor } = require('../../dist/index');
 
 console.log('='.repeat(80));
 console.log('LLM INTELLIGENCE: Handling Word Order Changes');

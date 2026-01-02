@@ -1,13 +1,5 @@
 import AdmZip from 'adm-zip';
-import { AACTree, AACPage, AACButton } from '../src/core/treeStructure';
-import {
-  getAllowedImageEntries,
-  getPageTokenImageMap,
-  openImage,
-  generateGrid3Guid,
-  createSettingsXml,
-  createFileMapXml,
-} from '../src/processors/gridset/helpers';
+import { AACTree, AACPage, AACButton, Gridset } from '../src/index';
 
 describe('Gridset helper APIs', () => {
   it('getPageTokenImageMap returns button.id to resolvedImageEntry map for a page', () => {
@@ -37,7 +29,7 @@ describe('Gridset helper APIs', () => {
       })
     );
 
-    const map = getPageTokenImageMap(tree, 'p1');
+    const map = Gridset.getPageTokenImageMap(tree, 'p1');
     expect(map.get('b1')).toBe('Grids/Home/Images/a.png');
     expect(map.get('b2')).toBe('Grids/Home/1-1.jpeg');
     expect(map.size).toBe(2);
@@ -85,7 +77,7 @@ describe('Gridset helper APIs', () => {
       })
     );
 
-    const set = getAllowedImageEntries(tree);
+    const set = Gridset.getAllowedImageEntries(tree);
     expect(set.has('X/Y/a.png')).toBe(true);
     expect(set.has('X/Z/c.png')).toBe(true);
     expect(set.size).toBe(2);
@@ -96,26 +88,26 @@ describe('Gridset helper APIs', () => {
     zip.addFile('Grids/Home/Images/dog.png', Buffer.from('DOGDATA'));
     const buf = zip.toBuffer();
 
-    const data = openImage(buf, 'Grids/Home/Images/dog.png');
+    const data = Gridset.openImage(buf, 'Grids/Home/Images/dog.png');
     expect(data?.toString('utf8')).toBe('DOGDATA');
 
-    const missing = openImage(buf, 'Grids/Home/Images/cat.png');
+    const missing = Gridset.openImage(buf, 'Grids/Home/Images/cat.png');
     expect(missing).toBeNull();
   });
 });
 
 describe('Grid3 GUID Generation', () => {
   it('generateGrid3Guid generates a valid GUID format', () => {
-    const guid = generateGrid3Guid();
+    const guid = Gridset.generateGrid3Guid();
     // Check format: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
     const guidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     expect(guid).toMatch(guidRegex);
   });
 
   it('generateGrid3Guid generates unique GUIDs', () => {
-    const guid1 = generateGrid3Guid();
-    const guid2 = generateGrid3Guid();
-    const guid3 = generateGrid3Guid();
+    const guid1 = Gridset.generateGrid3Guid();
+    const guid2 = Gridset.generateGrid3Guid();
+    const guid3 = Gridset.generateGrid3Guid();
     expect(guid1).not.toBe(guid2);
     expect(guid2).not.toBe(guid3);
     expect(guid1).not.toBe(guid3);
@@ -124,7 +116,7 @@ describe('Grid3 GUID Generation', () => {
   it('generateGrid3Guid generates GUIDs with correct version and variant', () => {
     // Generate multiple GUIDs and check they all have version 4 and variant 1
     for (let i = 0; i < 10; i++) {
-      const guid = generateGrid3Guid();
+      const guid = Gridset.generateGrid3Guid();
       const parts = guid.split('-');
       // Version 4 is in the first character of the 3rd group
       expect(parts[2][0]).toBe('4');
@@ -136,7 +128,7 @@ describe('Grid3 GUID Generation', () => {
 
 describe('Grid3 Settings XML Builder', () => {
   it('createSettingsXml creates valid XML with default options', () => {
-    const xml = createSettingsXml('Home');
+    const xml = Gridset.createSettingsXml('Home');
     expect(xml).toContain('<GridSetSettings');
     expect(xml).toContain('<StartGrid>Home</StartGrid>');
     expect(xml).toContain('<ScanEnabled>false</ScanEnabled>');
@@ -146,7 +138,7 @@ describe('Grid3 Settings XML Builder', () => {
   });
 
   it('createSettingsXml respects custom options', () => {
-    const xml = createSettingsXml('MainMenu', {
+    const xml = Gridset.createSettingsXml('MainMenu', {
       scanEnabled: true,
       scanTimeoutMs: 3000,
       hoverEnabled: true,
@@ -164,12 +156,12 @@ describe('Grid3 Settings XML Builder', () => {
   });
 
   it('createSettingsXml includes XML namespace', () => {
-    const xml = createSettingsXml('Home');
+    const xml = Gridset.createSettingsXml('Home');
     expect(xml).toContain('xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"');
   });
 
   it('createSettingsXml handles partial options', () => {
-    const xml = createSettingsXml('Home', {
+    const xml = Gridset.createSettingsXml('Home', {
       scanEnabled: true,
       language: 'de-DE',
     });
@@ -183,7 +175,7 @@ describe('Grid3 Settings XML Builder', () => {
 
 describe('Grid3 FileMap XML Builder', () => {
   it('createFileMapXml creates valid XML with single grid', () => {
-    const xml = createFileMapXml([{ name: 'Home', path: 'Grids\\Home\\grid.xml' }]);
+    const xml = Gridset.createFileMapXml([{ name: 'Home', path: 'Grids\\Home\\grid.xml' }]);
     expect(xml).toContain('<FileMap');
     expect(xml).toContain('<Entries>');
     expect(xml).toContain('<Entry');
@@ -191,7 +183,7 @@ describe('Grid3 FileMap XML Builder', () => {
   });
 
   it('createFileMapXml creates valid XML with multiple grids', () => {
-    const xml = createFileMapXml([
+    const xml = Gridset.createFileMapXml([
       { name: 'Home', path: 'Grids\\Home\\grid.xml' },
       { name: 'Menu', path: 'Grids\\Menu\\grid.xml' },
       { name: 'Settings', path: 'Grids\\Settings\\grid.xml' },
@@ -202,7 +194,7 @@ describe('Grid3 FileMap XML Builder', () => {
   });
 
   it('createFileMapXml includes dynamic files when provided', () => {
-    const xml = createFileMapXml([
+    const xml = Gridset.createFileMapXml([
       {
         name: 'Home',
         path: 'Grids\\Home\\grid.xml',
@@ -215,19 +207,19 @@ describe('Grid3 FileMap XML Builder', () => {
   });
 
   it('createFileMapXml omits DynamicFiles when empty', () => {
-    const xml = createFileMapXml([
+    const xml = Gridset.createFileMapXml([
       { name: 'Home', path: 'Grids\\Home\\grid.xml', dynamicFiles: [] },
     ]);
     expect(xml).not.toContain('<DynamicFiles>');
   });
 
   it('createFileMapXml includes XML namespace', () => {
-    const xml = createFileMapXml([{ name: 'Home', path: 'Grids\\Home\\grid.xml' }]);
+    const xml = Gridset.createFileMapXml([{ name: 'Home', path: 'Grids\\Home\\grid.xml' }]);
     expect(xml).toContain('xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"');
   });
 
   it('createFileMapXml handles mixed grids with and without dynamic files', () => {
-    const xml = createFileMapXml([
+    const xml = Gridset.createFileMapXml([
       { name: 'Home', path: 'Grids\\Home\\grid.xml' },
       {
         name: 'Menu',

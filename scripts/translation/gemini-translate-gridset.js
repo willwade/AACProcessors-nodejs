@@ -1,4 +1,4 @@
-const { GridsetProcessor } = require('../../dist/processors/gridsetProcessor');
+const { GridsetProcessor } = require('../../dist/index');
 const https = require('https');
 const fs = require('fs');
 const path = require('path');

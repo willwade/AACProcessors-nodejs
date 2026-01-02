@@ -1,5 +1,5 @@
 // Test data factories and utilities for consistent test object creation
-import { AACTree, AACPage, AACButton, AACSemanticIntent } from '../../src/core/treeStructure';
+import { AACTree, AACPage, AACButton, AACSemanticIntent } from '../../src/index';
 
 export interface ButtonConfig {
   id?: string;

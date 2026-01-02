@@ -1,15 +1,47 @@
-// Main entry point for AACProcessors library
+/**
+ * AACProcessors Library
+ *
+ * A comprehensive TypeScript library for processing AAC file formats.
+ *
+ * @module aac-processors
+ */
+
+// ===================================================================
+// CORE TYPES (always needed)
+// ===================================================================
 export * from './core/treeStructure';
 export * from './core/baseProcessor';
 export * from './core/stringCasing';
+
+// ===================================================================
+// PROCESSORS (main functionality)
+// ===================================================================
 export * from './processors';
+
+// ===================================================================
+// VALIDATION
+// ===================================================================
 export * from './validation';
+
+// ===================================================================
+// NAMESPACES (platform-specific utilities)
+// ===================================================================
 export * as Analytics from './utilities/analytics';
-export {
-  collectUnifiedHistory,
-  listGrid3Users as listHistoryGrid3Users,
-  listSnapUsers as listHistorySnapUsers,
-} from './utilities/analytics/history';
+export * as Gridset from './gridset';
+export * as Snap from './snap';
+export * as OBF from './obf';
+export * as Obfset from './obfset';
+export * as TouchChat from './touchchat';
+export * as Dot from './dot';
+export * as Excel from './excel';
+export * as Opml from './opml';
+export * as ApplePanels from './applePanels';
+export * as AstericsGrid from './astericsGrid';
+export * as Translation from './translation';
+
+// ===================================================================
+// UTILITY FUNCTIONS
+// ===================================================================
 
 import { BaseProcessor } from './core/baseProcessor';
 import { DotProcessor } from './processors/dotProcessor';
@@ -28,6 +60,10 @@ import { ObfsetProcessor } from './processors/obfsetProcessor';
  * @param filePathOrExtension - File path or extension (e.g., '.dot', '/path/to/file.obf')
  * @returns The appropriate processor instance
  * @throws Error if the file extension is not supported
+ *
+ * @example
+ * const processor = getProcessor('/path/to/file.gridset');
+ * const tree = processor.loadIntoTree('/path/to/file.gridset');
  */
 export function getProcessor(filePathOrExtension: string): BaseProcessor {
   // Extract extension from file path

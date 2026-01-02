@@ -95,7 +95,7 @@ async function extractUsingSnapProcessor(filePath) {
     console.log('\n=== Using SnapProcessor approach ===');
     
     try {
-        const { SnapProcessor } = require('./dist/processors');
+        const { SnapProcessor } = require('./dist/index');
         const processor = new SnapProcessor();
         
         // Load the tree structure

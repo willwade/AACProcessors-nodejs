@@ -4,6 +4,56 @@
   "description": "A comprehensive TypeScript library for processing AAC (Augmentative and Alternative Communication) file formats with translation support",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./gridset": {
+      "types": "./dist/gridset.d.ts",
+      "default": "./dist/gridset.js"
+    },
+    "./snap": {
+      "types": "./dist/snap.d.ts",
+      "default": "./dist/snap.js"
+    },
+    "./obf": {
+      "types": "./dist/obf.d.ts",
+      "default": "./dist/obf.js"
+    },
+    "./obfset": {
+      "types": "./dist/obfset.d.ts",
+      "default": "./dist/obfset.js"
+    },
+    "./touchchat": {
+      "types": "./dist/touchchat.d.ts",
+      "default": "./dist/touchchat.js"
+    },
+    "./dot": {
+      "types": "./dist/dot.d.ts",
+      "default": "./dist/dot.js"
+    },
+    "./excel": {
+      "types": "./dist/excel.d.ts",
+      "default": "./dist/excel.js"
+    },
+    "./opml": {
+      "types": "./dist/opml.d.ts",
+      "default": "./dist/opml.js"
+    },
+    "./applePanels": {
+      "types": "./dist/applePanels.d.ts",
+      "default": "./dist/applePanels.js"
+    },
+    "./astericsGrid": {
+      "types": "./dist/astericsGrid.d.ts",
+      "default": "./dist/astericsGrid.js"
+    },
+    "./translation": {
+      "types": "./dist/translation.d.ts",
+      "default": "./dist/translation.js"
+    }
+  },
   "files": [
     "dist/**/*",
     "docs/**/*",

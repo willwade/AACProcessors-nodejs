@@ -1,9 +1,4 @@
-import { AACTree, AACPage } from '../src/core/treeStructure';
-import {
-  getAllowedImageEntries,
-  getPageTokenImageMap,
-  openImage,
-} from '../src/processors/touchchat/helpers';
+import { AACTree, AACPage, TouchChat } from '../src/index';
 
 describe('TouchChat helpers', () => {
   it('maps page buttons with resolved images', () => {
@@ -14,16 +9,16 @@ describe('TouchChat helpers', () => {
     });
     tree.addPage(page);
 
-    const map = getPageTokenImageMap(tree, 'page1');
+    const map = TouchChat.getPageTokenImageMap(tree, 'page1');
     expect(map.get('btn1')).toBe('img.png');
 
-    const empty = getPageTokenImageMap(tree, 'missing');
+    const empty = TouchChat.getPageTokenImageMap(tree, 'missing');
     expect(empty.size).toBe(0);
   });
 
   it('returns empty image sets/placeholders', () => {
     const tree = new AACTree();
-    expect(getAllowedImageEntries(tree).size).toBe(0);
-    expect(openImage('ce', 'entry')).toBeNull();
+    expect(TouchChat.getAllowedImageEntries(tree).size).toBe(0);
+    expect(TouchChat.openImage('ce', 'entry')).toBeNull();
   });
 });

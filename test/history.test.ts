@@ -2,12 +2,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import Database from 'better-sqlite3';
-import {
-  dotNetTicksToDate,
-  readGrid3History,
-  readSnapUsage,
-  type HistoryEntry,
-} from '../src/utilities/analytics/history';
+import { Analytics } from '../src/index';
 
 const EPOCH_TICKS = 621355968000000000n;
 const TICKS_PER_MS = 10000n;
@@ -30,7 +25,7 @@ describe('History analytics', () => {
   it('converts .NET ticks to Date', () => {
     const now = new Date('2024-01-01T00:00:00Z');
     const ticks = dateToTicks(now);
-    const converted = dotNetTicksToDate(ticks);
+    const converted = Analytics.dotNetTicksToDate(ticks);
     expect(converted.toISOString()).toBe(now.toISOString());
   });
 
@@ -61,9 +56,9 @@ describe('History analytics', () => {
       'INSERT INTO PhraseHistory (PhraseId, Timestamp, Latitude, Longitude) VALUES (?, ?, ?, ?)'
     ).run(phraseId, ts, 51.5, -1.2);
 
-    const history = readGrid3History(dbPath);
+    const history = Analytics.readGrid3History(dbPath);
     expect(history).toHaveLength(1);
-    const entry = history[0] as HistoryEntry;
+    const entry = history[0] as Analytics.HistoryEntry;
     expect(entry.source).toBe('Grid');
     expect(entry.content).toBe('Hello world');
     expect(entry.occurrences).toHaveLength(1);
@@ -103,7 +98,7 @@ describe('History analytics', () => {
       'INSERT INTO PhraseHistory (PhraseId, Timestamp, Latitude, Longitude) VALUES (?, ?, ?, ?)'
     ).run(fallbackId, ts2, null, null);
 
-    const history = readGrid3History(dbPath);
+    const history = Analytics.readGrid3History(dbPath);
     expect(history).toHaveLength(1);
     expect(history[0].content).toBe('plain text only');
     expect(history[0].occurrences).toHaveLength(1);
@@ -141,9 +136,9 @@ describe('History analytics', () => {
       'INSERT INTO ButtonUsage (Timestamp, ButtonUniqueId, Modeling, AccessMethod, BlockId) VALUES (?, ?, ?, ?, ?)'
     ).run(ts, buttonId, 0, 2, 1);
 
-    const history = readSnapUsage(pagesetPath);
+    const history = Analytics.readSnapUsage(pagesetPath);
     expect(history).toHaveLength(1);
-    const entry = history[0] as HistoryEntry;
+    const entry = history[0] as Analytics.HistoryEntry;
     expect(entry.source).toBe('Snap');
     expect(entry.platform?.buttonId).toBe(buttonId);
     expect(entry.content).toContain('Hello');

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const { SnapProcessor } = require('./dist/processors/snapProcessor');
+const { SnapProcessor } = require('./dist/index');
 const fs = require('fs');
 const path = require('path');
 

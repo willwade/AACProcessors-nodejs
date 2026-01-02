@@ -1,8 +1,8 @@
 import fs from 'fs';
 import path from 'path';
-import { ExcelProcessor } from '../../src/processors/excelProcessor';
-import { AACTree, AACPage, AACButton } from '../../src/core/treeStructure';
-import { AACSemanticIntent } from '../../src/core/treeStructure';
+import { ExcelProcessor } from '../../src/index';
+import { AACTree, AACPage, AACButton } from '../../src/index';
+import { AACSemanticIntent } from '../../src/index';
 
 describe('ExcelProcessor', () => {
   let processor: ExcelProcessor;

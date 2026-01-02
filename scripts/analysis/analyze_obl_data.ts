@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { OblUtil } from '../../src/utilities/analytics/index';
+import { Analytics } from '../../src/index';
 
 /**
  * Script to bulk-analyze OBLA clinical data and extract utterances to a CSV.
@@ -34,7 +34,7 @@ function run() {
   for (const file of files) {
     try {
       const content = fs.readFileSync(path.join(OBLA_DIR, file), 'utf8');
-      const obl = OblUtil.parse(content);
+      const obl = Analytics.OblUtil.parse(content);
 
       for (const session of obl.sessions) {
         let currentSentence: string[] = [];
