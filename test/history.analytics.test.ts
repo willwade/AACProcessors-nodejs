@@ -8,7 +8,7 @@ describe('History analytics wrappers (mocked)', () => {
 
   it('wraps platform helpers and unifies histories', () => {
     jest.isolateModules(() => {
-      jest.doMock('../src/gridset', () => ({
+      jest.doMock('../src/processors/gridset/helpers', () => ({
         readGrid3History: jest.fn(() => [
           {
             id: 'g1',
@@ -40,7 +40,7 @@ describe('History analytics wrappers (mocked)', () => {
         ]),
       }));
 
-      jest.doMock('../src/snap', () => ({
+      jest.doMock('../src/processors/snap/helpers', () => ({
         readSnapUsage: jest.fn(() => [
           {
             id: 's1',
