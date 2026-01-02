@@ -91,6 +91,10 @@ export class MetricsCalculator {
     const levels: { [level: number]: ButtonMetrics[] } = {};
     let totalButtons = 0;
 
+    // Identify spelling/keyboard page and its access effort
+    const { spellingPage, spellingBaseEffort, spellingAvgLetterEffort } =
+      this.identifySpellingMetrics(tree, options, setPcts);
+
     // Analyze from each starting board
     startBoards.forEach((startBoard) => {
       const result = this.analyzeFrom(tree, startBoard, setPcts, startBoard === rootBoard, options);
@@ -111,7 +115,7 @@ export class MetricsCalculator {
       }
     });
 
-    // Convert to array and sort
+    // Update buttons using dynamic spelling effort if applicable
     const buttons = Array.from(knownButtons.values()).sort((a, b) => a.effort - b.effort);
 
     // Calculate grid dimensions
@@ -127,6 +131,76 @@ export class MetricsCalculator {
       grid,
       buttons,
       levels,
+      spelling_effort_base: spellingBaseEffort,
+      spelling_effort_per_letter: spellingAvgLetterEffort,
+      spelling_page_id: spellingPage?.id,
+    };
+  }
+
+  /**
+   * Identify keyboard/spelling page and calculate base/avg effort
+   */
+  private identifySpellingMetrics(
+    tree: AACTree,
+    options: MetricsOptions,
+    setPcts: { [id: string]: number }
+  ): {
+    spellingPage: AACPage | null;
+    spellingBaseEffort: number;
+    spellingAvgLetterEffort: number;
+  } {
+    let spellingPage: AACPage | null = null;
+
+    if (options.spellingPageId) {
+      spellingPage = tree.getPage(options.spellingPageId) || null;
+    }
+
+    if (!spellingPage) {
+      // Look for pages with keyboard-like names or content
+      spellingPage =
+        Object.values(tree.pages).find((p) => {
+          const name = p.name.toLowerCase();
+          return name.includes('keyboard') || name.includes('spelling') || name.includes('abc');
+        }) || null;
+    }
+
+    if (!spellingPage)
+      return { spellingPage: null, spellingBaseEffort: 10, spellingAvgLetterEffort: 2.5 };
+
+    // Calculate effort to reach this page from root
+    const rootBoard = tree.rootId
+      ? tree.pages[tree.rootId]
+      : Object.values(tree.pages).find((p) => !p.parentId);
+
+    if (!rootBoard) return { spellingPage, spellingBaseEffort: 10, spellingAvgLetterEffort: 2.5 };
+
+    // Analyze specifically to find the lowest effort path to the spelling page
+    const result = this.analyzeFrom(tree, rootBoard, setPcts, true, options);
+    const spellingBaseEffort = result.visitedBoardEfforts.get(spellingPage.id) ?? 10;
+
+    // Calculate average effort of alphabetical buttons on that page
+    const letters = spellingPage.buttons.filter(
+      (b) => b.label.length === 1 && /[a-zA-Z]/.test(b.label)
+    );
+    let avgEffort = 2.5;
+
+    if (letters.length > 0) {
+      // We need to calculate the effort of these buttons relative to the spelling page itself
+      // (as if the user is already on the keyboard)
+      const keyboardResult = this.analyzeFrom(tree, spellingPage, setPcts, false, options);
+      const keyboardLetters = keyboardResult.buttons.filter(
+        (b) => b.label.length === 1 && /[a-zA-Z]/.test(b.label)
+      );
+
+      if (keyboardLetters.length > 0) {
+        avgEffort = keyboardLetters.reduce((sum, b) => sum + b.effort, 0) / keyboardLetters.length;
+      }
+    }
+
+    return {
+      spellingPage,
+      spellingBaseEffort,
+      spellingAvgLetterEffort: avgEffort,
     };
   }
 
@@ -247,8 +321,10 @@ export class MetricsCalculator {
     buttons: ButtonMetrics[];
     levels: { [level: number]: ButtonMetrics[] };
     totalButtons: number;
+    visitedBoardEfforts: Map<string, number>;
   } {
     const visitedBoardIds = new Map<string, number>();
+    const visitedBoardEfforts = new Map<string, number>();
     const toVisit: ToVisitItem[] = [
       {
         board: brd,
@@ -273,6 +349,7 @@ export class MetricsCalculator {
         continue;
       }
       visitedBoardIds.set(board.id, level);
+      visitedBoardEfforts.set(board.id, priorEffort);
 
       const rows = board.grid.length;
       const cols = board.grid[0]?.length || 0;
@@ -588,6 +665,7 @@ export class MetricsCalculator {
       buttons,
       levels,
       totalButtons: buttons.length,
+      visitedBoardEfforts,
     };
   }
 

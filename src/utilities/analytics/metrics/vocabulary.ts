@@ -193,7 +193,7 @@ export class VocabularyAnalyzer {
     if (btn) {
       return btn.effort;
     }
-    return spellingEffort(word);
+    return spellingEffort(word, metrics.spelling_effort_base, metrics.spelling_effort_per_letter);
   }
 
   /**

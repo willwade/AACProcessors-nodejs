@@ -49,6 +49,7 @@ async function runBenchmark() {
   // Parse command line arguments for scanning costs
   let stepCost: number | undefined;
   let selectionCost: number | undefined;
+  let spellingPageId: number | string | undefined;
 
   for (let i = 0; i < process.argv.length; i++) {
     if (process.argv[i] === '--step-cost' && process.argv[i + 1]) {
@@ -56,6 +57,12 @@ async function runBenchmark() {
     }
     if (process.argv[i] === '--selection-cost' && process.argv[i + 1]) {
       selectionCost = parseFloat(process.argv[i + 1]);
+    }
+    if (
+      (process.argv[i] === '--spelling-page' || process.argv[i] === '--spelling-page-id') &&
+      process.argv[i + 1]
+    ) {
+      spellingPageId = process.argv[i + 1];
     }
   }
 
@@ -78,7 +85,8 @@ async function runBenchmark() {
       // Analyze with custom scanning costs if provided
       const metrics = calculator.analyze(tree, {
         scanStepCost: stepCost,
-        scanSelectionCost: selectionCost
+        scanSelectionCost: selectionCost,
+        spellingPageId: spellingPageId?.toString(),
       });
       
       // Vocabulary analysis
@@ -101,6 +109,11 @@ function printSummary(filename: string, metrics: any, vocab: any) {
   console.log(`\n     🌟 Effort Scores (Scanning Context):`);
   const avgEffort = metrics.buttons.reduce((sum: number, b: any) => sum + b.effort, 0) / metrics.buttons.length;
   console.log(`     Average Effort: ${avgEffort.toFixed(3)}`);
+  
+  if (metrics.spelling_page_id) {
+    console.log(`     Spelling Page: ${metrics.spelling_page_id}`);
+    console.log(`     Spelling Effort: Base ${metrics.spelling_effort_base?.toFixed(2)}, Per Letter ${metrics.spelling_effort_per_letter?.toFixed(2)}`);
+  }
   
   // Highlighting Core List Coverage
   console.log(`\n     📊 Core Vocabulary Coverage:`);

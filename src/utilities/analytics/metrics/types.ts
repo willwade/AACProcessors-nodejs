@@ -53,6 +53,9 @@ export interface MetricsResult {
   buttons: ButtonMetrics[];
   levels: { [level: number]: ButtonMetrics[] }; // Buttons grouped by level
   alternates?: { [boardId: string]: AlternateBoardMetrics };
+  spelling_effort_base?: number;
+  spelling_effort_per_letter?: number;
+  spelling_page_id?: string;
   obfset?: any; // Full board set data (if include_obfset=true)
 }
 
@@ -88,6 +91,10 @@ export interface MetricsOptions {
    */
   scanStepCost?: number;
   scanSelectionCost?: number;
+  /**
+   * Optional explicit ID of the spelling/keyboard page
+   */
+  spellingPageId?: string;
 }
 
 /**

@@ -54,7 +54,11 @@ export class SentenceAnalyzer {
         totalEffort += found.effort;
       } else {
         // Word not found - use spelling effort
-        const spellEffort = spellingEffort(word);
+        const spellEffort = spellingEffort(
+          word,
+          metrics.spelling_effort_base,
+          metrics.spelling_effort_per_letter
+        );
         wordEfforts.push({ word, effort: spellEffort, typed: true });
         totalEffort += spellEffort;
         typing = true;

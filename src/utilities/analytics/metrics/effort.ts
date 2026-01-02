@@ -90,13 +90,18 @@ export function distanceEffort(
 
 /**
  * Calculate spelling effort for words not available in the board set
- * Base cost + per-letter cost
  *
  * @param word - The word to spell
+ * @param entryEffort - Effort to reach the spelling/keyboard page
+ * @param perLetterEffort - Average effort per letter on the keyboard
  * @returns Spelling effort score
  */
-export function spellingEffort(word: string): number {
-  return 10 + word.length * 2.5;
+export function spellingEffort(
+  word: string,
+  entryEffort: number = 10,
+  perLetterEffort: number = 2.5
+): number {
+  return entryEffort + word.length * perLetterEffort;
 }
 
 /**
