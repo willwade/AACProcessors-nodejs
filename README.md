@@ -94,7 +94,7 @@ This step is only required for Electron apps; regular Node.js consumers do not n
 
 ## 🔧 Quick Start
 
-### Basic Usage (TypeScript/ES6)
+### Basic Usage (TypeScript)
 
 ```typescript
 import {
@@ -118,15 +118,20 @@ const aacTree = dotProcessor.loadIntoTree("examples/example.dot");
 console.log("Pages:", Object.keys(aacTree.pages).length);
 ```
 
-### Basic Usage (CommonJS)
+### Platform Support
 
-```javascript
-const { getProcessor, DotProcessor } = require("aac-processors");
+**AACProcessors is designed for Node.js environments only.** It requires Node.js v20+ and cannot run in browsers due to:
 
-const processor = getProcessor("board.dot");
-const tree = processor.loadIntoTree("board.dot");
-console.log(tree);
-```
+- **File system access** - Required for reading/writing AAC files
+- **Native SQLite** - Used by Snap, TouchChat, and Analytics features
+- **Binary format processing** - ZIP, encrypted formats, etc.
+
+**For browser-based AAC display**, consider these alternatives:
+- **obf-renderer** - Display OBF/OBZ files in web apps
+- **Arc Core** - Browser-based AAC communication
+- **Cboard** - Web-based AAC display system
+
+This library focuses on **server-side file processing**, not client-side rendering.
 
 ### Button Filtering System
 
