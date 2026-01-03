@@ -13,9 +13,16 @@ export class ReferenceLoader {
   private dataDir: string;
   private locale: string;
 
-  constructor(dataDir: string = path.join(__dirname, 'data'), locale: string = 'en') {
-    this.dataDir = dataDir;
+  constructor(dataDir?: string, locale: string = 'en') {
     this.locale = locale;
+
+    if (dataDir) {
+      this.dataDir = dataDir;
+    } else {
+      // Resolve the data directory relative to this file's location
+      // Use __dirname which works correctly after compilation
+      this.dataDir = path.join(__dirname, 'data');
+    }
   }
 
   /**
@@ -125,4 +132,26 @@ export class ReferenceLoader {
       baseWords: this.loadBaseWords(),
     };
   }
+}
+
+/**
+ * Get the default reference data path
+ */
+export function getReferenceDataPath(): string {
+  return path.join(__dirname, 'data');
+}
+
+/**
+ * Check if reference data files exist
+ */
+export function hasReferenceData(): boolean {
+  const dataPath = getReferenceDataPath();
+  const requiredFiles = [
+    'core_lists.en.json',
+    'common_words.en.json',
+    'sentences.en.json',
+    'synonyms.en.json',
+    'fringe.en.json',
+  ];
+  return requiredFiles.every((file) => fs.existsSync(path.join(dataPath, file)));
 }
