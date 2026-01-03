@@ -93,10 +93,33 @@ export interface MetricsOptions {
    */
   scanStepCost?: number;
   scanSelectionCost?: number;
+
   /**
    * Optional explicit ID of the spelling/keyboard page
    */
   spellingPageId?: string;
+
+  /**
+   * Whether to use prediction for missing words
+   *
+   * When true (default): Words not in the board are assumed to be accessible
+   * via prediction at reduced effort (spelling_page_base + prediction_selection)
+   *
+   * When false: Words not in the board must be manually spelled at full effort
+   * (10 + word_length * 2.5 per letter)
+   *
+   * Only applies when the board has prediction capability (e.g., SwiftKey)
+   */
+  usePrediction?: boolean;
+
+  /**
+   * Average number of selections to find a word in prediction
+   *
+   * When prediction is enabled, this estimates how many prediction
+   * slots a user needs to check before finding their target word.
+   * Default is 1.5 (checking 1-2 predictions on average).
+   */
+  predictionSelections?: number;
 }
 
 /**
@@ -157,6 +180,8 @@ export interface ComparisonResult extends MetricsResult {
     comp_fringe: number;
     common_fringe: number;
     comp_common_fringe: number;
+    care_score: number; // Composite CARE score (matching Ruby)
+    comp_care_score: number; // Composite CARE score for comparison set
   };
 
   // Sentence analysis

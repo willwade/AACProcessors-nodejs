@@ -105,6 +105,32 @@ export function spellingEffort(
 }
 
 /**
+ * Calculate effort to access a word via prediction
+ *
+ * When prediction is available, the user:
+ * 1. Navigates to the spelling/keyboard page (entryEffort)
+ * 2. Types first 1-3 letters to trigger predictions
+ * 3. Selects from 1-3 predictions (average selections)
+ *
+ * @param entryEffort - Effort to reach the spelling/keyboard page
+ * @param perLetterEffort - Average effort per letter on the keyboard
+ * @param avgSelections - Average number of predictions to check (default 1.5)
+ * @param lettersToType - Letters to type before prediction appears (default 2)
+ * @returns Prediction effort score
+ */
+export function predictionEffort(
+  entryEffort: number = 10,
+  perLetterEffort: number = 2.5,
+  avgSelections: number = 1.5,
+  lettersToType: number = 2
+): number {
+  // Cost to navigate to keyboard + type first few letters + select from predictions
+  const typingCost = lettersToType * perLetterEffort;
+  const selectionCost = avgSelections * EFFORT_CONSTANTS.SCAN_SELECTION_COST;
+  return entryEffort + typingCost + selectionCost;
+}
+
+/**
  * Calculate base board effort
  * Combines button size and field size efforts
  *

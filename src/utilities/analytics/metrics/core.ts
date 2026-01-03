@@ -349,7 +349,6 @@ export class MetricsCalculator {
   } {
     const visitedBoardIds = new Map<string, number>();
     const visitedBoardEfforts = new Map<string, number>();
-    let totalButtons = 0;
     const toVisit: ToVisitItem[] = [
       {
         board: brd,
@@ -378,13 +377,6 @@ export class MetricsCalculator {
 
       const rows = board.grid.length;
       const cols = board.grid[0]?.length || 0;
-
-      // Count all non-empty buttons reached in this pageset
-      board.buttons.forEach((btn) => {
-        if ((btn.label || '').length > 0) {
-          totalButtons++;
-        }
-      });
 
       // Calculate board-level effort
       // Ruby uses grid size (rows * cols) for field size effort
@@ -691,10 +683,14 @@ export class MetricsCalculator {
       levels[btn.level].push(btn);
     });
 
+    // Calculate total_buttons as sum of all button counts (matching Ruby line 136)
+    // Ruby: total_buttons: buttons.map{|b| b[:count] || 1}.sum
+    const calculatedTotalButtons = buttons.reduce((sum, btn) => sum + (btn.count || 1), 0);
+
     return {
       buttons,
       levels,
-      totalButtons,
+      totalButtons: calculatedTotalButtons,
       visitedBoardEfforts,
     };
   }

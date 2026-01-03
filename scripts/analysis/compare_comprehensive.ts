@@ -92,6 +92,7 @@ function printScenarioDetails(comp: any, name1: string, name2: string) {
   
   // CARE Components
   const care = comp.care_components;
+  console.log(`${'CARE Score (Composite)'.padEnd(25)} | ${care.care_score.toFixed(2).padEnd(25)} | ${care.comp_care_score.toFixed(2).padEnd(25)}`);
   console.log(`${'CARE Sentence Effort'.padEnd(25)} | ${care.sentences.toFixed(3).padEnd(25)} | ${care.comp_sentences.toFixed(3).padEnd(25)}`);
   console.log(`${'Core Vocabulary Found'.padEnd(25)} | ${care.core.toString().padEnd(25)} | ${care.comp_core.toString().padEnd(25)}`);
   console.log(`${'Fringe Vocabulary Found'.padEnd(25)} | ${care.fringe.toString().padEnd(25)} | ${care.comp_fringe.toString().padEnd(25)}`);

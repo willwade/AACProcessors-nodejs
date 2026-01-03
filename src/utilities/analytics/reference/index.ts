@@ -86,6 +86,26 @@ export class ReferenceLoader {
   }
 
   /**
+   * Load common fringe vocabulary
+   * Common words that are NOT in core vocabulary lists
+   * (matching Ruby loader.rb:413-420)
+   */
+  loadCommonFringe(): string[] {
+    const commonWordsData = this.loadCommonWords();
+    const commonWords = new Set(commonWordsData.words.map((w) => w.toLowerCase()));
+
+    const coreLists = this.loadCoreLists();
+    const coreWords = new Set<string>();
+    coreLists.forEach((list) => {
+      list.words.forEach((word) => coreWords.add(word.toLowerCase()));
+    });
+
+    // Common fringe = common words - core words
+    const commonFringe = Array.from(commonWords).filter((word) => !coreWords.has(word));
+    return commonFringe;
+  }
+
+  /**
    * Get all reference data at once
    */
   loadAll(): {
