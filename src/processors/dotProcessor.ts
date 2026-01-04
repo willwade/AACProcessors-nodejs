@@ -141,6 +141,7 @@ class DotProcessor extends BaseProcessor {
 
     const { nodes, edges } = this.parseDotFile(content);
     const tree = new AACTree();
+    tree.metadata.format = 'dot';
 
     // Create pages for each node and add a self button representing the node label
     for (const node of nodes) {
@@ -220,12 +221,16 @@ class DotProcessor extends BaseProcessor {
   }
 
   saveFromTree(tree: AACTree, _outputPath: string): void {
-    let dotContent = 'digraph AACBoard {\n';
+    let dotContent = `digraph "${tree.metadata?.name || 'AACBoard'}" {\n`;
 
     // Helper to escape DOT string
     const escapeDotString = (str: string): string => {
       return str.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
     };
+
+    if (tree.metadata?.name) {
+      dotContent += `  label="${escapeDotString(tree.metadata.name)}";\n`;
+    }
 
     // Add nodes
     for (const pageId in tree.pages) {

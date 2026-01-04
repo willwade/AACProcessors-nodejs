@@ -12,6 +12,7 @@ import {
   AACSemanticAction,
   AACSemanticCategory,
   AACSemanticIntent,
+  AACTreeMetadata,
 } from '../core/treeStructure';
 import { generateCloneId } from '../utilities/analytics/utils/idGenerator';
 import AdmZip from 'adm-zip';
@@ -63,6 +64,7 @@ interface ObfBoard {
   format?: string;
   id: string;
   locale?: string;
+  url?: string;
   name: string;
   description_html?: string;
   buttons: ObfButton[];
@@ -270,6 +272,17 @@ class ObfProcessor extends BaseProcessor {
           console.log('[OBF] Detected .obf file, parsed as JSON');
           const page = this.processBoard(boardData, filePathOrBuffer);
           tree.addPage(page);
+
+          // Set metadata from root board
+          tree.metadata.format = 'obf';
+          tree.metadata.name = boardData.name;
+          tree.metadata.description = boardData.description_html;
+          tree.metadata.locale = boardData.locale;
+          tree.metadata.id = boardData.id;
+          if (boardData.url) tree.metadata.url = boardData.url;
+          if (boardData.locale) tree.metadata.languages = [boardData.locale];
+          tree.rootId = page.id;
+
           return tree;
         } else {
           throw new Error('Invalid OBF JSON content');
@@ -286,6 +299,19 @@ class ObfProcessor extends BaseProcessor {
       console.log('[OBF] Detected buffer/string as OBF JSON');
       const page = this.processBoard(asJson, '[bufferOrString]');
       tree.addPage(page);
+
+      // Set metadata from root board
+      tree.metadata.format = 'obf';
+      tree.metadata.name = asJson.name;
+      tree.metadata.description = asJson.description_html;
+      tree.metadata.locale = asJson.locale;
+      tree.metadata.id = asJson.id;
+      if (asJson.url) tree.metadata.url = asJson.url;
+      if (asJson.locale) {
+        tree.metadata.languages = [asJson.locale];
+      }
+      tree.rootId = page.id;
+
       return tree;
     }
 
@@ -317,11 +343,24 @@ class ObfProcessor extends BaseProcessor {
         if (boardData) {
           const page = this.processBoard(boardData, entry.entryName);
           tree.addPage(page);
+
+          // Set metadata if not already set (use first board as reference)
+          if (!tree.metadata.format) {
+            tree.metadata.format = 'obf';
+            tree.metadata.name = boardData.name;
+            tree.metadata.description = boardData.description_html;
+            tree.metadata.locale = boardData.locale;
+            tree.metadata.id = boardData.id;
+            if (boardData.url) tree.metadata.url = boardData.url;
+            if (boardData.locale) tree.metadata.languages = [boardData.locale];
+            tree.rootId = page.id;
+          }
         } else {
           console.warn('[OBF] Skipped entry (not valid OBF JSON):', entry.entryName);
         }
       }
     });
+
     return tree;
   }
 
@@ -376,16 +415,27 @@ class ObfProcessor extends BaseProcessor {
     return { rows: totalRows, columns: totalColumns, order, buttonPositions };
   }
 
-  private createObfBoardFromPage(page: AACPage, fallbackName: string): ObfBoard {
+  private createObfBoardFromPage(
+    page: AACPage,
+    fallbackName: string,
+    metadata?: AACTreeMetadata
+  ): ObfBoard {
     const { rows, columns, order, buttonPositions } = this.buildGridMetadata(page);
-    const boardName = page.name || fallbackName;
+    const boardName =
+      metadata?.name && page.id === metadata?.defaultHomePageId
+        ? metadata.name
+        : page.name || fallbackName;
 
     return {
       format: OBF_FORMAT_VERSION,
       id: page.id,
-      locale: page.locale || 'en',
+      url: metadata?.url,
+      locale: metadata?.locale || page.locale || 'en',
       name: boardName,
-      description_html: page.descriptionHtml || boardName,
+      description_html:
+        metadata?.description && page.id === metadata?.defaultHomePageId
+          ? metadata.description
+          : page.descriptionHtml || boardName,
       grid: {
         rows,
         columns,
@@ -458,14 +508,14 @@ class ObfProcessor extends BaseProcessor {
         throw new Error('No pages to save');
       }
 
-      const obfBoard = this.createObfBoardFromPage(rootPage, 'Exported Board');
+      const obfBoard = this.createObfBoardFromPage(rootPage, 'Exported Board', tree.metadata);
       fs.writeFileSync(outputPath, JSON.stringify(obfBoard, null, 2));
     } else {
       // Save as OBZ (zip with multiple OBF files)
       const zip = new AdmZip();
 
       Object.values(tree.pages).forEach((page) => {
-        const obfBoard = this.createObfBoardFromPage(page, 'Board');
+        const obfBoard = this.createObfBoardFromPage(page, 'Board', tree.metadata);
         const obfContent = JSON.stringify(obfBoard, null, 2);
         zip.addFile(`${page.id}.obf`, Buffer.from(obfContent, 'utf8'));
       });

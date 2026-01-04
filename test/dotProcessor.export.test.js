@@ -13,7 +13,7 @@ describe("DotProcessor.saveFromTree", () => {
     const tree = processor.loadIntoTree(dotPath);
     processor.saveFromTree(tree, outPath);
     const exported = fs.readFileSync(outPath, "utf8");
-    expect(exported).toContain("digraph AACBoard");
+    expect(exported).toContain('digraph "AACBoard"');
     expect(exported).toContain("[");
     expect(exported).toContain("->");
   });

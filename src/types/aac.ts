@@ -142,13 +142,89 @@ export interface AACPage {
   scanBlocksConfig?: any[];
 }
 
+/**
+ * Generic metadata interface for AAC files
+ * All processors can extend this with their specific properties
+ */
+export interface AACTreeMetadata {
+  // Common properties across all AAC systems
+  format?: string; // File format (snap, gridset, dot, etc.)
+  version?: string; // File format version
+  locale?: string; // Main language/locale identifier
+  languages?: string[]; // List of all supported languages/locales
+  name?: string; // Human-readable name of the board set
+  description?: string; // Detailed description
+  author?: string; // Author/creator name
+  copyright?: string; // Copyright information
+  homepageUrl?: string; // URL for the board set home page/resource
+  url?: string; // Source URL or canonical URL
+  id?: string; // Unique identifier for the board set
+
+  // Page navigation defaults
+  defaultHomePageId?: string;
+  defaultKeyboardPageId?: string;
+
+  // Special pages/elements
+  hasGlobalToolbar?: boolean;
+  toolbarId?: string;
+  dashboardId?: string;
+
+  // Processor-specific metadata (extensible)
+  [key: string]: any;
+}
+
+/**
+ * Snap-specific metadata
+ */
+export interface SnapMetadata extends AACTreeMetadata {
+  format: 'snap';
+  dashboardId?: string;
+}
+
+/**
+ * GridSet-specific metadata
+ */
+export interface GridSetMetadata extends AACTreeMetadata {
+  format: 'gridset';
+  isSmartBox?: boolean;
+  passwordProtected?: boolean;
+  pictureSearchKeys?: string[];
+  thumbnail?: string;
+  thumbnailBackground?: string;
+  documentationUrl?: string; // Duplicate of homepageUrl but keep for fidelity
+  documentationSlug?: string;
+  appearance?: {
+    textAtTop?: boolean;
+    computerControlCellSize?: number;
+  };
+}
+
+/**
+ * Asterics-specific metadata
+ */
+export interface AstericsGridMetadata extends AACTreeMetadata {
+  format: 'asterics';
+  hasGlobalGrid?: boolean;
+  globalGridId?: string;
+}
+
+/**
+ * TouchChat-specific metadata
+ */
+export interface TouchChatMetadata extends AACTreeMetadata {
+  format: 'touchchat';
+}
+
 export interface AACTree {
   pages: { [key: string]: AACPage };
+  metadata: AACTreeMetadata;
+  rootId: string | null;
+  toolbarId: string | null;
   addPage(page: AACPage): void;
   getPage(id: string): AACPage | undefined;
 }
 
 export interface AACProcessor {
-  extractTexts(filePath: string): string[];
-  loadIntoTree(filePath: string): AACTree;
+  extractTexts(filePath: string | Buffer): string[];
+  loadIntoTree(filePath: string | Buffer): AACTree;
 }

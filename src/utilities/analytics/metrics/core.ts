@@ -59,7 +59,7 @@ export class MetricsCalculator {
       throw new Error('No root board found in tree');
     }
 
-    this.locale = (rootBoard as any).locale || 'en';
+    this.locale = tree.metadata?.locale || (rootBoard as any).locale || 'en';
 
     // Step 1: Build semantic/clone reference maps
     const { setRefs, setPcts } = this.buildReferenceMaps(tree);
@@ -177,6 +177,10 @@ export class MetricsCalculator {
 
     if (options.spellingPageId) {
       spellingPage = tree.getPage(options.spellingPageId) || null;
+    }
+
+    if (!spellingPage && tree.metadata?.defaultKeyboardPageId) {
+      spellingPage = tree.getPage(tree.metadata.defaultKeyboardPageId) || null;
     }
 
     if (!spellingPage) {

@@ -2,8 +2,15 @@ import {
   AACButton as IAACButton,
   AACPage as IAACPage,
   AACTree as IAACTree,
+  AACTreeMetadata,
+  SnapMetadata,
+  GridSetMetadata,
+  AstericsGridMetadata,
+  TouchChatMetadata,
   AACStyle,
 } from '../types/aac';
+
+export { AACTreeMetadata, SnapMetadata, GridSetMetadata, AstericsGridMetadata, TouchChatMetadata };
 
 // Semantic action categories for cross-platform compatibility
 export enum AACSemanticCategory {
@@ -437,23 +444,37 @@ export class AACPage implements IAACPage {
 
 export class AACTree implements IAACTree {
   pages: { [key: string]: AACPage };
-  private _rootId: string | null;
+  metadata: AACTreeMetadata;
 
   public get rootId(): string | null {
-    return this._rootId;
+    return this.metadata.defaultHomePageId || null;
   }
   public set rootId(id: string | null) {
-    this._rootId = id;
+    this.metadata.defaultHomePageId = id || undefined;
+  }
+
+  public get toolbarId(): string | null {
+    return this.metadata.toolbarId || null;
+  }
+  public set toolbarId(id: string | null) {
+    this.metadata.toolbarId = id || undefined;
+  }
+
+  public get dashboardId(): string | null {
+    return this.metadata.dashboardId || null;
+  }
+  public set dashboardId(id: string | null) {
+    this.metadata.dashboardId = id || undefined;
   }
 
   constructor() {
     this.pages = {};
-    this._rootId = null;
+    this.metadata = {};
   }
 
   addPage(page: AACPage): void {
     this.pages[page.id] = page;
-    if (!this._rootId) this._rootId = page.id;
+    if (!this.rootId) this.rootId = page.id;
   }
 
   getPage(id: string): AACPage | undefined {

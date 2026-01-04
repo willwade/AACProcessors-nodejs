@@ -12,6 +12,7 @@ import {
   AACSemanticAction,
   AACSemanticCategory,
   AACSemanticIntent,
+  GridSetMetadata,
 } from '../core/treeStructure';
 import { AACStyle } from '../types/aac';
 import AdmZip from 'adm-zip';
@@ -408,6 +409,14 @@ class GridsetProcessor extends BaseProcessor {
     const isEncryptedArchive =
       typeof filePathOrBuffer === 'string' && filePathOrBuffer.toLowerCase().endsWith('.gridsetx');
     const encryptedContentPassword = this.getGridsetPassword(filePathOrBuffer);
+
+    // Initialize metadata
+    const metadata: GridSetMetadata = {
+      format: 'gridset',
+      isSmartBox: isEncryptedArchive, // SmartBox files are .gridsetx encrypted archives
+      passwordProtected: !!password,
+    };
+
     const readEntryBuffer = (entry: AdmZip.IZipEntry): Buffer => {
       const raw = entry.getData();
       if (!isEncryptedArchive) return raw;
@@ -1430,6 +1439,86 @@ class GridsetProcessor extends BaseProcessor {
       if (settingsEntry) {
         const settingsXml = readEntryBuffer(settingsEntry).toString('utf8');
         const settingsData = parser.parse(settingsXml);
+        const gsName =
+          settingsData?.GridSetSettings?.Name ||
+          settingsData?.gridSetSettings?.name ||
+          settingsData?.GridsetSettings?.Name;
+        if (gsName) metadata.name = gsName;
+
+        const gsDesc =
+          settingsData?.GridSetSettings?.Description ||
+          settingsData?.gridSetSettings?.description ||
+          settingsData?.GridsetSettings?.Description;
+        if (gsDesc) metadata.description = gsDesc;
+
+        const gsLang =
+          settingsData?.GridSetSettings?.PrimaryLanguage ||
+          settingsData?.gridSetSettings?.primaryLanguage ||
+          settingsData?.GridsetSettings?.PrimaryLanguage;
+        if (gsLang && typeof gsLang === 'string') {
+          metadata.locale = gsLang;
+          metadata.languages = [gsLang];
+        }
+
+        const gsAuthor =
+          settingsData?.GridSetSettings?.Author ||
+          settingsData?.gridSetSettings?.author ||
+          settingsData?.GridsetSettings?.Author;
+        if (gsAuthor) metadata.author = gsAuthor;
+
+        const docUrl =
+          settingsData?.GridSetSettings?.DocumentationUrl ||
+          settingsData?.gridSetSettings?.documentationUrl ||
+          settingsData?.GridsetSettings?.DocumentationUrl;
+        if (docUrl) {
+          metadata.homepageUrl = docUrl;
+          metadata.documentationUrl = docUrl;
+        }
+
+        const docSlug =
+          settingsData?.GridSetSettings?.DocumentationSlug ||
+          settingsData?.gridSetSettings?.documentationSlug ||
+          settingsData?.GridsetSettings?.DocumentationSlug;
+        if (docSlug) metadata.documentationSlug = docSlug;
+
+        const thumbnail =
+          settingsData?.GridSetSettings?.Thumbnail ||
+          settingsData?.gridSetSettings?.thumbnail ||
+          settingsData?.GridsetSettings?.Thumbnail;
+        if (thumbnail) metadata.thumbnail = thumbnail;
+
+        const thumbBg =
+          settingsData?.GridSetSettings?.ThumbnailBackground ||
+          settingsData?.gridSetSettings?.thumbnailBackground ||
+          settingsData?.GridsetSettings?.ThumbnailBackground;
+        if (thumbBg) metadata.thumbnailBackground = thumbBg;
+
+        const picSearchKeys =
+          settingsData?.GridSetSettings?.PictureSearch?.PictureSearchKeys?.PictureSearchKey ||
+          settingsData?.gridSetSettings?.pictureSearch?.pictureSearchKeys?.pictureSearchKey ||
+          settingsData?.GridsetSettings?.PictureSearch?.PictureSearchKeys?.PictureSearchKey;
+        if (picSearchKeys) {
+          metadata.pictureSearchKeys = Array.isArray(picSearchKeys)
+            ? picSearchKeys
+            : [picSearchKeys];
+        }
+
+        const appearance =
+          settingsData?.GridSetSettings?.Appearance ||
+          settingsData?.gridSetSettings?.appearance ||
+          settingsData?.GridsetSettings?.Appearance;
+        if (appearance) {
+          metadata.appearance = {
+            textAtTop:
+              appearance.TextAtTop === '1' ||
+              appearance.textAtTop === '1' ||
+              appearance.TextAtTop === 1,
+            computerControlCellSize: appearance.ComputerControlCellSize
+              ? parseFloat(String(appearance.ComputerControlCellSize))
+              : undefined,
+          };
+        }
+
         const startGridName =
           settingsData?.GridSetSettings?.StartGrid ||
           settingsData?.gridSetSettings?.startGrid ||
@@ -1439,20 +1528,24 @@ class GridsetProcessor extends BaseProcessor {
           // Resolve the grid name to grid ID
           const homeGridId = gridNameToIdMap.get(startGridName);
           if (homeGridId) {
-            tree.rootId = homeGridId;
+            metadata.defaultHomePageId = homeGridId;
           }
         }
 
         const keyboardGridName =
           settingsData?.GridSetSettings?.KeyboardGrid ||
-          settingsData?.gridSetSettings?.keyboardGrid;
+          settingsData?.gridSetSettings?.keyboardGrid ||
+          settingsData?.GridsetSettings?.KeyboardGrid;
         if (keyboardGridName && typeof keyboardGridName === 'string') {
-          (tree as any).keyboardGridName = keyboardGridName;
+          metadata.defaultKeyboardPageId = gridNameToIdMap.get(keyboardGridName);
         }
       }
     } catch (e) {
       // If settings.xml parsing fails, tree.rootId will default to first page
     }
+
+    // Set metadata on tree
+    tree.metadata = metadata;
 
     return tree;
   }

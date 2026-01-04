@@ -12,6 +12,7 @@ import {
   AACSemanticAction,
   AACSemanticCategory,
   AACSemanticIntent,
+  AstericsGridMetadata,
 } from '../core/treeStructure';
 import fs from 'fs';
 
@@ -932,6 +933,45 @@ class AstericsGridProcessor extends BaseProcessor {
       page.grid = gridLayout;
     });
 
+    // Set metadata for Asterics Grid files
+    const astericsMetadata: AstericsGridMetadata = {
+      format: 'asterics',
+      hasGlobalGrid: false, // Can be extended in the future
+    };
+
+    if (grdFile.grids && grdFile.grids.length > 0) {
+      astericsMetadata.name = this.getLocalizedLabel(grdFile.grids[0].label);
+
+      // Extract all unique languages from all grids and elements
+      const languages = new Set<string>();
+      grdFile.grids.forEach((grid) => {
+        if (grid.label) {
+          Object.keys(grid.label).forEach((lang) => languages.add(lang));
+        }
+        grid.gridElements?.forEach((element) => {
+          if (element.label) {
+            Object.keys(element.label).forEach((lang) => languages.add(lang));
+          }
+          // Also check word forms for languages
+          element.wordForms?.forEach((wf) => {
+            if (wf.lang) languages.add(wf.lang);
+          });
+        });
+      });
+
+      if (languages.size > 0) {
+        astericsMetadata.languages = Array.from(languages).sort();
+        // Set primary locale to English if available, otherwise the first language found
+        astericsMetadata.locale = languages.has('en')
+          ? 'en'
+          : languages.has('de')
+            ? 'de'
+            : astericsMetadata.languages[0];
+      }
+    }
+
+    tree.metadata = astericsMetadata;
+
     // Set the home page from metadata.homeGridId
     if (grdFile.metadata && grdFile.metadata.homeGridId) {
       tree.rootId = grdFile.metadata.homeGridId;
@@ -1523,6 +1563,8 @@ class AstericsGridProcessor extends BaseProcessor {
           });
         }
 
+        const locale = tree.metadata?.locale || 'en';
+
         return {
           id: button.id,
           modelName: 'GridElement',
@@ -1531,7 +1573,7 @@ class AstericsGridProcessor extends BaseProcessor {
           height: 1,
           x: calculatedX,
           y: calculatedY,
-          label: { en: button.label },
+          label: { [locale]: button.label },
           wordForms: [],
           image: {
             data: null,
@@ -1558,7 +1600,7 @@ class AstericsGridProcessor extends BaseProcessor {
         id: page.id,
         modelName: 'GridData',
         modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
-        label: { en: page.name },
+        label: { [tree.metadata?.locale || 'en']: page.name },
         rowCount: calculatedRows,
         minColumnCount: calculatedCols,
         gridElements: gridElements,

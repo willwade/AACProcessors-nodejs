@@ -63,6 +63,7 @@ export class ObfsetProcessor extends BaseProcessor {
    */
   loadIntoTree(filePathOrBuffer: string | Buffer): AACTree {
     const tree = new AACTree();
+    tree.metadata.format = 'obfset';
     let content: string;
 
     if (Buffer.isBuffer(filePathOrBuffer)) {

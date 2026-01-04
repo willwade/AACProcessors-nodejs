@@ -260,4 +260,17 @@ describe('AstericsGridProcessor', () => {
       expect(finalHomePage).toBeDefined();
     }
   });
+
+  it('should extract locale and supported languages into metadata', () => {
+    const processor = new AstericsGridProcessor();
+    const tree = processor.loadIntoTree(exampleGrdFile);
+
+    expect(tree.metadata.locale).toBeDefined();
+    expect(Array.isArray(tree.metadata.languages)).toBe(true);
+    expect(tree.metadata.languages?.length).toBeGreaterThan(0);
+    // At least English should be present in our example file
+    expect(tree.metadata.languages).toContain('en');
+    // locale should be one of the languages
+    expect(tree.metadata.languages).toContain(tree.metadata.locale);
+  });
 });

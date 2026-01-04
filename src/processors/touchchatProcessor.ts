@@ -566,6 +566,9 @@ class TouchChatProcessor extends BaseProcessor {
         }
       }
 
+      // Set metadata for TouchChat files
+      tree.metadata.format = 'touchchat';
+
       return tree;
     } finally {
       // Clean up

@@ -12,6 +12,7 @@ import {
   AACSemanticAction,
   AACSemanticCategory,
   AACSemanticIntent,
+  SnapMetadata,
 } from '../core/treeStructure';
 import { generateCloneId } from '../utilities/analytics/utils/idGenerator';
 import Database from 'better-sqlite3';
@@ -132,19 +133,37 @@ class SnapProcessor extends BaseProcessor {
       let defaultKeyboardPageId: string | undefined;
       let defaultHomePageId: string | undefined;
       let dashboardPageId: string | undefined;
+      let toolbarId: string | undefined;
       try {
         const properties = db.prepare('SELECT * FROM PageSetProperties').get();
         if (properties) {
           defaultKeyboardPageId = properties.DefaultKeyboardPageUniqueId;
           defaultHomePageId = properties.DefaultHomePageUniqueId;
           dashboardPageId = properties.DashboardUniqueId;
+          toolbarId = properties.ToolBarUniqueId;
 
-          const toolbarId = properties.ToolBarUniqueId;
           const hasGlobalToolbar =
             toolbarId && toolbarId !== '00000000-0000-0000-0000-000000000000';
 
+          // Store metadata in tree
+          const metadata: SnapMetadata = {
+            format: 'snap',
+            name: properties.Name || properties.PageSetName || undefined,
+            description: properties.Description || undefined,
+            author: properties.Author || undefined,
+            locale: properties.Locale || undefined,
+            languages: properties.Locale ? [properties.Locale] : undefined,
+            defaultKeyboardPageId: defaultKeyboardPageId || undefined,
+            defaultHomePageId: defaultHomePageId || undefined,
+            dashboardId: dashboardPageId || undefined,
+            hasGlobalToolbar: !!hasGlobalToolbar,
+          };
+          tree.metadata = metadata;
+
+          // Set toolbarId if there's a global toolbar
           if (hasGlobalToolbar) {
-            tree.rootId = toolbarId;
+            tree.toolbarId = toolbarId || null;
+            tree.rootId = toolbarId || defaultHomePageId || null;
           } else if (defaultHomePageId) {
             tree.rootId = defaultHomePageId;
           }
@@ -1111,6 +1130,93 @@ class SnapProcessor extends BaseProcessor {
   async validate(filePath: string): Promise<ValidationResult> {
     return SnapValidator.validateFile(filePath);
   }
+
+  /**
+   * Get available PageLayouts for a Snap file
+   * Useful for UI components that want to let users select layout size
+   * @param filePath - Path to the Snap file
+   * @returns Array of available PageLayouts with their dimensions
+   */
+  getAvailablePageLayouts(filePath: string): PageLayoutInfo[] {
+    const dbPath = typeof filePath === 'string' ? filePath : path.join(process.cwd(), 'temp.spb');
+
+    if (Buffer.isBuffer(filePath)) {
+      fs.writeFileSync(dbPath, filePath);
+    }
+
+    let db: any = null;
+    try {
+      db = new Database(dbPath, { readonly: true });
+
+      // Get unique PageLayouts based on PageLayoutSetting (dimensions)
+      const pageLayouts = db
+        .prepare(
+          `
+          SELECT
+            MIN(pl.Id) as Id,
+            pl.PageLayoutSetting
+          FROM PageLayout pl
+          GROUP BY pl.PageLayoutSetting
+          ORDER BY pl.PageLayoutSetting
+        `
+        )
+        .all() as Array<{ Id: number; PageLayoutSetting: string }>;
+
+      // Parse the PageLayoutSetting format: "columns,rows,hasScanGroups,?"
+      const layouts: PageLayoutInfo[] = pageLayouts.map((pl) => {
+        const parts = pl.PageLayoutSetting.split(',');
+        const cols = parseInt(parts[0], 10) || 0;
+        const rows = parseInt(parts[1], 10) || 0;
+        const hasScanning = parts[2] === 'True';
+
+        return {
+          id: pl.Id,
+          cols,
+          rows,
+          size: cols * rows,
+          hasScanning,
+          label: `${cols}×${rows}${hasScanning ? ' (with scanning)' : ''}`,
+        };
+      });
+
+      // Sort by size (total buttons), with scanning layouts first
+      layouts.sort((a, b) => {
+        if (a.hasScanning && !b.hasScanning) return -1;
+        if (!a.hasScanning && b.hasScanning) return 1;
+        return b.size - a.size; // Larger sizes first
+      });
+
+      return layouts;
+    } catch (error) {
+      console.error('[SnapProcessor] Failed to get available page layouts:', error);
+      return [];
+    } finally {
+      if (db) {
+        db.close();
+      }
+
+      // Clean up temporary file if created from buffer
+      if (Buffer.isBuffer(filePath) && fs.existsSync(dbPath)) {
+        try {
+          fs.unlinkSync(dbPath);
+        } catch (e) {
+          console.warn('Failed to clean up temporary file:', e);
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Interface for PageLayout information returned by getAvailablePageLayouts
+ */
+export interface PageLayoutInfo {
+  id: number;
+  cols: number;
+  rows: number;
+  size: number;
+  hasScanning: boolean;
+  label: string;
 }
 
 export { SnapProcessor };

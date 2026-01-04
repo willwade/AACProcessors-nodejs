@@ -4,6 +4,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as xml2js from 'xml2js';
+import AdmZip from 'adm-zip';
 import { BaseValidator } from './baseValidator';
 import { ValidationResult } from './validationTypes';
 
@@ -73,6 +74,33 @@ export class GridsetValidator extends BaseValidator {
       return this.buildResult(filename, filesize, 'gridset');
     }
 
+    const isZip = this.isZip(content);
+
+    if (isZip) {
+      await this.validateZipArchive(content, filename, filesize);
+    } else {
+      await this.validateSingleXml(content, filename, filesize);
+    }
+
+    return this.buildResult(filename, filesize, 'gridset');
+  }
+
+  /**
+   * Check if the buffer is a zip archive
+   */
+  private isZip(content: Buffer | Uint8Array): boolean {
+    if (content.length < 4) return false;
+    return content[0] === 0x50 && content[1] === 0x4b && content[2] === 0x03 && content[3] === 0x04;
+  }
+
+  /**
+   * Validate a single XML file (legacy or exploded format)
+   */
+  private async validateSingleXml(
+    content: Buffer | Uint8Array,
+    filename: string,
+    _filesize: number
+  ): Promise<void> {
     let xmlObj: any = null;
     await this.add_check('xml_parse', 'valid XML', async () => {
       try {
@@ -84,11 +112,8 @@ export class GridsetValidator extends BaseValidator {
       }
     });
 
-    if (!xmlObj) {
-      return this.buildResult(filename, filesize, 'gridset');
-    }
+    if (!xmlObj) return;
 
-    // eslint-disable-next-line @typescript-eslint/require-await
     await this.add_check('xml_structure', 'gridset root element', async () => {
       if (!xmlObj.gridset && !xmlObj.Gridset) {
         this.err('missing root gridset element', true);
@@ -99,8 +124,73 @@ export class GridsetValidator extends BaseValidator {
     if (gridset) {
       await this.validateGridsetStructure(gridset, filename, content);
     }
+  }
 
-    return this.buildResult(filename, filesize, 'gridset');
+  /**
+   * Validate a ZIP archive (.gridset)
+   */
+  private async validateZipArchive(
+    content: Buffer | Uint8Array,
+    filename: string,
+    _filesize: number
+  ): Promise<void> {
+    let zip: AdmZip;
+    try {
+      zip = new AdmZip(Buffer.from(content));
+    } catch (e: any) {
+      this.err(`Failed to open ZIP archive: ${e.message}`, true);
+      return;
+    }
+
+    const entries = zip.getEntries();
+
+    // Check for gridset.xml (required)
+    await this.add_check('gridset_xml_presence', 'gridset.xml presence', async () => {
+      const gridsetEntry = entries.find((e) => e.entryName.toLowerCase() === 'gridset.xml');
+      if (!gridsetEntry) {
+        this.err('Missing gridset.xml in archive', true);
+      } else {
+        try {
+          const gridsetXml = gridsetEntry.getData().toString('utf-8');
+          const parser = new xml2js.Parser();
+          const xmlObj = await parser.parseStringPromise(gridsetXml);
+          const gridset = xmlObj.gridset || xmlObj.Gridset;
+          if (!gridset) {
+            this.err('Invalid gridset.xml structure', true);
+          } else {
+            await this.validateGridsetStructure(gridset, filename, Buffer.from(gridsetXml));
+          }
+        } catch (e: any) {
+          this.err(`Failed to parse gridset.xml: ${e.message}`, true);
+        }
+      }
+    });
+
+    // Check for settings.xml (highly recommended/required for metadata)
+    await this.add_check('settings_xml_presence', 'settings.xml presence', async () => {
+      const settingsEntry = entries.find((e) => e.entryName.toLowerCase() === 'settings.xml');
+      if (!settingsEntry) {
+        this.warn('Missing settings.xml in archive (required for full metadata)');
+      } else {
+        try {
+          const settingsXml = settingsEntry.getData().toString('utf-8');
+          const parser = new xml2js.Parser();
+          const xmlObj = await parser.parseStringPromise(settingsXml);
+          const settings =
+            xmlObj.GridSetSettings || xmlObj.gridSetSettings || xmlObj.GridsetSettings;
+          if (!settings) {
+            this.warn('Invalid settings.xml structure');
+          } else {
+            // Basic validation of settings.xml
+            if (!settings.StartGrid && !settings.startGrid) {
+              this.warn('settings.xml missing StartGrid element');
+            }
+          }
+        } catch (e: any) {
+          this.warn(`Failed to parse settings.xml: ${e.message}`);
+        }
+      }
+    });
   }
 
   /**

@@ -35,7 +35,9 @@ export class ExcelProcessor extends BaseProcessor {
    */
   loadIntoTree(_filePathOrBuffer: string | Buffer): AACTree {
     console.warn('ExcelProcessor.loadIntoTree is not implemented yet.');
-    return new AACTree();
+    const tree = new AACTree();
+    tree.metadata.format = 'excel';
+    return tree;
   }
 
   /**
@@ -556,12 +558,15 @@ export class ExcelProcessor extends BaseProcessor {
    */
   private async saveFromTreeAsync(tree: AACTree, outputPath: string): Promise<void> {
     const workbook = new ExcelJS.Workbook();
+    const metadata = tree.metadata;
 
-    // Set workbook properties
-    workbook.creator = 'AACProcessors';
+    // Set workbook properties from tree metadata
+    workbook.creator = metadata?.author || 'AACProcessors';
     workbook.lastModifiedBy = 'AACProcessors';
     workbook.created = new Date();
     workbook.modified = new Date();
+    workbook.title = metadata?.name || '';
+    workbook.subject = metadata?.description || '';
 
     // If no pages, create a default empty worksheet
     if (Object.keys(tree.pages).length === 0) {

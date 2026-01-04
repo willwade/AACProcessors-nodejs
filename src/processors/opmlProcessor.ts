@@ -148,6 +148,7 @@ class OpmlProcessor extends BaseProcessor {
       throw new Error(`Invalid OPML XML: ${e?.message || String(e)}`);
     }
     const tree = new AACTree();
+    tree.metadata.format = 'opml';
 
     // Handle case where body.outline might not exist or be in different formats
     const bodyOutline = data.opml?.body?.outline;

@@ -84,7 +84,7 @@ export interface VocabPlacementMetadata {
 
 export interface VocabLocation {
   table: string;
-  id: number;
+  id: string | number;
   column: string;
   casing: StringCasing;
 }
@@ -263,7 +263,7 @@ abstract class BaseProcessor {
           const key = page.name.trim().toLowerCase();
           const vocabLocation: VocabLocation = {
             table: 'pages',
-            id: parseInt(page.id) || 0,
+            id: page.id,
             column: 'NAME',
             casing: detectCasing(page.name),
           };
@@ -277,7 +277,7 @@ abstract class BaseProcessor {
             const key = button.label.trim().toLowerCase();
             const vocabLocation: VocabLocation = {
               table: 'buttons',
-              id: parseInt(button.id) || 0,
+              id: button.id,
               column: 'LABEL',
               casing: detectCasing(button.label),
             };
@@ -295,7 +295,7 @@ abstract class BaseProcessor {
             const key = button.message.trim().toLowerCase();
             const vocabLocation: VocabLocation = {
               table: 'buttons',
-              id: parseInt(button.id) || 0,
+              id: button.id,
               column: 'MESSAGE',
               casing: detectCasing(button.message),
             };
