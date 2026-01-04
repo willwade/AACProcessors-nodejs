@@ -24,6 +24,8 @@ export * from './processors';
 
 // Analytics namespace
 export * as Analytics from './utilities/analytics';
+// Also export analytics classes directly for convenience
+export * from './utilities/analytics';
 
 // Validation namespace
 export * as Validation from './validation';
