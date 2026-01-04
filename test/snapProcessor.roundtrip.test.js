@@ -24,6 +24,10 @@ describe("SnapProcessor round-trip", () => {
       const btnLabels2 = tree2.pages[pid].buttons.map((b) => b.label).sort();
       expect(btnLabels1).toEqual(btnLabels2);
     }
+
+    // Compare metadata
+    expect(tree2.metadata.name).toBe(tree1.metadata.name);
+    expect(tree2.metadata.locale).toBe(tree1.metadata.locale);
   });
 
   it.skip("round-trips .sps file without losing pages (saveFromTree not implemented)", () => {

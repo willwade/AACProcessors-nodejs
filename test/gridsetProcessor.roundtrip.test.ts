@@ -32,6 +32,13 @@ describe('GridsetProcessor round-trip', () => {
     expect(Object.keys(tree2.pages).length).toBeGreaterThan(0);
     expect(Object.keys(tree1.pages).length).toBe(Object.keys(tree2.pages).length);
 
+    // Compare metadata
+    expect(tree2.metadata.name).toBe(tree1.metadata.name);
+    expect(tree2.metadata.description?.trim()).toBe(tree1.metadata.description?.trim());
+    if (tree1.metadata.locale) {
+      expect(tree2.metadata.locale).toBe(tree1.metadata.locale);
+    }
+
     // Compare page names and button counts
     for (const pageId in tree1.pages) {
       expect(tree2.pages).toHaveProperty(pageId);

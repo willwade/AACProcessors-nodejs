@@ -1780,14 +1780,22 @@ class GridsetProcessor extends BaseProcessor {
       '?xml': { '@_version': '1.0', '@_encoding': 'UTF-8' },
       GridSetSettings: {
         '@_xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
+        Name: tree.metadata?.name || '',
+        Description: tree.metadata?.description || '',
+        Author: tree.metadata?.author || '',
+        PrimaryLanguage: tree.metadata?.locale || 'en-US',
         StartGrid: startGrid,
         // Add other common Grid3 settings
+        Thumbnail: (tree.metadata as any)?.thumbnail || '',
+        ThumbnailBackground: (tree.metadata as any)?.thumbnailBackground || '',
+        DocumentationUrl: tree.metadata?.homepageUrl || tree.metadata?.url || '',
+        DocumentationSlug: (tree.metadata as any)?.documentationSlug || '',
         ScanEnabled: 'false',
         ScanTimeoutMs: '2000',
         HoverEnabled: 'false',
         HoverTimeoutMs: '1000',
         MouseclickEnabled: 'true',
-        Language: 'en-US',
+        Language: tree.metadata?.locale || 'en-US',
       },
     };
 

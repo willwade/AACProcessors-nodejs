@@ -33,6 +33,12 @@ describe('OBFProcessor round-trip', () => {
     // Compare basic structure
     expect(Object.keys(tree1.pages).length).toBe(Object.keys(tree2.pages).length);
 
+    // Compare metadata
+    expect(tree2.metadata.name).toBe(tree1.metadata.name);
+    expect(tree2.metadata.description).toBe(tree1.metadata.description);
+    expect(tree2.metadata.locale).toBe(tree1.metadata.locale);
+    if (tree1.metadata.url) expect(tree2.metadata.url).toBe(tree1.metadata.url);
+
     // Compare page content
     for (const pageId in tree1.pages) {
       expect(tree2.pages).toHaveProperty(pageId);
@@ -66,6 +72,10 @@ describe('OBFProcessor round-trip', () => {
     // Compare structure
     expect(Object.keys(tree2.pages).length).toBeGreaterThan(0);
     expect(Object.keys(tree1.pages).length).toBe(Object.keys(tree2.pages).length);
+
+    // Compare metadata from root board
+    expect(tree2.metadata.name).toBe(tree1.metadata.name);
+    expect(tree2.metadata.locale).toBe(tree1.metadata.locale);
   });
 
   it('can save and load a simple constructed tree', () => {

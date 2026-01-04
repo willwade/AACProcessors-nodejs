@@ -820,6 +820,18 @@ class SnapProcessor extends BaseProcessor {
           Data BLOB,
           RefCount INTEGER DEFAULT 1
         );
+
+        CREATE TABLE IF NOT EXISTS PageSetProperties (
+          Id INTEGER PRIMARY KEY,
+          Name TEXT,
+          Description TEXT,
+          Author TEXT,
+          Locale TEXT,
+          DefaultHomePageUniqueId TEXT,
+          DefaultKeyboardPageUniqueId TEXT,
+          DashboardUniqueId TEXT,
+          ToolBarUniqueId TEXT
+        );
       `);
 
       // Insert pages
@@ -978,6 +990,27 @@ class SnapProcessor extends BaseProcessor {
           insertPlacement.run(placementIdCounter++, elementRefId, gridPosition);
         });
       });
+
+      // Insert PageSetProperties metadata
+      const insertProps = db.prepare(`
+        INSERT INTO PageSetProperties (
+          Id, Name, Description, Author, Locale, 
+          DefaultHomePageUniqueId, DefaultKeyboardPageUniqueId, 
+          DashboardUniqueId, ToolBarUniqueId
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+
+      insertProps.run(
+        1,
+        tree.metadata?.name || null,
+        tree.metadata?.description || null,
+        tree.metadata?.author || null,
+        tree.metadata?.locale || null,
+        tree.metadata?.defaultHomePageId || tree.rootId || null,
+        tree.metadata?.defaultKeyboardPageId || null,
+        tree.metadata?.dashboardId || null,
+        tree.metadata?.hasGlobalToolbar ? tree.metadata.toolbarId || null : null
+      );
     } finally {
       db.close();
     }
