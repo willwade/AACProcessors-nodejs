@@ -1529,6 +1529,8 @@ class GridsetProcessor extends BaseProcessor {
           const homeGridId = gridNameToIdMap.get(startGridName);
           if (homeGridId) {
             metadata.defaultHomePageId = homeGridId;
+            // Also set tree.rootId so BoardViewer knows which page to show first
+            tree.rootId = homeGridId;
           }
         }
 
