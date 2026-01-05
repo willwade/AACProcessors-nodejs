@@ -79,6 +79,15 @@ class ObfProcessor extends BaseProcessor {
   }
   private processBoard(boardData: ObfBoard, _boardPath: string): AACPage {
     const sourceButtons = boardData.buttons || [];
+
+    // Calculate page ID first (used to make button IDs unique)
+    const pageId =
+      _boardPath && _boardPath.endsWith('.obf') && !_boardPath.includes('/')
+        ? _boardPath // Zip entry - use filename to match navigation paths
+        : boardData?.id
+          ? String(boardData.id)
+          : _boardPath?.split('/').pop() || '';
+
     const buttons: AACButton[] = sourceButtons.map((btn: ObfButton): AACButton => {
       const semanticAction: AACSemanticAction = btn.load_board
         ? {
@@ -101,7 +110,8 @@ class ObfProcessor extends BaseProcessor {
           };
 
       return new AACButton({
-        id: String(btn?.id || ''),
+        // Make button ID unique by combining page ID and button ID
+        id: `${pageId}::${btn?.id || ''}`,
         label: String(btn?.label || ''),
         message: String(btn?.vocalization || btn?.label || ''),
         visibility: mapObfVisibility(btn.hidden),
@@ -118,7 +128,7 @@ class ObfProcessor extends BaseProcessor {
     const buttonMap = new Map(buttons.map((btn) => [btn.id, btn]));
 
     const page = new AACPage({
-      id: String(boardData?.id || ''),
+      id: pageId, // Use the page ID we calculated earlier
       name: String(boardData?.name || ''),
       grid: [],
       buttons,
@@ -156,7 +166,7 @@ class ObfProcessor extends BaseProcessor {
             orderRow.forEach((cellId, colIndex) => {
               if (cellId === null || cellId === undefined) return;
               if (rowIndex >= rows || colIndex >= cols) return;
-              const aacBtn = buttonMap.get(String(cellId));
+              const aacBtn = buttonMap.get(`${pageId}::${cellId}`);
               if (aacBtn) {
                 grid[rowIndex][colIndex] = aacBtn;
               }
@@ -168,7 +178,7 @@ class ObfProcessor extends BaseProcessor {
               const row = Math.floor(btn.box_id / cols);
               const col = btn.box_id % cols;
               if (row < rows && col < cols) {
-                const aacBtn = buttonMap.get(String(btn.id));
+                const aacBtn = buttonMap.get(`${pageId}::${btn.id}`);
                 if (aacBtn) {
                   grid[row][col] = aacBtn;
                 }

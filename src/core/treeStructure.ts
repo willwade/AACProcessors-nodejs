@@ -8,9 +8,19 @@ import {
   AstericsGridMetadata,
   TouchChatMetadata,
   AACStyle,
+  CellScanningOrder,
+  ScanningSelectionMethod,
 } from '../types/aac';
 
-export { AACTreeMetadata, SnapMetadata, GridSetMetadata, AstericsGridMetadata, TouchChatMetadata };
+export {
+  AACTreeMetadata,
+  SnapMetadata,
+  GridSetMetadata,
+  AstericsGridMetadata,
+  TouchChatMetadata,
+  CellScanningOrder,
+  ScanningSelectionMethod,
+};
 
 // Semantic action categories for cross-platform compatibility
 export enum AACSemanticCategory {

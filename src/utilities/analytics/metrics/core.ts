@@ -293,47 +293,29 @@ export class MetricsCalculator {
    * Count scan items for visual scanning effort
    * When block scanning is enabled, count unique scan blocks instead of individual buttons
    */
-  private countScanItems(
+  private countScanBlocks(
     board: AACPage,
     currentRowIndex: number,
     currentColIndex: number,
-    priorScanBlocks: Set<number>,
-    blockScanEnabled: boolean
+    priorScanBlocks: Set<number>
   ): number {
-    if (!blockScanEnabled) {
-      // Linear scanning: count all buttons before current position
-      let count = 0;
-      for (let r = 0; r <= currentRowIndex; r++) {
-        const row = board.grid[r];
-        if (!row) continue;
-        for (let c = 0; c < row.length; c++) {
-          if (r === currentRowIndex && c === currentColIndex) return count;
-          const btn = row[c];
-          if (btn && (btn.label || btn.id).length > 0) {
-            count++;
-          }
-        }
-      }
-      return count;
-    }
-
     // Block scanning: count unique scan blocks before current position
-    const seenBlocks = new Set<number>();
+    // Reuse the priorScanBlocks set from the parent scope
     for (let r = 0; r <= currentRowIndex; r++) {
       const row = board.grid[r];
       if (!row) continue;
       for (let c = 0; c < row.length; c++) {
-        if (r === currentRowIndex && c === currentColIndex) return seenBlocks.size;
+        if (r === currentRowIndex && c === currentColIndex) return priorScanBlocks.size;
         const btn = row[c];
         if (btn && (btn.label || btn.id).length > 0) {
           const block =
             btn.scanBlock ||
             (btn.scanBlocks && btn.scanBlocks.length > 0 ? btn.scanBlocks[0] : null);
-          if (block !== null) seenBlocks.add(block);
+          if (block !== null) priorScanBlocks.add(block);
         }
       }
     }
-    return seenBlocks.size;
+    return priorScanBlocks.size;
   }
 
   /**
@@ -412,270 +394,268 @@ export class MetricsCalculator {
       const blockScanEnabled = scanningConfig?.blockScanEnabled || false;
 
       // Process each button
-      const priorScanBlocks = new Set<number>();
       const btnHeight = 1.0 / rows;
       const btnWidth = 1.0 / cols;
 
-      // Iterate over all buttons on the page to handle overlapping cells (common in some gridsets like Super Core 50)
-      // Sort buttons by position to ensure consistent prior_buttons/scanning calculation
-      const sortedButtons = [...board.buttons]
-        .filter((b) => (b.label || '').length > 0)
-        .sort((a, b) => {
-          if ((a.y ?? 0) !== (b.y ?? 0)) return (a.y ?? 0) - (b.y ?? 0);
-          return (a.x ?? 0) - (b.x ?? 0);
-        });
+      // Track scan blocks for block scanning
+      const priorScanBlocks: Set<number> = new Set<number>();
 
-      sortedButtons.forEach((btn: AACButton) => {
-        const rowIndex = btn.y ?? 0;
-        const colIndex = btn.x ?? 0;
+      // Iterate over grid positions directly (not just buttons)
+      // This matches Ruby's nested loop: rows.times do |row_idx|; columns.times do |col_idx|
+      for (let rowIndex = 0; rowIndex < rows; rowIndex++) {
+        for (let colIndex = 0; colIndex < cols; colIndex++) {
+          const btn = board.grid[rowIndex]?.[colIndex];
+          if (!btn) continue; // Skip empty cells
 
-        const x = btnWidth / 2 + btnWidth * colIndex;
-        const y = btnHeight / 2 + btnHeight * rowIndex;
+          const x = btnWidth / 2 + btnWidth * colIndex;
+          const y = btnHeight / 2 + btnHeight * rowIndex;
 
-        // Calculate prior items for visual scan effort
-        // If block scanning enabled, count unique scan blocks instead of individual buttons
-        const priorItems = this.countScanItems(
-          board,
-          rowIndex,
-          colIndex,
-          priorScanBlocks,
-          blockScanEnabled
-        );
+          // Calculate prior grid positions (not just buttons)
+          // This matches Ruby's prior_buttons which increments for each grid position
+          const priorGridPositions = rowIndex * cols + colIndex;
 
-        // Calculate button-level effort
-        let buttonEffort = boardEffort;
+          // For block scanning, count unique scan blocks instead
+          const priorItems = blockScanEnabled
+            ? this.countScanBlocks(board, rowIndex, colIndex, priorScanBlocks)
+            : priorGridPositions;
 
-        // Debug for specific button (disabled for production)
-        const debugSpecificButton = btn.label === '$938c2cc0dc';
-        if (debugSpecificButton) {
-          console.log(
-            `\n🔍 DEBUG Button ${btn.label} at [${rowIndex},${colIndex}] on ${board.id}:`
-          );
-          console.log(`   Entry point: (${entryX.toFixed(4)}, ${entryY.toFixed(4)})`);
-          console.log(`   Current level: ${level}`);
-          console.log(`   Starting effort: ${buttonEffort.toFixed(6)}`);
-        }
+          // Calculate button-level effort
+          let buttonEffort = boardEffort;
 
-        // Apply semantic_id discounts
-        if (btn.semantic_id && boardPcts[btn.semantic_id]) {
-          const discount =
-            EFFORT_CONSTANTS.SAME_LOCATION_AS_PRIOR_DISCOUNT / boardPcts[btn.semantic_id];
-          const old = buttonEffort;
-          buttonEffort = Math.min(buttonEffort, buttonEffort * discount);
-          if (debugSpecificButton)
+          // Debug for specific button (disabled for production)
+          const debugSpecificButton = btn.label === '$938c2cc0dc';
+          if (debugSpecificButton) {
             console.log(
-              `   Semantic board discount: ${old.toFixed(6)} -> ${buttonEffort.toFixed(6)} (pct=${boardPcts[btn.semantic_id].toFixed(4)})`
+              `\n🔍 DEBUG Button ${btn.label} at [${rowIndex},${colIndex}] on ${board.id}:`
             );
-        } else if (btn.semantic_id && boardPcts[`upstream-${btn.semantic_id}`]) {
-          const discount =
-            EFFORT_CONSTANTS.RECOGNIZABLE_SEMANTIC_FROM_PRIOR_DISCOUNT /
-            boardPcts[`upstream-${btn.semantic_id}`];
-          const old = buttonEffort;
-          buttonEffort = Math.min(buttonEffort, buttonEffort * discount);
-          if (debugSpecificButton)
-            console.log(
-              `   Semantic upstream discount: ${old.toFixed(6)} -> ${buttonEffort.toFixed(6)} (pct=${boardPcts[`upstream-${btn.semantic_id}`].toFixed(4)})`
-            );
-        }
-
-        // Apply clone_id discounts
-        if (btn.clone_id && boardPcts[btn.clone_id]) {
-          const discount =
-            EFFORT_CONSTANTS.SAME_LOCATION_AS_PRIOR_DISCOUNT / boardPcts[btn.clone_id];
-          buttonEffort = Math.min(buttonEffort, buttonEffort * discount);
-        } else if (btn.clone_id && boardPcts[`upstream-${btn.clone_id}`]) {
-          const discount =
-            EFFORT_CONSTANTS.RECOGNIZABLE_CLONE_FROM_PRIOR_DISCOUNT /
-            boardPcts[`upstream-${btn.clone_id}`];
-          buttonEffort = Math.min(buttonEffort, buttonEffort * discount);
-        }
-
-        // Calculate button effort based on access method (Touch vs Scanning)
-        const isScanning = !!scanningConfig || !!board.scanType;
-        if (isScanning) {
-          const { steps, selections, loopSteps } = this.calculateScanSteps(
-            board,
-            btn,
-            rowIndex,
-            colIndex,
-            scanningConfig
-          );
-
-          // Determine effective costs based on selection method
-          let currentStepCost = options.scanStepCost ?? EFFORT_CONSTANTS.SCAN_STEP_COST;
-          const currentSelectionCost =
-            options.scanSelectionCost ?? EFFORT_CONSTANTS.SCAN_SELECTION_COST;
-
-          // Step Scan 2 Switch: Every step is a physical selection with Switch 1
-          if (scanningConfig?.selectionMethod === ScanningSelectionMethod.StepScan2Switch) {
-            // The cost of moving is now a selection cost
-            currentStepCost = currentSelectionCost;
-          } else if (scanningConfig?.selectionMethod === ScanningSelectionMethod.StepScan1Switch) {
-            // Single switch step scan: every step is a physical selection
-            currentStepCost = currentSelectionCost;
+            console.log(`   Entry point: (${entryX.toFixed(4)}, ${entryY.toFixed(4)})`);
+            console.log(`   Current level: ${level}`);
+            console.log(`   Prior positions: ${priorItems}`);
+            console.log(`   Starting effort: ${buttonEffort.toFixed(6)}`);
           }
 
-          let sEffort = scanningEffort(steps, selections, currentStepCost, currentSelectionCost);
-
-          // Factor in error correction if enabled
-          if (scanningConfig?.errorCorrectionEnabled) {
-            const errorRate = scanningConfig.errorRate ?? EFFORT_CONSTANTS.DEFAULT_SCAN_ERROR_RATE;
-            // A "miss" results in needing to wait for a loop (or part of one)
-            // We model this as errorRate * (loopSteps * stepCost)
-            const retryPenalty = loopSteps * currentStepCost;
-            sEffort += errorRate * retryPenalty;
-          }
-
-          // Apply discounts to scanning effort (similar to touch)
+          // Apply semantic_id discounts
           if (btn.semantic_id && boardPcts[btn.semantic_id]) {
             const discount =
               EFFORT_CONSTANTS.SAME_LOCATION_AS_PRIOR_DISCOUNT / boardPcts[btn.semantic_id];
-            sEffort = Math.min(sEffort, sEffort * discount);
-          } else if (btn.clone_id && boardPcts[btn.clone_id]) {
+            const old = buttonEffort;
+            buttonEffort = Math.min(buttonEffort, buttonEffort * discount);
+            if (debugSpecificButton)
+              console.log(
+                `   Semantic board discount: ${old.toFixed(6)} -> ${buttonEffort.toFixed(6)} (pct=${boardPcts[btn.semantic_id].toFixed(4)})`
+              );
+          } else if (btn.semantic_id && boardPcts[`upstream-${btn.semantic_id}`]) {
+            const discount =
+              EFFORT_CONSTANTS.RECOGNIZABLE_SEMANTIC_FROM_PRIOR_DISCOUNT /
+              boardPcts[`upstream-${btn.semantic_id}`];
+            const old = buttonEffort;
+            buttonEffort = Math.min(buttonEffort, buttonEffort * discount);
+            if (debugSpecificButton)
+              console.log(
+                `   Semantic upstream discount: ${old.toFixed(6)} -> ${buttonEffort.toFixed(6)} (pct=${boardPcts[`upstream-${btn.semantic_id}`].toFixed(4)})`
+              );
+          }
+
+          // Apply clone_id discounts
+          if (btn.clone_id && boardPcts[btn.clone_id]) {
             const discount =
               EFFORT_CONSTANTS.SAME_LOCATION_AS_PRIOR_DISCOUNT / boardPcts[btn.clone_id];
-            sEffort = Math.min(sEffort, sEffort * discount);
+            buttonEffort = Math.min(buttonEffort, buttonEffort * discount);
+          } else if (btn.clone_id && boardPcts[`upstream-${btn.clone_id}`]) {
+            const discount =
+              EFFORT_CONSTANTS.RECOGNIZABLE_CLONE_FROM_PRIOR_DISCOUNT /
+              boardPcts[`upstream-${btn.clone_id}`];
+            buttonEffort = Math.min(buttonEffort, buttonEffort * discount);
           }
 
-          buttonEffort += sEffort;
-        } else {
-          // Add distance effort (Touch only)
-          let distance = distanceEffort(x, y, entryX, entryY);
+          // Calculate button effort based on access method (Touch vs Scanning)
+          const isScanning = !!scanningConfig || !!board.scanType;
+          if (isScanning) {
+            const { steps, selections, loopSteps } = this.calculateScanSteps(
+              board,
+              btn,
+              rowIndex,
+              colIndex,
+              scanningConfig
+            );
 
-          // Apply distance discounts
-          if (btn.semantic_id) {
-            if (boardPcts[btn.semantic_id]) {
+            // Determine effective costs based on selection method
+            let currentStepCost = options.scanStepCost ?? EFFORT_CONSTANTS.SCAN_STEP_COST;
+            const currentSelectionCost =
+              options.scanSelectionCost ?? EFFORT_CONSTANTS.SCAN_SELECTION_COST;
+
+            // Step Scan 2 Switch: Every step is a physical selection with Switch 1
+            if (scanningConfig?.selectionMethod === ScanningSelectionMethod.StepScan2Switch) {
+              // The cost of moving is now a selection cost
+              currentStepCost = currentSelectionCost;
+            } else if (
+              scanningConfig?.selectionMethod === ScanningSelectionMethod.StepScan1Switch
+            ) {
+              // Single switch step scan: every step is a physical selection
+              currentStepCost = currentSelectionCost;
+            }
+
+            let sEffort = scanningEffort(steps, selections, currentStepCost, currentSelectionCost);
+
+            // Factor in error correction if enabled
+            if (scanningConfig?.errorCorrectionEnabled) {
+              const errorRate =
+                scanningConfig.errorRate ?? EFFORT_CONSTANTS.DEFAULT_SCAN_ERROR_RATE;
+              // A "miss" results in needing to wait for a loop (or part of one)
+              // We model this as errorRate * (loopSteps * stepCost)
+              const retryPenalty = loopSteps * currentStepCost;
+              sEffort += errorRate * retryPenalty;
+            }
+
+            // Apply discounts to scanning effort (similar to touch)
+            if (btn.semantic_id && boardPcts[btn.semantic_id]) {
               const discount =
                 EFFORT_CONSTANTS.SAME_LOCATION_AS_PRIOR_DISCOUNT / boardPcts[btn.semantic_id];
-              distance = Math.min(distance, distance * discount);
-            } else if (boardPcts[`upstream-${btn.semantic_id}`]) {
-              const discount =
-                EFFORT_CONSTANTS.RECOGNIZABLE_SEMANTIC_FROM_PRIOR_DISCOUNT /
-                boardPcts[`upstream-${btn.semantic_id}`];
-              distance = Math.min(distance, distance * discount);
-            } else if (level > 0 && setPcts[btn.semantic_id]) {
-              const discount =
-                EFFORT_CONSTANTS.RECOGNIZABLE_SEMANTIC_FROM_OTHER_DISCOUNT /
-                setPcts[btn.semantic_id];
-              distance = Math.min(distance, distance * discount);
-            }
-          }
-          if (btn.clone_id) {
-            if (boardPcts[btn.clone_id]) {
+              sEffort = Math.min(sEffort, sEffort * discount);
+            } else if (btn.clone_id && boardPcts[btn.clone_id]) {
               const discount =
                 EFFORT_CONSTANTS.SAME_LOCATION_AS_PRIOR_DISCOUNT / boardPcts[btn.clone_id];
-              distance = Math.min(distance, distance * discount);
-            } else if (boardPcts[`upstream-${btn.clone_id}`]) {
-              const discount =
-                EFFORT_CONSTANTS.RECOGNIZABLE_CLONE_FROM_PRIOR_DISCOUNT /
-                boardPcts[`upstream-${btn.clone_id}`];
-              distance = Math.min(distance, distance * discount);
-            } else if (level > 0 && setPcts[btn.clone_id]) {
-              const discount =
-                EFFORT_CONSTANTS.RECOGNIZABLE_CLONE_FROM_OTHER_DISCOUNT / setPcts[btn.clone_id];
-              distance = Math.min(distance, distance * discount);
+              sEffort = Math.min(sEffort, sEffort * discount);
             }
-          }
 
-          buttonEffort += distance;
-
-          // Add visual scan or local scan effort
-          if (
-            distance > EFFORT_CONSTANTS.DISTANCE_THRESHOLD_TO_SKIP_VISUAL_SCAN ||
-            (entryX === 1.0 && entryY === 1.0)
-          ) {
-            buttonEffort += visualScanEffort(priorItems);
+            buttonEffort += sEffort;
           } else {
-            buttonEffort += localScanEffort(distance);
+            // Add distance effort (Touch only)
+            let distance = distanceEffort(x, y, entryX, entryY);
+
+            // Apply distance discounts
+            if (btn.semantic_id) {
+              if (boardPcts[btn.semantic_id]) {
+                const discount =
+                  EFFORT_CONSTANTS.SAME_LOCATION_AS_PRIOR_DISCOUNT / boardPcts[btn.semantic_id];
+                distance = Math.min(distance, distance * discount);
+              } else if (boardPcts[`upstream-${btn.semantic_id}`]) {
+                const discount =
+                  EFFORT_CONSTANTS.RECOGNIZABLE_SEMANTIC_FROM_PRIOR_DISCOUNT /
+                  boardPcts[`upstream-${btn.semantic_id}`];
+                distance = Math.min(distance, distance * discount);
+              } else if (level > 0 && setPcts[btn.semantic_id]) {
+                const discount =
+                  EFFORT_CONSTANTS.RECOGNIZABLE_SEMANTIC_FROM_OTHER_DISCOUNT /
+                  setPcts[btn.semantic_id];
+                distance = Math.min(distance, distance * discount);
+              }
+            }
+            if (btn.clone_id) {
+              if (boardPcts[btn.clone_id]) {
+                const discount =
+                  EFFORT_CONSTANTS.SAME_LOCATION_AS_PRIOR_DISCOUNT / boardPcts[btn.clone_id];
+                distance = Math.min(distance, distance * discount);
+              } else if (boardPcts[`upstream-${btn.clone_id}`]) {
+                const discount =
+                  EFFORT_CONSTANTS.RECOGNIZABLE_CLONE_FROM_PRIOR_DISCOUNT /
+                  boardPcts[`upstream-${btn.clone_id}`];
+                distance = Math.min(distance, distance * discount);
+              } else if (level > 0 && setPcts[btn.clone_id]) {
+                const discount =
+                  EFFORT_CONSTANTS.RECOGNIZABLE_CLONE_FROM_OTHER_DISCOUNT / setPcts[btn.clone_id];
+                distance = Math.min(distance, distance * discount);
+              }
+            }
+
+            buttonEffort += distance;
+
+            // Add visual scan or local scan effort
+            if (
+              distance > EFFORT_CONSTANTS.DISTANCE_THRESHOLD_TO_SKIP_VISUAL_SCAN ||
+              (entryX === 1.0 && entryY === 1.0)
+            ) {
+              buttonEffort += visualScanEffort(priorItems);
+            } else {
+              buttonEffort += localScanEffort(distance);
+            }
           }
-        }
 
-        // Add cumulative prior effort
-        buttonEffort += priorEffort;
+          // Add cumulative prior effort
+          buttonEffort += priorEffort;
 
-        // Track scan blocks for block scanning, otherwise track individual buttons
-        if (blockScanEnabled) {
-          const scanBlockId = btn.scanBlock ?? btn.scanBlocks?.[0];
-          if (scanBlockId !== undefined && scanBlockId !== null) {
-            priorScanBlocks.add(scanBlockId);
+          // Track scan blocks for block scanning, otherwise track individual buttons
+          if (blockScanEnabled) {
+            const scanBlockId = btn.scanBlock ?? btn.scanBlocks?.[0];
+            if (scanBlockId !== undefined && scanBlockId !== null) {
+              priorScanBlocks.add(scanBlockId);
+            }
           }
-        }
 
-        // Handle navigation buttons
-        if (btn.targetPageId) {
-          const nextBoard = tree.getPage(btn.targetPageId);
-          if (nextBoard) {
-            // Only add to toVisit if this board hasn't been visited yet at any level
-            // The visitedBoardIds map stores the *lowest* level a board was visited.
-            // If it's already in the map, it means we've processed it or scheduled it at a lower level.
-            if (visitedBoardIds.get(nextBoard.id) === undefined) {
-              const changeEffort = EFFORT_CONSTANTS.BOARD_CHANGE_PROCESSING_EFFORT;
-              const tempHomeId =
-                btn.semanticAction?.platformData?.grid3?.parameters?.temporary_home === 'prior'
-                  ? board.id
-                  : btn.semanticAction?.platformData?.grid3?.parameters?.temporary_home === true
-                    ? btn.targetPageId
-                    : temporaryHomeId;
+          // Handle navigation buttons
+          if (btn.targetPageId) {
+            const nextBoard = tree.getPage(btn.targetPageId);
+            if (nextBoard) {
+              // Only add to toVisit if this board hasn't been visited yet at any level
+              // The visitedBoardIds map stores the *lowest* level a board was visited.
+              // If it's already in the map, it means we've processed it or scheduled it at a lower level.
+              if (visitedBoardIds.get(nextBoard.id) === undefined) {
+                const changeEffort = EFFORT_CONSTANTS.BOARD_CHANGE_PROCESSING_EFFORT;
+                const tempHomeId =
+                  btn.semanticAction?.platformData?.grid3?.parameters?.temporary_home === 'prior'
+                    ? board.id
+                    : btn.semanticAction?.platformData?.grid3?.parameters?.temporary_home === true
+                      ? btn.targetPageId
+                      : temporaryHomeId;
 
-              toVisit.push({
-                board: nextBoard,
-                level: level + 1,
-                priorEffort: buttonEffort + changeEffort,
-                temporaryHomeId: tempHomeId,
-                entryX: x,
-                entryY: y,
-                entryCloneId: btn.clone_id,
-                entrySemanticId: btn.semantic_id,
-              });
+                toVisit.push({
+                  board: nextBoard,
+                  level: level + 1,
+                  priorEffort: buttonEffort + changeEffort,
+                  temporaryHomeId: tempHomeId,
+                  entryX: x,
+                  entryY: y,
+                  entryCloneId: btn.clone_id,
+                  entrySemanticId: btn.semantic_id,
+                });
+              }
+            }
+          }
+
+          // Track word if it speaks or adds to sentence
+          const isSpeak =
+            btn.semanticAction?.category === AACSemanticCategory.COMMUNICATION && !btn.targetPageId; // Must not be a navigation button
+          const addToSentence =
+            btn.semanticAction?.platformData?.grid3?.parameters?.add_to_sentence ||
+            btn.semanticAction?.fallback?.add_to_sentence;
+
+          if (isSpeak || addToSentence) {
+            let finalEffort = buttonEffort;
+
+            // Apply Board Change Processing Effort Discount (matching Ruby lines 347-350)
+            const changeEffort = EFFORT_CONSTANTS.BOARD_CHANGE_PROCESSING_EFFORT;
+            if (btn.clone_id && boardPcts[btn.clone_id]) {
+              const discount = Math.min(
+                changeEffort,
+                (changeEffort * 0.3) / boardPcts[btn.clone_id]
+              );
+              finalEffort -= discount;
+            } else if (btn.semantic_id && boardPcts[btn.semantic_id]) {
+              const discount = Math.min(
+                changeEffort,
+                (changeEffort * 0.5) / boardPcts[btn.semantic_id]
+              );
+              finalEffort -= discount;
+            }
+
+            const existing = knownButtons.get(btn.label);
+            const knownBtn: ButtonMetrics = {
+              id: btn.id,
+              label: btn.label,
+              level,
+              effort: finalEffort,
+              count: (existing?.count || 0) + 1,
+              semantic_id: btn.semantic_id,
+              clone_id: btn.clone_id,
+              temporary_home_id: temporaryHomeId || undefined,
+            };
+
+            if (!existing || finalEffort < existing.effort) {
+              knownButtons.set(btn.label, knownBtn);
             }
           }
         }
-
-        // Track word if it speaks or adds to sentence
-        const intent = String(btn.semanticAction?.intent || '');
-        const isSpeak =
-          btn.semanticAction?.category === AACSemanticCategory.COMMUNICATION ||
-          intent === 'SPEAK_TEXT' ||
-          intent === 'SPEAK_IMMEDIATE' ||
-          intent === 'INSERT_TEXT' ||
-          btn.semanticAction?.fallback?.type === 'SPEAK';
-        const addToSentence =
-          btn.semanticAction?.platformData?.grid3?.parameters?.add_to_sentence ||
-          btn.semanticAction?.fallback?.add_to_sentence;
-
-        if (isSpeak || addToSentence) {
-          let finalEffort = buttonEffort;
-
-          // Apply Board Change Processing Effort Discount (matching Ruby lines 347-350)
-          const changeEffort = EFFORT_CONSTANTS.BOARD_CHANGE_PROCESSING_EFFORT;
-          if (btn.clone_id && boardPcts[btn.clone_id]) {
-            const discount = Math.min(changeEffort, (changeEffort * 0.3) / boardPcts[btn.clone_id]);
-            finalEffort -= discount;
-          } else if (btn.semantic_id && boardPcts[btn.semantic_id]) {
-            const discount = Math.min(
-              changeEffort,
-              (changeEffort * 0.5) / boardPcts[btn.semantic_id]
-            );
-            finalEffort -= discount;
-          }
-
-          const existing = knownButtons.get(btn.label);
-          const knownBtn: ButtonMetrics = {
-            id: btn.id,
-            label: btn.label,
-            level,
-            effort: finalEffort,
-            count: (existing?.count || 0) + 1,
-            semantic_id: btn.semantic_id,
-            clone_id: btn.clone_id,
-            temporary_home_id: temporaryHomeId || undefined,
-          };
-
-          if (!existing || finalEffort < existing.effort) {
-            knownButtons.set(btn.label, knownBtn);
-          }
-        }
-      });
+      }
     }
 
     // Convert to array and group by level
