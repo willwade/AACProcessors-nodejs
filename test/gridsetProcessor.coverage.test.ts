@@ -1,9 +1,6 @@
 import { GridsetProcessor } from '../src/processors/gridsetProcessor';
-import { AACTree } from '../src/core/treeStructure';
 import AdmZip from 'adm-zip';
 import { XMLBuilder } from 'fast-xml-parser';
-import path from 'path';
-import fs from 'fs';
 
 describe('GridsetProcessor Coverage Tests', () => {
   describe('Metadata Extraction', () => {

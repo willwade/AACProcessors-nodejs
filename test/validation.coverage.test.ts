@@ -1,5 +1,9 @@
-import { ObfValidator, GridsetValidator, SnapValidator, TouchChatValidator } from '../src/validation';
-import { ValidationResult } from '../src/validation/validationTypes';
+import {
+  ObfValidator,
+  GridsetValidator,
+  SnapValidator,
+  TouchChatValidator,
+} from '../src/validation';
 import JSZip from 'jszip';
 
 describe('Validation Coverage Tests', () => {
@@ -344,13 +348,13 @@ describe('Validation Coverage Tests', () => {
         root: 'root.obf',
         paths: {
           boards: {
-            'board1': 'boards/board1.obf',
+            board1: 'boards/board1.obf',
           },
           images: {
-            'img1': 'images/img1.png',
+            img1: 'images/img1.png',
           },
           sounds: {
-            'snd1': 'sounds/snd1.wav',
+            snd1: 'sounds/snd1.wav',
           },
         },
       };
@@ -392,9 +396,7 @@ describe('Validation Coverage Tests', () => {
       const result = await new ObfValidator().validate(content, 'test.obz', content.length);
 
       expect(result.valid).toBe(false);
-      const hasManifestError = result.results.some(
-        (r) => r.type === 'manifest' && r.error
-      );
+      const hasManifestError = result.results.some((r) => r.type === 'manifest' && r.error);
       expect(hasManifestError).toBe(true);
     });
 
@@ -426,7 +428,7 @@ describe('Validation Coverage Tests', () => {
         root: 'boards/board1.obf',
         paths: {
           boards: {
-            'board1': 'boards/board1.obf',
+            board1: 'boards/board1.obf',
           },
           images: {},
           sounds: {},
