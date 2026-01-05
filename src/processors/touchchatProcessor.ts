@@ -249,7 +249,7 @@ class TouchChatProcessor extends BaseProcessor {
 
       // Load button boxes and their cells
       const buttonBoxQuery = `
-        SELECT bbc.*, b.*, bb.id as box_id
+        SELECT bbc.*, b.*, bb.id as box_id, bb.layout_x, bb.layout_y
         FROM button_box_cells bbc
         JOIN buttons b ON b.resource_id = bbc.resource_id
         JOIN button_boxes bb ON bb.id = bbc.button_box_id
@@ -257,21 +257,35 @@ class TouchChatProcessor extends BaseProcessor {
       try {
         const buttonBoxCells = db.prepare(buttonBoxQuery).all() as (TouchChatButton & {
           box_id: number;
+          layout_x: number;
+          layout_y: number;
         })[];
         const buttonBoxes = new Map<
           number,
-          Array<{
-            button: AACButton;
-            location: number;
-            spanX: number;
-            spanY: number;
-          }>
+          {
+            layoutX: number;
+            layoutY: number;
+            buttons: Array<{
+              button: AACButton;
+              location: number;
+              spanX: number;
+              spanY: number;
+            }>;
+          }
         >();
 
         buttonBoxCells.forEach((cell) => {
-          if (!buttonBoxes.has(cell.box_id)) {
-            buttonBoxes.set(cell.box_id, []);
+          let boxData = buttonBoxes.get(cell.box_id);
+
+          if (!boxData) {
+            boxData = {
+              layoutX: cell.layout_x || 10,
+              layoutY: cell.layout_y || 6,
+              buttons: [],
+            };
+            buttonBoxes.set(cell.box_id, boxData);
           }
+
           const style = buttonStyles.get(cell.button_style_id);
           // Create semantic action for TouchChat button
           const semanticAction: AACSemanticAction = {
@@ -320,7 +334,7 @@ class TouchChatProcessor extends BaseProcessor {
               labelOnTop: toBooleanOrUndefined(style?.label_on_top),
             },
           });
-          buttonBoxes.get(cell.box_id)?.push({
+          boxData.buttons.push({
             button,
             location: ((cell as any).location as number) || 0,
             spanX: ((cell as any).span_x as number) || 1,
@@ -346,8 +360,8 @@ class TouchChatProcessor extends BaseProcessor {
           // Use mapped string ID if available, otherwise use numeric ID as string
           const pageId = numericToRid.get(instance.page_id) || String(instance.page_id);
           const page = tree.getPage(pageId);
-          const buttons = buttonBoxes.get(instance.button_box_id);
-          if (page && buttons) {
+          const boxData = buttonBoxes.get(instance.button_box_id);
+          if (page && boxData) {
             // Initialize page grid if not exists (assume max 10x10 grid)
             if (!pageGrids.has(pageId)) {
               const grid: Array<Array<AACButton | null>> = [];
@@ -361,16 +375,14 @@ class TouchChatProcessor extends BaseProcessor {
             if (!pageGrid) return;
             const boxX = Number(instance.position_x) || 0;
             const boxY = Number(instance.position_y) || 0;
-            const boxWidth = Number(instance.size_x) || 1;
+            const boxWidth = boxData.layoutX; // Use layout_x from button_boxes, not size_x from instance
             // boxHeight not currently used but kept for future span calculations
-            // const boxHeight = Number(instance.size_y) || 1;
+            // const boxHeight = boxData.layoutY;
 
-            buttons.forEach(({ button, location, spanX, spanY }) => {
+            boxData.buttons.forEach(({ button, location, spanX, spanY }) => {
               const safeLocation = Number(location) || 0;
               const safeSpanX = Number(spanX) || 1;
               const safeSpanY = Number(spanY) || 1;
-              // Add button to page
-              page.addButton(button);
 
               // Calculate button position within the button box
               // location is a linear index, convert to grid coordinates
@@ -380,6 +392,13 @@ class TouchChatProcessor extends BaseProcessor {
               // Calculate absolute position on page
               const absoluteX = boxX + buttonX;
               const absoluteY = boxY + buttonY;
+
+              // Set button's x and y coordinates
+              button.x = absoluteX;
+              button.y = absoluteY;
+
+              // Add button to page
+              page.addButton(button);
 
               // Place button in grid (handle span)
               for (let r = absoluteY; r < absoluteY + safeSpanY && r < 10; r++) {
@@ -704,7 +723,14 @@ class TouchChatProcessor extends BaseProcessor {
         );
 
         CREATE TABLE IF NOT EXISTS button_boxes (
-          id INTEGER PRIMARY KEY
+          id INTEGER PRIMARY KEY,
+          resource_id INTEGER,
+          layout_x INTEGER DEFAULT 10,
+          layout_y INTEGER DEFAULT 6,
+          init_size_x INTEGER DEFAULT 10000,
+          init_size_y INTEGER DEFAULT 10000,
+          scan_pattern_id INTEGER DEFAULT 0,
+          FOREIGN KEY (resource_id) REFERENCES resources (id)
         );
 
         CREATE TABLE IF NOT EXISTS button_box_cells (
@@ -886,8 +912,26 @@ class TouchChatProcessor extends BaseProcessor {
 
           // Create a button box for this page's buttons
           const buttonBoxId = buttonBoxIdCounter++;
-          const insertButtonBox = db.prepare('INSERT INTO button_boxes (id) VALUES (?)');
-          insertButtonBox.run(buttonBoxId);
+
+          // Create a resource for the button box
+          const buttonBoxResourceId = resourceIdCounter++;
+          const insertButtonBoxResource = db.prepare(
+            'INSERT INTO resources (id, name, type) VALUES (?, ?, ?)'
+          );
+          insertButtonBoxResource.run(buttonBoxResourceId, page.name || 'ButtonBox', 0);
+
+          // Insert button box with layout dimensions
+          const insertButtonBox = db.prepare(
+            'INSERT INTO button_boxes (id, resource_id, layout_x, layout_y, init_size_x, init_size_y) VALUES (?, ?, ?, ?, ?, ?)'
+          );
+          insertButtonBox.run(
+            buttonBoxId,
+            buttonBoxResourceId,
+            gridWidth,
+            gridHeight,
+            10000, // init_size_x in internal units
+            10000 // init_size_y in internal units
+          );
 
           // Create button box instance with calculated dimensions
           const insertButtonBoxInstance = db.prepare(

@@ -163,7 +163,8 @@ class SnapProcessor extends BaseProcessor {
           // Set toolbarId if there's a global toolbar
           if (hasGlobalToolbar) {
             tree.toolbarId = toolbarId || null;
-            tree.rootId = toolbarId || defaultHomePageId || null;
+            // Use defaultHomePageId as root (the content pageset), not the toolbar
+            tree.rootId = defaultHomePageId || null;
           } else if (defaultHomePageId) {
             tree.rootId = defaultHomePageId;
           }
@@ -172,18 +173,11 @@ class SnapProcessor extends BaseProcessor {
         console.warn('[SnapProcessor] Failed to load PageSetProperties:', e);
       }
 
-      // If still no root, look for a page titled "Tool Bar" or similar
-      if (!tree.rootId || tree.rootId === defaultHomePageId) {
-        const toolbarPage = pages.find((p) => p.Title === 'Tool Bar' || p.Name === 'Tool Bar');
-        if (toolbarPage) {
-          tree.rootId = String(toolbarPage.UniqueId || toolbarPage.Id);
-        }
-      }
-
-      // If still no root, fallback to first page
+      // If still no root, fallback to first page (but don't override a valid defaultHomePageId)
       if (!tree.rootId && pages.length > 0) {
         tree.rootId = String(pages[0].UniqueId || pages[0].Id);
       }
+
       // Map from numeric Id -> UniqueId for later lookup
       const idToUniqueId: Record<string, string> = {};
       pages.forEach((pageRow: SnapPage) => {
@@ -204,6 +198,23 @@ class SnapProcessor extends BaseProcessor {
         });
         tree.addPage(page);
       });
+
+      // Try to find toolbar page even if not set in PageSetProperties
+      // Some SNAP files have a toolbar page but don't set ToolBarUniqueId
+      // This must be done AFTER pages are added to the tree
+      if (!tree.toolbarId || tree.toolbarId === '00000000-0000-0000-0000-000000000000') {
+        const toolbarPage = Object.values(tree.pages).find((p) => {
+          const name = (p.name || '').toLowerCase();
+          return name === 'tool bar' || name === 'toolbar';
+        });
+        if (toolbarPage) {
+          tree.toolbarId = toolbarPage.id;
+          // Update metadata to reflect toolbar detection
+          if (tree.metadata) {
+            (tree.metadata as any).hasGlobalToolbar = true;
+          }
+        }
+      }
 
       // Load ScanGroups for TD Snap "Group Scan" feature
       // Maps PageLayoutId -> Array of ScanGroups with their scan block numbers
