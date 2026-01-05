@@ -550,19 +550,57 @@ class TouchChatProcessor extends BaseProcessor {
         // console.log('No navigation actions found:', e);
       }
 
-      // Try to load root ID from metadata, fallback to first page
+      // Try to load root ID from multiple sources in order of priority
       try {
-        const metadataQuery = "SELECT value FROM tree_metadata WHERE key = 'rootId'";
-        const rootIdRow = db.prepare(metadataQuery).get() as { value: string } | undefined;
-        if (rootIdRow && tree.getPage(rootIdRow.value)) {
-          tree.rootId = rootIdRow.value;
-        } else if (rootPageId) {
+        // First, try to get HOME page from special_pages table (TouchChat specific)
+        const specialPagesQuery = "SELECT page_id FROM special_pages WHERE name = 'HOME'";
+        const homePageRow = db.prepare(specialPagesQuery).get() as { page_id: number } | undefined;
+
+        if (homePageRow) {
+          // The page_id is the page's id (not resource_id), need to get the RID
+          const homePageIdQuery = `
+            SELECT p.id, r.rid
+            FROM pages p
+            JOIN resources r ON r.id = p.resource_id
+            WHERE p.id = ?
+            LIMIT 1
+          `;
+          const homePage = db.prepare(homePageIdQuery).get(homePageRow.page_id) as
+            | {
+                id: number;
+                rid?: string;
+              }
+            | undefined;
+
+          if (homePage) {
+            const homePageUUID = homePage.rid || String(homePage.id);
+            if (tree.getPage(homePageUUID)) {
+              tree.rootId = homePageUUID;
+              tree.metadata.defaultHomePageId = homePageUUID;
+            }
+          }
+        }
+
+        // If no HOME page found, try tree_metadata table (general fallback)
+        if (!tree.rootId) {
+          const metadataQuery = "SELECT value FROM tree_metadata WHERE key = 'rootId'";
+          const rootIdRow = db.prepare(metadataQuery).get() as { value: string } | undefined;
+          if (rootIdRow && tree.getPage(rootIdRow.value)) {
+            tree.rootId = rootIdRow.value;
+            tree.metadata.defaultHomePageId = rootIdRow.value;
+          }
+        }
+
+        // Final fallback: first page
+        if (!tree.rootId && rootPageId) {
           tree.rootId = rootPageId;
+          tree.metadata.defaultHomePageId = rootPageId;
         }
       } catch (e) {
-        // No metadata table, use first page as root
+        // No metadata table or other error, use first page as root
         if (rootPageId) {
           tree.rootId = rootPageId;
+          tree.metadata.defaultHomePageId = rootPageId;
         }
       }
 
