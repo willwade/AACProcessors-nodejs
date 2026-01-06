@@ -1323,12 +1323,11 @@ class GridsetProcessor extends BaseProcessor {
                 symbolLibraryRef: symbolLibraryRef, // Store full symbol reference
                 grammar: isSmartGrammarCell ? grammar : undefined,
                 isSmartGrammarCell: isSmartGrammarCell,
-                predictions:
-                  predictionWords?.length
-                    ? [...predictionWords]
-                    : gridPredictionWords.length > 0
-                      ? [...gridPredictionWords]
-                      : undefined,
+                predictions: predictionWords?.length
+                  ? [...predictionWords]
+                  : gridPredictionWords.length > 0
+                    ? [...gridPredictionWords]
+                    : undefined,
                 predictionSlot:
                   pluginMetadata.cellType === Grid3CellType.AutoContent &&
                   pluginMetadata.autoContentType === 'Prediction'
