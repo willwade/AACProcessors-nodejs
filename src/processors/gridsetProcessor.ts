@@ -601,7 +601,9 @@ class GridsetProcessor extends BaseProcessor {
             gridLayout[r] = new Array(maxCols).fill(null);
           }
 
-          const pagePredictedWords = new Set<string>();
+          // Track grid-level prediction wordlists so we can attach them to AutoContent
+          const gridPredictionWords: string[] = [];
+          let predictionCellCounter = 0;
 
           // Extract words from grid-level AutoContentCommands (e.g., Prediction Bar)
           if (grid.AutoContentCommands) {
@@ -627,7 +629,7 @@ class GridsetProcessor extends BaseProcessor {
 
                   if (wordListParam) {
                     const words = this._extractWordsFromWordList(wordListParam);
-                    words.forEach((w) => pagePredictedWords.add(w));
+                    gridPredictionWords.push(...words);
                   }
                 }
               });
@@ -723,6 +725,17 @@ class GridsetProcessor extends BaseProcessor {
             // Detect plugin cell type (Workspace, LiveCell, AutoContent)
             const pluginMetadata = detectPluginCellType(content);
 
+            // Default labels for prediction cells so they don't render blank
+            if (
+              pluginMetadata.cellType === Grid3CellType.AutoContent &&
+              pluginMetadata.autoContentType === 'Prediction'
+            ) {
+              predictionCellCounter += 1;
+              if (!label) {
+                label = `Prediction ${predictionCellCounter}`;
+              }
+            }
+
             // Parse all command types from Grid3 and create semantic actions
             let semanticAction: AACSemanticAction | undefined;
             let legacyAction: any = null;
@@ -731,6 +744,7 @@ class GridsetProcessor extends BaseProcessor {
             let detectedCommands: any[] = []; // Store detected command metadata
 
             const commands = content.Commands?.Command || content.commands?.command;
+            let predictionWords: string[] | undefined;
 
             // Resolve image for this cell using FileMap and coordinate heuristics
             const imageCandidate =
@@ -782,7 +796,9 @@ class GridsetProcessor extends BaseProcessor {
                   }
                   if (wlP) {
                     const words = this._extractWordsFromWordList(wlP);
-                    words.forEach((w) => pagePredictedWords.add(w));
+                    if (words.length > 0) {
+                      predictionWords = words;
+                    }
                   }
                 }
               });
@@ -822,20 +838,22 @@ class GridsetProcessor extends BaseProcessor {
                 // Skip PredictThis in primary action loop as it was handled in pre-pass
                 // unless we need a primary action and nothing else exists
                 if (commandId === 'Prediction.PredictThis') {
-                  if (!semanticAction) {
-                    const wlParam = getRawParam('wordlist');
-                    if (wlParam) {
-                      const words = this._extractWordsFromWordList(wlParam);
-                      semanticAction = {
-                        category: AACSemanticCategory.COMMUNICATION,
-                        intent: AACSemanticIntent.PLATFORM_SPECIFIC,
-                        text: words.slice(0, 3).join(', '),
-                        platformData: {
-                          grid3: { commandId, parameters: { wordlist: words } },
-                        },
-                        fallback: { type: 'ACTION', message: 'Predict words' },
-                      };
-                    }
+                  const wlParam = getRawParam('wordlist');
+                  const words = wlParam ? this._extractWordsFromWordList(wlParam) : [];
+                  if (words.length > 0) {
+                    predictionWords = words;
+                  }
+
+                  if (!semanticAction && words.length > 0) {
+                    semanticAction = {
+                      category: AACSemanticCategory.COMMUNICATION,
+                      intent: AACSemanticIntent.PLATFORM_SPECIFIC,
+                      text: words.slice(0, 3).join(', '),
+                      platformData: {
+                        grid3: { commandId, parameters: { wordlist: words } },
+                      },
+                      fallback: { type: 'ACTION', message: 'Predict words' },
+                    };
                   }
                   continue;
                 }
@@ -963,14 +981,9 @@ class GridsetProcessor extends BaseProcessor {
 
                   case 'Prediction.PredictThis': {
                     const wlParam = getRawParam('wordlist');
-                    if (wlParam) {
-                      const words = this._extractWordsFromWordList(wlParam);
-                      // Add to page-wide set of predicted words
-                      words.forEach((w) => pagePredictedWords.add(w));
-
-                      // Store words in a way that analyzer can find them
-                      // For now, we'll attach to semanticAction so it can be used later
-                      // We only set this as the primary action if we don't have one yet
+                    const words = wlParam ? this._extractWordsFromWordList(wlParam) : [];
+                    if (words.length > 0) {
+                      predictionWords = words;
                       if (!semanticAction) {
                         semanticAction = {
                           category: AACSemanticCategory.COMMUNICATION,
@@ -1310,6 +1323,17 @@ class GridsetProcessor extends BaseProcessor {
                 symbolLibraryRef: symbolLibraryRef, // Store full symbol reference
                 grammar: isSmartGrammarCell ? grammar : undefined,
                 isSmartGrammarCell: isSmartGrammarCell,
+                predictions:
+                  predictionWords?.length
+                    ? [...predictionWords]
+                    : gridPredictionWords.length > 0
+                      ? [...gridPredictionWords]
+                      : undefined,
+                predictionSlot:
+                  pluginMetadata.cellType === Grid3CellType.AutoContent &&
+                  pluginMetadata.autoContentType === 'Prediction'
+                    ? predictionCellCounter
+                    : undefined,
               },
             });
 
@@ -1325,65 +1349,6 @@ class GridsetProcessor extends BaseProcessor {
               }
             }
           });
-
-          // Process predicted words: Populate AutoContent slots first, then add virtual buttons at bottom
-          if (pagePredictedWords.size > 0) {
-            const extraWords = Array.from(pagePredictedWords).filter((w) => w.trim().length > 0);
-            if (extraWords.length > 0) {
-              let wordIdx = 0;
-
-              // Step 1: Fill dedicated AutoContent prediction slots (e.g. at the top)
-              page.buttons.forEach((btn) => {
-                if (
-                  btn.contentType === 'AutoContent' &&
-                  btn.contentSubType === 'Prediction' &&
-                  wordIdx < extraWords.length
-                ) {
-                  const word = extraWords[wordIdx++];
-                  btn.label = word;
-                  btn.message = word;
-                  btn.semanticAction = {
-                    category: AACSemanticCategory.COMMUNICATION,
-                    intent: AACSemanticIntent.INSERT_TEXT,
-                    text: word,
-                    fallback: { type: 'SPEAK', message: word },
-                  };
-                }
-              });
-
-              // Step 2: Add remaining words as virtual buttons at the bottom
-              if (wordIdx < extraWords.length) {
-                const remainingWords = extraWords.slice(wordIdx);
-                const extraRowsCount = Math.ceil(remainingWords.length / maxCols);
-
-                for (let r = 0; r < extraRowsCount; r++) {
-                  const row: (AACButton | null)[] = new Array(maxCols).fill(null);
-                  for (let c = 0; c < maxCols; c++) {
-                    const idx = r * maxCols + c;
-                    if (idx < remainingWords.length) {
-                      const word = remainingWords[idx];
-                      const vBtn = new AACButton({
-                        id: `${gridId}_vpredict_${wordIdx + idx}`,
-                        label: word,
-                        message: word,
-                        x: c,
-                        y: maxRows + r,
-                        semanticAction: {
-                          category: AACSemanticCategory.COMMUNICATION,
-                          intent: AACSemanticIntent.INSERT_TEXT,
-                          text: word,
-                          fallback: { type: 'SPEAK', message: word },
-                        },
-                      });
-                      row[c] = vBtn;
-                      page.addButton(vBtn);
-                    }
-                  }
-                  gridLayout.push(row);
-                }
-              }
-            }
-          }
 
           // Set the page's grid layout
           page.grid = gridLayout;
