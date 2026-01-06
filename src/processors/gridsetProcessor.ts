@@ -725,15 +725,24 @@ class GridsetProcessor extends BaseProcessor {
             // Detect plugin cell type (Workspace, LiveCell, AutoContent)
             const pluginMetadata = detectPluginCellType(content);
 
-            // Default labels for prediction cells so they don't render blank
+            // Friendly labels for workspace/prediction cells when captions are missing
+            if (pluginMetadata.cellType === Grid3CellType.Workspace) {
+              if (!label || label.startsWith('Cell_')) {
+                label =
+                  pluginMetadata.displayName ||
+                  pluginMetadata.subType ||
+                  pluginMetadata.pluginId ||
+                  'Workspace';
+              }
+            }
+
             if (
               pluginMetadata.cellType === Grid3CellType.AutoContent &&
               pluginMetadata.autoContentType === 'Prediction'
             ) {
               predictionCellCounter += 1;
-              if (!label) {
-                label = `Prediction ${predictionCellCounter}`;
-              }
+              // Always surface a friendly label for predictions even if a placeholder exists
+              label = `Prediction ${predictionCellCounter}`;
             }
 
             // Parse all command types from Grid3 and create semantic actions
