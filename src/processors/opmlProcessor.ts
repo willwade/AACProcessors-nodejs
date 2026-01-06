@@ -9,6 +9,8 @@ import { AACTree, AACPage, AACButton, AACSemanticIntent } from '../core/treeStru
 // Removed unused import: FileProcessor
 import { XMLParser, XMLValidator, XMLBuilder } from 'fast-xml-parser';
 import fs from 'fs';
+import path from 'path';
+import { ValidationFailureError, buildValidationResultFromMessage } from '../validation';
 
 interface OpmlOutline {
   '@_text'?: string;
@@ -124,57 +126,93 @@ class OpmlProcessor extends BaseProcessor {
   }
 
   loadIntoTree(filePathOrBuffer: string | Buffer): AACTree {
-    const content =
-      typeof filePathOrBuffer === 'string'
-        ? fs.readFileSync(filePathOrBuffer, 'utf8')
-        : filePathOrBuffer.toString('utf8');
+    const filename =
+      typeof filePathOrBuffer === 'string' ? path.basename(filePathOrBuffer) : 'upload.opml';
+    const buffer = Buffer.isBuffer(filePathOrBuffer)
+      ? filePathOrBuffer
+      : fs.readFileSync(filePathOrBuffer);
+    const content = buffer.toString('utf8');
 
-    if (!content || !content.trim()) {
-      throw new Error('Empty OPML content');
-    }
-
-    // Validate XML before parsing, fast-xml-parser is permissive by default
-    const validationResult = XMLValidator.validate(content);
-    if (validationResult !== true) {
-      const reason = (validationResult as any)?.err?.msg || JSON.stringify(validationResult);
-      throw new Error(`Invalid OPML XML: ${reason}`);
-    }
-
-    const parser = new XMLParser({ ignoreAttributes: false });
-    let data: OpmlDocument;
     try {
-      data = parser.parse(content) as OpmlDocument;
-    } catch (e: any) {
-      throw new Error(`Invalid OPML XML: ${e?.message || String(e)}`);
-    }
-    const tree = new AACTree();
-    tree.metadata.format = 'opml';
-
-    // Handle case where body.outline might not exist or be in different formats
-    const bodyOutline = data.opml?.body?.outline;
-    if (!bodyOutline) {
-      return tree; // Return empty tree if no outline data
-    }
-
-    const outlines = Array.isArray(bodyOutline) ? bodyOutline : [bodyOutline];
-    let firstRootId: string | null = null;
-    outlines.forEach((outline) => {
-      const { page, childPages } = this.processOutline(outline);
-      if (page && page.id) {
-        tree.addPage(page);
-        if (!firstRootId) firstRootId = page.id;
+      if (!content || !content.trim()) {
+        const validationResult = buildValidationResultFromMessage({
+          filename,
+          filesize: buffer.byteLength,
+          format: 'opml',
+          message: 'Empty OPML content',
+          type: 'content',
+          description: 'OPML content is empty',
+        });
+        throw new ValidationFailureError('Empty OPML content', validationResult);
       }
-      childPages.forEach((childPage) => {
-        if (childPage && childPage.id) tree.addPage(childPage);
+
+      // Validate XML before parsing, fast-xml-parser is permissive by default
+      const validationResult = XMLValidator.validate(content);
+      if (validationResult !== true) {
+        const reason = (validationResult as any)?.err?.msg || JSON.stringify(validationResult);
+        const structured = buildValidationResultFromMessage({
+          filename,
+          filesize: buffer.byteLength,
+          format: 'opml',
+          message: `Invalid OPML XML: ${reason}`,
+          type: 'xml',
+          description: 'OPML XML validation',
+        });
+        throw new ValidationFailureError('Invalid OPML XML', structured);
+      }
+
+      const parser = new XMLParser({ ignoreAttributes: false });
+      const data = parser.parse(content) as OpmlDocument;
+      const tree = new AACTree();
+      tree.metadata.format = 'opml';
+
+      // Handle case where body.outline might not exist or be in different formats
+      const bodyOutline = data.opml?.body?.outline;
+      if (!bodyOutline) {
+        const structured = buildValidationResultFromMessage({
+          filename,
+          filesize: buffer.byteLength,
+          format: 'opml',
+          message: 'Missing body.outline in OPML document',
+          type: 'structure',
+          description: 'OPML outline root',
+        });
+        throw new ValidationFailureError('Invalid OPML structure', structured);
+      }
+
+      const outlines = Array.isArray(bodyOutline) ? bodyOutline : [bodyOutline];
+      let firstRootId: string | null = null;
+      outlines.forEach((outline) => {
+        const { page, childPages } = this.processOutline(outline);
+        if (page && page.id) {
+          tree.addPage(page);
+          if (!firstRootId) firstRootId = page.id;
+        }
+        childPages.forEach((childPage) => {
+          if (childPage && childPage.id) tree.addPage(childPage);
+        });
       });
-    });
-    // Set rootId to first root page, or fallback to first page if any exist
-    if (firstRootId) {
-      tree.rootId = firstRootId;
-    } else if (Object.keys(tree.pages).length > 0) {
-      tree.rootId = Object.keys(tree.pages)[0];
+      // Set rootId to first root page, or fallback to first page if any exist
+      if (firstRootId) {
+        tree.rootId = firstRootId;
+      } else if (Object.keys(tree.pages).length > 0) {
+        tree.rootId = Object.keys(tree.pages)[0];
+      }
+      return tree;
+    } catch (err: any) {
+      if (err instanceof ValidationFailureError) {
+        throw err;
+      }
+      const validationResult = buildValidationResultFromMessage({
+        filename,
+        filesize: buffer.byteLength,
+        format: 'opml',
+        message: err?.message || 'Failed to parse OPML',
+        type: 'parse',
+        description: 'Parse OPML XML',
+      });
+      throw new ValidationFailureError('Failed to load OPML file', validationResult, err);
     }
-    return tree;
   }
 
   processTexts(

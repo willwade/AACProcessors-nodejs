@@ -8,6 +8,8 @@ import {
 import { AACTree, AACPage, AACButton, AACSemanticIntent } from '../core/treeStructure';
 // Removed unused import: FileProcessor
 import fs from 'fs';
+import path from 'path';
+import { ValidationFailureError, buildValidationResultFromMessage } from '../validation';
 
 interface DotNode {
   id: string;
@@ -103,88 +105,106 @@ class DotProcessor extends BaseProcessor {
   }
 
   loadIntoTree(filePathOrBuffer: string | Buffer): AACTree {
-    let content: string;
+    const filename =
+      typeof filePathOrBuffer === 'string' ? path.basename(filePathOrBuffer) : 'upload.dot';
+    const buffer = Buffer.isBuffer(filePathOrBuffer)
+      ? filePathOrBuffer
+      : fs.readFileSync(filePathOrBuffer);
+    const filesize = buffer.byteLength;
 
     try {
-      content =
-        typeof filePathOrBuffer === 'string'
-          ? fs.readFileSync(filePathOrBuffer, 'utf8')
-          : filePathOrBuffer.toString('utf8');
-    } catch (error) {
-      // Re-throw file system errors (like file not found)
-      if (typeof filePathOrBuffer === 'string') {
+      const content = buffer.toString('utf8');
+
+      if (!content || content.trim().length === 0) {
+        const validation = buildValidationResultFromMessage({
+          filename,
+          filesize,
+          format: 'dot',
+          message: 'DOT file is empty',
+          type: 'content',
+          description: 'DOT file content',
+        });
+        throw new ValidationFailureError('Empty DOT content', validation);
+      }
+
+      // Check for binary data (contains null bytes or non-printable characters)
+      const head = content.substring(0, 100);
+      for (let i = 0; i < head.length; i++) {
+        const code = head.charCodeAt(i);
+        if (code === 0 || (code >= 0 && code <= 8) || (code >= 14 && code <= 31)) {
+          const validation = buildValidationResultFromMessage({
+            filename,
+            filesize,
+            format: 'dot',
+            message: 'DOT appears to be binary data',
+            type: 'content',
+            description: 'DOT file content',
+          });
+          throw new ValidationFailureError('Invalid DOT content', validation);
+        }
+      }
+
+      const { nodes, edges } = this.parseDotFile(content);
+      const tree = new AACTree();
+      tree.metadata.format = 'dot';
+
+      // Create pages for each node and add a self button representing the node label
+      for (const node of nodes) {
+        const page = new AACPage({
+          id: node.id,
+          name: node.label,
+          grid: [],
+          buttons: [],
+          parentId: null,
+        });
+        tree.addPage(page);
+
+        // Add a self button so single-node graphs yield one button
+        page.addButton(
+          new AACButton({
+            id: `${node.id}_self`,
+            label: node.label,
+            message: node.label,
+            semanticAction: {
+              intent: AACSemanticIntent.SPEAK_TEXT,
+              text: node.label,
+              fallback: { type: 'SPEAK', message: node.label },
+            },
+          })
+        );
+      }
+
+      // Create navigation buttons based on edges
+      for (const edge of edges) {
+        const fromPage = tree.getPage(edge.from);
+        if (fromPage) {
+          const button = new AACButton({
+            id: `nav_${edge.from}_${edge.to}`,
+            label: edge.label || edge.to,
+            message: '',
+
+            targetPageId: edge.to,
+          });
+          fromPage.addButton(button);
+        }
+      }
+
+      return tree;
+    } catch (error: any) {
+      if (error instanceof ValidationFailureError) {
         throw error;
       }
-      // For buffer errors, return empty tree
-      return new AACTree();
-    }
 
-    // Check if content looks like text and is non-empty
-    if (!content || content.trim().length === 0) {
-      return new AACTree();
-    }
-
-    // Check for binary data (contains null bytes or non-printable characters) without control-regex
-    const head = content.substring(0, 100);
-    let hasControl = false;
-    for (let i = 0; i < head.length; i++) {
-      const code = head.charCodeAt(i);
-      // Allow UTF-8 characters (code >= 127)
-      if (code === 0 || (code >= 0 && code <= 8) || (code >= 14 && code <= 31)) {
-        hasControl = true;
-        break;
-      }
-    }
-    if (hasControl) {
-      return new AACTree();
-    }
-
-    const { nodes, edges } = this.parseDotFile(content);
-    const tree = new AACTree();
-    tree.metadata.format = 'dot';
-
-    // Create pages for each node and add a self button representing the node label
-    for (const node of nodes) {
-      const page = new AACPage({
-        id: node.id,
-        name: node.label,
-        grid: [],
-        buttons: [],
-        parentId: null,
+      const validation = buildValidationResultFromMessage({
+        filename,
+        filesize,
+        format: 'dot',
+        message: error?.message || 'Failed to parse DOT file',
+        type: 'parse',
+        description: 'Parse DOT graph',
       });
-      tree.addPage(page);
-
-      // Add a self button so single-node graphs yield one button
-      page.addButton(
-        new AACButton({
-          id: `${node.id}_self`,
-          label: node.label,
-          message: node.label,
-          semanticAction: {
-            intent: AACSemanticIntent.SPEAK_TEXT,
-            text: node.label,
-            fallback: { type: 'SPEAK', message: node.label },
-          },
-        })
-      );
+      throw new ValidationFailureError('Failed to load DOT file', validation, error);
     }
-
-    // Create navigation buttons based on edges
-    for (const edge of edges) {
-      const fromPage = tree.getPage(edge.from);
-      if (fromPage) {
-        const button = new AACButton({
-          id: `nav_${edge.from}_${edge.to}`,
-          label: edge.label || edge.to,
-          message: '',
-
-          targetPageId: edge.to,
-        });
-        fromPage.addButton(button);
-      }
-    }
-
-    return tree;
   }
 
   processTexts(

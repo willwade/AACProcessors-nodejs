@@ -17,6 +17,7 @@ import {
 import plist, { PlistValue } from 'plist';
 import fs from 'fs';
 import path from 'path';
+import { ValidationFailureError, buildValidationResultFromMessage } from '../validation';
 
 interface ApplePanelsActionParameters {
   CharString?: string;
@@ -216,152 +217,195 @@ class ApplePanelsProcessor extends BaseProcessor {
   }
 
   loadIntoTree(filePathOrBuffer: string | Buffer): AACTree {
-    let content: string;
+    const filename =
+      typeof filePathOrBuffer === 'string' ? path.basename(filePathOrBuffer) : 'upload.plist';
+    let buffer: Buffer;
 
-    if (Buffer.isBuffer(filePathOrBuffer)) {
-      content = filePathOrBuffer.toString('utf8');
-    } else if (typeof filePathOrBuffer === 'string') {
-      // Check if it's a .ascconfig folder or a direct .plist file
-      if (filePathOrBuffer.endsWith('.ascconfig')) {
-        // Read from proper Apple Panels structure: *.ascconfig/Contents/Resources/PanelDefinitions.plist
-        const panelDefsPath = `${filePathOrBuffer}/Contents/Resources/PanelDefinitions.plist`;
-        if (fs.existsSync(panelDefsPath)) {
-          content = fs.readFileSync(panelDefsPath, 'utf8');
+    try {
+      if (Buffer.isBuffer(filePathOrBuffer)) {
+        buffer = filePathOrBuffer;
+      } else if (typeof filePathOrBuffer === 'string') {
+        if (filePathOrBuffer.endsWith('.ascconfig')) {
+          const panelDefsPath = `${filePathOrBuffer}/Contents/Resources/PanelDefinitions.plist`;
+          if (fs.existsSync(panelDefsPath)) {
+            buffer = fs.readFileSync(panelDefsPath);
+          } else {
+            const validation = buildValidationResultFromMessage({
+              filename,
+              filesize: 0,
+              format: 'applepanels',
+              message: `Apple Panels file not found: ${panelDefsPath}`,
+              type: 'missing',
+              description: 'PanelDefinitions.plist',
+            });
+            throw new ValidationFailureError('Apple Panels file not found', validation);
+          }
         } else {
-          throw new Error(`Apple Panels file not found: ${panelDefsPath}`);
+          buffer = fs.readFileSync(filePathOrBuffer);
         }
       } else {
-        // Fallback: treat as direct .plist file
-        content = fs.readFileSync(filePathOrBuffer, 'utf8');
-      }
-    } else {
-      throw new Error('Invalid input: expected string path or Buffer');
-    }
-
-    const parsedData = plist.parse(content) as ApplePanelsParsedDocument;
-
-    // Handle both old format (panels array) and new Apple Panels format (Panels dict)
-    let panelsData: ApplePanelsPanel[] = [];
-    if (Array.isArray(parsedData.panels)) {
-      panelsData = parsedData.panels.map((panel, index) => {
-        if (isNormalizedPanel(panel)) {
-          return panel;
-        }
-        const panelData = panel || {
-          PanelObjects: [],
-        };
-        return normalizePanel(panelData, `panel_${index}`);
-      });
-    } else if (parsedData.Panels) {
-      const panelsDict = parsedData.Panels;
-      panelsData = Object.keys(panelsDict).map((panelId) => {
-        const rawPanel = panelsDict[panelId] || { PanelObjects: [] };
-        return normalizePanel(rawPanel, panelId);
-      });
-    }
-
-    const data: ApplePanelsDocument = { panels: panelsData };
-    const tree = new AACTree();
-    tree.metadata.format = 'applepanels';
-
-    data.panels.forEach((panel) => {
-      const page = new AACPage({
-        id: panel.id,
-        name: panel.name,
-        grid: [],
-        buttons: [],
-        parentId: null,
-      });
-
-      // Create a 2D grid to track button positions
-      const gridLayout: (AACButton | null)[][] = [];
-      const maxRows = 20; // Reasonable default for Apple Panels
-      const maxCols = 20;
-      for (let r = 0; r < maxRows; r++) {
-        gridLayout[r] = new Array(maxCols).fill(null);
+        const validation = buildValidationResultFromMessage({
+          filename,
+          filesize: 0,
+          format: 'applepanels',
+          message: 'Invalid input: expected string path or Buffer',
+          type: 'input',
+          description: 'Apple Panels input',
+        });
+        throw new ValidationFailureError('Invalid Apple Panels input', validation);
       }
 
-      panel.buttons.forEach((btn, idx) => {
-        // Create semantic action from Apple Panels button
-        let semanticAction: AACSemanticAction | undefined;
+      const content = buffer.toString('utf8');
+      const parsedData = plist.parse(content) as ApplePanelsParsedDocument;
 
-        if (btn.targetPanel) {
-          semanticAction = {
-            category: AACSemanticCategory.NAVIGATION,
-            intent: AACSemanticIntent.NAVIGATE_TO,
-            targetId: btn.targetPanel,
-            platformData: {
-              applePanels: {
-                actionType: 'ActionOpenPanel',
-                parameters: { PanelID: `USER.${btn.targetPanel}` },
-              },
-            },
-            fallback: {
-              type: 'NAVIGATE',
-              targetPageId: btn.targetPanel,
-            },
+      let panelsData: ApplePanelsPanel[] = [];
+      if (Array.isArray(parsedData.panels)) {
+        panelsData = parsedData.panels.map((panel, index) => {
+          if (isNormalizedPanel(panel)) {
+            return panel;
+          }
+          const panelData = panel || {
+            PanelObjects: [],
           };
-        } else {
-          semanticAction = {
-            category: AACSemanticCategory.COMMUNICATION,
-            intent: AACSemanticIntent.SPEAK_TEXT,
-            text: btn.message || btn.label,
-            platformData: {
-              applePanels: {
-                actionType: 'ActionPressKeyCharSequence',
-                parameters: {
-                  CharString: btn.message || btn.label || '',
-                  isStickyKey: false,
+          return normalizePanel(panelData, `panel_${index}`);
+        });
+      } else if (parsedData.Panels) {
+        const panelsDict = parsedData.Panels;
+        panelsData = Object.keys(panelsDict).map((panelId) => {
+          const rawPanel = panelsDict[panelId] || { PanelObjects: [] };
+          return normalizePanel(rawPanel, panelId);
+        });
+      }
+
+      if (panelsData.length === 0) {
+        const validation = buildValidationResultFromMessage({
+          filename,
+          filesize: buffer.byteLength,
+          format: 'applepanels',
+          message: 'No panels found in Apple Panels file',
+          type: 'structure',
+          description: 'Panels definition',
+        });
+        throw new ValidationFailureError('Apple Panels has no panels', validation);
+      }
+
+      const data: ApplePanelsDocument = { panels: panelsData };
+      const tree = new AACTree();
+      tree.metadata.format = 'applepanels';
+
+      data.panels.forEach((panel) => {
+        const page = new AACPage({
+          id: panel.id,
+          name: panel.name,
+          grid: [],
+          buttons: [],
+          parentId: null,
+        });
+
+        const gridLayout: (AACButton | null)[][] = [];
+        const maxRows = 20;
+        const maxCols = 20;
+        for (let r = 0; r < maxRows; r++) {
+          gridLayout[r] = new Array(maxCols).fill(null);
+        }
+
+        panel.buttons.forEach((btn, idx) => {
+          let semanticAction: AACSemanticAction | undefined;
+
+          if (btn.targetPanel) {
+            semanticAction = {
+              category: AACSemanticCategory.NAVIGATION,
+              intent: AACSemanticIntent.NAVIGATE_TO,
+              targetId: btn.targetPanel,
+              platformData: {
+                applePanels: {
+                  actionType: 'ActionOpenPanel',
+                  parameters: { PanelID: `USER.${btn.targetPanel}` },
                 },
               },
+              fallback: {
+                type: 'NAVIGATE',
+                targetPageId: btn.targetPanel,
+              },
+            };
+          } else {
+            semanticAction = {
+              category: AACSemanticCategory.COMMUNICATION,
+              intent: AACSemanticIntent.SPEAK_TEXT,
+              text: btn.message || btn.label,
+              platformData: {
+                applePanels: {
+                  actionType: 'ActionPressKeyCharSequence',
+                  parameters: {
+                    CharString: btn.message || btn.label || '',
+                    isStickyKey: false,
+                  },
+                },
+              },
+              fallback: {
+                type: 'SPEAK',
+                message: btn.message || btn.label,
+              },
+            };
+          }
+
+          const button = new AACButton({
+            id: `${panel.id}_btn_${idx}`,
+            label: btn.label,
+            message: btn.message || btn.label,
+            targetPageId: btn.targetPanel,
+            semanticAction: semanticAction,
+            style: {
+              backgroundColor: btn.DisplayColor,
+              fontSize: btn.FontSize,
+              fontWeight: btn.DisplayImageWeight === 'bold' ? 'bold' : 'normal',
             },
-            fallback: {
-              type: 'SPEAK',
-              message: btn.message || btn.label,
-            },
-          };
-        }
+          });
+          page.addButton(button);
 
-        const button = new AACButton({
-          id: `${panel.id}_btn_${idx}`,
-          label: btn.label,
-          message: btn.message || btn.label,
-          targetPageId: btn.targetPanel,
-          semanticAction: semanticAction,
-          style: {
-            backgroundColor: btn.DisplayColor,
-            fontSize: btn.FontSize,
-            fontWeight: btn.DisplayImageWeight === 'bold' ? 'bold' : 'normal',
-          },
-        });
-        page.addButton(button);
+          if (btn.Rect) {
+            const rect = this.parseRect(btn.Rect);
+            if (rect) {
+              const gridPos = this.pixelToGrid(rect.x, rect.y);
+              const gridWidth = Math.max(1, Math.ceil(rect.width / 25));
+              const gridHeight = Math.max(1, Math.ceil(rect.height / 25));
 
-        // Place button in grid layout using Rect position data
-        if (btn.Rect) {
-          const rect = this.parseRect(btn.Rect);
-          if (rect) {
-            const gridPos = this.pixelToGrid(rect.x, rect.y);
-            const gridWidth = Math.max(1, Math.ceil(rect.width / 25));
-            const gridHeight = Math.max(1, Math.ceil(rect.height / 25));
-
-            // Place button in grid (handle width/height span)
-            for (let r = gridPos.gridY; r < gridPos.gridY + gridHeight && r < maxRows; r++) {
-              for (let c = gridPos.gridX; c < gridPos.gridX + gridWidth && c < maxCols; c++) {
-                if (gridLayout[r] && gridLayout[r][c] === null) {
-                  gridLayout[r][c] = button;
+              for (let r = gridPos.gridY; r < gridPos.gridY + gridHeight && r < maxRows; r++) {
+                for (let c = gridPos.gridX; c < gridPos.gridX + gridWidth && c < maxCols; c++) {
+                  if (gridLayout[r] && gridLayout[r][c] === null) {
+                    gridLayout[r][c] = button;
+                  }
                 }
               }
             }
           }
-        }
+        });
+
+        page.grid = gridLayout;
+        tree.addPage(page);
       });
 
-      // Set the page's grid layout
-      page.grid = gridLayout;
-      tree.addPage(page);
-    });
-
-    return tree;
+      return tree;
+    } catch (err: any) {
+      if (err instanceof ValidationFailureError) {
+        throw err;
+      }
+      const validation = buildValidationResultFromMessage({
+        filename,
+        filesize: Buffer.isBuffer(filePathOrBuffer)
+          ? filePathOrBuffer.byteLength
+          : typeof filePathOrBuffer === 'string'
+            ? fs.existsSync(filePathOrBuffer)
+              ? fs.statSync(filePathOrBuffer).size
+              : 0
+            : 0,
+        format: 'applepanels',
+        message: err?.message || 'Failed to parse Apple Panels file',
+        type: 'parse',
+        description: 'Parse Apple Panels plist',
+      });
+      throw new ValidationFailureError('Failed to load Apple Panels file', validation, err);
+    }
   }
 
   processTexts(

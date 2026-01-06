@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { ApplePanelsProcessor } from '../src/processors/applePanelsProcessor';
 import { AACTree, AACPage, AACButton } from '../src/core/treeStructure';
+import { ValidationFailureError } from '../src/validation';
 
 describe('ApplePanelsProcessor round-trip', () => {
   const outPath: string = path.join(__dirname, 'out.applepanels');
@@ -100,7 +101,6 @@ describe('ApplePanelsProcessor round-trip', () => {
     const asconfigPath = `${outPath}.ascconfig`;
     expect(fs.existsSync(asconfigPath)).toBe(true);
 
-    const reloadedTree: AACTree = processor.loadIntoTree(asconfigPath);
-    expect(Object.keys(reloadedTree.pages)).toHaveLength(0);
+    expect(() => processor.loadIntoTree(asconfigPath)).toThrow(ValidationFailureError);
   });
 });

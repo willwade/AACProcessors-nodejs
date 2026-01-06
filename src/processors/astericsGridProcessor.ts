@@ -15,6 +15,8 @@ import {
   AstericsGridMetadata,
 } from '../core/treeStructure';
 import fs from 'fs';
+import path from 'path';
+import { ValidationFailureError, buildValidationResultFromMessage } from '../validation';
 
 // Asterics Grid data model interfaces
 interface GridData {
@@ -838,146 +840,161 @@ class AstericsGridProcessor extends BaseProcessor {
 
   loadIntoTree(filePathOrBuffer: string | Buffer): AACTree {
     const tree = new AACTree();
-    let content = Buffer.isBuffer(filePathOrBuffer)
-      ? filePathOrBuffer.toString('utf-8')
-      : fs.readFileSync(filePathOrBuffer, 'utf-8');
+    const filename =
+      typeof filePathOrBuffer === 'string' ? path.basename(filePathOrBuffer) : 'upload.grd';
+    const buffer = Buffer.isBuffer(filePathOrBuffer)
+      ? filePathOrBuffer
+      : fs.readFileSync(filePathOrBuffer);
 
-    // Remove BOM if present
-    if (content.charCodeAt(0) === 0xfeff) {
-      content = content.slice(1);
-    }
+    try {
+      let content = buffer.toString('utf-8');
 
-    const grdFile: AstericsGridFile = JSON.parse(content);
-
-    if (!grdFile.grids) {
-      return tree;
-    }
-
-    const rawColorConfig = grdFile.metadata?.colorConfig;
-    const colorConfig: AstericsColorConfig | undefined = isRecord(rawColorConfig)
-      ? (rawColorConfig as AstericsColorConfig)
-      : undefined;
-    const activeColorSchemeDefinition = getActiveColorSchemeDefinition(colorConfig);
-
-    // First pass: create all pages
-    grdFile.grids.forEach((grid: GridData) => {
-      const page = new AACPage({
-        id: grid.id,
-        name: this.getLocalizedLabel(grid.label) || grid.id,
-        grid: [],
-        buttons: [],
-        parentId: null,
-        style: {
-          backgroundColor: colorConfig?.gridBackgroundColor || '#FFFFFF',
-          borderColor: colorConfig?.elementBorderColor || '#CCCCCC',
-          borderWidth: colorConfig?.borderWidth || 1,
-          fontFamily: colorConfig?.fontFamily || 'Arial',
-          fontSize: colorConfig?.fontSizePct ? colorConfig.fontSizePct * 16 : 16, // Convert percentage to pixels, default to 16
-          fontColor: colorConfig?.fontColor || '#000000',
-        },
-      });
-      tree.addPage(page);
-    });
-
-    // Second pass: add buttons and establish navigation
-    grdFile.grids.forEach((grid: GridData) => {
-      const page = tree.getPage(grid.id);
-      if (!page) return;
-
-      // Create a 2D grid to track button positions
-      const gridLayout: (AACButton | null)[][] = [];
-      const maxRows = Math.max(10, grid.rowCount || 10);
-      const maxCols = Math.max(10, grid.minColumnCount || 10);
-      for (let r = 0; r < maxRows; r++) {
-        gridLayout[r] = new Array(maxCols).fill(null);
+      // Remove BOM if present
+      if (content.charCodeAt(0) === 0xfeff) {
+        content = content.slice(1);
       }
 
-      grid.gridElements.forEach((element: GridElement) => {
-        const button = this.createButtonFromElement(
-          element,
-          colorConfig,
-          activeColorSchemeDefinition
-        );
-        page.addButton(button);
+      const grdFile: AstericsGridFile = JSON.parse(content);
 
-        // Place button in grid layout using its x,y coordinates
-        const buttonX = element.x || 0;
-        const buttonY = element.y || 0;
-        const buttonWidth = element.width || 1;
-        const buttonHeight = element.height || 1;
+      if (!grdFile.grids) {
+        const validationResult = buildValidationResultFromMessage({
+          filename,
+          filesize: buffer.byteLength,
+          format: 'asterics',
+          message: 'Missing grids array in Asterics .grd file',
+          type: 'structure',
+          description: 'Asterics grid collection',
+        });
+        throw new ValidationFailureError('Invalid Asterics grid file', validationResult);
+      }
 
-        // Place button in grid (handle width/height span)
-        for (let r = buttonY; r < buttonY + buttonHeight && r < maxRows; r++) {
-          for (let c = buttonX; c < buttonX + buttonWidth && c < maxCols; c++) {
-            if (gridLayout[r] && gridLayout[r][c] === null) {
-              gridLayout[r][c] = button;
+      const rawColorConfig = grdFile.metadata?.colorConfig;
+      const colorConfig: AstericsColorConfig | undefined = isRecord(rawColorConfig)
+        ? (rawColorConfig as AstericsColorConfig)
+        : undefined;
+      const activeColorSchemeDefinition = getActiveColorSchemeDefinition(colorConfig);
+
+      grdFile.grids.forEach((grid: GridData) => {
+        const page = new AACPage({
+          id: grid.id,
+          name: this.getLocalizedLabel(grid.label) || grid.id,
+          grid: [],
+          buttons: [],
+          parentId: null,
+          style: {
+            backgroundColor: colorConfig?.gridBackgroundColor || '#FFFFFF',
+            borderColor: colorConfig?.elementBorderColor || '#CCCCCC',
+            borderWidth: colorConfig?.borderWidth || 1,
+            fontFamily: colorConfig?.fontFamily || 'Arial',
+            fontSize: colorConfig?.fontSizePct ? colorConfig.fontSizePct * 16 : 16,
+            fontColor: colorConfig?.fontColor || '#000000',
+          },
+        });
+        tree.addPage(page);
+      });
+
+      grdFile.grids.forEach((grid: GridData) => {
+        const page = tree.getPage(grid.id);
+        if (!page) return;
+
+        const gridLayout: (AACButton | null)[][] = [];
+        const maxRows = Math.max(10, grid.rowCount || 10);
+        const maxCols = Math.max(10, grid.minColumnCount || 10);
+        for (let r = 0; r < maxRows; r++) {
+          gridLayout[r] = new Array(maxCols).fill(null);
+        }
+
+        grid.gridElements.forEach((element: GridElement) => {
+          const button = this.createButtonFromElement(
+            element,
+            colorConfig,
+            activeColorSchemeDefinition
+          );
+          page.addButton(button);
+
+          const buttonX = element.x || 0;
+          const buttonY = element.y || 0;
+          const buttonWidth = element.width || 1;
+          const buttonHeight = element.height || 1;
+
+          for (let r = buttonY; r < buttonY + buttonHeight && r < maxRows; r++) {
+            for (let c = buttonX; c < buttonX + buttonWidth && c < maxCols; c++) {
+              if (gridLayout[r] && gridLayout[r][c] === null) {
+                gridLayout[r][c] = button;
+              }
             }
           }
-        }
 
-        // Handle navigation relationships
-        const navAction = element.actions.find(
-          (a: GridAction) => a.modelName === 'GridActionNavigate'
-        );
-        const targetGridId =
-          navAction && typeof navAction.toGridId === 'string' ? navAction.toGridId : undefined;
-        if (targetGridId) {
-          const targetPage = tree.getPage(targetGridId);
-          if (targetPage) {
-            targetPage.parentId = page.id;
+          const navAction = element.actions.find(
+            (a: GridAction) => a.modelName === 'GridActionNavigate'
+          );
+          const targetGridId =
+            navAction && typeof navAction.toGridId === 'string' ? navAction.toGridId : undefined;
+          if (targetGridId) {
+            const targetPage = tree.getPage(targetGridId);
+            if (targetPage) {
+              targetPage.parentId = page.id;
+            }
           }
-        }
+        });
+
+        page.grid = gridLayout;
       });
 
-      // Set the page's grid layout
-      page.grid = gridLayout;
-    });
+      const astericsMetadata: AstericsGridMetadata = {
+        format: 'asterics',
+        hasGlobalGrid: false,
+      };
 
-    // Set metadata for Asterics Grid files
-    const astericsMetadata: AstericsGridMetadata = {
-      format: 'asterics',
-      hasGlobalGrid: false, // Can be extended in the future
-    };
+      if (grdFile.grids && grdFile.grids.length > 0) {
+        astericsMetadata.name = this.getLocalizedLabel(grdFile.grids[0].label);
 
-    if (grdFile.grids && grdFile.grids.length > 0) {
-      astericsMetadata.name = this.getLocalizedLabel(grdFile.grids[0].label);
-
-      // Extract all unique languages from all grids and elements
-      const languages = new Set<string>();
-      grdFile.grids.forEach((grid) => {
-        if (grid.label) {
-          Object.keys(grid.label).forEach((lang) => languages.add(lang));
-        }
-        grid.gridElements?.forEach((element) => {
-          if (element.label) {
-            Object.keys(element.label).forEach((lang) => languages.add(lang));
+        const languages = new Set<string>();
+        grdFile.grids.forEach((grid) => {
+          if (grid.label) {
+            Object.keys(grid.label).forEach((lang) => languages.add(lang));
           }
-          // Also check word forms for languages
-          element.wordForms?.forEach((wf) => {
-            if (wf.lang) languages.add(wf.lang);
+          grid.gridElements?.forEach((element) => {
+            if (element.label) {
+              Object.keys(element.label).forEach((lang) => languages.add(lang));
+            }
+            element.wordForms?.forEach((wf) => {
+              if (wf.lang) languages.add(wf.lang);
+            });
           });
         });
-      });
 
-      if (languages.size > 0) {
-        astericsMetadata.languages = Array.from(languages).sort();
-        // Set primary locale to English if available, otherwise the first language found
-        astericsMetadata.locale = languages.has('en')
-          ? 'en'
-          : languages.has('de')
-            ? 'de'
-            : astericsMetadata.languages[0];
+        if (languages.size > 0) {
+          astericsMetadata.languages = Array.from(languages).sort();
+          astericsMetadata.locale = languages.has('en')
+            ? 'en'
+            : languages.has('de')
+              ? 'de'
+              : astericsMetadata.languages[0];
+        }
       }
+
+      tree.metadata = astericsMetadata;
+      if (grdFile.metadata && grdFile.metadata.homeGridId) {
+        tree.rootId = grdFile.metadata.homeGridId;
+      }
+
+      return tree;
+    } catch (err: any) {
+      if (err instanceof ValidationFailureError) {
+        throw err;
+      }
+
+      const validationResult = buildValidationResultFromMessage({
+        filename,
+        filesize: buffer.byteLength,
+        format: 'asterics',
+        message: err?.message || 'Failed to parse Asterics grid file',
+        type: 'parse',
+        description: 'Parse Asterics grid JSON',
+      });
+      throw new ValidationFailureError('Failed to load Asterics grid', validationResult, err);
     }
-
-    tree.metadata = astericsMetadata;
-
-    // Set the home page from metadata.homeGridId
-    if (grdFile.metadata && grdFile.metadata.homeGridId) {
-      tree.rootId = grdFile.metadata.homeGridId;
-    }
-
-    return tree;
   }
 
   private getLocalizedLabel(labelMap: { [lang: string]: string } | undefined): string {

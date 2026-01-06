@@ -53,9 +53,7 @@ describe('DotProcessor', () => {
     it('should handle empty file gracefully', () => {
       const processor = new DotProcessor();
       const emptyContent = Buffer.from('');
-      const tree = processor.loadIntoTree(emptyContent);
-      expect(tree).toBeInstanceOf(AACTree);
-      expect(Object.keys(tree.pages)).toHaveLength(0);
+      expect(() => processor.loadIntoTree(emptyContent)).toThrow();
     });
 
     it('should handle content with only comments', () => {

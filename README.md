@@ -267,30 +267,18 @@ console.log(`Average Effort: ${result.total_words}`);
 Validate AAC files against format specifications to ensure data integrity:
 
 ```typescript
-import { ObfProcessor, GridsetProcessor } from "aac-processors";
+import { validateFileOrBuffer, getValidatorForFile } from "@willwade/aac-processors/validation";
 
-// Validate OBF/OBZ files
-const obfProcessor = new ObfProcessor();
-const result = await obfProcessor.validate("board.obf");
+// Works in Node, Vite, and esbuild (pass Buffers from the browser/CLI)
+const fileName = "board.obf";
+const validator = getValidatorForFile(fileName);
+const bufferOrPath = new Uint8Array(await file.arrayBuffer()); // or fs path in Node
+const result = await validateFileOrBuffer(bufferOrPath, fileName);
 
-console.log(`Valid: ${result.valid}`);
-console.log(`Errors: ${result.errors}`);
-console.log(`Warnings: ${result.warnings}`);
-
-// Detailed validation results
-if (!result.valid) {
-  result.results
-    .filter((check) => !check.valid)
-    .forEach((check) => {
-      console.log(`✗ ${check.description}: ${check.error}`);
-    });
-}
-
-// Validate Gridset files (with optional password for encrypted files)
-const gridsetProcessor = new GridsetProcessor({
-  gridsetPassword: "optional-password",
+console.log(result.valid, result.errors, result.warnings);
+result.results.forEach((check) => {
+  if (!check.valid) console.log(`✗ ${check.description}: ${check.error}`);
 });
-const gridsetResult = await gridsetProcessor.validate("vocab.gridsetx");
 ```
 
 #### Using the CLI
@@ -312,11 +300,15 @@ aacprocessors validate board.gridsetx --gridset-password <password>
 #### What Gets Validated?
 
 - **OBF/OBZ**: Spec compliance (Open Board Format)
-  - Required fields (format, id, locale, buttons, grid, images, sounds)
-  - Grid structure (rows, columns, order)
-  - Button references (image_id, sound_id, load_board paths)
-  - Color formats (RGB/RGBA)
-  - Cross-reference validation
+- **Gridset/Gridsetx**: ZIP/XML structure, required Smartbox assets
+- **Snap**: ZIP/package content, settings/pages/images
+- **TouchChat**: ZIP structure, vocab metadata, nested boards
+- **Asterics (.grd)**: JSON parse, grids, elements, coordinates
+- **Excel (.xlsx/.xls)**: Workbook readability and worksheet content
+- **OPML**: XML validity and outline hierarchy
+- **DOT**: Graph nodes/edges present and text content
+- **Apple Panels (.plist/.ascconfig)**: PanelDefinitions presence and buttons
+- **OBFSet**: Bundled board layout checks
 
 - **Gridset**: XML structure
   - Required elements (gridset, pages, cells)

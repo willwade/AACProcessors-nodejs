@@ -71,3 +71,50 @@ export interface ValidationRule {
   check: (data: any) => Promise<boolean> | boolean;
   errorMessage?: string;
 }
+
+/**
+ * Error wrapper that carries a structured ValidationResult so callers
+ * can surface actionable details instead of generic exceptions.
+ */
+export class ValidationFailureError extends Error {
+  validationResult: ValidationResult;
+  originalError?: unknown;
+
+  constructor(message: string, validationResult: ValidationResult, originalError?: unknown) {
+    super(message);
+    this.name = 'ValidationFailureError';
+    this.validationResult = validationResult;
+    this.originalError = originalError;
+  }
+}
+
+/**
+ * Build a minimal ValidationResult for situations where we cannot run
+ * the full validator (e.g., early parse failure) but still want
+ * structured feedback for the caller.
+ */
+export function buildValidationResultFromMessage(params: {
+  filename: string;
+  filesize: number;
+  format: string;
+  message: string;
+  type?: string;
+  description?: string;
+}): ValidationResult {
+  return {
+    filename: params.filename,
+    filesize: params.filesize,
+    format: params.format,
+    valid: false,
+    errors: 1,
+    warnings: 0,
+    results: [
+      {
+        type: params.type || 'parse',
+        description: params.description || 'parse',
+        valid: false,
+        error: params.message,
+      },
+    ],
+  };
+}

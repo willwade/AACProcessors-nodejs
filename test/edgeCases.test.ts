@@ -31,22 +31,10 @@ describe('Edge Case Tests', () => {
         { name: 'OBF', processor: new ObfProcessor(), testBuffer: true },
       ];
 
-      processors.forEach(({ name, processor, testBuffer }) => {
-        if (testBuffer) {
-          const emptyBuffer = Buffer.alloc(0);
-
-          if (name === 'DOT') {
-            // DOT processor should handle empty content gracefully
-            const tree = processor.loadIntoTree(emptyBuffer);
-            expect(tree).toBeInstanceOf(AACTree);
-            expect(Object.keys(tree.pages)).toHaveLength(0);
-          } else {
-            // Other processors should throw meaningful errors
-            expect(() => {
-              processor.loadIntoTree(emptyBuffer);
-            }).toThrow();
-          }
-        }
+      processors.forEach(({ processor, testBuffer }) => {
+        if (!testBuffer) return;
+        const emptyBuffer = Buffer.alloc(0);
+        expect(() => processor.loadIntoTree(emptyBuffer)).toThrow();
       });
     });
 
@@ -60,7 +48,8 @@ describe('Edge Case Tests', () => {
         {
           name: 'OPML',
           processor: new OpmlProcessor(),
-          content: '<?xml version="1.0"?><opml version="2.0"><body></body></opml>',
+          content:
+            '<?xml version="1.0"?><opml version="2.0"><body><outline text="Root"/></body></opml>',
         },
         {
           name: 'OBF',
@@ -301,10 +290,7 @@ describe('Edge Case Tests', () => {
       // Create some binary data
       const binaryData = Buffer.from([0x00, 0x01, 0x02, 0x03, 0xff, 0xfe, 0xfd]);
 
-      // Should handle gracefully (likely produce empty tree)
-      const tree = processor.loadIntoTree(binaryData);
-      expect(tree).toBeInstanceOf(AACTree);
-      expect(Object.keys(tree.pages)).toHaveLength(0);
+      expect(() => processor.loadIntoTree(binaryData)).toThrow();
     });
   });
 

@@ -12,6 +12,8 @@ export {
   ValidationResult,
   ValidationOptions,
   ValidationRule,
+  ValidationFailureError,
+  buildValidationResultFromMessage,
 } from './validation/validationTypes';
 
 // Base validator
@@ -22,6 +24,16 @@ export { ObfValidator } from './validation/obfValidator';
 export { GridsetValidator } from './validation/gridsetValidator';
 export { SnapValidator } from './validation/snapValidator';
 export { TouchChatValidator } from './validation/touchChatValidator';
+export { AstericsGridValidator } from './validation/astericsValidator';
+export { ExcelValidator } from './validation/excelValidator';
+export { OpmlValidator } from './validation/opmlValidator';
+export { DotValidator } from './validation/dotValidator';
+export { ApplePanelsValidator } from './validation/applePanelsValidator';
+export { ObfsetValidator } from './validation/obfsetValidator';
 
 // Validator factory functions
-export { getValidatorForFormat, getValidatorForFile } from './validation/index';
+export {
+  getValidatorForFormat,
+  getValidatorForFile,
+  validateFileOrBuffer,
+} from './validation/index';

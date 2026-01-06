@@ -109,12 +109,10 @@ describe('Error Handling', () => {
     it('should handle empty files gracefully', () => {
       const emptyBuffer = Buffer.alloc(0);
 
-      // Some processors should handle empty content gracefully
+      // Processors should throw meaningful errors
       const dotProcessor = new DotProcessor();
-      const dotResult = dotProcessor.loadIntoTree(emptyBuffer);
-      expect(dotResult.pages).toEqual({});
+      expect(() => dotProcessor.loadIntoTree(emptyBuffer)).toThrow();
 
-      // Others should throw meaningful errors
       const snapProcessor = new SnapProcessor();
       expect(() => {
         snapProcessor.loadIntoTree(emptyBuffer);
@@ -125,8 +123,7 @@ describe('Error Handling', () => {
       const whitespaceBuffer = Buffer.from('   \n\t  \n  ');
 
       const dotProcessor = new DotProcessor();
-      const result = dotProcessor.loadIntoTree(whitespaceBuffer);
-      expect(result.pages).toEqual({});
+      expect(() => dotProcessor.loadIntoTree(whitespaceBuffer)).toThrow();
     });
   });
 
