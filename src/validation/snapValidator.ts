@@ -3,7 +3,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as xml2js from 'xml2js';
-import AdmZip from 'adm-zip';
+import JSZip from 'jszip';
 import { BaseValidator } from './baseValidator';
 import { ValidationResult } from './validationTypes';
 
@@ -38,10 +38,10 @@ export class SnapValidator extends BaseValidator {
 
     // Try to parse as ZIP and check for Snap structure
     try {
-      const zip = new AdmZip(content);
-      const entries = zip.getEntries();
-      // Snap packages typically have settings.xml or similar
-      return entries.some((e) => e.entryName.includes('settings') || e.entryName.includes('.xml'));
+      const buffer = Buffer.isBuffer(content) ? content : Buffer.from(content);
+      const zip = await JSZip.loadAsync(buffer);
+      const entries = Object.values(zip.files).filter((entry) => !entry.dir);
+      return entries.some((entry) => entry.name.includes('settings') || entry.name.includes('.xml'));
     } catch {
       return false;
     }
@@ -63,15 +63,14 @@ export class SnapValidator extends BaseValidator {
       }
     });
 
-    let zip: AdmZip | null = null;
+    let zip: JSZip | null = null;
     let validZip = false;
 
     await this.add_check('zip', 'valid zip package', async () => {
       try {
-        // Ensure content is a Buffer for AdmZip
         const buffer = Buffer.isBuffer(content) ? content : Buffer.from(content);
-        zip = new AdmZip(buffer);
-        const entries = zip.getEntries();
+        zip = await JSZip.loadAsync(buffer);
+        const entries = Object.values(zip.files);
         validZip = entries.length > 0;
       } catch (e: any) {
         this.err(`file is not a valid zip package: ${e.message}`, true);
@@ -90,11 +89,11 @@ export class SnapValidator extends BaseValidator {
   /**
    * Validate Snap package structure
    */
-  private async validateSnapStructure(zip: AdmZip, _filename: string): Promise<void> {
+  private async validateSnapStructure(zip: JSZip, _filename: string): Promise<void> {
     // Check for required files
     await this.add_check('required_files', 'required package files', async () => {
-      const entries = zip.getEntries();
-      const entryNames = entries.map((e) => e.entryName);
+      const entries = Object.values(zip.files);
+      const entryNames = entries.map((e) => e.name);
 
       // Look for common Snap files
       const hasSettings = entryNames.some((n) => n.toLowerCase().includes('settings'));
@@ -110,16 +109,18 @@ export class SnapValidator extends BaseValidator {
     });
 
     // Try to parse and validate the main settings file
-    const settingsEntry = zip
-      .getEntries()
-      .find((e) => e.entryName.toLowerCase().includes('settings'));
+    const settingsEntry = Object.values(zip.files).find(
+      (entry) => !entry.dir && entry.name.toLowerCase().includes('settings')
+    );
 
     if (settingsEntry) {
-      await this.validateSettingsFile(zip, settingsEntry);
+      await this.validateSettingsFile(settingsEntry);
     }
 
     // Check for pages
-    const pageEntries = zip.getEntries().filter((e) => e.entryName.toLowerCase().includes('page'));
+    const pageEntries = Object.values(zip.files).filter(
+      (entry) => !entry.dir && entry.name.toLowerCase().includes('page')
+    );
 
     await this.add_check('pages', 'pages in package', async () => {
       if (pageEntries.length === 0) {
@@ -130,13 +131,13 @@ export class SnapValidator extends BaseValidator {
     // Validate a sample of pages
     const samplePages = pageEntries.slice(0, 5); // Limit to first 5 pages
     for (let i = 0; i < samplePages.length; i++) {
-      await this.validatePageFile(zip, samplePages[i], i);
+      await this.validatePageFile(samplePages[i], i);
     }
 
     // Check for images
-    const imageEntries = zip
-      .getEntries()
-      .filter((e) => e.entryName.toLowerCase().match(/\.(png|jpg|jpeg|gif|bmp)$/i));
+    const imageEntries = Object.values(zip.files).filter(
+      (entry) => !entry.dir && entry.name.toLowerCase().match(/\.(png|jpg|jpeg|gif|bmp)$/i)
+    );
 
     await this.add_check('images', 'image files', async () => {
       if (imageEntries.length === 0) {
@@ -145,9 +146,9 @@ export class SnapValidator extends BaseValidator {
     });
 
     // Check for audio files
-    const audioEntries = zip
-      .getEntries()
-      .filter((e) => e.entryName.toLowerCase().match(/\.(wav|mp3|m4a|ogg)$/i));
+    const audioEntries = Object.values(zip.files).filter(
+      (entry) => !entry.dir && entry.name.toLowerCase().match(/\.(wav|mp3|m4a|ogg)$/i)
+    );
 
     await this.add_check('audio', 'audio files', async () => {
       // Audio files are optional, so just warn if missing
@@ -158,9 +159,9 @@ export class SnapValidator extends BaseValidator {
 
     // Check for unexpected files
     await this.add_check('unexpected_files', 'unexpected file types', async () => {
-      const entries = zip.getEntries();
-      const unexpectedFiles = entries.filter((e) => {
-        const name = e.entryName.toLowerCase();
+      const entries = Object.values(zip.files).filter((entry) => !entry.dir);
+      const unexpectedFiles = entries.filter((entry) => {
+        const name = entry.name.toLowerCase();
         // Skip common system files and directories
         if (name.startsWith('__macosx') || name.startsWith('.ds_store')) {
           return false;
@@ -170,7 +171,7 @@ export class SnapValidator extends BaseValidator {
       });
 
       if (unexpectedFiles.length > 0) {
-        const unexpectedNames = unexpectedFiles.map((f) => f.entryName).slice(0, 5);
+        const unexpectedNames = unexpectedFiles.map((f) => f.name).slice(0, 5);
         this.warn(`Package contains unexpected file types: ${unexpectedNames.join(', ')}`);
       }
     });
@@ -179,10 +180,10 @@ export class SnapValidator extends BaseValidator {
   /**
    * Validate the main settings file
    */
-  private async validateSettingsFile(zip: AdmZip, entry: any): Promise<void> {
+  private async validateSettingsFile(entry: JSZip.JSZipObject): Promise<void> {
     await this.add_check('settings_format', 'settings file format', async () => {
       try {
-        const content = zip.readAsText(entry.entryName);
+        const content = await entry.async('string');
         const parser = new xml2js.Parser();
         const xml = await parser.parseStringPromise(content);
 
@@ -210,32 +211,32 @@ export class SnapValidator extends BaseValidator {
   /**
    * Validate a page file
    */
-  private async validatePageFile(zip: AdmZip, entry: any, index: number): Promise<void> {
-    await this.add_check(`page[${index}]`, `page file ${index}: ${entry.entryName}`, async () => {
+  private async validatePageFile(entry: JSZip.JSZipObject, index: number): Promise<void> {
+    await this.add_check(`page[${index}]`, `page file ${index}: ${entry.name}`, async () => {
       try {
-        const content = zip.readAsText(entry.entryName);
+        const content = await entry.async('string');
         const parser = new xml2js.Parser();
         const xml = await parser.parseStringPromise(content);
 
         const page = xml.page || xml.Page;
         if (!page) {
-          this.err(`Page file ${entry.entryName} does not contain a page element`);
+          this.err(`Page file ${entry.name} does not contain a page element`);
           return;
         }
 
         // Check page attributes
         const pageId = page.$?.id || page.$?.Id;
         if (!pageId) {
-          this.warn(`Page ${entry.entryName} is missing an id attribute`);
+          this.warn(`Page ${entry.name} is missing an id attribute`);
         }
 
         // Check for cells/buttons
         const cells = page.cells || page.Cells || page.button || page.Button;
         if (!cells || (Array.isArray(cells) && cells.length === 0)) {
-          this.warn(`Page ${entry.entryName} has no cells or buttons`);
+          this.warn(`Page ${entry.name} has no cells or buttons`);
         }
       } catch (e: any) {
-        this.err(`Failed to parse page file ${entry.entryName}: ${e.message}`);
+        this.err(`Failed to parse page file ${entry.name}: ${e.message}`);
       }
     });
   }

@@ -13,6 +13,7 @@ import {
 } from '../core/treeStructure';
 import fs from 'fs';
 import { BaseProcessor, ProcessorOptions } from '../core/baseProcessor';
+import { ProcessorInput, readTextFromInput } from '../utils/io';
 
 interface ObfsetButton {
   id: string;
@@ -44,7 +45,7 @@ export class ObfsetProcessor extends BaseProcessor {
   /**
    * Extract all text content
    */
-  extractTexts(filePathOrBuffer: string | Buffer): string[] {
+  extractTexts(filePathOrBuffer: ProcessorInput): string[] {
     const tree = this.loadIntoTree(filePathOrBuffer);
     const texts = new Set<string>();
 
@@ -61,16 +62,12 @@ export class ObfsetProcessor extends BaseProcessor {
   /**
    * Load an .obfset file (JSON array of boards)
    */
-  loadIntoTree(filePathOrBuffer: string | Buffer): AACTree {
+  loadIntoTree(filePathOrBuffer: ProcessorInput): AACTree {
     const tree = new AACTree();
     tree.metadata.format = 'obfset';
     let content: string;
 
-    if (Buffer.isBuffer(filePathOrBuffer)) {
-      content = filePathOrBuffer.toString('utf-8');
-    } else {
-      content = fs.readFileSync(filePathOrBuffer, 'utf-8');
-    }
+    content = readTextFromInput(filePathOrBuffer);
 
     const boards: ObfsetBoard[] = JSON.parse(content);
 
@@ -211,10 +208,10 @@ export class ObfsetProcessor extends BaseProcessor {
    * Process texts (not supported for .obfset currently)
    */
   processTexts(
-    _filePathOrBuffer: string | Buffer,
+    _filePathOrBuffer: ProcessorInput,
     _translations: Map<string, string>,
     _outputPath: string
-  ): Buffer {
+  ): Uint8Array {
     throw new Error('processTexts is not supported for .obfset currently');
   }
 

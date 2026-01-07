@@ -264,7 +264,7 @@ describe('Property-Based Testing', () => {
                 fs.unlinkSync(outputPath);
               }
 
-              const translatedContent = result.toString('utf8');
+              const translatedContent = Buffer.from(result).toString('utf8');
 
               // Should still be valid content
               expect(translatedContent.length).toBeGreaterThan(0);
@@ -305,7 +305,7 @@ describe('Property-Based Testing', () => {
               fs.unlinkSync(outputPath);
             }
 
-            const translatedContent = result.toString('utf8');
+            const translatedContent = Buffer.from(result).toString('utf8');
 
             // Content should be essentially unchanged
             return translatedContent.includes(content.slice(0, 50)) || translatedContent.length > 0;

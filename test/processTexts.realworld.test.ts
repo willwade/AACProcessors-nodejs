@@ -67,7 +67,7 @@ describe('ProcessTexts with Real-World Data', () => {
         expect(fs.existsSync(outputPath)).toBe(true);
 
         // Verify translations were applied
-        const translatedContent = result.toString('utf8');
+        const translatedContent = Buffer.from(result).toString('utf8');
         translations.forEach((translation, original) => {
           if (original !== translation) {
             expect(translatedContent).toContain(translation);
@@ -133,7 +133,7 @@ describe('ProcessTexts with Real-World Data', () => {
         expect(result).toBeInstanceOf(Buffer);
 
         // Verify the XML structure is maintained and translations applied
-        const translatedContent = result.toString('utf8');
+        const translatedContent = Buffer.from(result).toString('utf8');
         expect(translatedContent).toContain('<?xml');
         expect(translatedContent).toContain('<opml');
 

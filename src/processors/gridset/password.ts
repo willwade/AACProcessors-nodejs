@@ -1,5 +1,6 @@
 import path from 'path';
 import { ProcessorOptions } from '../../core/baseProcessor';
+import { ProcessorInput } from '../../utils/io';
 import AdmZip from 'adm-zip';
 
 /**
@@ -10,7 +11,7 @@ import AdmZip from 'adm-zip';
  */
 export function resolveGridsetPassword(
   options?: ProcessorOptions,
-  source?: string | Buffer
+  source?: ProcessorInput
 ): string | undefined {
   if (options?.gridsetPassword) return options.gridsetPassword;
   if (process.env.GRIDSET_PASSWORD) return process.env.GRIDSET_PASSWORD;

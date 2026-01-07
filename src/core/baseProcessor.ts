@@ -43,6 +43,7 @@
 import { AACTree, AACButton, AACSemanticCategory } from './treeStructure';
 import { StringCasing, detectCasing, isNumericOrEmpty } from './stringCasing';
 import { ValidationResult } from '../validation/validationTypes';
+import { BinaryOutput, ProcessorInput } from '../utils/io';
 
 // Configuration options for processors
 export interface ProcessorOptions {
@@ -125,17 +126,17 @@ abstract class BaseProcessor {
   }
 
   // Extract all text content (for translation, analysis, etc.)
-  abstract extractTexts(filePathOrBuffer: string | Buffer): string[];
+  abstract extractTexts(filePathOrBuffer: ProcessorInput): string[];
 
   // Load file into common tree structure
-  abstract loadIntoTree(filePathOrBuffer: string | Buffer): AACTree;
+  abstract loadIntoTree(filePathOrBuffer: ProcessorInput): AACTree;
 
   // Process texts (e.g., apply translations) and return new file/buffer
   abstract processTexts(
-    filePathOrBuffer: string | Buffer,
+    filePathOrBuffer: ProcessorInput,
     translations: Map<string, string>,
     outputPath: string
-  ): Buffer;
+  ): BinaryOutput;
 
   // Save tree structure back to file/buffer
   abstract saveFromTree(tree: AACTree, outputPath: string): void | Promise<void>;

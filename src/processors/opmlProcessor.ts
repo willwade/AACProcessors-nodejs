@@ -8,9 +8,19 @@ import {
 import { AACTree, AACPage, AACButton, AACSemanticIntent } from '../core/treeStructure';
 // Removed unused import: FileProcessor
 import { XMLParser, XMLValidator, XMLBuilder } from 'fast-xml-parser';
-import fs from 'fs';
-import path from 'path';
-import { ValidationFailureError, buildValidationResultFromMessage } from '../validation';
+import {
+  ValidationFailureError,
+  buildValidationResultFromMessage,
+} from '../validation/validationTypes';
+import {
+  ProcessorInput,
+  getBasename,
+  readBinaryFromInput,
+  readTextFromInput,
+  writeBinaryToPath,
+  writeTextToPath,
+  encodeText,
+} from '../utils/io';
 
 interface OpmlOutline {
   '@_text'?: string;
@@ -86,11 +96,8 @@ class OpmlProcessor extends BaseProcessor {
     return { page, childPages };
   }
 
-  extractTexts(filePathOrBuffer: string | Buffer): string[] {
-    const content =
-      typeof filePathOrBuffer === 'string'
-        ? fs.readFileSync(filePathOrBuffer, 'utf8')
-        : filePathOrBuffer.toString('utf8');
+  extractTexts(filePathOrBuffer: ProcessorInput): string[] {
+    const content = readTextFromInput(filePathOrBuffer);
 
     const parser = new XMLParser({ ignoreAttributes: false });
     const data = parser.parse(content) as OpmlDocument;
@@ -125,13 +132,11 @@ class OpmlProcessor extends BaseProcessor {
     return texts;
   }
 
-  loadIntoTree(filePathOrBuffer: string | Buffer): AACTree {
+  loadIntoTree(filePathOrBuffer: ProcessorInput): AACTree {
     const filename =
-      typeof filePathOrBuffer === 'string' ? path.basename(filePathOrBuffer) : 'upload.opml';
-    const buffer = Buffer.isBuffer(filePathOrBuffer)
-      ? filePathOrBuffer
-      : fs.readFileSync(filePathOrBuffer);
-    const content = buffer.toString('utf8');
+      typeof filePathOrBuffer === 'string' ? getBasename(filePathOrBuffer) : 'upload.opml';
+    const buffer = readBinaryFromInput(filePathOrBuffer);
+    const content = readTextFromInput(buffer);
 
     try {
       if (!content || !content.trim()) {
@@ -216,14 +221,11 @@ class OpmlProcessor extends BaseProcessor {
   }
 
   processTexts(
-    filePathOrBuffer: string | Buffer,
+    filePathOrBuffer: ProcessorInput,
     translations: Map<string, string>,
     outputPath: string
-  ): Buffer {
-    const content =
-      typeof filePathOrBuffer === 'string'
-        ? fs.readFileSync(filePathOrBuffer, 'utf8')
-        : filePathOrBuffer.toString('utf8');
+  ): Uint8Array {
+    const content = readTextFromInput(filePathOrBuffer);
 
     let translatedContent = content;
 
@@ -239,11 +241,8 @@ class OpmlProcessor extends BaseProcessor {
       }
     });
 
-    const resultBuffer = Buffer.from(translatedContent, 'utf8');
-
-    // Save to output path
-    fs.writeFileSync(outputPath, resultBuffer);
-
+    const resultBuffer = encodeText(translatedContent);
+    writeBinaryToPath(outputPath, resultBuffer);
     return resultBuffer;
   }
 
@@ -323,7 +322,7 @@ class OpmlProcessor extends BaseProcessor {
       attributeNamePrefix: '@_',
     });
     const xml = '<?xml version="1.0" encoding="UTF-8"?>\n' + builder.build(opmlObj);
-    fs.writeFileSync(outputPath, xml, 'utf8');
+    writeTextToPath(outputPath, xml);
   }
 
   /**

@@ -15,9 +15,6 @@ import {
   AACTreeMetadata,
 } from '../core/treeStructure';
 import { generateCloneId } from '../utilities/analytics/utils/idGenerator';
-import AdmZip from 'adm-zip';
-import fs from 'fs';
-import { ObfValidator } from '../validation/obfValidator';
 import { ValidationResult } from '../validation/validationTypes';
 import {
   extractAllButtonsForTranslation,
@@ -25,6 +22,12 @@ import {
   type ButtonForTranslation,
   type LLMLTranslationResult,
 } from '../utilities/translation/translationProcessor';
+import {
+  ProcessorInput,
+  readBinaryFromInput,
+  readTextFromInput,
+  writeTextToPath,
+} from '../utils/io';
 
 const OBF_FORMAT_VERSION = 'open-board-0.1';
 
@@ -75,7 +78,7 @@ interface ObfBoard {
 }
 
 class ObfProcessor extends BaseProcessor {
-  private zipFile?: AdmZip;
+  private zipFile?: import('adm-zip');
   private imageCache: Map<string, string> = new Map(); // Cache for data URLs
 
   constructor(options?: ProcessorOptions) {
@@ -356,7 +359,7 @@ class ObfProcessor extends BaseProcessor {
     return page;
   }
 
-  extractTexts(filePathOrBuffer: string | Buffer): string[] {
+  extractTexts(filePathOrBuffer: ProcessorInput): string[] {
     const tree = this.loadIntoTree(filePathOrBuffer);
     const texts: string[] = [];
 
@@ -372,22 +375,24 @@ class ObfProcessor extends BaseProcessor {
     return texts;
   }
 
-  loadIntoTree(filePathOrBuffer: string | Buffer): AACTree {
+  loadIntoTree(filePathOrBuffer: ProcessorInput): AACTree {
     // Detailed logging for debugging input
+    const bufferLength =
+      typeof filePathOrBuffer === 'string' ? null : readBinaryFromInput(filePathOrBuffer).byteLength;
     console.log('[OBF] loadIntoTree called with:', {
       type: typeof filePathOrBuffer,
-      isBuffer: Buffer.isBuffer(filePathOrBuffer),
+      isBuffer: typeof Buffer !== 'undefined' && Buffer.isBuffer(filePathOrBuffer),
       value:
         typeof filePathOrBuffer === 'string'
           ? filePathOrBuffer
-          : '[Buffer of length ' + filePathOrBuffer.length + ']',
+          : `[Buffer of length ${bufferLength ?? 0}]`,
     });
     const tree = new AACTree();
 
     // Helper: try to parse JSON OBF
-    function tryParseObfJson(data: string | Buffer): ObfBoard | null {
+    function tryParseObfJson(data: ProcessorInput): ObfBoard | null {
       try {
-        const str = typeof data === 'string' ? data : data.toString('utf8');
+        const str = typeof data === 'string' ? data : readTextFromInput(data);
 
         // Check for empty or whitespace-only content
         if (!str.trim()) {
@@ -411,7 +416,7 @@ class ObfProcessor extends BaseProcessor {
     // If input is a string path and ends with .obf, treat as JSON
     if (typeof filePathOrBuffer === 'string' && filePathOrBuffer.endsWith('.obf')) {
       try {
-        const content = fs.readFileSync(filePathOrBuffer, 'utf8');
+        const content = readTextFromInput(filePathOrBuffer);
         const boardData = tryParseObfJson(content);
         if (boardData) {
           console.log('[OBF] Detected .obf file, parsed as JSON');
@@ -461,21 +466,22 @@ class ObfProcessor extends BaseProcessor {
     }
 
     // Otherwise, try as ZIP (.obz). Detect likely zip signature first; throw if neither JSON nor ZIP
-    function isLikelyZip(input: string | Buffer): boolean {
+    function isLikelyZip(input: ProcessorInput): boolean {
       if (typeof input === 'string') return input.endsWith('.zip') || input.endsWith('.obz');
-      if (Buffer.isBuffer(input) && input.length >= 2) {
-        return input[0] === 0x50 && input[1] === 0x4b; // 'PK'
-      }
-      return false;
+      const bytes = readBinaryFromInput(input);
+      return bytes.length >= 2 && bytes[0] === 0x50 && bytes[1] === 0x4b;
     }
 
     if (!isLikelyZip(filePathOrBuffer)) {
       throw new Error('Invalid OBF content: not JSON and not ZIP');
     }
 
-    let zip: AdmZip;
+    let zip: import('adm-zip');
     try {
-      zip = new AdmZip(filePathOrBuffer);
+      const AdmZip = this.getAdmZip();
+      const zipInput = readBinaryFromInput(filePathOrBuffer);
+      const zipBuffer = Buffer.isBuffer(zipInput) ? zipInput : Buffer.from(zipInput);
+      zip = new AdmZip(zipBuffer);
     } catch (err) {
       console.error('[OBF] Error instantiating AdmZip with input:', err);
       throw err;
@@ -611,10 +617,10 @@ class ObfProcessor extends BaseProcessor {
   }
 
   processTexts(
-    filePathOrBuffer: string | Buffer,
+    filePathOrBuffer: ProcessorInput,
     translations: Map<string, string>,
     outputPath: string
-  ): Buffer {
+  ): Uint8Array {
     // Load the tree, apply translations, and save to new file
     const tree = this.loadIntoTree(filePathOrBuffer);
 
@@ -647,7 +653,7 @@ class ObfProcessor extends BaseProcessor {
 
     // Save the translated tree and return its content
     this.saveFromTree(tree, outputPath);
-    return fs.readFileSync(outputPath);
+    return readBinaryFromInput(outputPath);
   }
 
   saveFromTree(tree: AACTree, outputPath: string): void {
@@ -659,9 +665,10 @@ class ObfProcessor extends BaseProcessor {
       }
 
       const obfBoard = this.createObfBoardFromPage(rootPage, 'Exported Board', tree.metadata);
-      fs.writeFileSync(outputPath, JSON.stringify(obfBoard, null, 2));
+      writeTextToPath(outputPath, JSON.stringify(obfBoard, null, 2));
     } else {
       // Save as OBZ (zip with multiple OBF files)
+      const AdmZip = this.getAdmZip();
       const zip = new AdmZip();
 
       Object.values(tree.pages).forEach((page) => {
@@ -700,6 +707,7 @@ class ObfProcessor extends BaseProcessor {
    * @returns Promise with validation result
    */
   async validate(filePath: string): Promise<ValidationResult> {
+    const ObfValidator = this.getObfValidator();
     return ObfValidator.validateFile(filePath);
   }
 
@@ -712,7 +720,7 @@ class ObfProcessor extends BaseProcessor {
    * @param filePathOrBuffer - Path to OBF/OBZ file or buffer
    * @returns Array of symbol information for LLM processing
    */
-  extractSymbolsForLLM(filePathOrBuffer: string | Buffer): ButtonForTranslation[] {
+  extractSymbolsForLLM(filePathOrBuffer: ProcessorInput): ButtonForTranslation[] {
     const tree = this.loadIntoTree(filePathOrBuffer);
 
     // Collect all buttons from all pages
@@ -746,11 +754,11 @@ class ObfProcessor extends BaseProcessor {
    * @returns Buffer of the translated OBF/OBZ file
    */
   processLLMTranslations(
-    filePathOrBuffer: string | Buffer,
+    filePathOrBuffer: ProcessorInput,
     llmTranslations: LLMLTranslationResult[],
     outputPath: string,
     options?: { allowPartial?: boolean }
-  ): Buffer {
+  ): Uint8Array {
     const tree = this.loadIntoTree(filePathOrBuffer);
 
     // Validate translations using shared utility
@@ -796,7 +804,25 @@ class ObfProcessor extends BaseProcessor {
 
     // Save and return
     this.saveFromTree(tree, outputPath);
-    return fs.readFileSync(outputPath);
+    return readBinaryFromInput(outputPath);
+  }
+
+  private getAdmZip(): typeof import('adm-zip') {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      return require('adm-zip');
+    } catch (error) {
+      throw new Error('Zip handling requires adm-zip in this environment.');
+    }
+  }
+
+  private getObfValidator(): typeof import('../validation/obfValidator').ObfValidator {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      return require('../validation/obfValidator').ObfValidator;
+    } catch (error) {
+      throw new Error('Validation utilities are not available in this environment.');
+    }
   }
 }
 

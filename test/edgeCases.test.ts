@@ -380,7 +380,7 @@ describe('Edge Case Tests', () => {
       const translations = new Map([['$pecial [chars] (here)', 'Caracteres especiales aquí']]);
 
       const result = processor.processTexts(Buffer.from(content), translations, outputPath);
-      const translatedContent = result.toString('utf8');
+      const translatedContent = Buffer.from(result).toString('utf8');
 
       expect(translatedContent).toContain('Caracteres especiales aquí');
     });
@@ -405,10 +405,10 @@ describe('Edge Case Tests', () => {
       const outputPath = path.join(tempDir, 'large_translation.dot');
       const result = processor.processTexts(Buffer.from(content), translations, outputPath);
 
-      expect(result).toBeInstanceOf(Buffer);
+      expect(Buffer.from(result)).toBeInstanceOf(Buffer);
       expect(fs.existsSync(outputPath)).toBe(true);
 
-      const translatedContent = result.toString('utf8');
+      const translatedContent = Buffer.from(result).toString('utf8');
       expect(translatedContent).toContain('Texto 0');
       expect(translatedContent).toContain('Texto 99');
     });

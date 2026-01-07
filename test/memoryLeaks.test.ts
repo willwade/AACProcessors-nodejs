@@ -325,11 +325,11 @@ describe('Memory Leak Detection Tests', () => {
           outputPath
         );
 
-        expect(result).toBeInstanceOf(Buffer);
+        expect(Buffer.from(result)).toBeInstanceOf(Buffer);
         expect(fs.existsSync(outputPath)).toBe(true);
 
         // Verify some translations
-        const translatedContent = result.toString('utf8');
+        const translatedContent = Buffer.from(result).toString('utf8');
         expect(translatedContent).toContain('Texto 0');
         expect(translatedContent).toContain('Texto 199');
 

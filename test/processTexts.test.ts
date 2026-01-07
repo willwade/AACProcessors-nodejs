@@ -45,7 +45,7 @@ describe('ProcessTexts functionality', () => {
       const outputPath = path.join(tempDir, 'translated.dot');
       const result = processor.processTexts(Buffer.from(dotContent), translations, outputPath);
 
-      const translatedContent = result.toString('utf8');
+      const translatedContent = Buffer.from(result).toString('utf8');
       expect(translatedContent).toContain('label="Hola"');
       expect(translatedContent).toContain('label="Mundo"');
       expect(translatedContent).toContain('label="Ir"');
@@ -75,7 +75,7 @@ describe('ProcessTexts functionality', () => {
       const outputPath = path.join(tempDir, 'translated.opml');
       const result = processor.processTexts(Buffer.from(opmlContent), translations, outputPath);
 
-      const translatedContent = result.toString('utf8');
+      const translatedContent = Buffer.from(result).toString('utf8');
       expect(translatedContent).toContain('text="Casa"');
       expect(translatedContent).toContain('text="Comida"');
       expect(translatedContent).toContain('text="Bebidas"');

@@ -37,6 +37,7 @@ import { type SymbolReference, parseSymbolReference } from './gridset/symbols';
 import { isSymbolLibraryReference } from './gridset/resolver';
 import { generateCloneId } from '../utilities/analytics/utils/idGenerator';
 import { translateWithSymbols, extractSymbolsFromButton } from './gridset/symbolAlignment';
+import { ProcessorInput, readBinaryFromInput } from '../utils/io';
 
 class GridsetProcessor extends BaseProcessor {
   constructor(options?: ProcessorOptions) {
@@ -68,7 +69,7 @@ class GridsetProcessor extends BaseProcessor {
   }
 
   // Determine password to use when opening encrypted gridset archives (.gridsetx)
-  private getGridsetPassword(source?: string | Buffer): string | undefined {
+  private getGridsetPassword(source?: ProcessorInput): string | undefined {
     return resolveGridsetPassword(this.options, source);
   }
 
@@ -429,7 +430,7 @@ class GridsetProcessor extends BaseProcessor {
     return undefined;
   }
 
-  extractTexts(filePathOrBuffer: string | Buffer): string[] {
+  extractTexts(filePathOrBuffer: ProcessorInput): string[] {
     const tree = this.loadIntoTree(filePathOrBuffer);
     const texts: string[] = [];
 
@@ -445,12 +446,14 @@ class GridsetProcessor extends BaseProcessor {
     return texts;
   }
 
-  loadIntoTree(filePathOrBuffer: string | Buffer): AACTree {
+  loadIntoTree(filePathOrBuffer: ProcessorInput): AACTree {
     const tree = new AACTree();
 
     let zip: AdmZip;
     try {
-      zip = new AdmZip(filePathOrBuffer);
+      const zipInput = readBinaryFromInput(filePathOrBuffer);
+      const zipBuffer = Buffer.isBuffer(zipInput) ? zipInput : Buffer.from(zipInput);
+      zip = new AdmZip(zipBuffer);
     } catch (error: any) {
       throw new Error(`Invalid ZIP file format: ${error.message}`);
     }
@@ -1585,10 +1588,10 @@ class GridsetProcessor extends BaseProcessor {
   }
 
   processTexts(
-    filePathOrBuffer: string | Buffer,
+    filePathOrBuffer: ProcessorInput,
     translations: Map<string, string>,
     outputPath: string
-  ): Buffer {
+  ): Uint8Array {
     // Load the tree, apply translations, and save to new file
     const tree = this.loadIntoTree(filePathOrBuffer);
 

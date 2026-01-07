@@ -24,6 +24,7 @@ import fs from 'fs';
 import os from 'os';
 import { TouchChatValidator } from '../validation/touchChatValidator';
 import { ValidationResult } from '../validation/validationTypes';
+import { ProcessorInput, readBinaryFromInput } from '../utils/io';
 import {
   extractAllButtonsForTranslation,
   validateTranslationResults,
@@ -106,13 +107,13 @@ function mapTouchChatVisibility(
 
 class TouchChatProcessor extends BaseProcessor {
   private tree: AACTree | null = null;
-  private sourceFile: string | Buffer | null = null;
+  private sourceFile: ProcessorInput | null = null;
 
   constructor(options?: ProcessorOptions) {
     super(options);
   }
 
-  extractTexts(filePathOrBuffer: string | Buffer): string[] {
+  extractTexts(filePathOrBuffer: ProcessorInput): string[] {
     // Extracts all button labels/texts from TouchChat .ce file
     if (!this.tree && filePathOrBuffer) {
       this.tree = this.loadIntoTree(filePathOrBuffer);
@@ -131,7 +132,7 @@ class TouchChatProcessor extends BaseProcessor {
     return texts;
   }
 
-  loadIntoTree(filePathOrBuffer: string | Buffer): AACTree {
+  loadIntoTree(filePathOrBuffer: ProcessorInput): AACTree {
     // Unzip .ce file, extract the .c4v SQLite DB, and parse pages/buttons
     let tmpDir: string | null = null;
     let db: Database.Database | null = null;
@@ -142,9 +143,9 @@ class TouchChatProcessor extends BaseProcessor {
 
       // Step 1: Unzip
       tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'touchchat-'));
-      const zip = new AdmZip(
-        typeof filePathOrBuffer === 'string' ? filePathOrBuffer : Buffer.from(filePathOrBuffer)
-      );
+      const zipInput = readBinaryFromInput(filePathOrBuffer);
+      const zipBuffer = Buffer.isBuffer(zipInput) ? zipInput : Buffer.from(zipInput);
+      const zip = new AdmZip(zipBuffer);
       zip.extractAllTo(tmpDir, true);
 
       // Step 2: Find and open SQLite DB
@@ -643,10 +644,10 @@ class TouchChatProcessor extends BaseProcessor {
   }
 
   processTexts(
-    filePathOrBuffer: string | Buffer,
+    filePathOrBuffer: ProcessorInput,
     translations: Map<string, string>,
     outputPath: string
-  ): Buffer {
+  ): Uint8Array {
     // Load the tree, apply translations, and save to new file
     const tree = this.loadIntoTree(filePathOrBuffer);
 

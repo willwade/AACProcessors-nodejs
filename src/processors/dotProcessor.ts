@@ -7,9 +7,19 @@ import {
 } from '../core/baseProcessor';
 import { AACTree, AACPage, AACButton, AACSemanticIntent } from '../core/treeStructure';
 // Removed unused import: FileProcessor
-import fs from 'fs';
-import path from 'path';
-import { ValidationFailureError, buildValidationResultFromMessage } from '../validation';
+import {
+  ValidationFailureError,
+  buildValidationResultFromMessage,
+} from '../validation/validationTypes';
+import {
+  ProcessorInput,
+  getBasename,
+  readBinaryFromInput,
+  readTextFromInput,
+  writeBinaryToPath,
+  writeTextToPath,
+  encodeText,
+} from '../utils/io';
 
 interface DotNode {
   id: string;
@@ -80,11 +90,8 @@ class DotProcessor extends BaseProcessor {
     return { nodes: Array.from(nodes.values()), edges };
   }
 
-  extractTexts(filePathOrBuffer: string | Buffer): string[] {
-    const content =
-      typeof filePathOrBuffer === 'string'
-        ? fs.readFileSync(filePathOrBuffer, 'utf8')
-        : filePathOrBuffer.toString('utf8');
+  extractTexts(filePathOrBuffer: ProcessorInput): string[] {
+    const content = readTextFromInput(filePathOrBuffer);
 
     const { nodes, edges } = this.parseDotFile(content);
     const texts: string[] = [];
@@ -104,16 +111,14 @@ class DotProcessor extends BaseProcessor {
     return texts;
   }
 
-  loadIntoTree(filePathOrBuffer: string | Buffer): AACTree {
+  loadIntoTree(filePathOrBuffer: ProcessorInput): AACTree {
     const filename =
-      typeof filePathOrBuffer === 'string' ? path.basename(filePathOrBuffer) : 'upload.dot';
-    const buffer = Buffer.isBuffer(filePathOrBuffer)
-      ? filePathOrBuffer
-      : fs.readFileSync(filePathOrBuffer);
+      typeof filePathOrBuffer === 'string' ? getBasename(filePathOrBuffer) : 'upload.dot';
+    const buffer = readBinaryFromInput(filePathOrBuffer);
     const filesize = buffer.byteLength;
 
     try {
-      const content = buffer.toString('utf8');
+      const content = readTextFromInput(buffer);
 
       if (!content || content.trim().length === 0) {
         const validation = buildValidationResultFromMessage({
@@ -208,15 +213,11 @@ class DotProcessor extends BaseProcessor {
   }
 
   processTexts(
-    filePathOrBuffer: string | Buffer,
+    filePathOrBuffer: ProcessorInput,
     translations: Map<string, string>,
     outputPath: string
-  ): Buffer {
-    const safeBuffer = Buffer.isBuffer(filePathOrBuffer)
-      ? filePathOrBuffer
-      : fs.readFileSync(filePathOrBuffer);
-
-    const content = safeBuffer.toString('utf8');
+  ): Uint8Array {
+    const content = readTextFromInput(filePathOrBuffer);
     let translatedContent = content;
 
     translations.forEach((translation, text) => {
@@ -232,11 +233,8 @@ class DotProcessor extends BaseProcessor {
       }
     });
 
-    const resultBuffer = Buffer.from(translatedContent || '', 'utf8');
-
-    // Save to output path
-    fs.writeFileSync(outputPath, resultBuffer);
-
+    const resultBuffer = encodeText(translatedContent || '');
+    writeBinaryToPath(outputPath, resultBuffer);
     return resultBuffer;
   }
 
@@ -277,7 +275,7 @@ class DotProcessor extends BaseProcessor {
     }
 
     dotContent += '}\n';
-    fs.writeFileSync(_outputPath, dotContent);
+    writeTextToPath(_outputPath, dotContent);
   }
 
   /**

@@ -21,6 +21,7 @@ import fs from 'fs';
 import crypto from 'crypto';
 import { SnapValidator } from '../validation/snapValidator';
 import { ValidationResult } from '../validation/validationTypes';
+import { ProcessorInput } from '../utils/io';
 
 interface SnapButton {
   Id: number;
@@ -81,7 +82,7 @@ class SnapProcessor extends BaseProcessor {
       options.pageLayoutPreference !== undefined ? options.pageLayoutPreference : 'scanning'; // Default to scanning
   }
 
-  extractTexts(filePathOrBuffer: string | Buffer): string[] {
+  extractTexts(filePathOrBuffer: ProcessorInput): string[] {
     const tree = this.loadIntoTree(filePathOrBuffer);
     const texts: string[] = [];
 
@@ -100,7 +101,7 @@ class SnapProcessor extends BaseProcessor {
     return texts;
   }
 
-  loadIntoTree(filePathOrBuffer: string | Buffer): AACTree {
+  loadIntoTree(filePathOrBuffer: ProcessorInput): AACTree {
     const tree = new AACTree();
     const filePath =
       typeof filePathOrBuffer === 'string'
@@ -731,10 +732,10 @@ class SnapProcessor extends BaseProcessor {
   }
 
   processTexts(
-    filePathOrBuffer: string | Buffer,
+    filePathOrBuffer: ProcessorInput,
     translations: Map<string, string>,
     outputPath: string
-  ): Buffer {
+  ): Uint8Array {
     // Load the tree, apply translations, and save to new file
     const tree = this.loadIntoTree(filePathOrBuffer);
 
