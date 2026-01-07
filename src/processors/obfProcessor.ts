@@ -105,7 +105,7 @@ class ObfProcessor extends BaseProcessor {
 
     for (const imagePath of possiblePaths) {
       try {
-        const entry = this.zipFile.getEntry(imagePath);
+        const entry = this.zipFile.getEntry(imagePath as string);
         if (entry) {
           return entry.getData(); // Return raw Buffer
         }
@@ -123,7 +123,7 @@ class ObfProcessor extends BaseProcessor {
   private extractImageAsDataUrl(imageId: string, images: any[]): string | null {
     // Check cache first
     if (this.imageCache.has(imageId)) {
-      return this.imageCache.get(imageId)!;
+      return this.imageCache.get(imageId) ?? null;
     }
 
     if (!this.zipFile || !images) {
@@ -146,10 +146,12 @@ class ObfProcessor extends BaseProcessor {
 
     for (const imagePath of possiblePaths) {
       try {
-        const entry = this.zipFile.getEntry(imagePath);
+        const entry = this.zipFile.getEntry(imagePath as string);
         if (entry) {
           const buffer = entry.getData();
-          const contentType = imageData.content_type || this.getMimeTypeFromFilename(imagePath);
+          const contentType =
+            (imageData as { content_type?: string }).content_type ||
+            this.getMimeTypeFromFilename(imagePath as string);
           const dataUrl = `data:${contentType};base64,${buffer.toString('base64')}`;
           this.imageCache.set(imageId, dataUrl);
           return dataUrl;
@@ -161,9 +163,10 @@ class ObfProcessor extends BaseProcessor {
     }
 
     // If image has a URL, use that as fallback
-    if (imageData.url) {
-      this.imageCache.set(imageId, imageData.url);
-      return imageData.url;
+    if ((imageData as { url?: string }).url) {
+      const url = (imageData as { url: string }).url;
+      this.imageCache.set(imageId, url);
+      return url;
     }
 
     return null;
