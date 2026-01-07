@@ -15,8 +15,6 @@ import {
   GridSetMetadata,
 } from '../core/treeStructure';
 import { AACStyle } from '../types/aac';
-import AdmZip from 'adm-zip';
-import fs from 'fs';
 import { XMLParser, XMLBuilder } from 'fast-xml-parser';
 import { resolveGrid3CellImage } from './gridset/resolver';
 import {
@@ -26,8 +24,7 @@ import {
   type LLMLTranslationResult,
 } from '../utilities/translation/translationProcessor';
 import { getZipEntriesWithPassword, resolveGridsetPassword } from './gridset/password';
-import crypto from 'crypto';
-import zlib from 'zlib';
+import { decryptGridsetEntry } from './gridset/crypto';
 import { GridsetValidator } from '../validation/gridsetValidator';
 import { ValidationResult } from '../validation/validationTypes';
 // New imports for enhanced Grid 3 support
@@ -44,27 +41,12 @@ class GridsetProcessor extends BaseProcessor {
     super(options);
   }
 
-  /**
-   * Decrypt and inflate a Grid3 encrypted payload (DesktopContentEncrypter).
-   * Uses AES-256-CBC with key/IV derived from the password padded with spaces
-   * and then Deflate decompression.
-   */
-  private decryptGridsetEntry(buffer: Buffer, password?: string): Buffer {
-    const pwd = (password || 'Chocolate').padEnd(32, ' ');
-    const key = Buffer.from(pwd.slice(0, 32), 'utf8');
-    const iv = Buffer.from(pwd.slice(0, 16), 'utf8');
-
+  private getAdmZip(): any {
     try {
-      const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
-      const decrypted = Buffer.concat([decipher.update(buffer), decipher.final()]);
-      try {
-        return zlib.inflateSync(decrypted);
-      } catch {
-        // If data isn't deflated, return raw decrypted bytes
-        return decrypted;
-      }
-    } catch {
-      return buffer;
+      // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-unsafe-return
+      return require('adm-zip');
+    } catch (error) {
+      throw new Error('Zip handling requires adm-zip in this environment.');
     }
   }
 
@@ -449,8 +431,9 @@ class GridsetProcessor extends BaseProcessor {
   loadIntoTree(filePathOrBuffer: ProcessorInput): AACTree {
     const tree = new AACTree();
 
-    let zip: AdmZip;
+    let zip: any;
     try {
+      const AdmZip = this.getAdmZip();
       const zipInput = readBinaryFromInput(filePathOrBuffer);
       const zipBuffer = Buffer.isBuffer(zipInput) ? zipInput : Buffer.from(zipInput);
       zip = new AdmZip(zipBuffer);
@@ -458,7 +441,11 @@ class GridsetProcessor extends BaseProcessor {
       throw new Error(`Invalid ZIP file format: ${error.message}`);
     }
     const password = this.getGridsetPassword(filePathOrBuffer);
-    const entries = getZipEntriesWithPassword(zip, password);
+    const entries = getZipEntriesWithPassword(
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      zip,
+      password
+    );
     const parser = new XMLParser({ ignoreAttributes: false });
     const isEncryptedArchive =
       typeof filePathOrBuffer === 'string' && filePathOrBuffer.toLowerCase().endsWith('.gridsetx');
@@ -471,10 +458,15 @@ class GridsetProcessor extends BaseProcessor {
       passwordProtected: !!password,
     };
 
-    const readEntryBuffer = (entry: AdmZip.IZipEntry): Buffer => {
+    const readEntryBuffer = (entry: any): Buffer => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-argument
       const raw = entry.getData();
-      if (!isEncryptedArchive) return raw;
-      return this.decryptGridsetEntry(raw, encryptedContentPassword);
+      if (!isEncryptedArchive) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+        return raw;
+      }
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-return
+      return decryptGridsetEntry(raw, encryptedContentPassword);
     };
 
     // Parse FileMap.xml if present to index dynamic files per grid
@@ -1656,7 +1648,7 @@ class GridsetProcessor extends BaseProcessor {
 
     // Save the translated tree and return its content
     this.saveFromTree(tree, outputPath);
-    return fs.readFileSync(outputPath);
+    return Buffer.from(readBinaryFromInput(outputPath));
   }
 
   /**
@@ -1752,10 +1744,11 @@ class GridsetProcessor extends BaseProcessor {
 
     // Save and return
     this.saveFromTree(tree, outputPath);
-    return fs.readFileSync(outputPath);
+    return Buffer.from(readBinaryFromInput(outputPath));
   }
 
   saveFromTree(tree: AACTree, outputPath: string): void {
+    const AdmZip = this.getAdmZip();
     const zip = new AdmZip();
 
     if (Object.keys(tree.pages).length === 0) {
