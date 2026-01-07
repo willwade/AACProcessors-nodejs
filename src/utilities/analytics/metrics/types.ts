@@ -124,6 +124,21 @@ export interface MetricsOptions {
    * Default is 1.5 (checking 1-2 predictions on average).
    */
   predictionSelections?: number;
+
+  /**
+   * Whether to include smart grammar word forms in metrics
+   *
+   * When true (default): Word forms from smart grammar predictions are included
+   * in the metrics. If a word exists as both a regular button and a word form,
+   * the version with lower effort is used.
+   *
+   * When false: Smart grammar word forms are excluded from metrics. Only actual
+   * buttons in the tree are analyzed.
+   *
+   * Only applicable to systems that support smart grammar (e.g., Grid 3).
+   * Default is true.
+   */
+  useSmartGrammar?: boolean;
 }
 
 /**

@@ -118,12 +118,27 @@ export class MetricsCalculator {
     // Update buttons using dynamic spelling effort if applicable
     const buttons = Array.from(knownButtons.values()).sort((a, b) => a.effort - b.effort);
 
-    // Calculate metrics for word forms (smart grammar predictions)
-    const wordFormMetrics = this.calculateWordFormMetrics(tree, buttons, options);
-    buttons.push(...wordFormMetrics);
+    // Calculate metrics for word forms (smart grammar predictions) if enabled
+    // Default to true if not specified
+    const useSmartGrammar = options.useSmartGrammar !== false;
+    if (useSmartGrammar) {
+      const { wordFormMetrics, replacedLabels } = this.calculateWordFormMetrics(
+        tree,
+        buttons,
+        options
+      );
 
-    // Re-sort after adding word forms
-    buttons.sort((a, b) => a.effort - b.effort);
+      // Remove buttons that were replaced by lower-effort word forms
+      const filteredButtons = buttons.filter((btn) => !replacedLabels.has(btn.label.toLowerCase()));
+
+      // Add word forms and re-sort
+      filteredButtons.push(...wordFormMetrics);
+      filteredButtons.sort((a, b) => a.effort - b.effort);
+
+      // Replace the original buttons array
+      buttons.length = 0;
+      buttons.push(...filteredButtons);
+    }
 
     // Calculate grid dimensions
     const grid = this.calculateGridDimensions(tree);
@@ -734,19 +749,23 @@ export class MetricsCalculator {
    * - Parent button's cumulative effort (to reach the button)
    * - + Effort to select the word form from its position in predictions grid
    *
+   * If a word exists as both a regular button and a word form, the version
+   * with lower effort is kept.
+   *
    * @param tree - The AAC tree
    * @param buttons - Already calculated button metrics
    * @param options - Metrics options
-   * @returns Array of word form button metrics
+   * @returns Object containing word form metrics and labels that were replaced
    */
   private calculateWordFormMetrics(
     tree: AACTree,
     buttons: ButtonMetrics[],
     _options: MetricsOptions = {}
-  ): ButtonMetrics[] {
+  ): { wordFormMetrics: ButtonMetrics[]; replacedLabels: Set<string> } {
     const wordFormMetrics: ButtonMetrics[] = [];
+    const replacedLabels = new Set<string>();
 
-    // Track which buttons already exist to avoid duplicates
+    // Track buttons by label to compare efforts
     const existingLabels = new Map<string, ButtonMetrics>();
     buttons.forEach((btn) => existingLabels.set(btn.label.toLowerCase(), btn));
 
@@ -764,11 +783,6 @@ export class MetricsCalculator {
           btn.predictions.forEach((wordForm: string, index: number) => {
             const wordFormLower = wordForm.toLowerCase();
 
-            // Skip if this word form already exists as a regular button
-            if (existingLabels.has(wordFormLower)) {
-              return;
-            }
-
             // Calculate effort based on position in predictions array
             // Assume predictions are displayed in a grid layout (e.g., 2 columns)
             const predictionsGridCols = 2; // Typical predictions layout
@@ -784,7 +798,20 @@ export class MetricsCalculator {
             // Word form effort = parent button's cumulative effort + selection effort
             const wordFormEffort = parentMetrics.effort + predictionSelectionEffort;
 
-            // Mark as word form with a special ID pattern
+            // Check if this word already exists as a regular button
+            const existingBtn = existingLabels.get(wordFormLower);
+
+            // If word exists and has lower or equal effort, skip the word form
+            if (existingBtn && existingBtn.effort <= wordFormEffort) {
+              return;
+            }
+
+            // If word exists but word form has lower effort, mark for replacement
+            if (existingBtn && existingBtn.effort > wordFormEffort) {
+              replacedLabels.add(wordFormLower);
+            }
+
+            // Create word form metric
             const wordFormBtn: ButtonMetrics = {
               id: `${btn.id}_wordform_${index}`,
               label: wordForm,
@@ -806,9 +833,14 @@ export class MetricsCalculator {
       });
     });
 
-    console.log(`📝 Calculated ${wordFormMetrics.length} word form metrics from predictions`);
+    console.log(
+      `📝 Calculated ${wordFormMetrics.length} word form metrics` +
+        (replacedLabels.size > 0
+          ? ` (${replacedLabels.size} replaced higher-effort buttons: ${Array.from(replacedLabels).join(', ')})`
+          : '')
+    );
 
-    return wordFormMetrics;
+    return { wordFormMetrics, replacedLabels };
   }
 
   /**
