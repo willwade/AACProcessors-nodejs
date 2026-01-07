@@ -75,6 +75,21 @@ class GridsetProcessor extends BaseProcessor {
   // Helper function to ensure color has alpha channel (Grid3 format)
   private ensureAlphaChannel(color: string | undefined): string {
     if (!color) return '#FFFFFFFF';
+
+    // Handle rgb() and rgba() formats
+    const rgbMatch = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+    if (rgbMatch) {
+      const r = parseInt(rgbMatch[1]);
+      const g = parseInt(rgbMatch[2]);
+      const b = parseInt(rgbMatch[3]);
+      const a = rgbMatch[4] !== undefined ? parseFloat(rgbMatch[4]) : 1.0;
+      const alphaHex = Math.round(a * 255)
+        .toString(16)
+        .toUpperCase()
+        .padStart(2, '0');
+      return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}${alphaHex}`;
+    }
+
     // If already 8 digits (with alpha), return as is
     if (color.match(/^#[0-9A-Fa-f]{8}$/)) return color;
     // If 6 digits (no alpha), add FF for fully opaque
@@ -88,6 +103,42 @@ class GridsetProcessor extends BaseProcessor {
     }
     // Invalid or unknown format, return white
     return '#FFFFFFFF';
+  }
+
+  /**
+   * Calculate appropriate font color (black or white) based on background brightness
+   * Uses WCAG relative luminance formula to determine contrast
+   */
+  private getContrastFontColor(backgroundColor: string | undefined): string {
+    if (!backgroundColor) return '#FF000000FF'; // Default to black
+
+    // Parse color from various formats
+    let r = 255,
+      g = 255,
+      b = 255;
+
+    // Handle hex colors
+    const hexMatch = backgroundColor.match(/#?([0-9A-Fa-f]{2})([0-9A-Fa-f]{2})([0-9A-Fa-f]{2})/);
+    if (hexMatch) {
+      r = parseInt(hexMatch[1], 16);
+      g = parseInt(hexMatch[2], 16);
+      b = parseInt(hexMatch[3], 16);
+    } else {
+      // Handle rgb() format
+      const rgbMatch = backgroundColor.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+      if (rgbMatch) {
+        r = parseInt(rgbMatch[1]);
+        g = parseInt(rgbMatch[2]);
+        b = parseInt(rgbMatch[3]);
+      }
+    }
+
+    // Calculate relative luminance using WCAG formula
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+
+    // Use white text for dark backgrounds (luminance < 0.5), black for light backgrounds
+    // Return 6-digit hex (ensureAlphaChannel will add FF for alpha)
+    return luminance < 0.5 ? '#FFFFFF' : '#000000';
   }
 
   /**
@@ -1798,7 +1849,10 @@ class GridsetProcessor extends BaseProcessor {
           // For "None" surround, just use BackColour for the fill (no TileColour)
           BackColour: this.ensureAlphaChannel(style.backgroundColor),
           BorderColour: this.ensureAlphaChannel(style.borderColor),
-          FontColour: this.ensureAlphaChannel(style.fontColor),
+          // Calculate font color based on background if not explicitly set
+          FontColour: this.ensureAlphaChannel(
+            style.fontColor || this.getContrastFontColor(style.backgroundColor)
+          ),
           FontName: style.fontFamily || 'Arial',
           FontSize: style.fontSize?.toString() || '16',
         };
@@ -1867,30 +1921,58 @@ class GridsetProcessor extends BaseProcessor {
                           imageExt = imageMatch[1].toLowerCase();
                         }
 
-                        // Grid3 dynamically constructs image filenames by prepending cell coordinates
-                        // The XML should only contain the suffix: -0-text-0.{ext}
-                        // Grid3 automatically adds the X-Y prefix based on the Cell's position
-                        captionAndImage.Image = `-0-text-0.${imageExt}`;
-
                         // Extract image data from button parameters if available
                         // (AstericsGridProcessor stores it there during loadIntoTree)
+                        // Also handle data URLs from OBZ conversion
                         let imageData = Buffer.alloc(0);
+                        let hasImageData = false;
+
                         if (
                           button.parameters &&
                           button.parameters.imageData &&
                           Buffer.isBuffer(button.parameters.imageData)
                         ) {
                           imageData = button.parameters.imageData as any;
+                          hasImageData = imageData.length > 0;
+                        } else if (
+                          button.image &&
+                          typeof button.image === 'string' &&
+                          button.image.startsWith('data:image')
+                        ) {
+                          // Convert data URL to Buffer (for OBZ → Grid3 conversion)
+                          try {
+                            const matches = button.image.match(/^data:image\/(\w+);base64,(.+)$/);
+                            if (matches) {
+                              const extension = matches[1]; // e.g., 'png', 'jpeg', 'gif'
+                              const base64Data = matches[2];
+                              imageData = Buffer.from(base64Data, 'base64');
+                              imageExt = extension; // Override the detected extension
+                              hasImageData = imageData.length > 0;
+                            }
+                          } catch (err) {
+                            console.warn(
+                              `[Grid3] Failed to convert data URL to Buffer for button ${button.id}:`,
+                              err
+                            );
+                          }
                         }
 
-                        // Store image data for later writing to ZIP
-                        buttonImages.set(button.id, {
-                          imageData: imageData,
-                          ext: imageExt,
-                          pageName: page.name || page.id,
-                          x: position.x,
-                          y: position.y + yOffset,
-                        });
+                        // Only add image reference if we have actual image data
+                        if (hasImageData) {
+                          // Grid3 dynamically constructs image filenames by prepending cell coordinates
+                          // The XML should only contain the suffix: -0-text-0.{ext}
+                          // Grid3 automatically adds the X-Y prefix based on the Cell's position
+                          captionAndImage.Image = `-0-text-0.${imageExt}`;
+
+                          // Store image data for later writing to ZIP
+                          buttonImages.set(button.id, {
+                            imageData: imageData,
+                            ext: imageExt,
+                            pageName: page.name || page.id,
+                            x: position.x,
+                            y: position.y + yOffset,
+                          });
+                        }
                       }
 
                       const cellData: Record<string, unknown> = {
@@ -1927,9 +2009,11 @@ class GridsetProcessor extends BaseProcessor {
                         if (button.style?.borderColor) {
                           styleObj.BorderColour = this.ensureAlphaChannel(button.style.borderColor);
                         }
-                        if (button.style?.fontColor) {
-                          styleObj.FontColour = this.ensureAlphaChannel(button.style.fontColor);
-                        }
+                        // Always add font color inline - either from button style or calculated from background
+                        const fontColor =
+                          button.style?.fontColor ||
+                          this.getContrastFontColor(button.style?.backgroundColor);
+                        styleObj.FontColour = this.ensureAlphaChannel(fontColor);
                         if (button.style?.fontFamily) {
                           styleObj.FontName = button.style.fontFamily;
                         }

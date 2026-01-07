@@ -83,6 +83,41 @@ class ObfProcessor extends BaseProcessor {
   }
 
   /**
+   * Extract an image from the ZIP file as a Buffer
+   */
+  private extractImageAsBuffer(imageId: string, images: any[]): Buffer | null {
+    if (!this.zipFile || !images) {
+      return null;
+    }
+
+    // Find the image metadata
+    const imageData = images.find((img: any) => img.id === imageId);
+    if (!imageData) {
+      return null;
+    }
+
+    // Try to get the image file from the ZIP
+    const possiblePaths = [
+      imageData.path,
+      `images/${imageData.filename || imageId}`,
+      imageData.id,
+    ].filter(Boolean);
+
+    for (const imagePath of possiblePaths) {
+      try {
+        const entry = this.zipFile.getEntry(imagePath);
+        if (entry) {
+          return entry.getData(); // Return raw Buffer
+        }
+      } catch (err) {
+        continue;
+      }
+    }
+
+    return null;
+  }
+
+  /**
    * Extract an image from the ZIP file and convert to data URL
    */
   private extractImageAsDataUrl(imageId: string, images: any[]): string | null {
@@ -187,8 +222,16 @@ class ObfProcessor extends BaseProcessor {
 
       // Resolve image if image_id is present
       let resolvedImage: string | undefined;
+      let imageBuffer: Buffer | undefined;
       if (btn.image_id && boardData.images) {
         resolvedImage = this.extractImageAsDataUrl(btn.image_id, boardData.images) || undefined;
+        imageBuffer = this.extractImageAsBuffer(btn.image_id, boardData.images) || undefined;
+      }
+
+      // Build parameters object for Grid3 export compatibility
+      const buttonParameters: { imageData?: Buffer; [key: string]: any } = {};
+      if (imageBuffer) {
+        buttonParameters.imageData = imageBuffer;
       }
 
       return new AACButton({
@@ -203,6 +246,7 @@ class ObfProcessor extends BaseProcessor {
         },
         image: resolvedImage, // Set the resolved image data URL
         resolvedImageEntry: resolvedImage,
+        parameters: Object.keys(buttonParameters).length > 0 ? buttonParameters : undefined,
         semanticAction,
         targetPageId: btn.load_board?.path,
         semantic_id: btn.semantic_id, // Extract semantic_id if present
