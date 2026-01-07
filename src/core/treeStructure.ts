@@ -191,6 +191,8 @@ export class AACButton implements IAACButton {
   directActivate?: boolean;
   audioDescription?: string;
   parameters?: { [key: string]: any };
+  // Predictions: Array of predicted word forms for smart grammar
+  predictions?: string[];
   // Metrics support: Motor planning identifiers
   semantic_id?: string; // Unique ID for buttons with same semantic meaning across boards
   clone_id?: string; // Unique ID for buttons with same label+location across boards
@@ -218,6 +220,7 @@ export class AACButton implements IAACButton {
     visibility,
     directActivate,
     parameters,
+    predictions,
     semantic_id,
     clone_id,
     // Legacy input support
@@ -251,6 +254,7 @@ export class AACButton implements IAACButton {
     visibility?: 'Visible' | 'Hidden' | 'Disabled' | 'PointerAndTouchOnly' | 'Empty';
     directActivate?: boolean;
     parameters?: { [key: string]: any };
+    predictions?: string[];
     semantic_id?: string;
     clone_id?: string;
     // Legacy constructor properties for backward compatibility
@@ -283,6 +287,7 @@ export class AACButton implements IAACButton {
     this.visibility = visibility;
     this.directActivate = directActivate;
     this.parameters = parameters;
+    this.predictions = predictions;
     this.semantic_id = semantic_id;
     this.clone_id = clone_id;
 

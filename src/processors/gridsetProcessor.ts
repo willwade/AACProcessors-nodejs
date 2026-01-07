@@ -1326,6 +1326,12 @@ class GridsetProcessor extends BaseProcessor {
                 ...cellStyle,
                 ...inlineStyle, // Inline styles override referenced styles
               },
+              // Store predictions directly on button for easy access
+              predictions: predictionWords?.length
+                ? [...predictionWords]
+                : gridPredictionWords.length > 0
+                  ? [...gridPredictionWords]
+                  : undefined,
               parameters: {
                 pluginMetadata: pluginMetadata, // Store full plugin metadata for future use
                 grid3Commands: detectedCommands, // Store detected command metadata

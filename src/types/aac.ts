@@ -118,6 +118,8 @@ export interface AACButton {
   directActivate?: boolean;
   audioDescription?: string;
   parameters?: { [key: string]: any };
+  // Predictions: Array of predicted word forms for smart grammar
+  predictions?: string[];
   // Metrics support: Motor planning identifiers
   semantic_id?: string; // Unique ID for buttons with same semantic meaning across boards
   clone_id?: string; // Unique ID for buttons with same label+location across boards
