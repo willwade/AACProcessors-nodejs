@@ -63,7 +63,10 @@ export function readBinaryFromInput(input: ProcessorInput): Uint8Array {
   return input;
 }
 
-export function readTextFromInput(input: ProcessorInput, encoding: BufferEncoding = 'utf8'): string {
+export function readTextFromInput(
+  input: ProcessorInput,
+  encoding: BufferEncoding = 'utf8'
+): string {
   if (typeof input === 'string') {
     const fs = getFs();
     return fs.readFileSync(input, encoding);

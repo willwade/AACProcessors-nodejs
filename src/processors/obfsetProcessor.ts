@@ -11,7 +11,6 @@ import {
   AACSemanticCategory,
   AACSemanticIntent,
 } from '../core/treeStructure';
-import fs from 'fs';
 import { BaseProcessor, ProcessorOptions } from '../core/baseProcessor';
 import { ProcessorInput, readTextFromInput } from '../utils/io';
 
@@ -65,9 +64,7 @@ export class ObfsetProcessor extends BaseProcessor {
   loadIntoTree(filePathOrBuffer: ProcessorInput): AACTree {
     const tree = new AACTree();
     tree.metadata.format = 'obfset';
-    let content: string;
-
-    content = readTextFromInput(filePathOrBuffer);
+    const content = readTextFromInput(filePathOrBuffer);
 
     const boards: ObfsetBoard[] = JSON.parse(content);
 

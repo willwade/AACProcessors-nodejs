@@ -41,7 +41,9 @@ export class SnapValidator extends BaseValidator {
       const buffer = Buffer.isBuffer(content) ? content : Buffer.from(content);
       const zip = await JSZip.loadAsync(buffer);
       const entries = Object.values(zip.files).filter((entry) => !entry.dir);
-      return entries.some((entry) => entry.name.includes('settings') || entry.name.includes('.xml'));
+      return entries.some(
+        (entry) => entry.name.includes('settings') || entry.name.includes('.xml')
+      );
     } catch {
       return false;
     }

@@ -378,7 +378,9 @@ class ObfProcessor extends BaseProcessor {
   loadIntoTree(filePathOrBuffer: ProcessorInput): AACTree {
     // Detailed logging for debugging input
     const bufferLength =
-      typeof filePathOrBuffer === 'string' ? null : readBinaryFromInput(filePathOrBuffer).byteLength;
+      typeof filePathOrBuffer === 'string'
+        ? null
+        : readBinaryFromInput(filePathOrBuffer).byteLength;
     console.log('[OBF] loadIntoTree called with:', {
       type: typeof filePathOrBuffer,
       isBuffer: typeof Buffer !== 'undefined' && Buffer.isBuffer(filePathOrBuffer),
@@ -809,7 +811,7 @@ class ObfProcessor extends BaseProcessor {
 
   private getAdmZip(): typeof import('adm-zip') {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-unsafe-return
       return require('adm-zip');
     } catch (error) {
       throw new Error('Zip handling requires adm-zip in this environment.');
@@ -818,7 +820,7 @@ class ObfProcessor extends BaseProcessor {
 
   private getObfValidator(): typeof import('../validation/obfValidator').ObfValidator {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-unsafe-return
       return require('../validation/obfValidator').ObfValidator;
     } catch (error) {
       throw new Error('Validation utilities are not available in this environment.');
