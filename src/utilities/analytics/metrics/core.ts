@@ -118,6 +118,13 @@ export class MetricsCalculator {
     // Update buttons using dynamic spelling effort if applicable
     const buttons = Array.from(knownButtons.values()).sort((a, b) => a.effort - b.effort);
 
+    // Calculate metrics for word forms (smart grammar predictions)
+    const wordFormMetrics = this.calculateWordFormMetrics(tree, buttons, options);
+    buttons.push(...wordFormMetrics);
+
+    // Re-sort after adding word forms
+    buttons.sort((a, b) => a.effort - b.effort);
+
     // Calculate grid dimensions
     const grid = this.calculateGridDimensions(tree);
 
@@ -717,6 +724,91 @@ export class MetricsCalculator {
 
     boardPcts['all'] = totalLinks;
     return boardPcts;
+  }
+
+  /**
+   * Calculate metrics for word forms (smart grammar predictions)
+   *
+   * Word forms are dynamically generated and not part of the tree structure.
+   * Their effort is calculated as:
+   * - Parent button's cumulative effort (to reach the button)
+   * - + Effort to select the word form from its position in predictions grid
+   *
+   * @param tree - The AAC tree
+   * @param buttons - Already calculated button metrics
+   * @param options - Metrics options
+   * @returns Array of word form button metrics
+   */
+  private calculateWordFormMetrics(
+    tree: AACTree,
+    buttons: ButtonMetrics[],
+    _options: MetricsOptions = {}
+  ): ButtonMetrics[] {
+    const wordFormMetrics: ButtonMetrics[] = [];
+
+    // Track which buttons already exist to avoid duplicates
+    const existingLabels = new Map<string, ButtonMetrics>();
+    buttons.forEach((btn) => existingLabels.set(btn.label.toLowerCase(), btn));
+
+    // Iterate through all pages to find buttons with predictions
+    Object.values(tree.pages).forEach((page: AACPage) => {
+      page.grid.forEach((row: (AACButton | null)[]) => {
+        row.forEach((btn: AACButton | null) => {
+          if (!btn || !btn.predictions || btn.predictions.length === 0) return;
+
+          // Find the parent button's metrics
+          const parentMetrics = buttons.find((b) => b.id === btn.id);
+          if (!parentMetrics) return;
+
+          // Calculate effort for each word form
+          btn.predictions.forEach((wordForm: string, index: number) => {
+            const wordFormLower = wordForm.toLowerCase();
+
+            // Skip if this word form already exists as a regular button
+            if (existingLabels.has(wordFormLower)) {
+              return;
+            }
+
+            // Calculate effort based on position in predictions array
+            // Assume predictions are displayed in a grid layout (e.g., 2 columns)
+            const predictionsGridCols = 2; // Typical predictions layout
+            const predictionRowIndex = Math.floor(index / predictionsGridCols);
+            const predictionColIndex = index % predictionsGridCols;
+
+            // Calculate visual scan effort to reach this word form position
+            // Using similar logic to button scanning effort
+            const predictionPriorItems =
+              predictionRowIndex * predictionsGridCols + predictionColIndex;
+            const predictionSelectionEffort = visualScanEffort(predictionPriorItems);
+
+            // Word form effort = parent button's cumulative effort + selection effort
+            const wordFormEffort = parentMetrics.effort + predictionSelectionEffort;
+
+            // Mark as word form with a special ID pattern
+            const wordFormBtn: ButtonMetrics = {
+              id: `${btn.id}_wordform_${index}`,
+              label: wordForm,
+              level: parentMetrics.level,
+              effort: wordFormEffort,
+              count: 1,
+              semantic_id: parentMetrics.semantic_id,
+              clone_id: parentMetrics.clone_id,
+              temporary_home_id: parentMetrics.temporary_home_id,
+              is_word_form: true, // Mark this as a word form metric
+              parent_button_id: btn.id, // Track parent button
+              parent_button_label: parentMetrics.label, // Track parent label
+            };
+
+            wordFormMetrics.push(wordFormBtn);
+            existingLabels.set(wordFormLower, wordFormBtn);
+          });
+        });
+      });
+    });
+
+    console.log(`📝 Calculated ${wordFormMetrics.length} word form metrics from predictions`);
+
+    return wordFormMetrics;
   }
 
   /**

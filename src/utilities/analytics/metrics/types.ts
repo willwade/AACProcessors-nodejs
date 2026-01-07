@@ -22,6 +22,10 @@ export interface ButtonMetrics {
   temporary_home_id?: string; // For temporary home navigation
   comp_level?: number; // Comparison: level in comparison set
   comp_effort?: number; // Comparison: effort in comparison set
+  // Word form metrics (for smart grammar predictions)
+  is_word_form?: boolean; // True if this is a word form from predictions
+  parent_button_id?: string; // ID of parent button that has these predictions
+  parent_button_label?: string; // Label of parent button
 }
 
 /**
