@@ -27,7 +27,11 @@ describe('OBFProcessor', () => {
     if (rootPage) {
       const imgBtn = rootPage.buttons.find((b: any) => b.image);
       if (imgBtn) {
-        expect((imgBtn as any).image).toHaveProperty('id');
+        // Image should now be a data URL string (from embedded OBZ images)
+        expect(typeof imgBtn.image).toBe('string');
+        expect(imgBtn.image).toMatch(/^data:image\//);
+        // resolvedImageEntry should also be set
+        expect(imgBtn.resolvedImageEntry).toBe(imgBtn.image);
       }
     }
   });

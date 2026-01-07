@@ -40,6 +40,7 @@ interface ObfButton {
   border_color?: string;
   semantic_id?: string; // Optional semantic identifier for motor planning
   hidden?: boolean; // OBF uses boolean hidden field
+  image_id?: string; // Reference to image in the images array
 }
 
 /**
@@ -74,9 +75,84 @@ interface ObfBoard {
 }
 
 class ObfProcessor extends BaseProcessor {
+  private zipFile?: AdmZip;
+  private imageCache: Map<string, string> = new Map(); // Cache for data URLs
+
   constructor(options?: ProcessorOptions) {
     super(options);
   }
+
+  /**
+   * Extract an image from the ZIP file and convert to data URL
+   */
+  private extractImageAsDataUrl(imageId: string, images: any[]): string | null {
+    // Check cache first
+    if (this.imageCache.has(imageId)) {
+      return this.imageCache.get(imageId)!;
+    }
+
+    if (!this.zipFile || !images) {
+      return null;
+    }
+
+    // Find the image metadata
+    const imageData = images.find((img: any) => img.id === imageId);
+    if (!imageData) {
+      return null;
+    }
+
+    // Try to get the image file from the ZIP
+    // Images are typically stored in an 'images' folder or root
+    const possiblePaths = [
+      imageData.path, // Explicit path if provided
+      `images/${imageData.filename || imageId}`, // Standard images folder
+      imageData.id, // Just the ID
+    ].filter(Boolean);
+
+    for (const imagePath of possiblePaths) {
+      try {
+        const entry = this.zipFile.getEntry(imagePath);
+        if (entry) {
+          const buffer = entry.getData();
+          const contentType = imageData.content_type || this.getMimeTypeFromFilename(imagePath);
+          const dataUrl = `data:${contentType};base64,${buffer.toString('base64')}`;
+          this.imageCache.set(imageId, dataUrl);
+          return dataUrl;
+        }
+      } catch (err) {
+        // Continue to next path
+        continue;
+      }
+    }
+
+    // If image has a URL, use that as fallback
+    if (imageData.url) {
+      this.imageCache.set(imageId, imageData.url);
+      return imageData.url;
+    }
+
+    return null;
+  }
+
+  private getMimeTypeFromFilename(filename: string): string {
+    const ext = filename.toLowerCase().split('.').pop();
+    switch (ext) {
+      case 'png':
+        return 'image/png';
+      case 'jpg':
+      case 'jpeg':
+        return 'image/jpeg';
+      case 'gif':
+        return 'image/gif';
+      case 'svg':
+        return 'image/svg+xml';
+      case 'webp':
+        return 'image/webp';
+      default:
+        return 'image/png';
+    }
+  }
+
   private processBoard(boardData: ObfBoard, _boardPath: string): AACPage {
     const sourceButtons = boardData.buttons || [];
 
@@ -109,6 +185,12 @@ class ObfProcessor extends BaseProcessor {
             },
           };
 
+      // Resolve image if image_id is present
+      let resolvedImage: string | undefined;
+      if (btn.image_id && boardData.images) {
+        resolvedImage = this.extractImageAsDataUrl(btn.image_id, boardData.images) || undefined;
+      }
+
       return new AACButton({
         // Make button ID unique by combining page ID and button ID
         id: `${pageId}::${btn?.id || ''}`,
@@ -119,6 +201,8 @@ class ObfProcessor extends BaseProcessor {
           backgroundColor: btn.background_color,
           borderColor: btn.border_color,
         },
+        image: resolvedImage, // Set the resolved image data URL
+        resolvedImageEntry: resolvedImage,
         semanticAction,
         targetPageId: btn.load_board?.path,
         semantic_id: btn.semantic_id, // Extract semantic_id if present
@@ -345,6 +429,11 @@ class ObfProcessor extends BaseProcessor {
       console.error('[OBF] Error instantiating AdmZip with input:', err);
       throw err;
     }
+
+    // Store the ZIP file reference for image extraction
+    this.zipFile = zip;
+    this.imageCache.clear(); // Clear cache for new file
+
     console.log('[OBF] Detected zip archive, extracting .obf files');
     zip.getEntries().forEach((entry) => {
       if (entry.entryName.endsWith('.obf')) {
