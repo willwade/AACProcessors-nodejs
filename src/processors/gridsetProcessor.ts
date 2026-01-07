@@ -1399,6 +1399,8 @@ class GridsetProcessor extends BaseProcessor {
                   pluginMetadata.autoContentType === 'Prediction'
                     ? predictionCellCounter
                     : undefined,
+                // Store page name for Grid3 image lookup
+                gridPageName: gridName,
               },
             });
 
