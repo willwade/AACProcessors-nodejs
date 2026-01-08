@@ -553,9 +553,14 @@ class GridsetProcessor extends BaseProcessor {
 
     // Debug: log all entry names
     console.log('[Gridset] Total zip entries:', entries.length);
-    const gridEntries = entries.filter(
-      (e) => e.entryName.startsWith('Grids/') && e.entryName.endsWith('grid.xml')
-    );
+    const normalizeEntryName = (entryName: string): string =>
+      entryName.replace(/\\/g, '/').toLowerCase();
+    const isGridXmlEntry = (entryName: string): boolean => {
+      const normalized = normalizeEntryName(entryName);
+      if (!normalized.endsWith('grid.xml')) return false;
+      return normalized.startsWith('grids/') || normalized.includes('/grids/');
+    };
+    const gridEntries = entries.filter((e) => isGridXmlEntry(e.entryName));
     console.log('[Gridset] Grid XML entries found:', gridEntries.length);
     if (gridEntries.length > 0) {
       console.log(
@@ -569,7 +574,7 @@ class GridsetProcessor extends BaseProcessor {
     const gridIdToNameMap = new Map<string, string>();
 
     for (const entry of entries) {
-      if (entry.entryName.startsWith('Grids/') && entry.entryName.endsWith('grid.xml')) {
+      if (isGridXmlEntry(entry.entryName)) {
         try {
           const xmlContent = decodeText(await readEntryBuffer(entry));
           const data = parser.parse(xmlContent);
@@ -605,7 +610,7 @@ class GridsetProcessor extends BaseProcessor {
     // Second pass: process each grid file in the gridset
     for (const entry of entries) {
       // Only process files named grid.xml under Grids/ (any subdir)
-      if (entry.entryName.startsWith('Grids/') && entry.entryName.endsWith('grid.xml')) {
+      if (isGridXmlEntry(entry.entryName)) {
         let xmlContent: string;
         try {
           const buffer = await readEntryBuffer(entry);

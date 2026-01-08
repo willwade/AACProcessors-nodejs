@@ -449,7 +449,7 @@ class ObfProcessor extends BaseProcessor {
     }
 
     // If input is a string path and ends with .obf, treat as JSON
-    if (typeof filePathOrBuffer === 'string' && filePathOrBuffer.endsWith('.obf')) {
+    if (typeof filePathOrBuffer === 'string' && filePathOrBuffer.toLowerCase().endsWith('.obf')) {
       try {
         const content = readTextFromInput(filePathOrBuffer);
         const boardData = tryParseObfJson(content);
@@ -502,7 +502,10 @@ class ObfProcessor extends BaseProcessor {
 
     // Otherwise, try as ZIP (.obz). Detect likely zip signature first; throw if neither JSON nor ZIP
     function isLikelyZip(input: ProcessorInput): boolean {
-      if (typeof input === 'string') return input.endsWith('.zip') || input.endsWith('.obz');
+      if (typeof input === 'string') {
+        const lowered = input.toLowerCase();
+        return lowered.endsWith('.zip') || lowered.endsWith('.obz');
+      }
       const bytes = readBinaryFromInput(input);
       return bytes.length >= 2 && bytes[0] === 0x50 && bytes[1] === 0x4b;
     }
@@ -531,7 +534,7 @@ class ObfProcessor extends BaseProcessor {
     const obfEntries: Array<{ name: string; file: JSZip.JSZipObject }> = [];
     zip.forEach((relativePath: string, file: JSZip.JSZipObject) => {
       if (file.dir) return;
-      if (relativePath.endsWith('.obf')) {
+      if (relativePath.toLowerCase().endsWith('.obf')) {
         obfEntries.push({ name: relativePath, file });
       }
     });

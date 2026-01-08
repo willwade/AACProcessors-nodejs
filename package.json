@@ -94,6 +94,7 @@
     "format": "prettier --write \"src/**/*.{js,ts}\" \"test/**/*.{js,ts}\" \"*.{js,ts,json,md}\"",
     "format:check": "prettier --check \"src/**/*.{js,ts}\" \"test/**/*.{js,ts}\" \"*.{js,ts,json,md}\"",
     "smoke:browser": "node scripts/smoke-browser-bundle.js",
+    "verify:browser-build": "node scripts/verify-browser-build.js",
     "test": "npm run build && jest",
     "test:watch": "npm run build && jest --watch",
     "test:coverage": "npm run build && jest --coverage",
@@ -102,8 +103,8 @@
     "docs": "typedoc",
     "coverage:report": "node scripts/coverage-analysis.js",
     "type-check": "tsc --noEmit",
-    "prepublishOnly": "npm run build",
-    "prepack": "npm run build"
+    "prepublishOnly": "npm run build:all && npm run verify:browser-build",
+    "prepack": "npm run build:all && npm run verify:browser-build"
   },
   "keywords": [
     "aac",

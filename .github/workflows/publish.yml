@@ -47,4 +47,5 @@ jobs:
           npm version "${{ steps.release_version.outputs.version }}" --no-git-tag-version
 
       - run: npm run build:all --if-present
+      - run: npm run verify:browser-build --if-present
       - run: npm publish --access public
