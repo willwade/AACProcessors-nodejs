@@ -1,18 +1,18 @@
-import {
-  AACButton as IAACButton,
-  AACPage as IAACPage,
-  AACTree as IAACTree,
+// Note: To avoid circular dependency issues with Vite, we use type-only imports
+import type {
+  AACStyle,
   AACTreeMetadata,
   SnapMetadata,
   GridSetMetadata,
   AstericsGridMetadata,
   TouchChatMetadata,
-  AACStyle,
   CellScanningOrder,
   ScanningSelectionMethod,
 } from '../types/aac';
 
-export {
+// Re-export for consumers
+export type {
+  AACStyle,
   AACTreeMetadata,
   SnapMetadata,
   GridSetMetadata,
@@ -151,7 +151,7 @@ export interface AACSemanticAction {
   };
 }
 
-export class AACButton implements IAACButton {
+export class AACButton {
   id: string;
   label: string;
   message: string;
@@ -373,7 +373,7 @@ export class AACButton implements IAACButton {
   }
 }
 
-export class AACPage implements IAACPage {
+export class AACPage {
   id: string;
   name: string;
   grid: Array<Array<AACButton | null>>;
@@ -457,7 +457,7 @@ export class AACPage implements IAACPage {
   }
 }
 
-export class AACTree implements IAACTree {
+export class AACTree {
   pages: { [key: string]: AACPage };
   metadata: AACTreeMetadata;
 

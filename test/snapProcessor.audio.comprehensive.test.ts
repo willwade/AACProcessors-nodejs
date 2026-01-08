@@ -10,24 +10,24 @@ describe('SnapProcessor - Comprehensive Coverage Tests', () => {
   const tempDir = path.join(__dirname, 'temp_snap');
   const _exampleFile = path.join(__dirname, 'assets/snap/example.sps');
 
-  beforeAll(() => {
+  beforeAll(async () => {
     if (!fs.existsSync(tempDir)) {
       fs.mkdirSync(tempDir, { recursive: true });
     }
   });
 
-  beforeEach(() => {
+  beforeEach(async () => {
     processor = new SnapProcessor();
   });
 
-  afterAll(() => {
+  afterAll(async () => {
     if (fs.existsSync(tempDir)) {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }
   });
 
   describe('Audio Handling Tests', () => {
-    it('should load audio recordings from SPS database', () => {
+    it('should load audio recordings from SPS database', async () => {
       // Create a button with audio recording
       const button = ButtonFactory.create({
         label: 'Audio Button',
@@ -53,12 +53,12 @@ describe('SnapProcessor - Comprehensive Coverage Tests', () => {
       tree.addPage(page);
 
       const outputPath = path.join(tempDir, 'audio_test.sps');
-      processor.saveFromTree(tree, outputPath);
+      await processor.saveFromTree(tree, outputPath);
 
       expect(fs.existsSync(outputPath)).toBe(true);
 
       // Load and verify audio is preserved
-      const loadedTree = processor.loadIntoTree(outputPath);
+      const loadedTree = await processor.loadIntoTree(outputPath);
       const loadedPage = loadedTree.getPage('audio_page');
 
       expect(loadedPage).toBeDefined();
@@ -69,7 +69,7 @@ describe('SnapProcessor - Comprehensive Coverage Tests', () => {
       expect(loadedPage.buttons[0].label).toBe('Audio Button');
     });
 
-    it('should handle missing audio files gracefully', () => {
+    it('should handle missing audio files gracefully', async () => {
       // Create a button that references non-existent audio
       const button = ButtonFactory.create({
         label: 'Missing Audio Button',
@@ -96,15 +96,12 @@ describe('SnapProcessor - Comprehensive Coverage Tests', () => {
 
       const outputPath = path.join(tempDir, 'missing_audio.sps');
 
-      expect(() => {
-        processor.saveFromTree(tree, outputPath);
-      }).not.toThrow();
-
-      const loadedTree = processor.loadIntoTree(outputPath);
+      await expect(processor.saveFromTree(tree, outputPath)).resolves.not.toThrow();
+      const loadedTree = await processor.loadIntoTree(outputPath);
       expect(loadedTree).toBeDefined();
     });
 
-    it('should process different audio formats (WAV, MP3, AAC)', () => {
+    it('should process different audio formats (WAV, MP3, AAC)', async () => {
       const audioFormats = [
         { format: 'WAV', data: Buffer.from('RIFF....WAVE'), extension: '.wav' },
         { format: 'MP3', data: Buffer.from('ID3....'), extension: '.mp3' },
@@ -136,13 +133,13 @@ describe('SnapProcessor - Comprehensive Coverage Tests', () => {
       });
 
       const outputPath = path.join(tempDir, 'multi_format_audio.sps');
-      processor.saveFromTree(tree, outputPath);
+      await processor.saveFromTree(tree, outputPath);
 
-      const loadedTree = processor.loadIntoTree(outputPath);
+      const loadedTree = await processor.loadIntoTree(outputPath);
       expect(Object.keys(loadedTree.pages)).toHaveLength(3);
     });
 
-    it('should add new audio recordings to buttons', () => {
+    it('should add new audio recordings to buttons', async () => {
       // Start with a button without audio
       const button = ButtonFactory.create({
         label: 'No Audio Button',
@@ -161,10 +158,10 @@ describe('SnapProcessor - Comprehensive Coverage Tests', () => {
 
       // Save initial version
       const outputPath = path.join(tempDir, 'add_audio.sps');
-      processor.saveFromTree(tree, outputPath);
+      await processor.saveFromTree(tree, outputPath);
 
       // Load and add audio
-      const loadedTree = processor.loadIntoTree(outputPath);
+      const loadedTree = await processor.loadIntoTree(outputPath);
       const loadedPage = loadedTree.getPage('add_audio_page');
       expect(loadedPage).toBeDefined();
       if (!loadedPage) {
@@ -182,10 +179,10 @@ describe('SnapProcessor - Comprehensive Coverage Tests', () => {
 
       // Save with audio
       const updatedPath = path.join(tempDir, 'add_audio_updated.sps');
-      processor.saveFromTree(loadedTree, updatedPath);
+      await processor.saveFromTree(loadedTree, updatedPath);
 
       // Verify audio was added
-      const finalTree = processor.loadIntoTree(updatedPath);
+      const finalTree = await processor.loadIntoTree(updatedPath);
       const finalPage = finalTree.getPage('add_audio_page');
       expect(finalPage).toBeDefined();
       if (!finalPage) {
@@ -197,7 +194,7 @@ describe('SnapProcessor - Comprehensive Coverage Tests', () => {
       expect(finalButton.audioRecording?.identifier).toBe('new_audio');
     });
 
-    it('should update existing audio recordings', () => {
+    it('should update existing audio recordings', async () => {
       // Create button with initial audio
       const button = ButtonFactory.create({
         label: 'Update Audio Button',
@@ -222,10 +219,10 @@ describe('SnapProcessor - Comprehensive Coverage Tests', () => {
       tree.addPage(page);
 
       const outputPath = path.join(tempDir, 'update_audio.sps');
-      processor.saveFromTree(tree, outputPath);
+      await processor.saveFromTree(tree, outputPath);
 
       // Load and update audio
-      const loadedTree = processor.loadIntoTree(outputPath);
+      const loadedTree = await processor.loadIntoTree(outputPath);
       const updatePage = loadedTree.getPage('update_audio_page');
       expect(updatePage).toBeDefined();
       if (!updatePage) {
@@ -242,10 +239,10 @@ describe('SnapProcessor - Comprehensive Coverage Tests', () => {
       };
 
       const updatedPath = path.join(tempDir, 'update_audio_final.sps');
-      processor.saveFromTree(loadedTree, updatedPath);
+      await processor.saveFromTree(loadedTree, updatedPath);
 
       // Verify audio was updated
-      const finalTree = processor.loadIntoTree(updatedPath);
+      const finalTree = await processor.loadIntoTree(updatedPath);
       const finalPage = finalTree.getPage('update_audio_page');
       expect(finalPage).toBeDefined();
       if (!finalPage) {
@@ -257,7 +254,7 @@ describe('SnapProcessor - Comprehensive Coverage Tests', () => {
       expect(finalButton.audioRecording?.metadata).toBe('Updated audio');
     });
 
-    it('should remove audio recordings from buttons', () => {
+    it('should remove audio recordings from buttons', async () => {
       // Create button with audio
       const button = ButtonFactory.create({
         label: 'Remove Audio Button',
@@ -282,10 +279,10 @@ describe('SnapProcessor - Comprehensive Coverage Tests', () => {
       tree.addPage(page);
 
       const outputPath = path.join(tempDir, 'remove_audio.sps');
-      processor.saveFromTree(tree, outputPath);
+      await processor.saveFromTree(tree, outputPath);
 
       // Load and remove audio
-      const loadedTree = processor.loadIntoTree(outputPath);
+      const loadedTree = await processor.loadIntoTree(outputPath);
       const removePage = loadedTree.getPage('remove_audio_page');
       expect(removePage).toBeDefined();
       if (!removePage) {
@@ -297,10 +294,10 @@ describe('SnapProcessor - Comprehensive Coverage Tests', () => {
       loadedButton.audioRecording = undefined;
 
       const updatedPath = path.join(tempDir, 'remove_audio_final.sps');
-      processor.saveFromTree(loadedTree, updatedPath);
+      await processor.saveFromTree(loadedTree, updatedPath);
 
       // Verify audio was removed
-      const finalTree = processor.loadIntoTree(updatedPath);
+      const finalTree = await processor.loadIntoTree(updatedPath);
       const finalPage = finalTree.getPage('remove_audio_page');
       expect(finalPage).toBeDefined();
       if (!finalPage) {
@@ -310,7 +307,7 @@ describe('SnapProcessor - Comprehensive Coverage Tests', () => {
       expect(finalButton.audioRecording).toBeUndefined();
     });
 
-    it('should preserve audio metadata during processing', () => {
+    it('should preserve audio metadata during processing', async () => {
       const button = ButtonFactory.create({
         label: 'Metadata Button',
         message: 'Audio with metadata',
@@ -343,9 +340,9 @@ describe('SnapProcessor - Comprehensive Coverage Tests', () => {
       tree.addPage(page);
 
       const outputPath = path.join(tempDir, 'metadata_test.sps');
-      processor.saveFromTree(tree, outputPath);
+      await processor.saveFromTree(tree, outputPath);
 
-      const loadedTree = processor.loadIntoTree(outputPath);
+      const loadedTree = await processor.loadIntoTree(outputPath);
       const loadedPage = loadedTree.getPage('metadata_page');
       expect(loadedPage).toBeDefined();
       if (!loadedPage) {
@@ -362,7 +359,7 @@ describe('SnapProcessor - Comprehensive Coverage Tests', () => {
       expect(parsedMetadata.format).toBe('WAV');
     });
 
-    it('should handle audio with different sample rates', () => {
+    it('should handle audio with different sample rates', async () => {
       const sampleRates = [8000, 16000, 22050, 44100, 48000, 96000];
       const tree = new AACTree();
 
@@ -389,9 +386,9 @@ describe('SnapProcessor - Comprehensive Coverage Tests', () => {
       });
 
       const outputPath = path.join(tempDir, 'sample_rates.sps');
-      processor.saveFromTree(tree, outputPath);
+      await processor.saveFromTree(tree, outputPath);
 
-      const loadedTree = processor.loadIntoTree(outputPath);
+      const loadedTree = await processor.loadIntoTree(outputPath);
       expect(Object.keys(loadedTree.pages)).toHaveLength(sampleRates.length);
 
       // Verify each sample rate is preserved
@@ -410,7 +407,7 @@ describe('SnapProcessor - Comprehensive Coverage Tests', () => {
       });
     });
 
-    it('should process audio with various bit depths', () => {
+    it('should process audio with various bit depths', async () => {
       const bitDepths = [8, 16, 24, 32];
       const tree = new AACTree();
 
@@ -437,9 +434,9 @@ describe('SnapProcessor - Comprehensive Coverage Tests', () => {
       });
 
       const outputPath = path.join(tempDir, 'bit_depths.sps');
-      processor.saveFromTree(tree, outputPath);
+      await processor.saveFromTree(tree, outputPath);
 
-      const loadedTree = processor.loadIntoTree(outputPath);
+      const loadedTree = await processor.loadIntoTree(outputPath);
       expect(Object.keys(loadedTree.pages)).toHaveLength(bitDepths.length);
 
       // Verify each bit depth is preserved

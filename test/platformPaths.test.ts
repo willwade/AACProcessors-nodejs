@@ -27,7 +27,7 @@ const mockExecSync = execSync as jest.MockedFunction<typeof execSync>;
 describe('Grid3 Path Discovery', () => {
   const originalPlatform = process.platform;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
     // Mock Windows platform
     Object.defineProperty(process, 'platform', {
@@ -36,7 +36,7 @@ describe('Grid3 Path Discovery', () => {
     });
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     // Restore original platform
     Object.defineProperty(process, 'platform', {
       value: originalPlatform,
@@ -45,7 +45,7 @@ describe('Grid3 Path Discovery', () => {
   });
 
   describe('getCommonDocumentsPath', () => {
-    it('should return path from registry on Windows', () => {
+    it('should return path from registry on Windows', async () => {
       const expectedPath = 'C:\\Users\\Public\\Documents';
       mockExecSync.mockReturnValue(`Common Documents    REG_SZ    ${expectedPath}\r\n` as any);
 
@@ -58,7 +58,7 @@ describe('Grid3 Path Discovery', () => {
       );
     });
 
-    it('should return default path if registry access fails', () => {
+    it('should return default path if registry access fails', async () => {
       mockExecSync.mockImplementation(() => {
         throw new Error('Registry access failed');
       });
@@ -68,7 +68,7 @@ describe('Grid3 Path Discovery', () => {
       expect(result).toBe('C:\\Users\\Public\\Documents');
     });
 
-    it('should return empty string on non-Windows platforms', () => {
+    it('should return empty string on non-Windows platforms', async () => {
       Object.defineProperty(process, 'platform', {
         value: 'darwin',
         configurable: true,
@@ -82,7 +82,7 @@ describe('Grid3 Path Discovery', () => {
   });
 
   describe('findGrid3UserPaths', () => {
-    it('should find Grid3 user paths with history databases', () => {
+    it('should find Grid3 user paths with history databases', async () => {
       const mockCommonDocs = 'C:\\Users\\Public\\Documents';
       mockExecSync.mockReturnValue(`Common Documents    REG_SZ    ${mockCommonDocs}\r\n` as any);
 
@@ -118,7 +118,7 @@ describe('Grid3 Path Discovery', () => {
       });
     });
 
-    it('should return empty array if Grid3 directory does not exist', () => {
+    it('should return empty array if Grid3 directory does not exist', async () => {
       mockExecSync.mockReturnValue(
         'Common Documents    REG_SZ    C:\\Users\\Public\\Documents\r\n' as any
       );
@@ -129,7 +129,7 @@ describe('Grid3 Path Discovery', () => {
       expect(result).toEqual([]);
     });
 
-    it('should return empty array on non-Windows platforms', () => {
+    it('should return empty array on non-Windows platforms', async () => {
       Object.defineProperty(process, 'platform', {
         value: 'linux',
         configurable: true,
@@ -143,7 +143,7 @@ describe('Grid3 Path Discovery', () => {
   });
 
   describe('findGrid3HistoryDatabases', () => {
-    it('should return array of history database paths', () => {
+    it('should return array of history database paths', async () => {
       const mockCommonDocs = 'C:\\Users\\Public\\Documents';
       mockExecSync.mockReturnValue(`Common Documents    REG_SZ    ${mockCommonDocs}\r\n` as any);
 
@@ -166,7 +166,7 @@ describe('Grid3 Path Discovery', () => {
   });
 
   describe('findGrid3Vocabularies', () => {
-    it('should list gridset files per user', () => {
+    it('should list gridset files per user', async () => {
       const mockCommonDocs = 'C:\\Users\\Public\\Documents';
       const grid3BasePath = path.win32.join(mockCommonDocs, 'Smartbox', 'Grid 3', 'Users');
       const gridSetsDir = path.win32.join(grid3BasePath, 'User1', 'Grid Sets');
@@ -204,7 +204,7 @@ describe('Grid3 Path Discovery', () => {
   });
 
   describe('findGrid3UserHistory', () => {
-    it('should return history path for specific user', () => {
+    it('should return history path for specific user', async () => {
       const mockCommonDocs = 'C:\\Users\\Public\\Documents';
       mockExecSync.mockReturnValue(`Common Documents    REG_SZ    ${mockCommonDocs}\r\n` as any);
 
@@ -239,7 +239,7 @@ describe('Snap Path Discovery', () => {
   const originalPlatform = process.platform;
   const originalEnv = process.env;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
     // Mock Windows platform
     Object.defineProperty(process, 'platform', {
@@ -253,7 +253,7 @@ describe('Snap Path Discovery', () => {
     };
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     // Restore original platform and environment
     Object.defineProperty(process, 'platform', {
       value: originalPlatform,
@@ -263,7 +263,7 @@ describe('Snap Path Discovery', () => {
   });
 
   describe('findSnapPackages', () => {
-    it('should find Snap packages matching pattern', () => {
+    it('should find Snap packages matching pattern', async () => {
       mockFs.existsSync.mockReturnValue(true);
       mockFs.readdirSync.mockReturnValue([
         { name: 'TobiiDynavox.Snap_abc123', isDirectory: () => true },
@@ -279,7 +279,7 @@ describe('Snap Path Discovery', () => {
       expect(result[1].packageName).toBe('TobiiDynavox.Communicator_def456');
     });
 
-    it('should filter by custom pattern', () => {
+    it('should filter by custom pattern', async () => {
       mockFs.existsSync.mockReturnValue(true);
       mockFs.readdirSync.mockReturnValue([
         { name: 'TobiiDynavox.Snap_abc123', isDirectory: () => true },
@@ -292,7 +292,7 @@ describe('Snap Path Discovery', () => {
       expect(result[0].packageName).toBe('CustomApp.Package_xyz');
     });
 
-    it('should return empty array if Packages directory does not exist', () => {
+    it('should return empty array if Packages directory does not exist', async () => {
       mockFs.existsSync.mockReturnValue(false);
 
       const result = findSnapPackagesFromSnap();
@@ -300,7 +300,7 @@ describe('Snap Path Discovery', () => {
       expect(result).toEqual([]);
     });
 
-    it('should return empty array if LOCALAPPDATA is not set', () => {
+    it('should return empty array if LOCALAPPDATA is not set', async () => {
       delete process.env.LOCALAPPDATA;
 
       const result = findSnapPackagesFromSnap();
@@ -309,7 +309,7 @@ describe('Snap Path Discovery', () => {
       expect(mockFs.existsSync).not.toHaveBeenCalled();
     });
 
-    it('should return empty array on non-Windows platforms', () => {
+    it('should return empty array on non-Windows platforms', async () => {
       Object.defineProperty(process, 'platform', {
         value: 'darwin',
         configurable: true,
@@ -323,7 +323,7 @@ describe('Snap Path Discovery', () => {
   });
 
   describe('findSnapPackagePath', () => {
-    it('should return first matching package path', () => {
+    it('should return first matching package path', async () => {
       mockFs.existsSync.mockReturnValue(true);
       mockFs.readdirSync.mockReturnValue([
         { name: 'TobiiDynavox.Snap_abc123', isDirectory: () => true },
@@ -334,7 +334,7 @@ describe('Snap Path Discovery', () => {
       expect(result).toContain('TobiiDynavox.Snap_abc123');
     });
 
-    it('should return null if no packages found', () => {
+    it('should return null if no packages found', async () => {
       mockFs.existsSync.mockReturnValue(true);
       mockFs.readdirSync.mockReturnValue([] as any);
 
@@ -345,7 +345,7 @@ describe('Snap Path Discovery', () => {
   });
 
   describe('findSnapUsers', () => {
-    it('should list Snap users and vocab files', () => {
+    it('should list Snap users and vocab files', async () => {
       const localAppData = process.env.LOCALAPPDATA ?? '';
       const packagesPath = path.join(localAppData, 'Packages');
       const packagePath = path.join(packagesPath, 'TobiiDynavox.Snap_abc123');
@@ -387,7 +387,7 @@ describe('Snap Path Discovery', () => {
   });
 
   describe('findSnapUserVocabularies', () => {
-    it('should return vocab paths for a specific user', () => {
+    it('should return vocab paths for a specific user', async () => {
       const localAppData = process.env.LOCALAPPDATA ?? '';
       const packagesPath = path.join(localAppData, 'Packages');
       const packagePath = path.join(packagesPath, 'TobiiDynavox.Snap_abc123');
@@ -421,7 +421,7 @@ describe('Snap Path Discovery', () => {
   });
 
   describe('findSnapUserHistory', () => {
-    it('should find history-like files for a user', () => {
+    it('should find history-like files for a user', async () => {
       const localAppData = process.env.LOCALAPPDATA ?? '';
       const packagesPath = path.join(localAppData, 'Packages');
       const packagePath = path.join(packagesPath, 'TobiiDynavox.Snap_abc123');

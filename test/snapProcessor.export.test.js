@@ -9,21 +9,21 @@ describe("SnapProcessor.saveFromTree", () => {
   afterAll(() => {
     if (fs.existsSync(outPath)) fs.unlinkSync(outPath);
   });
-  it("exports tree to Snap JSON", () => {
+  it("exports tree to Snap JSON", async () => {
     // If no example.snap.json, skip
     if (!fs.existsSync(snapPath)) return;
     const processor = new SnapProcessor();
-    const tree = processor.loadIntoTree(snapPath);
-    processor.saveFromTree(tree, outPath);
+    const tree = await processor.loadIntoTree(snapPath);
+    await processor.saveFromTree(tree, outPath);
     const exported = fs.readFileSync(outPath, "utf8");
     expect(exported).toContain("pages");
     expect(exported).toContain("rootId");
   });
 
-  it("loads tree from .sps file and returns pages", () => {
+  it("loads tree from .sps file and returns pages", async () => {
     if (!fs.existsSync(spsPath)) return;
     const processor = new SnapProcessor();
-    const tree = processor.loadIntoTree(spsPath);
+    const tree = await processor.loadIntoTree(spsPath);
     expect(tree).toBeTruthy();
     expect(Object.keys(tree.pages).length).toBeGreaterThan(0);
   });

@@ -12,20 +12,20 @@ import { ApplePanelsProcessor } from '../src/processors/applePanelsProcessor';
 describe('Error Handling', () => {
   const tempDir = path.join(__dirname, 'temp_error');
 
-  beforeAll(() => {
+  beforeAll(async () => {
     if (!fs.existsSync(tempDir)) {
       fs.mkdirSync(tempDir, { recursive: true });
     }
   });
 
-  afterAll(() => {
+  afterAll(async () => {
     if (fs.existsSync(tempDir)) {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }
   });
 
   describe('File I/O Error Handling', () => {
-    it('should handle non-existent files gracefully', () => {
+    it('should handle non-existent files gracefully', async () => {
       const processors = [
         new SnapProcessor(),
         new TouchChatProcessor(),
@@ -34,14 +34,12 @@ describe('Error Handling', () => {
         new ApplePanelsProcessor(),
       ];
 
-      processors.forEach((processor) => {
-        expect(() => {
-          processor.loadIntoTree('/non/existent/file.ext');
-        }).toThrow();
-      });
+      for (const processor of processors) {
+        await expect(processor.loadIntoTree('/non/existent/file.ext')).rejects.toThrow();
+      }
     });
 
-    it('should handle permission denied errors', () => {
+    it('should handle permission denied errors', async () => {
       // Create a file with no read permissions (if possible on this system)
       const restrictedFile = path.join(tempDir, 'restricted.txt');
       fs.writeFileSync(restrictedFile, 'test content');
@@ -50,9 +48,7 @@ describe('Error Handling', () => {
         fs.chmodSync(restrictedFile, 0o000); // No permissions
 
         const processor = new DotProcessor();
-        expect(() => {
-          processor.loadIntoTree(restrictedFile);
-        }).toThrow();
+        await expect(processor.loadIntoTree(restrictedFile)).rejects.toThrow();
       } catch (e) {
         // chmod might not work on all systems, skip this test
         console.log('Skipping permission test - chmod not supported');
@@ -68,67 +64,57 @@ describe('Error Handling', () => {
   });
 
   describe('Malformed Content Error Handling', () => {
-    it('should handle invalid JSON in OBF files', () => {
+    it('should handle invalid JSON in OBF files', async () => {
       const processor = new ObfProcessor();
       const invalidJson = Buffer.from('{ invalid json content }');
 
-      expect(() => {
-        processor.loadIntoTree(invalidJson);
-      }).toThrow();
+      await expect(processor.loadIntoTree(invalidJson)).rejects.toThrow();
     });
 
-    it('should handle invalid XML in OPML files', () => {
+    it('should handle invalid XML in OPML files', async () => {
       const processor = new OpmlProcessor();
       const invalidXml = Buffer.from('<invalid><unclosed>xml');
 
-      expect(() => {
-        processor.loadIntoTree(invalidXml);
-      }).toThrow();
+      await expect(processor.loadIntoTree(invalidXml)).rejects.toThrow();
     });
 
-    it('should handle invalid XML in GridSet files', () => {
+    it('should handle invalid XML in GridSet files', async () => {
       const processor = new GridsetProcessor();
       const invalidZip = Buffer.from('not a zip file');
 
-      expect(() => {
-        processor.loadIntoTree(invalidZip);
-      }).toThrow();
+      await expect(processor.loadIntoTree(invalidZip)).rejects.toThrow();
     });
 
-    it('should handle corrupted SQLite databases', () => {
+    it('should handle corrupted SQLite databases', async () => {
       const processor = new SnapProcessor();
       const corruptedDb = Buffer.from('SQLite format 3\x00but corrupted data');
 
-      expect(() => {
-        processor.loadIntoTree(corruptedDb);
-      }).toThrow();
+      await expect(processor.loadIntoTree(corruptedDb)).rejects.toThrow();
     });
   });
 
   describe('Empty Content Error Handling', () => {
-    it('should handle empty files gracefully', () => {
+    it('should handle empty files gracefully', async () => {
       const emptyBuffer = Buffer.alloc(0);
 
       // Processors should throw meaningful errors
       const dotProcessor = new DotProcessor();
-      expect(() => dotProcessor.loadIntoTree(emptyBuffer)).toThrow();
+      await expect(dotProcessor.loadIntoTree(emptyBuffer)).rejects.toThrow();
 
       const snapProcessor = new SnapProcessor();
-      expect(() => {
-        snapProcessor.loadIntoTree(emptyBuffer);
-      }).toThrow();
+      await expect(snapProcessor.loadIntoTree(emptyBuffer)).rejects.toThrow();
     });
 
-    it('should handle files with only whitespace', () => {
+    it('should handle files with only whitespace', async () => {
       const whitespaceBuffer = Buffer.from('   \n\t  \n  ');
 
       const dotProcessor = new DotProcessor();
-      expect(() => dotProcessor.loadIntoTree(whitespaceBuffer)).toThrow();
+      await expect(dotProcessor.loadIntoTree(whitespaceBuffer)).rejects.toThrow();
     });
   });
 
   describe('Memory and Resource Error Handling', () => {
-    it('should handle very large files gracefully', () => {
+    it('should handle very large files gracefully', async () => {
       // Create a large but valid DOT file
       const largeDotContent =
         'digraph G {\n' +
@@ -139,22 +125,18 @@ describe('Error Handling', () => {
         '\n}';
 
       const processor = new DotProcessor();
-      expect(() => {
-        const result = processor.loadIntoTree(Buffer.from(largeDotContent));
-        expect(Object.keys(result.pages).length).toBeGreaterThan(0);
-      }).not.toThrow();
+      const result = await processor.loadIntoTree(Buffer.from(largeDotContent));
+      expect(Object.keys(result.pages).length).toBeGreaterThan(0);
     });
 
-    it('should clean up temporary files on error', () => {
+    it('should clean up temporary files on error', async () => {
       const processor = new SnapProcessor();
       const invalidData = Buffer.from('invalid sqlite data');
 
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const tempFilesBefore = fs.readdirSync(require('os').tmpdir()).length;
 
-      expect(() => {
-        processor.loadIntoTree(invalidData);
-      }).toThrow();
+      await expect(processor.loadIntoTree(invalidData)).rejects.toThrow();
 
       // Give some time for cleanup
       setTimeout(() => {
@@ -167,7 +149,7 @@ describe('Error Handling', () => {
   });
 
   describe('Translation Error Handling', () => {
-    it('should handle invalid translation maps', () => {
+    it('should handle invalid translation maps', async () => {
       const processor = new DotProcessor();
       const validContent = Buffer.from('digraph G { node1 [label="test"]; }');
       const outputPath = path.join(tempDir, 'output.dot');
@@ -179,12 +161,12 @@ describe('Error Handling', () => {
         ['valid', 'válido'],
       ]);
 
-      expect(() => {
-        processor.processTexts(validContent, invalidTranslations, outputPath);
-      }).not.toThrow();
+      await expect(
+        processor.processTexts(validContent, invalidTranslations, outputPath)
+      ).resolves.not.toThrow();
     });
 
-    it('should handle circular references in translation maps', () => {
+    it('should handle circular references in translation maps', async () => {
       const processor = new DotProcessor();
       const validContent = Buffer.from('digraph G { node1 [label="A"]; node2 [label="B"]; }');
       const outputPath = path.join(tempDir, 'circular.dot');
@@ -194,14 +176,14 @@ describe('Error Handling', () => {
         ['B', 'A'],
       ]);
 
-      expect(() => {
-        processor.processTexts(validContent, circularTranslations, outputPath);
-      }).not.toThrow();
+      await expect(
+        processor.processTexts(validContent, circularTranslations, outputPath)
+      ).resolves.not.toThrow();
     });
   });
 
   describe('Save Operation Error Handling', () => {
-    it('should handle read-only output directories', () => {
+    it('should handle read-only output directories', async () => {
       const readOnlyDir = path.join(tempDir, 'readonly');
       fs.mkdirSync(readOnlyDir, { recursive: true });
 
@@ -209,12 +191,12 @@ describe('Error Handling', () => {
         fs.chmodSync(readOnlyDir, 0o444); // Read-only
 
         const processor = new DotProcessor();
-        const tree = processor.loadIntoTree(Buffer.from('digraph G { node1 [label="test"]; }'));
+        const tree = await processor.loadIntoTree(
+          Buffer.from('digraph G { node1 [label="test"]; }')
+        );
         const outputPath = path.join(readOnlyDir, 'output.dot');
 
-        expect(() => {
-          processor.saveFromTree(tree, outputPath);
-        }).toThrow();
+        await expect(processor.saveFromTree(tree, outputPath)).rejects.toThrow();
       } catch (e) {
         // chmod might not work on all systems
         console.log('Skipping read-only directory test - chmod not supported');
@@ -228,16 +210,16 @@ describe('Error Handling', () => {
       }
     });
 
-    it('should handle disk space errors gracefully', () => {
+    it('should handle disk space errors gracefully', async () => {
       // This is hard to test reliably, but we can at least ensure
       // the error handling code paths exist
       const processor = new DotProcessor();
-      const tree = processor.loadIntoTree(Buffer.from('digraph G { node1 [label="test"]; }'));
+      const tree = await processor.loadIntoTree(Buffer.from('digraph G { node1 [label="test"]; }'));
 
       // Try to save to an invalid path
-      expect(() => {
-        processor.saveFromTree(tree, '/invalid/path/that/does/not/exist/output.dot');
-      }).toThrow();
+      await expect(
+        processor.saveFromTree(tree, '/invalid/path/that/does/not/exist/output.dot')
+      ).rejects.toThrow();
     });
   });
 });

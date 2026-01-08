@@ -15,9 +15,19 @@ import {
 } from '../core/treeStructure';
 // Removed unused import: FileProcessor
 import plist, { PlistValue } from 'plist';
-import fs from 'fs';
-import path from 'path';
-import { ValidationFailureError, buildValidationResultFromMessage } from '../validation';
+import {
+  ValidationFailureError,
+  buildValidationResultFromMessage,
+} from '../validation/validationTypes';
+import {
+  ProcessorInput,
+  getBasename,
+  getFs,
+  getPath,
+  readBinaryFromInput,
+  readTextFromInput,
+  writeTextToPath,
+} from '../utils/io';
 
 interface ApplePanelsActionParameters {
   CharString?: string;
@@ -200,8 +210,8 @@ class ApplePanelsProcessor extends BaseProcessor {
       gridY: Math.floor(pixelY / cellSize),
     };
   }
-  extractTexts(filePathOrBuffer: string | Buffer): string[] {
-    const tree = this.loadIntoTree(filePathOrBuffer);
+  async extractTexts(filePathOrBuffer: ProcessorInput): Promise<string[]> {
+    const tree = await this.loadIntoTree(filePathOrBuffer);
     const texts: string[] = [];
 
     for (const pageId in tree.pages) {
@@ -216,17 +226,22 @@ class ApplePanelsProcessor extends BaseProcessor {
     return texts;
   }
 
-  loadIntoTree(filePathOrBuffer: string | Buffer): AACTree {
+  async loadIntoTree(filePathOrBuffer: ProcessorInput): Promise<AACTree> {
     const filename =
-      typeof filePathOrBuffer === 'string' ? path.basename(filePathOrBuffer) : 'upload.plist';
-    let buffer: Buffer;
+      typeof filePathOrBuffer === 'string' ? getBasename(filePathOrBuffer) : 'upload.plist';
+    let buffer: Uint8Array;
 
     try {
-      if (Buffer.isBuffer(filePathOrBuffer)) {
-        buffer = filePathOrBuffer;
-      } else if (typeof filePathOrBuffer === 'string') {
+      if (typeof filePathOrBuffer === 'string') {
+        const fs = getFs();
+        const path = getPath();
         if (filePathOrBuffer.endsWith('.ascconfig')) {
-          const panelDefsPath = `${filePathOrBuffer}/Contents/Resources/PanelDefinitions.plist`;
+          const panelDefsPath = path.join(
+            filePathOrBuffer,
+            'Contents',
+            'Resources',
+            'PanelDefinitions.plist'
+          );
           if (fs.existsSync(panelDefsPath)) {
             buffer = fs.readFileSync(panelDefsPath);
           } else {
@@ -244,18 +259,10 @@ class ApplePanelsProcessor extends BaseProcessor {
           buffer = fs.readFileSync(filePathOrBuffer);
         }
       } else {
-        const validation = buildValidationResultFromMessage({
-          filename,
-          filesize: 0,
-          format: 'applepanels',
-          message: 'Invalid input: expected string path or Buffer',
-          type: 'input',
-          description: 'Apple Panels input',
-        });
-        throw new ValidationFailureError('Invalid Apple Panels input', validation);
+        buffer = readBinaryFromInput(filePathOrBuffer);
       }
 
-      const content = buffer.toString('utf8');
+      const content = readTextFromInput(buffer);
       const parsedData = plist.parse(content) as ApplePanelsParsedDocument;
 
       let panelsData: ApplePanelsPanel[] = [];
@@ -392,13 +399,13 @@ class ApplePanelsProcessor extends BaseProcessor {
       }
       const validation = buildValidationResultFromMessage({
         filename,
-        filesize: Buffer.isBuffer(filePathOrBuffer)
-          ? filePathOrBuffer.byteLength
-          : typeof filePathOrBuffer === 'string'
-            ? fs.existsSync(filePathOrBuffer)
-              ? fs.statSync(filePathOrBuffer).size
-              : 0
-            : 0,
+        filesize:
+          typeof filePathOrBuffer === 'string'
+            ? (() => {
+                const fs = getFs();
+                return fs.existsSync(filePathOrBuffer) ? fs.statSync(filePathOrBuffer).size : 0;
+              })()
+            : readBinaryFromInput(filePathOrBuffer).byteLength,
         format: 'applepanels',
         message: err?.message || 'Failed to parse Apple Panels file',
         type: 'parse',
@@ -408,13 +415,13 @@ class ApplePanelsProcessor extends BaseProcessor {
     }
   }
 
-  processTexts(
-    filePathOrBuffer: string | Buffer,
+  async processTexts(
+    filePathOrBuffer: ProcessorInput,
     translations: Map<string, string>,
     outputPath: string
-  ): Buffer {
+  ): Promise<Uint8Array> {
     // Load the tree, apply translations, and save to new file
-    const tree = this.loadIntoTree(filePathOrBuffer);
+    const tree = await this.loadIntoTree(filePathOrBuffer);
 
     // Apply translations to all text content
     Object.values(tree.pages).forEach((page) => {
@@ -464,18 +471,18 @@ class ApplePanelsProcessor extends BaseProcessor {
     });
 
     // Save the translated tree to the requested location and return its content
-    this.saveFromTree(tree, outputPath);
+    await this.saveFromTree(tree, outputPath);
 
     if (outputPath.endsWith('.plist')) {
-      return fs.readFileSync(outputPath);
+      return readBinaryFromInput(outputPath);
     }
-    // In bundle mode, return the PanelDefinitions.plist content
+    const path = getPath();
     const configPath = outputPath.endsWith('.ascconfig') ? outputPath : `${outputPath}.ascconfig`;
     const panelDefsPath = path.join(configPath, 'Contents', 'Resources', 'PanelDefinitions.plist');
-    return fs.readFileSync(panelDefsPath);
+    return readBinaryFromInput(panelDefsPath);
   }
 
-  saveFromTree(tree: AACTree, outputPath: string): void {
+  async saveFromTree(tree: AACTree, outputPath: string): Promise<void> {
     // Support two output modes:
     // 1) Single-file .plist (PanelDefinitions.plist content written directly)
     // 2) Apple Panels bundle folder (*.ascconfig) with Contents/Resources structure
@@ -486,6 +493,8 @@ class ApplePanelsProcessor extends BaseProcessor {
     let contentsPath = '';
     let resourcesPath = '';
     if (!isSinglePlist) {
+      const fs = getFs();
+      const path = getPath();
       configPath = outputPath.endsWith('.ascconfig') ? outputPath : `${outputPath}.ascconfig`;
       contentsPath = path.join(configPath, 'Contents');
       resourcesPath = path.join(contentsPath, 'Resources');
@@ -510,11 +519,11 @@ class ApplePanelsProcessor extends BaseProcessor {
           `Generated by AAC Processors${tree.metadata?.author ? ` - Author: ${tree.metadata.author}` : ''}`,
       };
       const infoPlistContent = plist.build(infoPlist);
-      fs.writeFileSync(path.join(contentsPath, 'Info.plist'), infoPlistContent);
+      writeTextToPath(path.join(contentsPath, 'Info.plist'), infoPlistContent);
 
       // Create AssetIndex.plist (empty)
       const assetIndexContent = plist.build({});
-      fs.writeFileSync(path.join(resourcesPath, 'AssetIndex.plist'), assetIndexContent);
+      writeTextToPath(path.join(resourcesPath, 'AssetIndex.plist'), assetIndexContent);
     }
 
     // Build PanelDefinitions content from tree
@@ -655,12 +664,15 @@ class ApplePanelsProcessor extends BaseProcessor {
 
     if (isSinglePlist) {
       // Write single PanelDefinitions.plist file directly
+      const fs = getFs();
+      const path = getPath();
       const dir = path.dirname(outputPath);
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-      fs.writeFileSync(outputPath, panelDefsContent);
+      writeTextToPath(outputPath, panelDefsContent);
     } else {
       // Write into bundle structure
-      fs.writeFileSync(path.join(resourcesPath, 'PanelDefinitions.plist'), panelDefsContent);
+      const path = getPath();
+      writeTextToPath(path.join(resourcesPath, 'PanelDefinitions.plist'), panelDefsContent);
     }
   }
 

@@ -17,13 +17,13 @@ describe('Integration Tests', () => {
   const tempDir = path.join(__dirname, 'temp_integration');
   const examplesDir = path.join(__dirname, '../examples');
 
-  beforeAll(() => {
+  beforeAll(async () => {
     if (!fs.existsSync(tempDir)) {
       fs.mkdirSync(tempDir, { recursive: true });
     }
   });
 
-  afterAll(() => {
+  afterAll(async () => {
     if (fs.existsSync(tempDir)) {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }
@@ -33,7 +33,7 @@ describe('Integration Tests', () => {
     const cliPath = path.join(__dirname, '../dist/cli.js');
     let cliAvailable = false;
 
-    beforeAll(() => {
+    beforeAll(async () => {
       // Check if CLI is available
       cliAvailable = fs.existsSync(cliPath);
       if (!cliAvailable) {
@@ -41,7 +41,7 @@ describe('Integration Tests', () => {
       }
     });
 
-    it('should display help when no arguments provided', () => {
+    it('should display help when no arguments provided', async () => {
       if (!cliAvailable) {
         console.log('Skipping CLI test - CLI not available');
         return;
@@ -59,7 +59,7 @@ describe('Integration Tests', () => {
       }
     });
 
-    it('should process DOT files via CLI', () => {
+    it('should process DOT files via CLI', async () => {
       const dotFile = path.join(examplesDir, 'example.dot');
       if (!cliAvailable || !fs.existsSync(dotFile)) {
         console.log('Skipping CLI DOT test - files not available');
@@ -84,7 +84,7 @@ describe('Integration Tests', () => {
       }
     });
 
-    it('should handle invalid file formats gracefully via CLI', () => {
+    it('should handle invalid file formats gracefully via CLI', async () => {
       if (!cliAvailable) {
         console.log('Skipping CLI error test - CLI not available');
         return;
@@ -107,7 +107,7 @@ describe('Integration Tests', () => {
   });
 
   describe('Processor Factory Integration', () => {
-    it('should return correct processor for each file extension', () => {
+    it('should return correct processor for each file extension', async () => {
       const testCases = [
         { ext: '.dot', expectedType: DotProcessor },
         { ext: '.xlsx', expectedType: ExcelProcessor },
@@ -123,13 +123,13 @@ describe('Integration Tests', () => {
         { ext: '.grd', expectedType: AstericsGridProcessor },
       ];
 
-      testCases.forEach(({ ext, expectedType }) => {
+      for (const { ext, expectedType } of testCases) {
         const processor = getProcessor(ext);
         expect(processor).toBeInstanceOf(expectedType);
-      });
+      }
     });
 
-    it('should handle unknown file extensions', () => {
+    it('should handle unknown file extensions', async () => {
       expect(() => {
         getProcessor('.unknown');
       }).toThrow();
@@ -139,7 +139,7 @@ describe('Integration Tests', () => {
       }).toThrow();
     });
 
-    it('should work with full file paths', () => {
+    it('should work with full file paths', async () => {
       const testPaths = [
         '/path/to/file.dot',
         'relative/path/file.opml',
@@ -147,17 +147,17 @@ describe('Integration Tests', () => {
         '/complex/path/with.multiple.dots.obf',
       ];
 
-      testPaths.forEach((filePath) => {
+      for (const filePath of testPaths) {
         expect(() => {
           const processor = getProcessor(filePath);
           expect(processor).toBeDefined();
         }).not.toThrow();
-      });
+      }
     });
   });
 
   describe('Cross-Format Compatibility', () => {
-    it('should convert between compatible formats', () => {
+    it('should convert between compatible formats', async () => {
       // Create a simple tree structure
       const dotProcessor = new DotProcessor();
       const opmlProcessor = new OpmlProcessor();
@@ -173,25 +173,25 @@ describe('Integration Tests', () => {
       `;
 
       // Load from DOT
-      const tree = dotProcessor.loadIntoTree(Buffer.from(dotContent));
+      const tree = await dotProcessor.loadIntoTree(Buffer.from(dotContent));
       expect(Object.keys(tree.pages).length).toBeGreaterThan(0);
       console.log('Original DOT tree pages:', Object.keys(tree.pages).length);
 
       // Save as OPML
       const opmlPath = path.join(tempDir, 'converted.opml');
-      opmlProcessor.saveFromTree(tree, opmlPath);
+      await opmlProcessor.saveFromTree(tree, opmlPath);
       expect(fs.existsSync(opmlPath)).toBe(true);
 
       // Load back from OPML
-      const reloadedTree = opmlProcessor.loadIntoTree(opmlPath);
+      const reloadedTree = await opmlProcessor.loadIntoTree(opmlPath);
       console.log('Reloaded OPML tree pages:', Object.keys(reloadedTree.pages).length);
 
       // The page count might differ due to format differences, but should have at least some pages
       expect(Object.keys(reloadedTree.pages).length).toBeGreaterThan(0);
 
       // Verify content preservation
-      const originalTexts = dotProcessor.extractTexts(Buffer.from(dotContent));
-      const convertedTexts = opmlProcessor.extractTexts(opmlPath);
+      const originalTexts = await dotProcessor.extractTexts(Buffer.from(dotContent));
+      const convertedTexts = await opmlProcessor.extractTexts(opmlPath);
 
       console.log('Original texts:', originalTexts);
       console.log('Converted texts:', convertedTexts);
@@ -211,7 +211,7 @@ describe('Integration Tests', () => {
       expect(hasCommonContent).toBe(true);
     });
 
-    it('should preserve navigation structure across formats', () => {
+    it('should preserve navigation structure across formats', async () => {
       const obfProcessor = new ObfProcessor();
       const applePanelsProcessor = new ApplePanelsProcessor();
 
@@ -237,14 +237,14 @@ describe('Integration Tests', () => {
       fs.writeFileSync(obfPath, JSON.stringify(obfContent, null, 2));
 
       // Load from OBF
-      const tree = obfProcessor.loadIntoTree(obfPath);
+      const tree = await obfProcessor.loadIntoTree(obfPath);
 
       // Convert to Apple Panels
       const applePath = path.join(tempDir, 'nav_test.plist');
-      applePanelsProcessor.saveFromTree(tree, applePath);
+      await applePanelsProcessor.saveFromTree(tree, applePath);
 
       // Load back and verify navigation is preserved
-      const reloadedTree = applePanelsProcessor.loadIntoTree(applePath);
+      const reloadedTree = await applePanelsProcessor.loadIntoTree(applePath);
 
       const mainPage = Object.values(reloadedTree.pages)[0];
       expect(mainPage).toBeDefined();
@@ -256,7 +256,7 @@ describe('Integration Tests', () => {
       expect(navButton).toBeDefined();
     });
 
-    it('should handle translation workflows across formats', () => {
+    it('should handle translation workflows across formats', async () => {
       const dotProcessor = new DotProcessor();
       const gridsetProcessor = new GridsetProcessor();
 
@@ -269,24 +269,24 @@ describe('Integration Tests', () => {
       `;
 
       // Extract texts from DOT
-      const originalTexts = dotProcessor.extractTexts(Buffer.from(dotContent));
+      const originalTexts = await dotProcessor.extractTexts(Buffer.from(dotContent));
       expect(originalTexts.length).toBeGreaterThan(0);
 
       // Create translations
       const translations = new Map<string, string>();
-      originalTexts.forEach((text) => {
+      for (const text of originalTexts) {
         if (text.toLowerCase().includes('hello')) {
           translations.set(text, text.replace(/hello/gi, 'hola'));
         }
         if (text.toLowerCase().includes('world')) {
           translations.set(text, text.replace(/world/gi, 'mundo'));
         }
-      });
+      }
 
       if (translations.size > 0) {
         // Apply translations in DOT format
         const translatedDotPath = path.join(tempDir, 'translated.dot');
-        const _translatedDotResult = dotProcessor.processTexts(
+        const _translatedDotResult = await dotProcessor.processTexts(
           Buffer.from(dotContent),
           translations,
           translatedDotPath
@@ -295,16 +295,16 @@ describe('Integration Tests', () => {
         expect(fs.existsSync(translatedDotPath)).toBe(true);
 
         // Load translated DOT and convert to GridSet
-        const translatedTree = dotProcessor.loadIntoTree(translatedDotPath);
+        const translatedTree = await dotProcessor.loadIntoTree(translatedDotPath);
         const gridsetPath = path.join(tempDir, 'translated.gridset');
 
         try {
-          gridsetProcessor.saveFromTree(translatedTree, gridsetPath);
+          await gridsetProcessor.saveFromTree(translatedTree, gridsetPath);
           expect(fs.existsSync(gridsetPath)).toBe(true);
 
           // Verify translations are preserved in GridSet format
           const gridsetBuffer = fs.readFileSync(gridsetPath);
-          const gridsetTexts = gridsetProcessor.extractTexts(gridsetBuffer);
+          const gridsetTexts = await gridsetProcessor.extractTexts(gridsetBuffer);
 
           const hasTranslations = gridsetTexts.some(
             (text) => text.includes('hola') || text.includes('mundo')
@@ -318,7 +318,7 @@ describe('Integration Tests', () => {
   });
 
   describe('End-to-End Workflows', () => {
-    it('should support complete AAC workflow: load -> extract -> translate -> save', () => {
+    it('should support complete AAC workflow: load -> extract -> translate -> save', async () => {
       const processor = new DotProcessor();
 
       const originalContent = `
@@ -334,26 +334,26 @@ describe('Integration Tests', () => {
       `;
 
       // Step 1: Load
-      const tree = processor.loadIntoTree(Buffer.from(originalContent));
+      const tree = await processor.loadIntoTree(Buffer.from(originalContent));
       expect(Object.keys(tree.pages).length).toBeGreaterThan(0);
 
       // Step 2: Extract texts
-      const texts = processor.extractTexts(Buffer.from(originalContent));
+      const texts = await processor.extractTexts(Buffer.from(originalContent));
       expect(texts.length).toBeGreaterThan(0);
 
       // Step 3: Create translations (simulate translation service)
       const translations = new Map<string, string>();
-      texts.forEach((text) => {
+      for (const text of texts) {
         if (text.includes('Home')) translations.set(text, text.replace('Home', 'Casa'));
         if (text.includes('Food')) translations.set(text, text.replace('Food', 'Comida'));
         if (text.includes('Drink')) translations.set(text, text.replace('Drink', 'Bebida'));
         if (text.includes('More')) translations.set(text, text.replace('More', 'Más'));
         if (text.includes('want')) translations.set(text, text.replace('want', 'quiero'));
-      });
+      }
 
       // Step 4: Apply translations
       const translatedPath = path.join(tempDir, 'workflow_translated.dot');
-      const _translatedResult = processor.processTexts(
+      const _translatedResult = await processor.processTexts(
         Buffer.from(originalContent),
         translations,
         translatedPath
@@ -362,17 +362,17 @@ describe('Integration Tests', () => {
       expect(fs.existsSync(translatedPath)).toBe(true);
 
       // Step 5: Verify final result
-      const finalTree = processor.loadIntoTree(translatedPath);
+      const finalTree = await processor.loadIntoTree(translatedPath);
       expect(Object.keys(finalTree.pages).length).toBe(Object.keys(tree.pages).length);
 
-      const finalTexts = processor.extractTexts(translatedPath);
+      const finalTexts = await processor.extractTexts(translatedPath);
       const hasSpanishContent = finalTexts.some(
         (text) => text.includes('Casa') || text.includes('Comida') || text.includes('quiero')
       );
       expect(hasSpanishContent).toBe(true);
     });
 
-    it('should handle batch processing of multiple files', () => {
+    it('should handle batch processing of multiple files', async () => {
       const processor = new DotProcessor();
 
       const testFiles = [
@@ -383,19 +383,19 @@ describe('Integration Tests', () => {
 
       const results: any[] = [];
 
-      testFiles.forEach(({ name, content }) => {
+      for (const { name, content } of testFiles) {
         const inputPath = path.join(tempDir, name);
         fs.writeFileSync(inputPath, content);
 
-        const tree = processor.loadIntoTree(inputPath);
-        const texts = processor.extractTexts(inputPath);
+        const tree = await processor.loadIntoTree(inputPath);
+        const texts = await processor.extractTexts(inputPath);
 
         results.push({
           file: name,
           pageCount: Object.keys(tree.pages).length,
           textCount: texts.length,
         });
-      });
+      }
 
       expect(results).toHaveLength(3);
       results.forEach((result) => {

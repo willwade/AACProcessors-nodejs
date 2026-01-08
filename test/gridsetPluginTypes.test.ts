@@ -12,7 +12,7 @@ import {
 
 describe('Grid 3 Plugin Type Detection', () => {
   describe('Workspace Detection', () => {
-    it('should detect Workspace cell from ContentType', () => {
+    it('should detect Workspace cell from ContentType', async () => {
       const content = {
         ContentType: 'Workspace',
         ContentSubType: 'Chat',
@@ -23,7 +23,7 @@ describe('Grid 3 Plugin Type Detection', () => {
       expect(metadata.pluginId).toBe('Grid3.Chat');
     });
 
-    it('should detect Workspace cell from Style', () => {
+    it('should detect Workspace cell from Style', async () => {
       const content = {
         Style: {
           BasedOnStyle: 'Workspace',
@@ -35,7 +35,7 @@ describe('Grid 3 Plugin Type Detection', () => {
       expect(metadata.subType).toBe('Email');
     });
 
-    it('should infer correct plugin IDs for various workspaces', () => {
+    it('should infer correct plugin IDs for various workspaces', async () => {
       const workspaces = [
         { sub: WORKSPACE_TYPES.EMAIL, expected: 'Grid3.Email' },
         {
@@ -57,7 +57,7 @@ describe('Grid 3 Plugin Type Detection', () => {
   });
 
   describe('LiveCell Detection', () => {
-    it('should detect LiveCell from ContentType', () => {
+    it('should detect LiveCell from ContentType', async () => {
       const content = {
         ContentType: 'LiveCell',
         ContentSubType: 'DigitalClock',
@@ -68,7 +68,7 @@ describe('Grid 3 Plugin Type Detection', () => {
       expect(metadata.pluginId).toBe('Grid3.Clock');
     });
 
-    it('should infer correct plugin IDs for live cells', () => {
+    it('should infer correct plugin IDs for live cells', async () => {
       expect(
         detectPluginCellType({
           ContentType: 'LiveCell',
@@ -85,7 +85,7 @@ describe('Grid 3 Plugin Type Detection', () => {
   });
 
   describe('AutoContent Detection', () => {
-    it('should detect AutoContent from ContentType', () => {
+    it('should detect AutoContent from ContentType', async () => {
       const content = {
         ContentType: 'AutoContent',
         Commands: {
@@ -103,7 +103,7 @@ describe('Grid 3 Plugin Type Detection', () => {
       expect(metadata.pluginId).toBe('Grid3.Prediction');
     });
 
-    it('should detect AutoContent from Style', () => {
+    it('should detect AutoContent from Style', async () => {
       const content = {
         Style: { BasedOnStyle: 'AutoContent' },
         Commands: {
@@ -118,7 +118,7 @@ describe('Grid 3 Plugin Type Detection', () => {
       expect(metadata.autoContentType).toBe('Grammar');
     });
 
-    it('should return undefined pluginId for unknown types', () => {
+    it('should return undefined pluginId for unknown types', async () => {
       const metadata = detectPluginCellType({
         ContentType: 'AutoContent',
         Commands: {},
@@ -129,7 +129,7 @@ describe('Grid 3 Plugin Type Detection', () => {
   });
 
   describe('Regular Cell Detection', () => {
-    it('should detect regular cells', () => {
+    it('should detect regular cells', async () => {
       const content = { Label: 'Hello' };
       const metadata = detectPluginCellType(content);
       expect(metadata.cellType).toBe(Grid3CellType.Regular);
@@ -137,14 +137,14 @@ describe('Grid 3 Plugin Type Detection', () => {
   });
 
   describe('Utility Functions', () => {
-    it('getCellTypeDisplayName should return correct names', () => {
+    it('getCellTypeDisplayName should return correct names', async () => {
       expect(getCellTypeDisplayName(Grid3CellType.Workspace)).toBe('Workspace');
       expect(getCellTypeDisplayName(Grid3CellType.LiveCell)).toBe('Live Cell');
       expect(getCellTypeDisplayName(Grid3CellType.AutoContent)).toBe('Auto Content');
       expect(getCellTypeDisplayName(Grid3CellType.Regular)).toBe('Regular');
     });
 
-    it('type checking functions should work', () => {
+    it('type checking functions should work', async () => {
       const workspace = { cellType: Grid3CellType.Workspace };
       const live = { cellType: Grid3CellType.LiveCell };
       const auto = { cellType: Grid3CellType.AutoContent };

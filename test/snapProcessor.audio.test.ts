@@ -13,14 +13,14 @@ describe('SnapProcessor Audio Support', () => {
     'assets/snap/Aphasia_Page_Set_With_Punjabi_Audio.sps'
   );
 
-  it('should load pageset without audio by default', () => {
+  it('should load pageset without audio by default', async () => {
     if (!fs.existsSync(exampleSPSFile)) {
       console.log('Skipping test - audio example file not found');
       return;
     }
 
     const processor = new SnapProcessor();
-    const tree: AACTree = processor.loadIntoTree(exampleSPSFile);
+    const tree: AACTree = await processor.loadIntoTree(exampleSPSFile);
 
     expect(tree).toBeDefined();
     expect(tree.pages).toBeDefined();
@@ -36,14 +36,14 @@ describe('SnapProcessor Audio Support', () => {
     }
   });
 
-  it('should load pageset with audio when requested', () => {
+  it('should load pageset with audio when requested', async () => {
     if (!fs.existsSync(exampleSPSFile)) {
       console.log('Skipping test - audio example file not found');
       return;
     }
 
     const processor = new SnapProcessor(null, { loadAudio: true });
-    const tree: AACTree = processor.loadIntoTree(exampleSPSFile);
+    const tree: AACTree = await processor.loadIntoTree(exampleSPSFile);
 
     expect(tree).toBeDefined();
     expect(tree.pages).toBeDefined();
@@ -65,7 +65,7 @@ describe('SnapProcessor Audio Support', () => {
     expect(foundAudioButton).toBe(true);
   });
 
-  it('should extract buttons for audio processing', () => {
+  it('should extract buttons for audio processing', async () => {
     if (!fs.existsSync(exampleSPSFile)) {
       console.log('Skipping test - audio example file not found');
       return;
@@ -76,7 +76,7 @@ describe('SnapProcessor Audio Support', () => {
     // This should work with any page that has buttons
     try {
       // Try to find a page with buttons
-      const tree: AACTree = processor.loadIntoTree(exampleSPSFile);
+      const tree: AACTree = await processor.loadIntoTree(exampleSPSFile);
       const pages: AACPage[] = Object.values(tree.pages);
 
       if (pages.length > 0) {
@@ -103,7 +103,7 @@ describe('SnapProcessor Audio Support', () => {
     }
   });
 
-  it('should add audio to buttons', () => {
+  it('should add audio to buttons', async () => {
     if (!fs.existsSync(exampleSPSFile)) {
       console.log('Skipping test - audio example file not found');
       return;
@@ -117,10 +117,10 @@ describe('SnapProcessor Audio Support', () => {
       fs.copyFileSync(exampleSPSFile, testDbPath);
 
       // Create some test audio data
-      const testAudioData: Buffer = Buffer.from('RIFF....WAVE....', 'ascii'); // Minimal WAV-like data
+      const testAudioData: Uint8Array = new Uint8Array(Buffer.from('RIFF....WAVE....', 'ascii')); // Minimal WAV-like data
 
       // Add audio to a button (using button ID 1 as a test)
-      const audioId: number = processor.addAudioToButton(
+      const audioId: number = await processor.addAudioToButton(
         testDbPath,
         1,
         testAudioData,
@@ -139,14 +139,14 @@ describe('SnapProcessor Audio Support', () => {
     }
   });
 
-  it('should load enhanced pageset with Punjabi audio', () => {
+  it('should load enhanced pageset with Punjabi audio', async () => {
     if (!fs.existsSync(enhancedSPSFile)) {
       console.log('Skipping test - enhanced pageset not found');
       return;
     }
 
     const processor = new SnapProcessor(null, { loadAudio: true });
-    const tree: AACTree = processor.loadIntoTree(enhancedSPSFile);
+    const tree: AACTree = await processor.loadIntoTree(enhancedSPSFile);
 
     expect(tree).toBeDefined();
     expect(tree.pages).toBeDefined();
@@ -190,15 +190,15 @@ describe('SnapProcessor Audio Support', () => {
 });
 
 describe('SnapProcessor Audio Integration', () => {
-  it('should demonstrate complete audio workflow', () => {
+  it('should demonstrate complete audio workflow', async () => {
     console.log('\n=== SnapProcessor Audio Integration Demo ===');
     console.log('1. Basic usage (no audio):');
     console.log('   const processor = new SnapProcessor();');
-    console.log('   const tree = processor.loadIntoTree("pageset.sps");');
+    console.log('   const tree = await processor.loadIntoTree("pageset.sps");');
 
     console.log('\n2. With audio support:');
     console.log('   const processor = new SnapProcessor(null, { loadAudio: true });');
-    console.log('   const tree = processor.loadIntoTree("pageset.sps");');
+    console.log('   const tree = await processor.loadIntoTree("pageset.sps");');
     console.log('   // Buttons will have audioRecording property if available');
 
     console.log('\n3. Adding audio to buttons:');

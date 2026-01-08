@@ -6,9 +6,9 @@ import { AACTree } from '../src/core/treeStructure';
 describe('ObfsetProcessor', () => {
   const obfsetPath = path.join(__dirname, 'fixtures/example.obfset');
 
-  it('can load .obfset files into a tree', () => {
+  it('can load .obfset files into a tree', async () => {
     const processor = new ObfsetProcessor();
-    const tree = processor.loadIntoTree(obfsetPath);
+    const tree = await processor.loadIntoTree(obfsetPath);
 
     expect(tree).toBeInstanceOf(AACTree);
     expect(tree.rootId).toBe('root');
@@ -32,18 +32,18 @@ describe('ObfsetProcessor', () => {
     expect(page2.grid[0][0]?.clone_id).toBe('world-1');
   });
 
-  it('can load .obfset from a Buffer', () => {
+  it('can load .obfset from a Buffer', async () => {
     const processor = new ObfsetProcessor();
     const buffer = fs.readFileSync(obfsetPath);
-    const tree = processor.loadIntoTree(buffer);
+    const tree = await processor.loadIntoTree(buffer);
 
     expect(tree).toBeInstanceOf(AACTree);
     expect(tree.rootId).toBe('root');
   });
 
-  it('can extract texts from .obfset', () => {
+  it('can extract texts from .obfset', async () => {
     const processor = new ObfsetProcessor();
-    const texts = processor.extractTexts(obfsetPath);
+    const texts = await processor.extractTexts(obfsetPath);
 
     expect(texts).toContain('Hello');
     expect(texts).toContain('Go To Page 2');
@@ -52,13 +52,17 @@ describe('ObfsetProcessor', () => {
     expect(texts).toContain('Page 2');
   });
 
-  it('throws error for unsupported operations', () => {
+  it('throws error for unsupported operations', async () => {
     const processor = new ObfsetProcessor();
-    expect(() => processor.processTexts(obfsetPath, new Map(), 'out.obfset')).toThrow();
-    expect(() => processor.saveFromTree(new AACTree(), 'out.obfset')).toThrow();
+    await expect(async () => {
+      await processor.processTexts(obfsetPath, new Map(), 'out.obfset');
+    }).rejects.toThrow();
+    await expect(async () => {
+      await processor.saveFromTree(new AACTree(), 'out.obfset');
+    }).rejects.toThrow();
   });
 
-  it('correctly reports supported extension', () => {
+  it('correctly reports supported extension', async () => {
     const processor = new ObfsetProcessor();
     expect(processor.supportsExtension('.obfset')).toBe(true);
     expect(processor.supportsExtension('.obf')).toBe(false);

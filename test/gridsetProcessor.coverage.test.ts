@@ -4,7 +4,7 @@ import { XMLBuilder } from 'fast-xml-parser';
 
 describe('GridsetProcessor Coverage Tests', () => {
   describe('Metadata Extraction', () => {
-    it('should extract metadata from settings.xml', () => {
+    it('should extract metadata from settings.xml', async () => {
       const zip = new AdmZip();
 
       // Create settings.xml with full metadata
@@ -76,7 +76,7 @@ describe('GridsetProcessor Coverage Tests', () => {
       const buffer = zip.toBuffer();
 
       const processor = new GridsetProcessor();
-      const tree = processor.loadIntoTree(buffer);
+      const tree = await processor.loadIntoTree(buffer);
 
       expect(tree.metadata).toBeDefined();
       expect(tree.metadata.format).toBe('gridset');
@@ -95,7 +95,7 @@ describe('GridsetProcessor Coverage Tests', () => {
       expect(tree.metadata.thumbnailBackground).toBe('#FF0000FF');
     });
 
-    it('should handle missing optional metadata fields', () => {
+    it('should handle missing optional metadata fields', async () => {
       const zip = new AdmZip();
 
       // Minimal settings.xml
@@ -127,7 +127,7 @@ describe('GridsetProcessor Coverage Tests', () => {
       const buffer = zip.toBuffer();
 
       const processor = new GridsetProcessor();
-      const tree = processor.loadIntoTree(buffer);
+      const tree = await processor.loadIntoTree(buffer);
 
       expect(tree.metadata).toBeDefined();
       expect(tree.metadata.format).toBe('gridset');
@@ -139,7 +139,7 @@ describe('GridsetProcessor Coverage Tests', () => {
   });
 
   describe('Grid Cell Parsing', () => {
-    it('should parse cell with all attributes', () => {
+    it('should parse cell with all attributes', async () => {
       const zip = new AdmZip();
 
       const gridData = {
@@ -201,7 +201,7 @@ describe('GridsetProcessor Coverage Tests', () => {
       const buffer = zip.toBuffer();
 
       const processor = new GridsetProcessor();
-      const tree = processor.loadIntoTree(buffer);
+      const tree = await processor.loadIntoTree(buffer);
 
       expect(tree.pages).toBeDefined();
       const pageIds = Object.keys(tree.pages);
@@ -225,7 +225,7 @@ describe('GridsetProcessor Coverage Tests', () => {
       expect(button.image).toBe('test.png');
     });
 
-    it('should parse cell with prediction wordlist', () => {
+    it('should parse cell with prediction wordlist', async () => {
       const zip = new AdmZip();
 
       const gridData = {
@@ -279,7 +279,7 @@ describe('GridsetProcessor Coverage Tests', () => {
       const buffer = zip.toBuffer();
 
       const processor = new GridsetProcessor();
-      const tree = processor.loadIntoTree(buffer);
+      const tree = await processor.loadIntoTree(buffer);
 
       expect(tree.pages).toBeDefined();
       const page = Object.values(tree.pages)[0];
@@ -295,7 +295,7 @@ describe('GridsetProcessor Coverage Tests', () => {
       ]);
     });
 
-    it('should parse navigation commands', () => {
+    it('should parse navigation commands', async () => {
       const zip = new AdmZip();
 
       const gridData = {
@@ -352,7 +352,7 @@ describe('GridsetProcessor Coverage Tests', () => {
       const buffer = zip.toBuffer();
 
       const processor = new GridsetProcessor();
-      const tree = processor.loadIntoTree(buffer);
+      const tree = await processor.loadIntoTree(buffer);
 
       const homePage = tree.pages['home-guid'];
       expect(homePage).toBeDefined();
@@ -363,7 +363,7 @@ describe('GridsetProcessor Coverage Tests', () => {
       expect(otherPage.parentId).toBe('home-guid');
     });
 
-    it('should handle different visibility values', () => {
+    it('should handle different visibility values', async () => {
       const zip = new AdmZip();
 
       const gridData = {
@@ -421,7 +421,7 @@ describe('GridsetProcessor Coverage Tests', () => {
       const buffer = zip.toBuffer();
 
       const processor = new GridsetProcessor();
-      const tree = processor.loadIntoTree(buffer);
+      const tree = await processor.loadIntoTree(buffer);
 
       const page = Object.values(tree.pages)[0];
       expect(page.buttons.length).toBe(5);
@@ -435,7 +435,7 @@ describe('GridsetProcessor Coverage Tests', () => {
   });
 
   describe('FileMap Support', () => {
-    it('should parse FileMap.xml', () => {
+    it('should parse FileMap.xml', async () => {
       const zip = new AdmZip();
 
       const fileMapData = {
@@ -482,7 +482,7 @@ describe('GridsetProcessor Coverage Tests', () => {
       const buffer = zip.toBuffer();
 
       const processor = new GridsetProcessor();
-      const tree = processor.loadIntoTree(buffer);
+      const tree = await processor.loadIntoTree(buffer);
 
       // Should not throw - FileMap should be parsed
       expect(tree).toBeDefined();
@@ -491,7 +491,7 @@ describe('GridsetProcessor Coverage Tests', () => {
   });
 
   describe('Styles Support', () => {
-    it('should parse styles.xml', () => {
+    it('should parse styles.xml', async () => {
       const zip = new AdmZip();
 
       const stylesData = {
@@ -554,7 +554,7 @@ describe('GridsetProcessor Coverage Tests', () => {
       const buffer = zip.toBuffer();
 
       const processor = new GridsetProcessor();
-      const tree = processor.loadIntoTree(buffer);
+      const tree = await processor.loadIntoTree(buffer);
 
       const page = Object.values(tree.pages)[0];
       const button = page.buttons[0];

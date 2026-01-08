@@ -9,13 +9,13 @@ import { AACTree, AACPage, AACButton } from '../src/core/treeStructure';
 describe('Performance Tests', () => {
   const tempDir = path.join(__dirname, 'temp_performance');
 
-  beforeAll(() => {
+  beforeAll(async () => {
     if (!fs.existsSync(tempDir)) {
       fs.mkdirSync(tempDir, { recursive: true });
     }
   });
 
-  afterAll(() => {
+  afterAll(async () => {
     if (fs.existsSync(tempDir)) {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }
@@ -88,14 +88,14 @@ describe('Performance Tests', () => {
   }
 
   describe('Large File Processing', () => {
-    it('should handle large DOT files efficiently', () => {
+    it('should handle large DOT files efficiently', async () => {
       const processor = new DotProcessor();
       const largeContent = createLargeDotFile(1000); // 1000 nodes
 
       const memBefore = getMemoryUsage();
       const startTime = performance.now();
 
-      const tree = processor.loadIntoTree(Buffer.from(largeContent));
+      const tree = await processor.loadIntoTree(Buffer.from(largeContent));
 
       const endTime = performance.now();
       const memAfter = getMemoryUsage();
@@ -111,7 +111,7 @@ describe('Performance Tests', () => {
       expect(memoryIncrease).toBeLessThan(100); // Should not use more than 100MB extra
     });
 
-    it('should handle large trees in saveFromTree operations', () => {
+    it('should handle large trees in saveFromTree operations', async () => {
       const processor = new DotProcessor();
       const largeTree = createLargeTree(50, 20); // 50 pages, 20 buttons each
 
@@ -119,7 +119,7 @@ describe('Performance Tests', () => {
       const memBefore = getMemoryUsage();
       const startTime = performance.now();
 
-      processor.saveFromTree(largeTree, outputPath);
+      await processor.saveFromTree(largeTree, outputPath);
 
       const endTime = performance.now();
       const memAfter = getMemoryUsage();
@@ -136,7 +136,7 @@ describe('Performance Tests', () => {
       expect(memoryIncrease).toBeLessThan(50); // Should not use more than 50MB extra
     });
 
-    it('should handle large translation operations efficiently', () => {
+    it('should handle large translation operations efficiently', async () => {
       const processor = new DotProcessor();
       const largeContent = createLargeDotFile(500);
 
@@ -151,7 +151,11 @@ describe('Performance Tests', () => {
       const memBefore = getMemoryUsage();
       const startTime = performance.now();
 
-      const result = processor.processTexts(Buffer.from(largeContent), translations, outputPath);
+      const result = await processor.processTexts(
+        Buffer.from(largeContent),
+        translations,
+        outputPath
+      );
 
       const endTime = performance.now();
       const memAfter = getMemoryUsage();
@@ -170,7 +174,7 @@ describe('Performance Tests', () => {
   });
 
   describe('Memory Usage Patterns', () => {
-    it('should not leak memory during repeated operations', () => {
+    it('should not leak memory during repeated operations', async () => {
       const processor = new DotProcessor();
       const testContent = createLargeDotFile(100);
 
@@ -178,8 +182,8 @@ describe('Performance Tests', () => {
 
       // Perform many operations
       for (let i = 0; i < 10; i++) {
-        const _tree = processor.loadIntoTree(Buffer.from(testContent));
-        const _texts = processor.extractTexts(Buffer.from(testContent));
+        const _tree = await processor.loadIntoTree(Buffer.from(testContent));
+        const _texts = await processor.extractTexts(Buffer.from(testContent));
 
         // Force garbage collection if available
         if (global.gc) {
@@ -207,9 +211,9 @@ describe('Performance Tests', () => {
       const promises = Array(5)
         .fill(0)
         .map(async (_, i) => {
-          const tree = processor.loadIntoTree(Buffer.from(testContent));
+          const tree = await processor.loadIntoTree(Buffer.from(testContent));
           const outputPath = path.join(tempDir, `concurrent_${i}.dot`);
-          processor.saveFromTree(tree, outputPath);
+          await processor.saveFromTree(tree, outputPath);
           return tree;
         });
 
@@ -236,7 +240,7 @@ describe('Performance Tests', () => {
   });
 
   describe('Database Performance', () => {
-    it('should handle large Snap databases efficiently', () => {
+    it('should handle large Snap databases efficiently', async () => {
       const processor = new SnapProcessor();
       const largeTree = createLargeTree(20, 15); // 20 pages, 15 buttons each
 
@@ -244,12 +248,12 @@ describe('Performance Tests', () => {
       const memBefore = getMemoryUsage();
       const startTime = performance.now();
 
-      processor.saveFromTree(largeTree, outputPath);
+      await processor.saveFromTree(largeTree, outputPath);
 
       const saveTime = performance.now();
 
       // Now load it back
-      const loadedTree = processor.loadIntoTree(outputPath);
+      const loadedTree = await processor.loadIntoTree(outputPath);
 
       const endTime = performance.now();
       const memAfter = getMemoryUsage();
@@ -280,7 +284,7 @@ describe('Performance Tests', () => {
       const startTime = performance.now();
 
       try {
-        const tree = processor.loadIntoTree(Buffer.from(veryLargeContent));
+        const tree = await processor.loadIntoTree(Buffer.from(veryLargeContent));
         const endTime = performance.now();
         const processingTime = endTime - startTime;
 

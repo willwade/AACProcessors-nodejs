@@ -1,7 +1,7 @@
 import { AACTree, AACPage, AACButton } from '../../src/index';
 
 describe('AACButton', () => {
-  it('should create a button with default values', () => {
+  it('should create a button with default values', async () => {
     const button = new AACButton({ id: 'btn1' });
     expect(button.id).toBe('btn1');
     expect(button.label).toBe('');
@@ -11,7 +11,7 @@ describe('AACButton', () => {
     expect(button.targetPageId).toBeUndefined();
   });
 
-  it('should create a navigation button', () => {
+  it('should create a navigation button', async () => {
     const button = new AACButton({
       id: 'nav1',
       label: 'Go to Page 2',
@@ -25,7 +25,7 @@ describe('AACButton', () => {
     expect(button.action?.targetPageId).toBe('page2');
   });
 
-  it('should create a button with audio recording', () => {
+  it('should create a button with audio recording', async () => {
     const audioData = Buffer.from('audio data');
     const button = new AACButton({
       id: 'audio1',
@@ -45,7 +45,7 @@ describe('AACButton', () => {
 });
 
 describe('AACPage', () => {
-  it('should create a page with default values', () => {
+  it('should create a page with default values', async () => {
     const page = new AACPage({ id: 'page1' });
     expect(page.id).toBe('page1');
     expect(page.name).toBe('');
@@ -54,7 +54,7 @@ describe('AACPage', () => {
     expect(page.parentId).toBeNull();
   });
 
-  it('should create a page with custom values', () => {
+  it('should create a page with custom values', async () => {
     const page = new AACPage({
       id: 'page2',
       name: 'Main Page',
@@ -65,7 +65,7 @@ describe('AACPage', () => {
     expect(page.parentId).toBe('parent1');
   });
 
-  it('should add buttons to a page', () => {
+  it('should add buttons to a page', async () => {
     const page = new AACPage({ id: 'page1' });
     const button1 = new AACButton({ id: 'btn1', label: 'Button 1' });
     const button2 = new AACButton({ id: 'btn2', label: 'Button 2' });
@@ -80,13 +80,13 @@ describe('AACPage', () => {
 });
 
 describe('AACTree', () => {
-  it('should create an empty tree', () => {
+  it('should create an empty tree', async () => {
     const tree = new AACTree();
     expect(tree.pages).toEqual({});
     expect(tree.rootId).toBeNull();
   });
 
-  it('should add pages to the tree', () => {
+  it('should add pages to the tree', async () => {
     const tree = new AACTree();
     const page1 = new AACPage({ id: 'page1', name: 'First Page' });
     const page2 = new AACPage({ id: 'page2', name: 'Second Page' });
@@ -100,7 +100,7 @@ describe('AACTree', () => {
     expect(tree.rootId).toBe('page1'); // First page becomes root
   });
 
-  it('should get pages by id', () => {
+  it('should get pages by id', async () => {
     const tree = new AACTree();
     const page = new AACPage({ id: 'test-page', name: 'Test Page' });
     tree.addPage(page);
@@ -109,13 +109,13 @@ describe('AACTree', () => {
     expect(retrievedPage).toBe(page);
   });
 
-  it('should return undefined for non-existent page', () => {
+  it('should return undefined for non-existent page', async () => {
     const tree = new AACTree();
     const retrievedPage = tree.getPage('non-existent');
     expect(retrievedPage).toBeUndefined();
   });
 
-  it('should traverse all pages', () => {
+  it('should traverse all pages', async () => {
     const tree = new AACTree();
     const page1 = new AACPage({ id: 'page1', name: 'Page 1' });
     const page2 = new AACPage({ id: 'page2', name: 'Page 2' });
@@ -151,7 +151,7 @@ describe('AACTree', () => {
     expect(visitedPages).toHaveLength(3);
   });
 
-  it('should handle circular navigation in traverse', () => {
+  it('should handle circular navigation in traverse', async () => {
     const tree = new AACTree();
     const page1 = new AACPage({ id: 'page1' });
     const page2 = new AACPage({ id: 'page2' });

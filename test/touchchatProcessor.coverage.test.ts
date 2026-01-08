@@ -12,7 +12,7 @@ describe('TouchChatProcessor Coverage', () => {
   const tempDbPath = path.join(tempDir, 'vocab.c4v');
   const tempZipPath = path.join(__dirname, 'temp.ce');
 
-  beforeEach(() => {
+  beforeEach(async () => {
     if (fs.existsSync(tempDir)) {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }
@@ -22,7 +22,7 @@ describe('TouchChatProcessor Coverage', () => {
     }
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     if (fs.existsSync(tempDir)) {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }
@@ -32,20 +32,20 @@ describe('TouchChatProcessor Coverage', () => {
   });
 
   describe('File Handling', () => {
-    it('should throw an error if no .c4v file is found in the archive', () => {
+    it('should throw an error if no .c4v file is found in the archive', async () => {
       const zip = new AdmZip();
       zip.addFile('test.txt', Buffer.from('hello'));
       zip.writeZip(tempZipPath);
 
       const processor = new TouchChatProcessor();
-      expect(() => processor.loadIntoTree(tempZipPath)).toThrow(
+      await expect(processor.loadIntoTree(tempZipPath)).rejects.toThrow(
         'No .c4v vocab DB found in TouchChat export'
       );
     });
   });
 
   describe('Save and Load with UNIQUE constraints', () => {
-    it('should save and reload a tree without UNIQUE constraint violations', () => {
+    it('should save and reload a tree without UNIQUE constraint violations', async () => {
       const processor = new TouchChatProcessor();
       const tree = new AACTree();
       const originalPage1 = new AACPage({
@@ -66,10 +66,10 @@ describe('TouchChatProcessor Coverage', () => {
       originalPage2.addButton(button2);
       tree.addPage(originalPage2);
 
-      processor.saveFromTree(tree, tempZipPath);
+      await processor.saveFromTree(tree, tempZipPath);
 
       const newProcessor = new TouchChatProcessor();
-      const newTree = newProcessor.loadIntoTree(tempZipPath);
+      const newTree = await newProcessor.loadIntoTree(tempZipPath);
 
       expect(Object.keys(newTree.pages).length).toBe(2);
       const loadedPage1 = newTree.getPage('1');
@@ -86,7 +86,7 @@ describe('TouchChatProcessor Coverage', () => {
   });
 
   describe('Schema Variations', () => {
-    it('should handle different table schemas gracefully', () => {
+    it('should handle different table schemas gracefully', async () => {
       const db = new Database(tempDbPath);
       db.exec(`
             CREATE TABLE resources (id INTEGER PRIMARY KEY, name TEXT);
@@ -101,7 +101,7 @@ describe('TouchChatProcessor Coverage', () => {
       zip.writeZip(tempZipPath);
 
       const processor = new TouchChatProcessor();
-      const tree = processor.loadIntoTree(tempZipPath);
+      const tree = await processor.loadIntoTree(tempZipPath);
       expect(Object.keys(tree.pages).length).toBe(1);
       const testPage = tree.getPage('1');
       expect(testPage).toBeDefined();

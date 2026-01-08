@@ -6,12 +6,12 @@ import {
 } from '../src/processors/gridset/helpers';
 
 describe('Gridset helper misc utilities', () => {
-  it('generates a GUID-like value', () => {
+  it('generates a GUID-like value', async () => {
     const guid = generateGrid3Guid();
     expect(guid).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
   });
 
-  it('builds settings XML with overrides', () => {
+  it('builds settings XML with overrides', async () => {
     const xml = createSettingsXml('Home', {
       scanEnabled: true,
       hoverTimeoutMs: 1500,
@@ -23,7 +23,7 @@ describe('Gridset helper misc utilities', () => {
     expect(xml).toContain('<Language>en-GB</Language>');
   });
 
-  it('builds file map XML for multiple grids', () => {
+  it('builds file map XML for multiple grids', async () => {
     const xml = createFileMapXml([
       { name: 'Main', path: 'main.gridset' },
       { name: 'Alt', path: 'alt.gridset', dynamicFiles: ['dyn1'] },

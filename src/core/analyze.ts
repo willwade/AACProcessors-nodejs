@@ -55,8 +55,8 @@ export function getProcessor(format: string, options?: ProcessorOptions): BasePr
  * @param file Path to the source file
  * @param format Format key or extension (passed to getProcessor)
  */
-export function analyze(file: string, format: string): { tree: AACTree } {
+export async function analyze(file: string, format: string): Promise<{ tree: AACTree }> {
   const processor = getProcessor(format);
-  const tree = processor.loadIntoTree(file);
+  const tree = await processor.loadIntoTree(file);
   return { tree };
 }

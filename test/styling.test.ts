@@ -13,11 +13,11 @@ import { AACTree, AACPage, AACButton } from '../src/core/treeStructure';
 describe('Styling Support Tests', () => {
   let tempDir: string;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'styling-test-'));
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     if (fs.existsSync(tempDir)) {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }
@@ -95,17 +95,17 @@ describe('Styling Support Tests', () => {
   };
 
   describe('OBF Processor Styling', () => {
-    it('should preserve background and border colors in round-trip', () => {
+    it('should preserve background and border colors in round-trip', async () => {
       const processor = new ObfProcessor();
       const tree = createStyledTestTree();
       const outputPath = path.join(tempDir, 'test.obf');
 
       // Save tree to OBF
-      processor.saveFromTree(tree, outputPath);
+      await processor.saveFromTree(tree, outputPath);
       expect(fs.existsSync(outputPath)).toBe(true);
 
       // Load back from OBF
-      const loadedTree = processor.loadIntoTree(outputPath);
+      const loadedTree = await processor.loadIntoTree(outputPath);
       const loadedPage = Object.values(loadedTree.pages)[0];
       const loadedButton = loadedPage.buttons[0];
 
@@ -116,17 +116,17 @@ describe('Styling Support Tests', () => {
   });
 
   describe('Snap Processor Styling', () => {
-    it('should preserve comprehensive styling in round-trip', () => {
+    it('should preserve comprehensive styling in round-trip', async () => {
       const processor = new SnapProcessor();
       const tree = createStyledTestTree();
       const outputPath = path.join(tempDir, 'test.spb');
 
       // Save tree to Snap
-      processor.saveFromTree(tree, outputPath);
+      await processor.saveFromTree(tree, outputPath);
       expect(fs.existsSync(outputPath)).toBe(true);
 
       // Load back from Snap
-      const loadedTree = processor.loadIntoTree(outputPath);
+      const loadedTree = await processor.loadIntoTree(outputPath);
       const loadedPage = Object.values(loadedTree.pages)[0];
       const loadedButton = loadedPage.buttons[0];
 
@@ -142,17 +142,17 @@ describe('Styling Support Tests', () => {
   });
 
   describe('TouchChat Processor Styling', () => {
-    it('should preserve button and page styles in round-trip', () => {
+    it('should preserve button and page styles in round-trip', async () => {
       const processor = new TouchChatProcessor();
       const tree = createStyledTestTree();
       const outputPath = path.join(tempDir, 'test.ce');
 
       // Save tree to TouchChat
-      processor.saveFromTree(tree, outputPath);
+      await processor.saveFromTree(tree, outputPath);
       expect(fs.existsSync(outputPath)).toBe(true);
 
       // Load back from TouchChat
-      const loadedTree = processor.loadIntoTree(outputPath);
+      const loadedTree = await processor.loadIntoTree(outputPath);
       const loadedPage = Object.values(loadedTree.pages)[0];
       const loadedButton = loadedPage.buttons[0];
 
@@ -167,17 +167,17 @@ describe('Styling Support Tests', () => {
   });
 
   describe('Asterics Grid Processor Styling', () => {
-    it('should preserve background colors and metadata styling', () => {
+    it('should preserve background colors and metadata styling', async () => {
       const processor = new AstericsGridProcessor();
       const tree = createStyledTestTree();
       const outputPath = path.join(tempDir, 'test.grd');
 
       // Save tree to Asterics Grid
-      processor.saveFromTree(tree, outputPath);
+      await processor.saveFromTree(tree, outputPath);
       expect(fs.existsSync(outputPath)).toBe(true);
 
       // Load back from Asterics Grid
-      const loadedTree = processor.loadIntoTree(outputPath);
+      const loadedTree = await processor.loadIntoTree(outputPath);
       const loadedPage = Object.values(loadedTree.pages)[0];
       const loadedButton = loadedPage.buttons[0];
 
@@ -188,13 +188,13 @@ describe('Styling Support Tests', () => {
   });
 
   describe('Grid 3 Processor Styling', () => {
-    it('should create and reference styles correctly', () => {
+    it('should create and reference styles correctly', async () => {
       const processor = new GridsetProcessor();
       const tree = createStyledTestTree();
       const outputPath = path.join(tempDir, 'test.gridset');
 
       // Save tree to Grid 3
-      processor.saveFromTree(tree, outputPath);
+      await processor.saveFromTree(tree, outputPath);
       expect(fs.existsSync(outputPath)).toBe(true);
 
       // Verify the zip contains style.xml
@@ -211,17 +211,17 @@ describe('Styling Support Tests', () => {
   });
 
   describe('Apple Panels Processor Styling', () => {
-    it('should preserve DisplayColor, FontSize, and DisplayImageWeight', () => {
+    it('should preserve DisplayColor, FontSize, and DisplayImageWeight', async () => {
       const processor = new ApplePanelsProcessor();
       const tree = createStyledTestTree();
       const outputPath = path.join(tempDir, 'test.ascconfig');
 
       // Save tree to Apple Panels
-      processor.saveFromTree(tree, outputPath);
+      await processor.saveFromTree(tree, outputPath);
       expect(fs.existsSync(outputPath)).toBe(true);
 
       // Load back from Apple Panels
-      const loadedTree = processor.loadIntoTree(outputPath);
+      const loadedTree = await processor.loadIntoTree(outputPath);
       const loadedPage = Object.values(loadedTree.pages)[0];
       const loadedButton = loadedPage.buttons[0];
 
@@ -233,22 +233,22 @@ describe('Styling Support Tests', () => {
   });
 
   describe('Cross-Format Styling Compatibility', () => {
-    it('should maintain basic styling when converting between formats', () => {
+    it('should maintain basic styling when converting between formats', async () => {
       const obfProcessor = new ObfProcessor();
       const snapProcessor = new SnapProcessor();
       const tree = createStyledTestTree();
 
       // Save as OBF
       const obfPath = path.join(tempDir, 'test.obf');
-      obfProcessor.saveFromTree(tree, obfPath);
+      await obfProcessor.saveFromTree(tree, obfPath);
 
       // Load from OBF and save as Snap
-      const loadedFromObf = obfProcessor.loadIntoTree(obfPath);
+      const loadedFromObf = await obfProcessor.loadIntoTree(obfPath);
       const snapPath = path.join(tempDir, 'test.spb');
-      snapProcessor.saveFromTree(loadedFromObf, snapPath);
+      await snapProcessor.saveFromTree(loadedFromObf, snapPath);
 
       // Load from Snap and verify styling is maintained
-      const loadedFromSnap = snapProcessor.loadIntoTree(snapPath);
+      const loadedFromSnap = await snapProcessor.loadIntoTree(snapPath);
       const finalButton = Object.values(loadedFromSnap.pages)[0].buttons[0];
 
       // Basic styling should be preserved across formats

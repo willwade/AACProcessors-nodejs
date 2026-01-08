@@ -43,6 +43,7 @@
 import { AACTree, AACButton, AACSemanticCategory } from './treeStructure';
 import { StringCasing, detectCasing, isNumericOrEmpty } from './stringCasing';
 import { ValidationResult } from '../validation/validationTypes';
+import { BinaryOutput, ProcessorInput } from '../utils/io';
 
 // Configuration options for processors
 export interface ProcessorOptions {
@@ -125,20 +126,20 @@ abstract class BaseProcessor {
   }
 
   // Extract all text content (for translation, analysis, etc.)
-  abstract extractTexts(filePathOrBuffer: string | Buffer): string[];
+  abstract extractTexts(filePathOrBuffer: ProcessorInput): Promise<string[]>;
 
   // Load file into common tree structure
-  abstract loadIntoTree(filePathOrBuffer: string | Buffer): AACTree;
+  abstract loadIntoTree(filePathOrBuffer: ProcessorInput): Promise<AACTree>;
 
   // Process texts (e.g., apply translations) and return new file/buffer
   abstract processTexts(
-    filePathOrBuffer: string | Buffer,
+    filePathOrBuffer: ProcessorInput,
     translations: Map<string, string>,
     outputPath: string
-  ): Buffer;
+  ): Promise<BinaryOutput>;
 
   // Save tree structure back to file/buffer
-  abstract saveFromTree(tree: AACTree, outputPath: string): void | Promise<void>;
+  abstract saveFromTree(tree: AACTree, outputPath: string): Promise<void>;
 
   // Validate file format
   validate?(filePath: string): Promise<ValidationResult>;
@@ -251,9 +252,11 @@ abstract class BaseProcessor {
    * @param filePath - Path to the AAC file
    * @returns Promise with extracted strings and metadata
    */
-  protected extractStringsWithMetadataGeneric(filePath: string): Promise<ExtractStringsResult> {
+  protected async extractStringsWithMetadataGeneric(
+    filePath: string
+  ): Promise<ExtractStringsResult> {
     try {
-      const tree = this.loadIntoTree(filePath);
+      const tree = await this.loadIntoTree(filePath);
       const extractedMap = new Map<string, ExtractedString>();
 
       // Process all pages and buttons
@@ -306,9 +309,9 @@ abstract class BaseProcessor {
       });
 
       const extractedStrings = Array.from(extractedMap.values());
-      return Promise.resolve({ errors: [], extractedStrings });
+      return { errors: [], extractedStrings };
     } catch (error) {
-      return Promise.resolve({
+      return {
         errors: [
           {
             message: error instanceof Error ? error.message : 'Unknown extraction error',
@@ -316,7 +319,7 @@ abstract class BaseProcessor {
           },
         ],
         extractedStrings: [],
-      });
+      };
     }
   }
 
@@ -328,43 +331,35 @@ abstract class BaseProcessor {
    * @param sourceStrings - Array of source string data
    * @returns Promise with path to the generated translated file
    */
-  protected generateTranslatedDownloadGeneric(
+  protected async generateTranslatedDownloadGeneric(
     filePath: string,
     translatedStrings: TranslatedString[],
     sourceStrings: SourceString[]
   ): Promise<string> {
-    try {
-      // Build translation map from the provided data
-      const translations = new Map<string, string>();
+    // Build translation map from the provided data
+    const translations = new Map<string, string>();
 
-      sourceStrings.forEach((sourceString) => {
-        const translated = translatedStrings.find(
-          (ts) => ts.sourcestringid.toString() === sourceString.id.toString()
-        );
-
-        if (translated) {
-          const translatedText =
-            translated.overridestring.length > 0
-              ? translated.overridestring
-              : translated.translatedstring;
-          translations.set(sourceString.sourcestring, translatedText);
-        }
-      });
-
-      // Generate output path based on file extension
-      const outputPath = this.generateTranslatedOutputPath(filePath);
-
-      // Use existing processTexts method
-      this.processTexts(filePath, translations, outputPath);
-
-      return Promise.resolve(outputPath);
-    } catch (error) {
-      return Promise.reject(
-        new Error(
-          `Failed to generate translated download: ${error instanceof Error ? error.message : 'Unknown error'}`
-        )
+    sourceStrings.forEach((sourceString) => {
+      const translated = translatedStrings.find(
+        (ts) => ts.sourcestringid.toString() === sourceString.id.toString()
       );
-    }
+
+      if (translated) {
+        const translatedText =
+          translated.overridestring.length > 0
+            ? translated.overridestring
+            : translated.translatedstring;
+        translations.set(sourceString.sourcestring, translatedText);
+      }
+    });
+
+    // Generate output path based on file extension
+    const outputPath = this.generateTranslatedOutputPath(filePath);
+
+    // Use existing processTexts method (now async)
+    await this.processTexts(filePath, translations, outputPath);
+
+    return outputPath;
   }
 
   /**

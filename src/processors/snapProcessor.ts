@@ -21,6 +21,7 @@ import fs from 'fs';
 import crypto from 'crypto';
 import { SnapValidator } from '../validation/snapValidator';
 import { ValidationResult } from '../validation/validationTypes';
+import { ProcessorInput } from '../utils/io';
 
 interface SnapButton {
   Id: number;
@@ -81,8 +82,8 @@ class SnapProcessor extends BaseProcessor {
       options.pageLayoutPreference !== undefined ? options.pageLayoutPreference : 'scanning'; // Default to scanning
   }
 
-  extractTexts(filePathOrBuffer: string | Buffer): string[] {
-    const tree = this.loadIntoTree(filePathOrBuffer);
+  async extractTexts(filePathOrBuffer: ProcessorInput): Promise<string[]> {
+    const tree = await this.loadIntoTree(filePathOrBuffer);
     const texts: string[] = [];
 
     for (const pageId in tree.pages) {
@@ -100,7 +101,7 @@ class SnapProcessor extends BaseProcessor {
     return texts;
   }
 
-  loadIntoTree(filePathOrBuffer: string | Buffer): AACTree {
+  async loadIntoTree(filePathOrBuffer: ProcessorInput): Promise<AACTree> {
     const tree = new AACTree();
     const filePath =
       typeof filePathOrBuffer === 'string'
@@ -730,13 +731,13 @@ class SnapProcessor extends BaseProcessor {
     }
   }
 
-  processTexts(
-    filePathOrBuffer: string | Buffer,
+  async processTexts(
+    filePathOrBuffer: ProcessorInput,
     translations: Map<string, string>,
     outputPath: string
-  ): Buffer {
+  ): Promise<Uint8Array> {
     // Load the tree, apply translations, and save to new file
-    const tree = this.loadIntoTree(filePathOrBuffer);
+    const tree = await this.loadIntoTree(filePathOrBuffer);
 
     // Apply translations to all text content
     Object.values(tree.pages).forEach((page) => {
@@ -766,11 +767,11 @@ class SnapProcessor extends BaseProcessor {
     });
 
     // Save the translated tree and return its content
-    this.saveFromTree(tree, outputPath);
+    await this.saveFromTree(tree, outputPath);
     return fs.readFileSync(outputPath);
   }
 
-  saveFromTree(tree: AACTree, outputPath: string): void {
+  async saveFromTree(tree: AACTree, outputPath: string): Promise<void> {
     const outputDir = path.dirname(outputPath);
     if (!fs.existsSync(outputDir)) {
       fs.mkdirSync(outputDir, { recursive: true });
@@ -1030,7 +1031,12 @@ class SnapProcessor extends BaseProcessor {
   /**
    * Add audio recording to a button in the database
    */
-  addAudioToButton(dbPath: string, buttonId: number, audioData: Buffer, metadata?: string): number {
+  async addAudioToButton(
+    dbPath: string,
+    buttonId: number,
+    audioData: Uint8Array,
+    metadata?: string
+  ): Promise<number> {
     const db = new Database(dbPath, { fileMustExist: true });
 
     try {
@@ -1079,18 +1085,18 @@ class SnapProcessor extends BaseProcessor {
   /**
    * Create a copy of the pageset with audio recordings added
    */
-  createAudioEnhancedPageset(
+  async createAudioEnhancedPageset(
     sourceDbPath: string,
     targetDbPath: string,
-    audioMappings: Map<number, { audioData: Buffer; metadata?: string }>
-  ): void {
+    audioMappings: Map<number, { audioData: Uint8Array; metadata?: string }>
+  ): Promise<void> {
     // Copy the source database to target
     fs.copyFileSync(sourceDbPath, targetDbPath);
 
     // Add audio recordings to the copy
-    audioMappings.forEach((audioInfo, buttonId) => {
-      this.addAudioToButton(targetDbPath, buttonId, audioInfo.audioData, audioInfo.metadata);
-    });
+    for (const [buttonId, audioInfo] of audioMappings.entries()) {
+      await this.addAudioToButton(targetDbPath, buttonId, audioInfo.audioData, audioInfo.metadata);
+    }
   }
 
   /**

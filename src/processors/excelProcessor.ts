@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { ProcessorInput } from '../utils/io';
 import * as ExcelJS from 'exceljs';
 import {
   BaseProcessor,
@@ -23,7 +24,7 @@ export class ExcelProcessor extends BaseProcessor {
    * @param filePathOrBuffer - Path to Excel file or Buffer containing Excel data
    * @returns Array of all text content found in the Excel file
    */
-  extractTexts(_filePathOrBuffer: string | Buffer): string[] {
+  async extractTexts(_filePathOrBuffer: ProcessorInput): Promise<string[]> {
     console.warn('ExcelProcessor.extractTexts is not implemented yet.');
     return [];
   }
@@ -33,7 +34,7 @@ export class ExcelProcessor extends BaseProcessor {
    * @param filePathOrBuffer - Path to Excel file or Buffer containing Excel data
    * @returns AACTree representation of the Excel file
    */
-  loadIntoTree(_filePathOrBuffer: string | Buffer): AACTree {
+  async loadIntoTree(_filePathOrBuffer: ProcessorInput): Promise<AACTree> {
     console.warn('ExcelProcessor.loadIntoTree is not implemented yet.');
     const tree = new AACTree();
     tree.metadata.format = 'excel';
@@ -47,11 +48,11 @@ export class ExcelProcessor extends BaseProcessor {
    * @param outputPath - Path where translated Excel file should be saved
    * @returns Buffer containing the translated Excel file
    */
-  processTexts(
-    _filePathOrBuffer: string | Buffer,
+  async processTexts(
+    _filePathOrBuffer: ProcessorInput,
     _translations: Map<string, string>,
     outputPath: string
-  ): Buffer {
+  ): Promise<Uint8Array> {
     console.warn('ExcelProcessor.processTexts is not implemented yet.');
     const outputDir = path.dirname(outputPath);
     if (!fs.existsSync(outputDir)) {

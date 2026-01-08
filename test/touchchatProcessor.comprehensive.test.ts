@@ -10,65 +10,63 @@ describe('TouchChatProcessor - Comprehensive Coverage Tests', () => {
   const tempDir = path.join(__dirname, 'temp_touchchat');
   const exampleFile = path.join(__dirname, 'assets/excel/example.ce');
 
-  beforeAll(() => {
+  beforeAll(async () => {
     if (!fs.existsSync(tempDir)) {
       fs.mkdirSync(tempDir, { recursive: true });
     }
   });
 
-  beforeEach(() => {
+  beforeEach(async () => {
     processor = new TouchChatProcessor();
   });
 
-  afterAll(() => {
+  afterAll(async () => {
     if (fs.existsSync(tempDir)) {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }
   });
 
   describe('SQLite Schema Tests', () => {
-    it('should handle TouchChat v1.x database schema', () => {
+    it('should handle TouchChat v1.x database schema', async () => {
       // Test with minimal valid TouchChat database structure
       const tree = TreeFactory.createSimple();
       const outputPath = path.join(tempDir, 'v1_test.ce');
 
-      expect(() => {
-        processor.saveFromTree(tree, outputPath);
-      }).not.toThrow();
+      await expect(processor.saveFromTree(tree, outputPath)).resolves.not.toThrow();
 
       expect(fs.existsSync(outputPath)).toBe(true);
 
       // Verify we can load it back
-      const loadedTree = processor.loadIntoTree(outputPath);
+      const loadedTree = await processor.loadIntoTree(outputPath);
       expect(loadedTree).toBeDefined();
       expect(Object.keys(loadedTree.pages).length).toBeGreaterThan(0);
     });
 
-    it('should handle TouchChat v2.x database schema', () => {
+    it('should handle TouchChat v2.x database schema', async () => {
       // Test with more complex button configurations
       const tree = TreeFactory.createCommunicationBoard();
       const outputPath = path.join(tempDir, 'v2_test.ce');
 
-      processor.saveFromTree(tree, outputPath);
-      const loadedTree = processor.loadIntoTree(outputPath);
+      await processor.saveFromTree(tree, outputPath);
+      const loadedTree = await processor.loadIntoTree(outputPath);
 
       expect(loadedTree).toBeDefined();
       expect(Object.keys(loadedTree.pages).length).toBe(Object.keys(tree.pages).length);
     });
 
-    it('should handle TouchChat v3.x database schema', () => {
+    it('should handle TouchChat v3.x database schema', async () => {
       // Test with large dataset
       const tree = TreeFactory.createLarge(5, 10);
       const outputPath = path.join(tempDir, 'v3_test.ce');
 
-      processor.saveFromTree(tree, outputPath);
-      const loadedTree = processor.loadIntoTree(outputPath);
+      await processor.saveFromTree(tree, outputPath);
+      const loadedTree = await processor.loadIntoTree(outputPath);
 
       expect(loadedTree).toBeDefined();
       expect(Object.keys(loadedTree.pages).length).toBe(5);
     });
 
-    it('should process buttons with custom actions', () => {
+    it('should process buttons with custom actions', async () => {
       const page = PageFactory.create({
         id: 'custom_actions',
         name: 'Custom Actions Page',
@@ -88,9 +86,9 @@ describe('TouchChatProcessor - Comprehensive Coverage Tests', () => {
       tree.addPage(PageFactory.create({ id: 'target', name: 'Target Page' }));
 
       const outputPath = path.join(tempDir, 'custom_actions.ce');
-      processor.saveFromTree(tree, outputPath);
+      await processor.saveFromTree(tree, outputPath);
 
-      const loadedTree = processor.loadIntoTree(outputPath);
+      const loadedTree = await processor.loadIntoTree(outputPath);
       const loadedPage = loadedTree.getPage('custom_actions');
 
       expect(loadedPage).toBeDefined();
@@ -103,7 +101,7 @@ describe('TouchChatProcessor - Comprehensive Coverage Tests', () => {
       expect(loadedPage.buttons[1].targetPageId).toBe('target');
     });
 
-    it('should handle buttons with multiple audio recordings', () => {
+    it('should handle buttons with multiple audio recordings', async () => {
       const button = ButtonFactory.create({
         label: 'Audio Button',
         message: 'I have audio',
@@ -128,9 +126,9 @@ describe('TouchChatProcessor - Comprehensive Coverage Tests', () => {
       tree.addPage(page);
 
       const outputPath = path.join(tempDir, 'audio_test.ce');
-      processor.saveFromTree(tree, outputPath);
+      await processor.saveFromTree(tree, outputPath);
 
-      const loadedTree = processor.loadIntoTree(outputPath);
+      const loadedTree = await processor.loadIntoTree(outputPath);
       const loadedPage = loadedTree.getPage('audio_page');
 
       expect(loadedPage).toBeDefined();
@@ -140,7 +138,7 @@ describe('TouchChatProcessor - Comprehensive Coverage Tests', () => {
       expect(loadedPage.buttons[0].label).toBe('Audio Button');
     });
 
-    it('should process navigation buttons with complex targets', () => {
+    it('should process navigation buttons with complex targets', async () => {
       // Create a complex navigation hierarchy
       const homePage = PageFactory.create({ id: 'home', name: 'Home' });
       const categoryPage = PageFactory.create({
@@ -186,9 +184,9 @@ describe('TouchChatProcessor - Comprehensive Coverage Tests', () => {
       tree.rootId = 'home';
 
       const outputPath = path.join(tempDir, 'navigation_test.ce');
-      processor.saveFromTree(tree, outputPath);
+      await processor.saveFromTree(tree, outputPath);
 
-      const loadedTree = processor.loadIntoTree(outputPath);
+      const loadedTree = await processor.loadIntoTree(outputPath);
 
       expect(loadedTree.rootId).toBe('home');
       expect(Object.keys(loadedTree.pages)).toHaveLength(3);
@@ -212,16 +210,14 @@ describe('TouchChatProcessor - Comprehensive Coverage Tests', () => {
   });
 
   describe('Database Connection Edge Cases', () => {
-    it('should handle corrupted SQLite databases gracefully', () => {
+    it('should handle corrupted SQLite databases gracefully', async () => {
       const corruptedPath = path.join(tempDir, 'corrupted.ce');
       fs.writeFileSync(corruptedPath, 'This is not a valid zip file');
 
-      expect(() => {
-        processor.loadIntoTree(corruptedPath);
-      }).toThrow();
+      await expect(processor.loadIntoTree(corruptedPath)).rejects.toThrow();
     });
 
-    it('should process databases with missing required tables', () => {
+    it('should process databases with missing required tables', async () => {
       // Create a minimal zip file without proper database structure
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const AdmZip = require('adm-zip');
@@ -231,35 +227,31 @@ describe('TouchChatProcessor - Comprehensive Coverage Tests', () => {
       const invalidPath = path.join(tempDir, 'invalid.ce');
       zip.writeZip(invalidPath);
 
-      expect(() => {
-        processor.loadIntoTree(invalidPath);
-      }).toThrow();
+      await expect(processor.loadIntoTree(invalidPath)).rejects.toThrow();
     });
 
-    it('should handle databases with foreign key constraints', () => {
+    it('should handle databases with foreign key constraints', async () => {
       // Test with a valid tree that has proper relationships
       const tree = TreeFactory.createCommunicationBoard();
       const outputPath = path.join(tempDir, 'fk_test.ce');
 
-      expect(() => {
-        processor.saveFromTree(tree, outputPath);
-      }).not.toThrow();
+      await expect(processor.saveFromTree(tree, outputPath)).resolves.not.toThrow();
 
-      const loadedTree = processor.loadIntoTree(outputPath);
+      const loadedTree = await processor.loadIntoTree(outputPath);
       expect(loadedTree).toBeDefined();
     });
   });
 
   describe('Large Dataset Performance', () => {
-    it('should process databases with 1000+ buttons efficiently', () => {
+    it('should process databases with 1000+ buttons efficiently', async () => {
       const startTime = Date.now();
 
       // Create a large tree with many buttons
       const tree = TreeFactory.createLarge(10, 100); // 10 pages, 100 buttons each = 1000 buttons
       const outputPath = path.join(tempDir, 'large_test.ce');
 
-      processor.saveFromTree(tree, outputPath);
-      const loadedTree = processor.loadIntoTree(outputPath);
+      await processor.saveFromTree(tree, outputPath);
+      const loadedTree = await processor.loadIntoTree(outputPath);
 
       const endTime = Date.now();
       const processingTime = endTime - startTime;
@@ -276,7 +268,7 @@ describe('TouchChatProcessor - Comprehensive Coverage Tests', () => {
       expect(totalButtons).toBe(1000);
     });
 
-    it('should handle databases with complex page hierarchies', () => {
+    it('should handle databases with complex page hierarchies', async () => {
       // Create a deep hierarchy
       const tree = new AACTree();
       let currentParent = 'root';
@@ -314,22 +306,22 @@ describe('TouchChatProcessor - Comprehensive Coverage Tests', () => {
       }
 
       const outputPath = path.join(tempDir, 'hierarchy_test.ce');
-      processor.saveFromTree(tree, outputPath);
+      await processor.saveFromTree(tree, outputPath);
 
-      const loadedTree = processor.loadIntoTree(outputPath);
+      const loadedTree = await processor.loadIntoTree(outputPath);
       expect(loadedTree).toBeDefined();
       expect(Object.keys(loadedTree.pages)).toHaveLength(15); // 5 levels * 3 pages = 15 pages
     });
   });
 
   describe('Text Processing Methods', () => {
-    it('should extract all texts from complex database', () => {
+    it('should extract all texts from complex database', async () => {
       if (!fs.existsSync(exampleFile)) {
         console.log('Skipping test - example file not found');
         return;
       }
 
-      const texts = processor.extractTexts(exampleFile);
+      const texts = await processor.extractTexts(exampleFile);
       expect(Array.isArray(texts)).toBe(true);
       expect(texts.length).toBeGreaterThan(0);
 
@@ -340,13 +332,13 @@ describe('TouchChatProcessor - Comprehensive Coverage Tests', () => {
       });
     });
 
-    it('should process texts with translations', () => {
+    it('should process texts with translations', async () => {
       const tree = TreeFactory.createSimple();
       const inputPath = path.join(tempDir, 'input_for_translation.ce');
       const outputPath = path.join(tempDir, 'translation_test.ce');
 
       // Save the tree first
-      processor.saveFromTree(tree, inputPath);
+      await processor.saveFromTree(tree, inputPath);
 
       // Create translation map
       const translations = new Map<string, string>();
@@ -354,12 +346,12 @@ describe('TouchChatProcessor - Comprehensive Coverage Tests', () => {
       translations.set('Food', 'Comida');
       translations.set('Home', 'Casa');
 
-      const result = processor.processTexts(inputPath, translations, outputPath);
+      const result = await processor.processTexts(inputPath, translations, outputPath);
       expect(result).toBeInstanceOf(Buffer);
       expect(fs.existsSync(outputPath)).toBe(true);
 
       // Load and verify translations were applied
-      const translatedTree = processor.loadIntoTree(outputPath);
+      const translatedTree = await processor.loadIntoTree(outputPath);
       const homePage = translatedTree.getPage('home');
       expect(homePage).toBeDefined();
       expect(homePage?.name).toBe('Casa');

@@ -4,7 +4,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as xml2js from 'xml2js';
-import AdmZip from 'adm-zip';
+import JSZip from 'jszip';
 import { BaseValidator } from './baseValidator';
 import { ValidationResult } from './validationTypes';
 
@@ -134,24 +134,24 @@ export class GridsetValidator extends BaseValidator {
     filename: string,
     _filesize: number
   ): Promise<void> {
-    let zip: AdmZip;
+    let zip: JSZip;
     try {
-      zip = new AdmZip(Buffer.from(content));
+      zip = await JSZip.loadAsync(Buffer.from(content));
     } catch (e: any) {
       this.err(`Failed to open ZIP archive: ${e.message}`, true);
       return;
     }
 
-    const entries = zip.getEntries();
+    const entries = Object.values(zip.files).filter((entry) => !entry.dir);
 
     // Check for gridset.xml (required)
     await this.add_check('gridset_xml_presence', 'gridset.xml presence', async () => {
-      const gridsetEntry = entries.find((e) => e.entryName.toLowerCase() === 'gridset.xml');
+      const gridsetEntry = entries.find((e) => e.name.toLowerCase() === 'gridset.xml');
       if (!gridsetEntry) {
         this.err('Missing gridset.xml in archive', true);
       } else {
         try {
-          const gridsetXml = gridsetEntry.getData().toString('utf-8');
+          const gridsetXml = await gridsetEntry.async('string');
           const parser = new xml2js.Parser();
           const xmlObj = await parser.parseStringPromise(gridsetXml);
           const gridset = xmlObj.gridset || xmlObj.Gridset;
@@ -168,12 +168,12 @@ export class GridsetValidator extends BaseValidator {
 
     // Check for settings.xml (highly recommended/required for metadata)
     await this.add_check('settings_xml_presence', 'settings.xml presence', async () => {
-      const settingsEntry = entries.find((e) => e.entryName.toLowerCase() === 'settings.xml');
+      const settingsEntry = entries.find((e) => e.name.toLowerCase() === 'settings.xml');
       if (!settingsEntry) {
         this.warn('Missing settings.xml in archive (required for full metadata)');
       } else {
         try {
-          const settingsXml = settingsEntry.getData().toString('utf-8');
+          const settingsXml = await settingsEntry.async('string');
           const parser = new xml2js.Parser();
           const xmlObj = await parser.parseStringPromise(settingsXml);
           const settings =

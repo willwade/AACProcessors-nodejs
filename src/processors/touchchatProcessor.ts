@@ -24,6 +24,7 @@ import fs from 'fs';
 import os from 'os';
 import { TouchChatValidator } from '../validation/touchChatValidator';
 import { ValidationResult } from '../validation/validationTypes';
+import { ProcessorInput, readBinaryFromInput } from '../utils/io';
 import {
   extractAllButtonsForTranslation,
   validateTranslationResults,
@@ -106,16 +107,16 @@ function mapTouchChatVisibility(
 
 class TouchChatProcessor extends BaseProcessor {
   private tree: AACTree | null = null;
-  private sourceFile: string | Buffer | null = null;
+  private sourceFile: ProcessorInput | null = null;
 
   constructor(options?: ProcessorOptions) {
     super(options);
   }
 
-  extractTexts(filePathOrBuffer: string | Buffer): string[] {
+  async extractTexts(filePathOrBuffer: ProcessorInput): Promise<string[]> {
     // Extracts all button labels/texts from TouchChat .ce file
     if (!this.tree && filePathOrBuffer) {
-      this.tree = this.loadIntoTree(filePathOrBuffer);
+      this.tree = await this.loadIntoTree(filePathOrBuffer);
     }
     if (!this.tree) {
       throw new Error('No tree available - call loadIntoTree first');
@@ -131,7 +132,7 @@ class TouchChatProcessor extends BaseProcessor {
     return texts;
   }
 
-  loadIntoTree(filePathOrBuffer: string | Buffer): AACTree {
+  async loadIntoTree(filePathOrBuffer: ProcessorInput): Promise<AACTree> {
     // Unzip .ce file, extract the .c4v SQLite DB, and parse pages/buttons
     let tmpDir: string | null = null;
     let db: Database.Database | null = null;
@@ -142,9 +143,9 @@ class TouchChatProcessor extends BaseProcessor {
 
       // Step 1: Unzip
       tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'touchchat-'));
-      const zip = new AdmZip(
-        typeof filePathOrBuffer === 'string' ? filePathOrBuffer : Buffer.from(filePathOrBuffer)
-      );
+      const zipInput = readBinaryFromInput(filePathOrBuffer);
+      const zipBuffer = Buffer.isBuffer(zipInput) ? zipInput : Buffer.from(zipInput);
+      const zip = new AdmZip(zipBuffer);
       zip.extractAllTo(tmpDir, true);
 
       // Step 2: Find and open SQLite DB
@@ -642,13 +643,13 @@ class TouchChatProcessor extends BaseProcessor {
     }
   }
 
-  processTexts(
-    filePathOrBuffer: string | Buffer,
+  async processTexts(
+    filePathOrBuffer: ProcessorInput,
     translations: Map<string, string>,
     outputPath: string
-  ): Buffer {
+  ): Promise<Uint8Array> {
     // Load the tree, apply translations, and save to new file
-    const tree = this.loadIntoTree(filePathOrBuffer);
+    const tree = await this.loadIntoTree(filePathOrBuffer);
 
     // Apply translations to all text content
     Object.values(tree.pages).forEach((page) => {
@@ -678,11 +679,11 @@ class TouchChatProcessor extends BaseProcessor {
     });
 
     // Save the translated tree and return its content
-    this.saveFromTree(tree, outputPath);
+    await this.saveFromTree(tree, outputPath);
     return fs.readFileSync(outputPath);
   }
 
-  saveFromTree(tree: AACTree, outputPath: string): void {
+  async saveFromTree(tree: AACTree, outputPath: string): Promise<void> {
     // Create a TouchChat database that matches the expected schema for loading
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'touchchat-export-'));
     const dbPath = path.join(tmpDir, 'vocab.c4v');
@@ -1096,9 +1097,9 @@ class TouchChatProcessor extends BaseProcessor {
    * @param filePath - Path to the TouchChat .ce file
    * @returns Promise with extracted strings and any errors
    */
-  extractStringsWithMetadata(filePath: string): Promise<ExtractStringsResult> {
+  async extractStringsWithMetadata(filePath: string): Promise<ExtractStringsResult> {
     try {
-      const tree = this.loadIntoTree(filePath);
+      const tree = await this.loadIntoTree(filePath);
       const extractedMap = new Map<string, ExtractedString>();
 
       // Process all pages and buttons with TouchChat-specific logic
@@ -1159,7 +1160,7 @@ class TouchChatProcessor extends BaseProcessor {
    * @param sourceStrings - Array of source string data with metadata
    * @returns Promise with path to the generated translated file
    */
-  generateTranslatedDownload(
+  async generateTranslatedDownload(
     filePath: string,
     translatedStrings: TranslatedString[],
     sourceStrings: SourceString[]
@@ -1186,7 +1187,7 @@ class TouchChatProcessor extends BaseProcessor {
       const outputPath = filePath.replace(/\.ce$/, '_translated.ce');
 
       // Use existing processTexts method
-      this.processTexts(filePath, translations, outputPath);
+      await this.processTexts(filePath, translations, outputPath);
 
       return Promise.resolve(outputPath);
     } catch (error) {
@@ -1216,8 +1217,8 @@ class TouchChatProcessor extends BaseProcessor {
    * @param filePathOrBuffer - Path to TouchChat .ce file or buffer
    * @returns Array of symbol information for LLM processing
    */
-  extractSymbolsForLLM(filePathOrBuffer: string | Buffer): ButtonForTranslation[] {
-    const tree = this.loadIntoTree(filePathOrBuffer);
+  async extractSymbolsForLLM(filePathOrBuffer: string | Buffer): Promise<ButtonForTranslation[]> {
+    const tree = await this.loadIntoTree(filePathOrBuffer);
 
     // Collect all buttons from all pages
     const allButtons: any[] = [];
@@ -1249,13 +1250,13 @@ class TouchChatProcessor extends BaseProcessor {
    * @param options - Translation options (e.g., allowPartial for testing)
    * @returns Buffer of the translated TouchChat file
    */
-  processLLMTranslations(
-    filePathOrBuffer: string | Buffer,
+  async processLLMTranslations(
+    filePathOrBuffer: string | Uint8Array,
     llmTranslations: LLMLTranslationResult[],
     outputPath: string,
     options?: { allowPartial?: boolean }
-  ): Buffer {
-    const tree = this.loadIntoTree(filePathOrBuffer);
+  ): Promise<Uint8Array> {
+    const tree = await this.loadIntoTree(filePathOrBuffer);
 
     // Validate translations using shared utility
     const buttonIds = Object.values(tree.pages).flatMap((page) => page.buttons.map((b) => b.id));
@@ -1299,7 +1300,7 @@ class TouchChatProcessor extends BaseProcessor {
     });
 
     // Save and return
-    this.saveFromTree(tree, outputPath);
+    await this.saveFromTree(tree, outputPath);
     return fs.readFileSync(outputPath);
   }
 }

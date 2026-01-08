@@ -16,13 +16,13 @@ import { ExtractStringsResult, TranslatedString, SourceString } from '../src/cor
 describe('Alias Methods Integration', () => {
   const tempDir = path.join(__dirname, 'temp_alias_tests');
 
-  beforeAll(() => {
+  beforeAll(async () => {
     if (!fs.existsSync(tempDir)) {
       fs.mkdirSync(tempDir, { recursive: true });
     }
   });
 
-  afterAll(() => {
+  afterAll(async () => {
     if (fs.existsSync(tempDir)) {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }
@@ -126,7 +126,7 @@ describe('Alias Methods Integration', () => {
     const processor = new ObfProcessor();
     const exampleFile = path.join(__dirname, 'assets/obf/example.obf');
 
-    it('should have alias methods available', () => {
+    it('should have alias methods available', async () => {
       expect(typeof processor.extractStringsWithMetadata).toBe('function');
       expect(typeof processor.generateTranslatedDownload).toBe('function');
     });
@@ -150,7 +150,7 @@ describe('Alias Methods Integration', () => {
     const processor = new SnapProcessor();
     const exampleFile = path.join(__dirname, 'assets/snap/example.spb');
 
-    it('should have alias methods available', () => {
+    it('should have alias methods available', async () => {
       expect(typeof processor.extractStringsWithMetadata).toBe('function');
       expect(typeof processor.generateTranslatedDownload).toBe('function');
     });
@@ -171,7 +171,7 @@ describe('Alias Methods Integration', () => {
   });
 
   describe('Backward Compatibility', () => {
-    it('should maintain existing API methods', () => {
+    it('should maintain existing API methods', async () => {
       const touchChatProcessor = new TouchChatProcessor();
       const obfProcessor = new ObfProcessor();
       const snapProcessor = new SnapProcessor();
@@ -203,20 +203,16 @@ describe('Alias Methods Integration', () => {
       }
 
       // Test that existing methods still work
-      expect(() => {
-        const texts = processor.extractTexts(exampleFile);
-        expect(Array.isArray(texts)).toBe(true);
-      }).not.toThrow();
+      const texts = await processor.extractTexts(exampleFile);
+      expect(Array.isArray(texts)).toBe(true);
 
-      expect(() => {
-        const tree = processor.loadIntoTree(exampleFile);
-        expect(tree).toBeDefined();
-      }).not.toThrow();
+      const tree = await processor.loadIntoTree(exampleFile);
+      expect(tree).toBeDefined();
     });
   });
 
   describe('Cross-Format Consistency', () => {
-    it('should provide consistent interface across all processors', () => {
+    it('should provide consistent interface across all processors', async () => {
       const processors = [
         new TouchChatProcessor(),
         new ObfProcessor(),

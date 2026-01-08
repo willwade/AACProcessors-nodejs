@@ -80,7 +80,7 @@ async function runBenchmark() {
       const processorExt = ext === '.zip' ? '.ce' : ext;
       const processor = getProcessor(processorExt);
       
-      const tree = processor.loadIntoTree(filePath);
+      const tree = await processor.loadIntoTree(filePath);
       
       // Analyze with custom scanning costs if provided
       const metrics = calculator.analyze(tree, {

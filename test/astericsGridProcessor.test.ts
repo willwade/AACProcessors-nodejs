@@ -7,52 +7,52 @@ describe('AstericsGridProcessor', () => {
   const exampleGrdFile = path.join(__dirname, 'assets/asterics/example2.grd');
   const tempOutputPath = path.join(__dirname, 'temp_test.grd');
 
-  afterEach(() => {
+  afterEach(async () => {
     if (fs.existsSync(tempOutputPath)) {
       fs.unlinkSync(tempOutputPath);
     }
   });
 
-  it('should load an Asterics Grid file into an AACTree', () => {
+  it('should load an Asterics Grid file into an AACTree', async () => {
     const processor = new AstericsGridProcessor();
-    const tree = processor.loadIntoTree(exampleGrdFile);
+    const tree = await processor.loadIntoTree(exampleGrdFile);
     expect(tree).toBeInstanceOf(AACTree);
     expect(Object.keys(tree.pages).length).toBeGreaterThan(0);
   });
 
-  it('should extract texts from an Asterics Grid file', () => {
+  it('should extract texts from an Asterics Grid file', async () => {
     const processor = new AstericsGridProcessor();
-    const texts = processor.extractTexts(exampleGrdFile);
+    const texts = await processor.extractTexts(exampleGrdFile);
     expect(Array.isArray(texts)).toBe(true);
     expect(texts.length).toBeGreaterThan(0);
     expect(texts).toContain('Change in element');
   });
 
-  it('should process texts and save the changes', () => {
+  it('should process texts and save the changes', async () => {
     const processor = new AstericsGridProcessor();
     const translations = new Map<string, string>();
     translations.set('Change in element', 'Changed Element');
 
-    const buffer = processor.processTexts(exampleGrdFile, translations, tempOutputPath);
+    const buffer = await processor.processTexts(exampleGrdFile, translations, tempOutputPath);
     expect(Buffer.isBuffer(buffer)).toBe(true);
 
-    const newTexts = processor.extractTexts(tempOutputPath);
+    const newTexts = await processor.extractTexts(tempOutputPath);
     expect(newTexts).toContain('Changed Element');
   });
 
-  it('should perform a roundtrip (load -> save -> load)', () => {
+  it('should perform a roundtrip (load -> save -> load)', async () => {
     const processor = new AstericsGridProcessor();
-    const initialTree = processor.loadIntoTree(exampleGrdFile);
-    processor.saveFromTree(initialTree, tempOutputPath);
-    const finalTree = processor.loadIntoTree(tempOutputPath);
+    const initialTree = await processor.loadIntoTree(exampleGrdFile);
+    await processor.saveFromTree(initialTree, tempOutputPath);
+    const finalTree = await processor.loadIntoTree(tempOutputPath);
 
     expect(Object.keys(finalTree.pages).length).toEqual(Object.keys(initialTree.pages).length);
     // More detailed checks could be added here
   });
 
-  it('should handle audio when the loadAudio option is true', () => {
+  it('should handle audio when the loadAudio option is true', async () => {
     const processor = new AstericsGridProcessor({ loadAudio: true });
-    const tree = processor.loadIntoTree(exampleGrdFile);
+    const tree = await processor.loadIntoTree(exampleGrdFile);
 
     let foundAudioButton = false;
     Object.values(tree.pages).forEach((page) => {
@@ -84,9 +84,9 @@ describe('AstericsGridProcessor', () => {
     }
   });
 
-  it('should extract comprehensive texts including multilingual labels', () => {
+  it('should extract comprehensive texts including multilingual labels', async () => {
     const processor = new AstericsGridProcessor();
-    const texts = processor.extractTexts(exampleGrdFile);
+    const texts = await processor.extractTexts(exampleGrdFile);
 
     expect(Array.isArray(texts)).toBe(true);
     expect(texts.length).toBeGreaterThan(0);
@@ -98,9 +98,9 @@ describe('AstericsGridProcessor', () => {
     expect(texts).toContain('Home');
   });
 
-  it('should handle multilingual content correctly', () => {
+  it('should handle multilingual content correctly', async () => {
     const processor = new AstericsGridProcessor();
-    const tree = processor.loadIntoTree(exampleGrdFile);
+    const tree = await processor.loadIntoTree(exampleGrdFile);
 
     // Check that pages are created with proper names
     const pageIds = Object.keys(tree.pages);
@@ -111,9 +111,9 @@ describe('AstericsGridProcessor', () => {
     expect(pageNames.some((name) => name && name.length > 0)).toBe(true);
   });
 
-  it('should handle navigation relationships correctly', () => {
+  it('should handle navigation relationships correctly', async () => {
     const processor = new AstericsGridProcessor();
-    const tree = processor.loadIntoTree(exampleGrdFile);
+    const tree = await processor.loadIntoTree(exampleGrdFile);
 
     let foundNavigationButton = false;
     Object.values(tree.pages).forEach((page) => {
@@ -135,7 +135,7 @@ describe('AstericsGridProcessor', () => {
     expect(foundNavigationButton).toBe(true);
   });
 
-  it('should support audio enhancement methods', () => {
+  it('should support audio enhancement methods', async () => {
     const processor = new AstericsGridProcessor();
 
     // Test getElementIds method
@@ -149,9 +149,9 @@ describe('AstericsGridProcessor', () => {
     expect(typeof hasAudio).toBe('boolean');
   });
 
-  it('should handle word forms and advanced features', () => {
+  it('should handle word forms and advanced features', async () => {
     const processor = new AstericsGridProcessor();
-    const texts = processor.extractTexts(exampleGrdFile);
+    const texts = await processor.extractTexts(exampleGrdFile);
 
     // The example file contains word forms like "sein", "bin", "bist", etc.
     expect(texts).toContain('sein');
@@ -159,9 +159,9 @@ describe('AstericsGridProcessor', () => {
     expect(texts).toContain('am');
   });
 
-  it('should create proper AACButton objects with correct properties', () => {
+  it('should create proper AACButton objects with correct properties', async () => {
     const processor = new AstericsGridProcessor();
-    const tree = processor.loadIntoTree(exampleGrdFile);
+    const tree = await processor.loadIntoTree(exampleGrdFile);
 
     let foundButtons = false;
     Object.values(tree.pages).forEach((page) => {
@@ -181,41 +181,41 @@ describe('AstericsGridProcessor', () => {
     expect(foundButtons).toBe(true);
   });
 
-  it('should handle buffer input correctly', () => {
+  it('should handle buffer input correctly', async () => {
     const processor = new AstericsGridProcessor();
     const fileBuffer = fs.readFileSync(exampleGrdFile);
 
-    const tree = processor.loadIntoTree(fileBuffer);
+    const tree = await processor.loadIntoTree(fileBuffer);
     expect(tree).toBeInstanceOf(AACTree);
     expect(Object.keys(tree.pages).length).toBeGreaterThan(0);
 
-    const texts = processor.extractTexts(fileBuffer);
+    const texts = await processor.extractTexts(fileBuffer);
     expect(Array.isArray(texts)).toBe(true);
     expect(texts.length).toBeGreaterThan(0);
   });
 
-  it('should handle comprehensive translation processing', () => {
+  it('should handle comprehensive translation processing', async () => {
     const processor = new AstericsGridProcessor();
     const translations = new Map<string, string>();
     translations.set('Change in element', 'Elemento Cambiado');
     translations.set('Global grid', 'Cuadrícula Global');
     translations.set('Home', 'Inicio');
 
-    const buffer = processor.processTexts(exampleGrdFile, translations, tempOutputPath);
+    const buffer = await processor.processTexts(exampleGrdFile, translations, tempOutputPath);
     expect(Buffer.isBuffer(buffer)).toBe(true);
 
     // Verify translations were applied
-    const translatedTexts = processor.extractTexts(tempOutputPath);
+    const translatedTexts = await processor.extractTexts(tempOutputPath);
     expect(translatedTexts).toContain('Elemento Cambiado');
     expect(translatedTexts).toContain('Cuadrícula Global');
     expect(translatedTexts).toContain('Inicio');
   });
 
-  it('should preserve home page (tree.rootId) through roundtrip', () => {
+  it('should preserve home page (tree.rootId) through roundtrip', async () => {
     const processor = new AstericsGridProcessor();
 
     // Load the file and check if it has a rootId
-    const initialTree = processor.loadIntoTree(exampleGrdFile);
+    const initialTree = await processor.loadIntoTree(exampleGrdFile);
 
     // Read the original file to check if it has homeGridId in metadata
     let content = fs.readFileSync(exampleGrdFile, 'utf-8');
@@ -238,10 +238,10 @@ describe('AstericsGridProcessor', () => {
     }
 
     // Save to a new file
-    processor.saveFromTree(initialTree, tempOutputPath);
+    await processor.saveFromTree(initialTree, tempOutputPath);
 
     // Load the saved file
-    const finalTree = processor.loadIntoTree(tempOutputPath);
+    const finalTree = await processor.loadIntoTree(tempOutputPath);
 
     // Verify rootId is preserved
     expect(finalTree.rootId).toBe(initialTree.rootId);
@@ -261,9 +261,9 @@ describe('AstericsGridProcessor', () => {
     }
   });
 
-  it('should extract locale and supported languages into metadata', () => {
+  it('should extract locale and supported languages into metadata', async () => {
     const processor = new AstericsGridProcessor();
-    const tree = processor.loadIntoTree(exampleGrdFile);
+    const tree = await processor.loadIntoTree(exampleGrdFile);
 
     expect(tree.metadata.locale).toBeDefined();
     expect(Array.isArray(tree.metadata.languages)).toBe(true);

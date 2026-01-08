@@ -14,9 +14,19 @@ import {
   AACSemanticIntent,
   AstericsGridMetadata,
 } from '../core/treeStructure';
-import fs from 'fs';
-import path from 'path';
-import { ValidationFailureError, buildValidationResultFromMessage } from '../validation';
+import {
+  ValidationFailureError,
+  buildValidationResultFromMessage,
+} from '../validation/validationTypes';
+import {
+  ProcessorInput,
+  getBasename,
+  getFs,
+  readBinaryFromInput,
+  readTextFromInput,
+  writeTextToPath,
+  encodeBase64,
+} from '../utils/io';
 
 // Asterics Grid data model interfaces
 interface GridData {
@@ -725,8 +735,8 @@ class AstericsGridProcessor extends BaseProcessor {
     this.loadAudio = options.loadAudio || false;
   }
 
-  extractTexts(filePathOrBuffer: string | Buffer): string[] {
-    const tree = this.loadIntoTree(filePathOrBuffer);
+  async extractTexts(filePathOrBuffer: ProcessorInput): Promise<string[]> {
+    const tree = await this.loadIntoTree(filePathOrBuffer);
     const texts: string[] = [];
 
     for (const pageId in tree.pages) {
@@ -750,10 +760,8 @@ class AstericsGridProcessor extends BaseProcessor {
     return texts;
   }
 
-  private extractRawTexts(filePathOrBuffer: string | Buffer): string[] {
-    let content = Buffer.isBuffer(filePathOrBuffer)
-      ? filePathOrBuffer.toString('utf-8')
-      : fs.readFileSync(filePathOrBuffer, 'utf-8');
+  private extractRawTexts(filePathOrBuffer: ProcessorInput): string[] {
+    let content = readTextFromInput(filePathOrBuffer);
 
     // Remove BOM if present
     if (content.charCodeAt(0) === 0xfeff) {
@@ -838,16 +846,14 @@ class AstericsGridProcessor extends BaseProcessor {
     }
   }
 
-  loadIntoTree(filePathOrBuffer: string | Buffer): AACTree {
+  async loadIntoTree(filePathOrBuffer: ProcessorInput): Promise<AACTree> {
     const tree = new AACTree();
     const filename =
-      typeof filePathOrBuffer === 'string' ? path.basename(filePathOrBuffer) : 'upload.grd';
-    const buffer = Buffer.isBuffer(filePathOrBuffer)
-      ? filePathOrBuffer
-      : fs.readFileSync(filePathOrBuffer);
+      typeof filePathOrBuffer === 'string' ? getBasename(filePathOrBuffer) : 'upload.grd';
+    const buffer = readBinaryFromInput(filePathOrBuffer);
 
     try {
-      let content = buffer.toString('utf-8');
+      let content = readTextFromInput(buffer);
 
       // Remove BOM if present
       if (content.charCodeAt(0) === 0xfeff) {
@@ -1300,15 +1306,12 @@ class AstericsGridProcessor extends BaseProcessor {
     });
   }
 
-  processTexts(
-    filePathOrBuffer: string | Buffer,
+  async processTexts(
+    filePathOrBuffer: ProcessorInput,
     translations: Map<string, string>,
     outputPath: string
-  ): Buffer {
-    // Load and parse the original file
-    let content = Buffer.isBuffer(filePathOrBuffer)
-      ? filePathOrBuffer.toString('utf-8')
-      : fs.readFileSync(filePathOrBuffer, 'utf-8');
+  ): Promise<Uint8Array> {
+    let content = readTextFromInput(filePathOrBuffer);
 
     // Remove BOM if present
     if (content.charCodeAt(0) === 0xfeff) {
@@ -1321,8 +1324,8 @@ class AstericsGridProcessor extends BaseProcessor {
     this.applyTranslationsToGridFile(grdFile, translations);
 
     // Write the translated file
-    fs.writeFileSync(outputPath, JSON.stringify(grdFile, null, 2));
-    return fs.readFileSync(outputPath);
+    writeTextToPath(outputPath, JSON.stringify(grdFile, null, 2));
+    return readBinaryFromInput(outputPath);
   }
 
   private applyTranslationsToGridFile(
@@ -1442,7 +1445,7 @@ class AstericsGridProcessor extends BaseProcessor {
     }
   }
 
-  saveFromTree(tree: AACTree, outputPath: string): void {
+  async saveFromTree(tree: AACTree, outputPath: string): Promise<void> {
     // Use default Asterics Grid styling instead of taking from first page
     // This prevents issues where the first page has unusual colors (like purple)
     const defaultPageStyle = {
@@ -1573,7 +1576,7 @@ class AstericsGridProcessor extends BaseProcessor {
             id: button.audioRecording.id?.toString() || `grid-action-audio-${button.id}`,
             modelName: 'GridActionAudio',
             modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
-            dataBase64: button.audioRecording.data.toString('base64'),
+            dataBase64: encodeBase64(button.audioRecording.data),
             mimeType: metadata.mimeType || 'audio/wav',
             durationMs: metadata.durationMs || 0,
             filename: button.audioRecording.identifier || `audio-${button.id}`,
@@ -1651,7 +1654,7 @@ class AstericsGridProcessor extends BaseProcessor {
       },
     };
 
-    fs.writeFileSync(outputPath, JSON.stringify(grdFile, null, 2));
+    writeTextToPath(outputPath, JSON.stringify(grdFile, null, 2));
   }
 
   /**
@@ -1663,7 +1666,7 @@ class AstericsGridProcessor extends BaseProcessor {
     audioData: Buffer,
     metadata?: string
   ): void {
-    let content = fs.readFileSync(filePath, 'utf-8');
+    let content = readTextFromInput(filePath);
 
     // Remove BOM if present
     if (content.charCodeAt(0) === 0xfeff) {
@@ -1687,7 +1690,7 @@ class AstericsGridProcessor extends BaseProcessor {
             id: `grid-action-audio-${elementId}`,
             modelName: 'GridActionAudio',
             modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
-            dataBase64: audioData.toString('base64'),
+            dataBase64: encodeBase64(audioData),
             mimeType: 'audio/wav',
             durationMs: 0, // Could be calculated from audio data
             filename: `audio-${elementId}.wav`,
@@ -1714,7 +1717,7 @@ class AstericsGridProcessor extends BaseProcessor {
     }
 
     // Write back to file
-    fs.writeFileSync(filePath, JSON.stringify(grdFile, null, 2));
+    writeTextToPath(filePath, JSON.stringify(grdFile, null, 2));
   }
 
   /**
@@ -1726,6 +1729,7 @@ class AstericsGridProcessor extends BaseProcessor {
     audioMappings: Map<string, { audioData: Buffer; metadata?: string }>
   ): void {
     // Copy the source file to target
+    const fs = getFs();
     fs.copyFileSync(sourceFilePath, targetFilePath);
 
     // Add audio recordings to the copy
@@ -1742,10 +1746,8 @@ class AstericsGridProcessor extends BaseProcessor {
   /**
    * Extract all element IDs from the grid file for audio mapping
    */
-  getElementIds(filePathOrBuffer: string | Buffer): string[] {
-    let content = Buffer.isBuffer(filePathOrBuffer)
-      ? filePathOrBuffer.toString('utf-8')
-      : fs.readFileSync(filePathOrBuffer, 'utf-8');
+  getElementIds(filePathOrBuffer: ProcessorInput): string[] {
+    let content = readTextFromInput(filePathOrBuffer);
 
     // Remove BOM if present
     if (content.charCodeAt(0) === 0xfeff) {
@@ -1772,10 +1774,8 @@ class AstericsGridProcessor extends BaseProcessor {
   /**
    * Check if an element has audio recording
    */
-  hasAudioRecording(filePathOrBuffer: string | Buffer, elementId: string): boolean {
-    let content = Buffer.isBuffer(filePathOrBuffer)
-      ? filePathOrBuffer.toString('utf-8')
-      : fs.readFileSync(filePathOrBuffer, 'utf-8');
+  hasAudioRecording(filePathOrBuffer: ProcessorInput, elementId: string): boolean {
+    let content = readTextFromInput(filePathOrBuffer);
 
     // Remove BOM if present
     if (content.charCodeAt(0) === 0xfeff) {

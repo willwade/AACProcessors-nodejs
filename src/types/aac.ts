@@ -1,5 +1,5 @@
-// Import semantic action types from core
-import { AACSemanticAction } from '../core/treeStructure';
+// Note: AACSemanticAction is defined in core/treeStructure.ts to avoid circular dependency
+// Import it directly if needed: import { AACSemanticAction } from '../core/treeStructure';
 
 /**
  * Scanning selection methods for switch access
@@ -82,7 +82,7 @@ export interface AACButton {
   id: string;
   label: string;
   message: string;
-  semanticAction?: AACSemanticAction;
+  // semanticAction?: AACSemanticAction; // Import from core/treeStructure.ts if needed
   targetPageId?: string;
   style?: AACStyle;
   audioRecording?: {
