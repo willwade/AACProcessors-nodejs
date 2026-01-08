@@ -34,7 +34,7 @@ import { type SymbolReference, parseSymbolReference } from './gridset/symbols';
 import { isSymbolLibraryReference } from './gridset/resolver';
 import { generateCloneId } from '../utilities/analytics/utils/idGenerator';
 import { translateWithSymbols, extractSymbolsFromButton } from './gridset/symbolAlignment';
-import { ProcessorInput, readBinaryFromInput } from '../utils/io';
+import { ProcessorInput, readBinaryFromInput, decodeText } from '../utils/io';
 // Use dynamic import for JSZip to support both browser and Node environments
 let JSZipModule: any;
 async function getJSZip() {
@@ -447,8 +447,7 @@ class GridsetProcessor extends BaseProcessor {
     try {
       const JSZip = await getJSZip();
       const zipInput = readBinaryFromInput(filePathOrBuffer);
-      const zipBuffer = Buffer.isBuffer(zipInput) ? zipInput : Buffer.from(zipInput);
-      zip = await JSZip.loadAsync(zipBuffer);
+      zip = await JSZip.loadAsync(zipInput);
     } catch (error: any) {
       throw new Error(`Invalid ZIP file format: ${error.message}`);
     }
@@ -486,7 +485,7 @@ class GridsetProcessor extends BaseProcessor {
     try {
       const fmEntry = entries.find((e) => e.entryName.endsWith('FileMap.xml'));
       if (fmEntry) {
-        const fmXml = (await readEntryBuffer(fmEntry)).toString('utf8');
+        const fmXml = decodeText(await readEntryBuffer(fmEntry));
         const fmData = parser.parse(fmXml);
         const entries = fmData?.FileMap?.Entries?.Entry || fmData?.fileMap?.entries?.entry;
         if (entries) {
@@ -521,7 +520,7 @@ class GridsetProcessor extends BaseProcessor {
     );
     if (styleEntry) {
       try {
-        const styleXmlContent = (await readEntryBuffer(styleEntry)).toString('utf8');
+        const styleXmlContent = decodeText(await readEntryBuffer(styleEntry));
         const styleData = parser.parse(styleXmlContent);
         // Parse styles and store them in the map
         // Grid3 uses StyleData.Styles.Style with Key attribute
@@ -566,7 +565,7 @@ class GridsetProcessor extends BaseProcessor {
     for (const entry of entries) {
       if (entry.entryName.startsWith('Grids/') && entry.entryName.endsWith('grid.xml')) {
         try {
-          const xmlContent = (await readEntryBuffer(entry)).toString('utf8');
+          const xmlContent = decodeText(await readEntryBuffer(entry));
           const data = parser.parse(xmlContent);
           const grid = data.Grid || data.grid;
           if (!grid) continue;
@@ -604,7 +603,7 @@ class GridsetProcessor extends BaseProcessor {
         let xmlContent: string;
         try {
           const buffer = await readEntryBuffer(entry);
-          xmlContent = buffer.toString('utf8');
+          xmlContent = decodeText(buffer);
           console.log(`[Gridset] Raw XML content (first 200 chars) for ${entry.entryName}:`, xmlContent.substring(0, 200));
         } catch (e) {
           // Skip unreadable files
@@ -1485,7 +1484,7 @@ class GridsetProcessor extends BaseProcessor {
     try {
       const settingsEntry = entries.find((e) => e.entryName.endsWith('settings.xml'));
       if (settingsEntry) {
-        const settingsXml = (await readEntryBuffer(settingsEntry)).toString('utf8');
+        const settingsXml = decodeText(await readEntryBuffer(settingsEntry));
         const settingsData = parser.parse(settingsXml);
         const gsName =
           settingsData?.GridSetSettings?.Name ||
@@ -1669,7 +1668,7 @@ class GridsetProcessor extends BaseProcessor {
 
     // Save the translated tree and return its content
     await this.saveFromTree(tree, outputPath);
-    return Buffer.from(readBinaryFromInput(outputPath));
+    return readBinaryFromInput(outputPath);
   }
 
   /**
@@ -1765,7 +1764,7 @@ class GridsetProcessor extends BaseProcessor {
 
     // Save and return
     await this.saveFromTree(tree, outputPath);
-    return Buffer.from(readBinaryFromInput(outputPath));
+    return readBinaryFromInput(outputPath);
   }
 
   async saveFromTree(tree: AACTree, outputPath: string): Promise<void> {
@@ -1774,7 +1773,7 @@ class GridsetProcessor extends BaseProcessor {
 
     if (Object.keys(tree.pages).length === 0) {
       // Create empty zip for empty tree
-      const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
+      const zipBuffer = await zip.generateAsync({ type: 'uint8array' });
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       require('fs').writeFileSync(outputPath, zipBuffer);
       return;
@@ -2121,7 +2120,7 @@ class GridsetProcessor extends BaseProcessor {
     zip.file('FileMap.xml', fileMapXmlContent, 'utf8');
 
     // Write the zip file
-    const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
+    const zipBuffer = await zip.generateAsync({ type: 'uint8array' });
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     require('fs').writeFileSync(outputPath, zipBuffer);
   }

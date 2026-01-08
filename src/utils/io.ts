@@ -42,6 +42,19 @@ export function decodeText(input: Uint8Array): string {
   return decoder.decode(input);
 }
 
+export function encodeBase64(input: Uint8Array): string {
+  if (typeof Buffer !== 'undefined' && Buffer.isBuffer(input)) {
+    return input.toString('base64');
+  }
+  // Browser fallback using btoa
+  let binary = '';
+  const len = input.byteLength;
+  for (let i = 0; i < len; i++) {
+    binary += String.fromCharCode(input[i]);
+  }
+  return btoa(binary);
+}
+
 export function encodeText(text: string): BinaryOutput {
   if (typeof Buffer !== 'undefined') {
     return Buffer.from(text, 'utf8');

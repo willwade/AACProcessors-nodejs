@@ -27,6 +27,7 @@ import {
   readBinaryFromInput,
   readTextFromInput,
   writeTextToPath,
+  encodeBase64,
 } from '../utils/io';
 
 // Use dynamic import for JSZip to support both browser and Node environments
@@ -177,7 +178,7 @@ class ObfProcessor extends BaseProcessor {
           const contentType =
             (imageData as { content_type?: string }).content_type ||
             this.getMimeTypeFromFilename(imagePath as string);
-          const dataUrl = `data:${contentType};base64,${buffer.toString('base64')}`;
+          const dataUrl = `data:${contentType};base64,${encodeBase64(buffer)}`;
           this.imageCache.set(imageId, dataUrl);
           return dataUrl;
         }
@@ -713,7 +714,7 @@ class ObfProcessor extends BaseProcessor {
         zip.file(`${page.id}.obf`, obfContent);
       });
 
-      const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
+      const zipBuffer = await zip.generateAsync({ type: 'uint8array' });
       const { writeBinaryToPath } = await import('../utils/io');
       writeBinaryToPath(outputPath, zipBuffer);
     }

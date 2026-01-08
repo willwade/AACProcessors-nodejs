@@ -25,6 +25,7 @@ import {
   readBinaryFromInput,
   readTextFromInput,
   writeTextToPath,
+  encodeBase64,
 } from '../utils/io';
 
 // Asterics Grid data model interfaces
@@ -1575,7 +1576,7 @@ class AstericsGridProcessor extends BaseProcessor {
             id: button.audioRecording.id?.toString() || `grid-action-audio-${button.id}`,
             modelName: 'GridActionAudio',
             modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
-            dataBase64: button.audioRecording.data.toString('base64'),
+            dataBase64: encodeBase64(button.audioRecording.data),
             mimeType: metadata.mimeType || 'audio/wav',
             durationMs: metadata.durationMs || 0,
             filename: button.audioRecording.identifier || `audio-${button.id}`,
@@ -1689,7 +1690,7 @@ class AstericsGridProcessor extends BaseProcessor {
             id: `grid-action-audio-${elementId}`,
             modelName: 'GridActionAudio',
             modelVersion: '{"major": 5, "minor": 0, "patch": 0}',
-            dataBase64: audioData.toString('base64'),
+            dataBase64: encodeBase64(audioData),
             mimeType: 'audio/wav',
             durationMs: 0, // Could be calculated from audio data
             filename: `audio-${elementId}.wav`,

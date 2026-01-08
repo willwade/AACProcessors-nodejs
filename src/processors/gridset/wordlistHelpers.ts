@@ -11,6 +11,7 @@
 
 import { XMLParser, XMLBuilder } from 'fast-xml-parser';
 import { getZipEntriesWithPassword, resolveGridsetPasswordFromEnv } from './password';
+import { decodeText } from '../../utils/io';
 
 /**
  * Represents a single item in a wordlist
@@ -146,7 +147,7 @@ export async function extractWordlists(
   for (const entry of entries) {
     if (entry.entryName.startsWith('Grids/') && entry.entryName.endsWith('grid.xml')) {
       try {
-        const xmlContent = (await entry.getData()).toString('utf8');
+        const xmlContent = decodeText(await entry.getData());
         const data = parser.parse(xmlContent);
         const grid = data.Grid || data.grid;
 
@@ -239,7 +240,7 @@ export async function updateWordlist(
 
       if (currentGridName === gridName) {
         try {
-          const xmlContent = (await entry.getData()).toString('utf8');
+          const xmlContent = decodeText(await entry.getData());
           const data = parser.parse(xmlContent);
           const grid = data.Grid || data.grid;
 
@@ -284,5 +285,5 @@ export async function updateWordlist(
     throw new Error(`Grid "${gridName}" not found in gridset`);
   }
 
-  return await zip.generateAsync({ type: 'nodebuffer' });
+  return await zip.generateAsync({ type: 'uint8array' });
 }
