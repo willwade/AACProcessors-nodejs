@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AAC Processors - Browser Demo</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 400px 1fr;
+            gap: 20px;
+        }
+
+        .panel {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .panel-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .upload-area {
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 15px;
+        }
+
+        .upload-area:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+
+        .upload-area.dragover {
+            border-color: #667eea;
+            background: #f0f2ff;
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background 0.3s;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        .btn:hover {
+            background: #5568d3;
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .stat-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .processor-info {
+            background: #e7f3ff;
+            border-left: 4px solid #667eea;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-size: 13px;
+        }
+
+        .processor-name {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .results-panel {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .page-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid #667eea;
+        }
+
+        .page-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .button-item {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 10px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .button-item:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+
+        .button-label {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .button-message {
+            color: #666;
+            font-size: 11px;
+        }
+
+        .button-type {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            margin-top: 5px;
+            font-weight: 500;
+        }
+
+        .type-speak { background: #d4edda; color: #155724; }
+        .type-navigate { background: #cce5ff; color: #004085; }
+        .type-other { background: #e2e3e5; color: #383d41; }
+
+        .log-panel {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            border-radius: 8px;
+            padding: 15px;
+            font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 15px;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 3px 0;
+        }
+
+        .log-info { color: #4ec9b0; }
+        .log-success { color: #6a9955; }
+        .log-error { color: #f48771; }
+        .log-warn { color: #dcdcaa; }
+
+        .test-results {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .test-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .test-item:last-child {
+            border-bottom: none;
+        }
+
+        .test-status {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px;
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        .test-pass { background: #d4edda; color: #155724; }
+        .test-fail { background: #f8d7da; color: #721c24; }
+        .test-pending { background: #e2e3e5; color: #383d41; }
+
+        .test-name {
+            flex: 1;
+            font-size: 13px;
+        }
+
+        @media (max-width: 1024px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎯 AAC Processors Browser Demo</h1>
+            <p class="subtitle">Test AAC file processors in your browser - Vite bundled with full TypeScript support</p>
+        </header>
+
+        <div class="main-grid">
+            <!-- Left Panel: Upload & Controls -->
+            <div class="panel">
+                <div class="panel-title">📁 Load AAC File</div>
+
+                <div class="upload-area" id="dropArea">
+                    <div class="upload-icon">📤</div>
+                    <p><strong>Drop file here</strong> or click to upload</p>
+                    <p style="font-size: 12px; color: #999; margin-top: 5px;">
+                        Supports: .dot, .opml, .obf, .obz, .gridset, .plist, .grd
+                    </p>
+                </div>
+
+                <input type="file" id="fileInput" accept=".dot,.opml,.obf,.obz,.gridset,.plist,.grd">
+
+                <div id="fileInfo" style="display: none;">
+                    <div class="processor-info">
+                        <div class="processor-name" id="processorName"></div>
+                        <div id="fileDetails" style="margin-top: 5px; color: #666;"></div>
+                    </div>
+                </div>
+
+                <button class="btn" id="processBtn" disabled>🚀 Process File</button>
+                <button class="btn btn-secondary" id="runTestsBtn">🧪 Run Compatibility Tests</button>
+                <button class="btn btn-secondary" id="clearBtn">🗑️ Clear Results</button>
+
+                <div class="stats" id="stats" style="display: none;">
+                    <div class="stat-card">
+                        <div class="stat-value" id="pageCount">0</div>
+                        <div class="stat-label">Pages</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="buttonCount">0</div>
+                        <div class="stat-label">Buttons</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="textCount">0</div>
+                        <div class="stat-label">Texts</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="loadTime">0ms</div>
+                        <div class="stat-label">Load Time</div>
+                    </div>
+                </div>
+
+                <div class="log-panel" id="logPanel">
+                    <div class="log-entry log-info">Ready to process files...</div>
+                </div>
+
+                <div class="test-results" id="testResults" style="display: none;">
+                    <div class="panel-title">Test Results</div>
+                    <div id="testList"></div>
+                </div>
+            </div>
+
+            <!-- Right Panel: Results -->
+            <div class="panel results-panel">
+                <div class="panel-title">📊 File Contents</div>
+                <div id="results">
+                    <p style="color: #999; text-align: center; padding: 40px;">
+                        Load a file to see its contents here
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

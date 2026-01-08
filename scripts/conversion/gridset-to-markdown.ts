@@ -269,7 +269,7 @@ async function main() {
   try {
     // Create processor and load the gridset
     const processor = new GridsetProcessor();
-    const tree = processor.loadIntoTree(gridsetPath);
+    const tree = await processor.loadIntoTree(gridsetPath);
 
     console.log(`✅ Loaded ${Object.keys(tree.pages).length} pages`);
     console.log(`🏠 Root page: ${tree.rootId ? tree.pages[tree.rootId]?.name : 'None'}`);

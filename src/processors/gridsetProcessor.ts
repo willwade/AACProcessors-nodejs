@@ -15,8 +15,6 @@ import {
   GridSetMetadata,
 } from '../core/treeStructure';
 import { AACStyle } from '../types/aac';
-import AdmZip from 'adm-zip';
-import fs from 'fs';
 import { XMLParser, XMLBuilder } from 'fast-xml-parser';
 import { resolveGrid3CellImage } from './gridset/resolver';
 import {
@@ -26,8 +24,7 @@ import {
   type LLMLTranslationResult,
 } from '../utilities/translation/translationProcessor';
 import { getZipEntriesWithPassword, resolveGridsetPassword } from './gridset/password';
-import crypto from 'crypto';
-import zlib from 'zlib';
+import { decryptGridsetEntry } from './gridset/crypto';
 import { GridsetValidator } from '../validation/gridsetValidator';
 import { ValidationResult } from '../validation/validationTypes';
 // New imports for enhanced Grid 3 support
@@ -37,38 +34,41 @@ import { type SymbolReference, parseSymbolReference } from './gridset/symbols';
 import { isSymbolLibraryReference } from './gridset/resolver';
 import { generateCloneId } from '../utilities/analytics/utils/idGenerator';
 import { translateWithSymbols, extractSymbolsFromButton } from './gridset/symbolAlignment';
+import { ProcessorInput, readBinaryFromInput, decodeText } from '../utils/io';
+import type JSZip from 'jszip';
+// Use dynamic import for JSZip to support both browser and Node environments
+type JSZipStatic = typeof JSZip;
+let JSZipModule: JSZipStatic | undefined;
+async function getJSZip(): Promise<JSZipStatic> {
+  if (!JSZipModule) {
+    try {
+      // Try ES module import first (browser/Vite)
+      const module = await import('jszip');
+      JSZipModule = module.default || module;
+    } catch (error) {
+      // Fall back to CommonJS require (Node.js)
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const module = require('jszip');
+        JSZipModule = module.default || module;
+      } catch (err2) {
+        throw new Error('Zip handling requires JSZip in this environment.');
+      }
+    }
+  }
+  if (!JSZipModule) {
+    throw new Error('Zip handling requires JSZip in this environment.');
+  }
+  return JSZipModule;
+}
 
 class GridsetProcessor extends BaseProcessor {
   constructor(options?: ProcessorOptions) {
     super(options);
   }
 
-  /**
-   * Decrypt and inflate a Grid3 encrypted payload (DesktopContentEncrypter).
-   * Uses AES-256-CBC with key/IV derived from the password padded with spaces
-   * and then Deflate decompression.
-   */
-  private decryptGridsetEntry(buffer: Buffer, password?: string): Buffer {
-    const pwd = (password || 'Chocolate').padEnd(32, ' ');
-    const key = Buffer.from(pwd.slice(0, 32), 'utf8');
-    const iv = Buffer.from(pwd.slice(0, 16), 'utf8');
-
-    try {
-      const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
-      const decrypted = Buffer.concat([decipher.update(buffer), decipher.final()]);
-      try {
-        return zlib.inflateSync(decrypted);
-      } catch {
-        // If data isn't deflated, return raw decrypted bytes
-        return decrypted;
-      }
-    } catch {
-      return buffer;
-    }
-  }
-
   // Determine password to use when opening encrypted gridset archives (.gridsetx)
-  private getGridsetPassword(source?: string | Buffer): string | undefined {
+  private getGridsetPassword(source?: ProcessorInput): string | undefined {
     return resolveGridsetPassword(this.options, source);
   }
 
@@ -429,8 +429,8 @@ class GridsetProcessor extends BaseProcessor {
     return undefined;
   }
 
-  extractTexts(filePathOrBuffer: string | Buffer): string[] {
-    const tree = this.loadIntoTree(filePathOrBuffer);
+  async extractTexts(filePathOrBuffer: ProcessorInput): Promise<string[]> {
+    const tree = await this.loadIntoTree(filePathOrBuffer);
     const texts: string[] = [];
 
     for (const pageId in tree.pages) {
@@ -445,12 +445,14 @@ class GridsetProcessor extends BaseProcessor {
     return texts;
   }
 
-  loadIntoTree(filePathOrBuffer: string | Buffer): AACTree {
+  async loadIntoTree(filePathOrBuffer: ProcessorInput): Promise<AACTree> {
     const tree = new AACTree();
 
-    let zip: AdmZip;
+    let zip: JSZip;
     try {
-      zip = new AdmZip(filePathOrBuffer);
+      const JSZip = await getJSZip();
+      const zipInput = readBinaryFromInput(filePathOrBuffer);
+      zip = await JSZip.loadAsync(zipInput);
     } catch (error: any) {
       throw new Error(`Invalid ZIP file format: ${error.message}`);
     }
@@ -468,10 +470,15 @@ class GridsetProcessor extends BaseProcessor {
       passwordProtected: !!password,
     };
 
-    const readEntryBuffer = (entry: AdmZip.IZipEntry): Buffer => {
-      const raw = entry.getData();
-      if (!isEncryptedArchive) return raw;
-      return this.decryptGridsetEntry(raw, encryptedContentPassword);
+    const readEntryBuffer = async (entry: any): Promise<Uint8Array> => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-argument
+      const raw = await entry.getData();
+      if (!isEncryptedArchive) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+        return raw;
+      }
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-return
+      return decryptGridsetEntry(raw, encryptedContentPassword);
     };
 
     // Parse FileMap.xml if present to index dynamic files per grid
@@ -479,7 +486,7 @@ class GridsetProcessor extends BaseProcessor {
     try {
       const fmEntry = entries.find((e) => e.entryName.endsWith('FileMap.xml'));
       if (fmEntry) {
-        const fmXml = readEntryBuffer(fmEntry).toString('utf8');
+        const fmXml = decodeText(await readEntryBuffer(fmEntry));
         const fmData = parser.parse(fmXml);
         const entries = fmData?.FileMap?.Entries?.Entry || fmData?.fileMap?.entries?.entry;
         if (entries) {
@@ -514,7 +521,7 @@ class GridsetProcessor extends BaseProcessor {
     );
     if (styleEntry) {
       try {
-        const styleXmlContent = readEntryBuffer(styleEntry).toString('utf8');
+        const styleXmlContent = decodeText(await readEntryBuffer(styleEntry));
         const styleData = parser.parse(styleXmlContent);
         // Parse styles and store them in the map
         // Grid3 uses StyleData.Styles.Style with Key attribute
@@ -545,19 +552,29 @@ class GridsetProcessor extends BaseProcessor {
     }
 
     // Debug: log all entry names
-    // console.log('Gridset zip entries:', entries.map(e => e.entryName));
+    console.log('[Gridset] Total zip entries:', entries.length);
+    const gridEntries = entries.filter(
+      (e) => e.entryName.startsWith('Grids/') && e.entryName.endsWith('grid.xml')
+    );
+    console.log('[Gridset] Grid XML entries found:', gridEntries.length);
+    if (gridEntries.length > 0) {
+      console.log(
+        '[Gridset] First few grid entries:',
+        gridEntries.slice(0, 3).map((e) => e.entryName)
+      );
+    }
 
     // First pass: collect all grid names and IDs for navigation resolution
     const gridNameToIdMap = new Map<string, string>();
     const gridIdToNameMap = new Map<string, string>();
 
-    entries.forEach((entry) => {
+    for (const entry of entries) {
       if (entry.entryName.startsWith('Grids/') && entry.entryName.endsWith('grid.xml')) {
         try {
-          const xmlContent = readEntryBuffer(entry).toString('utf8');
+          const xmlContent = decodeText(await readEntryBuffer(entry));
           const data = parser.parse(xmlContent);
           const grid = data.Grid || data.grid;
-          if (!grid) return;
+          if (!grid) continue;
 
           const gridId = this.textOf(grid.GridGuid || grid.gridGuid || grid.id);
           const gridName =
@@ -583,32 +600,39 @@ class GridsetProcessor extends BaseProcessor {
           // Skip errors in first pass
         }
       }
-    });
+    }
 
     // Second pass: process each grid file in the gridset
-    entries.forEach((entry) => {
+    for (const entry of entries) {
       // Only process files named grid.xml under Grids/ (any subdir)
       if (entry.entryName.startsWith('Grids/') && entry.entryName.endsWith('grid.xml')) {
         let xmlContent: string;
         try {
-          xmlContent = readEntryBuffer(entry).toString('utf8');
+          const buffer = await readEntryBuffer(entry);
+          xmlContent = decodeText(buffer);
+          console.log(
+            `[Gridset] Raw XML content (first 200 chars) for ${entry.entryName}:`,
+            xmlContent.substring(0, 200)
+          );
         } catch (e) {
           // Skip unreadable files
-          return;
+          continue;
         }
-        let data: any;
+        let data: Record<string, unknown>;
         try {
-          data = parser.parse(xmlContent);
+          data = parser.parse(xmlContent) as Record<string, unknown>;
+          console.log(`[Gridset] Parsed ${entry.entryName}, root keys:`, Object.keys(data));
         } catch (error: any) {
           // Skip malformed XML but log the specific error
           console.warn(`Malformed XML in ${entry.entryName}: ${error.message}`);
-          return;
+          continue;
         }
 
         // Grid3 XML: <Grid> root
-        const grid = data.Grid || data.grid;
+        const grid = (data as { Grid?: any; grid?: any }).Grid || (data as { grid?: any }).grid;
         if (!grid) {
-          return;
+          console.warn(`[Gridset] No Grid/grid found in ${entry.entryName}`);
+          continue;
         }
         // Defensive: GridGuid and Name required
         const gridId = this.textOf(grid.GridGuid || grid.gridGuid || grid.id);
@@ -620,7 +644,7 @@ class GridsetProcessor extends BaseProcessor {
           if (match) gridName = match[1];
         }
         if (!gridId || !gridName) {
-          return;
+          continue;
         }
 
         const page = new AACPage({
@@ -1450,7 +1474,7 @@ class GridsetProcessor extends BaseProcessor {
 
         tree.addPage(page);
       }
-    });
+    }
 
     // After all pages are loaded, set parentId for navigation targets
     for (const pageId in tree.pages) {
@@ -1469,7 +1493,7 @@ class GridsetProcessor extends BaseProcessor {
     try {
       const settingsEntry = entries.find((e) => e.entryName.endsWith('settings.xml'));
       if (settingsEntry) {
-        const settingsXml = readEntryBuffer(settingsEntry).toString('utf8');
+        const settingsXml = decodeText(await readEntryBuffer(settingsEntry));
         const settingsData = parser.parse(settingsXml);
         const gsName =
           settingsData?.GridSetSettings?.Name ||
@@ -1584,13 +1608,13 @@ class GridsetProcessor extends BaseProcessor {
     return tree;
   }
 
-  processTexts(
-    filePathOrBuffer: string | Buffer,
+  async processTexts(
+    filePathOrBuffer: ProcessorInput,
     translations: Map<string, string>,
     outputPath: string
-  ): Buffer {
+  ): Promise<Uint8Array> {
     // Load the tree, apply translations, and save to new file
-    const tree = this.loadIntoTree(filePathOrBuffer);
+    const tree = await this.loadIntoTree(filePathOrBuffer);
 
     // Apply translations to all text content
     Object.values(tree.pages).forEach((page) => {
@@ -1652,8 +1676,8 @@ class GridsetProcessor extends BaseProcessor {
     });
 
     // Save the translated tree and return its content
-    this.saveFromTree(tree, outputPath);
-    return fs.readFileSync(outputPath);
+    await this.saveFromTree(tree, outputPath);
+    return readBinaryFromInput(outputPath);
   }
 
   /**
@@ -1665,8 +1689,8 @@ class GridsetProcessor extends BaseProcessor {
    * @param filePathOrBuffer - Path to gridset file or buffer
    * @returns Array of symbol information for LLM processing
    */
-  extractSymbolsForLLM(filePathOrBuffer: string | Buffer): ButtonForTranslation[] {
-    const tree = this.loadIntoTree(filePathOrBuffer);
+  async extractSymbolsForLLM(filePathOrBuffer: string | Buffer): Promise<ButtonForTranslation[]> {
+    const tree = await this.loadIntoTree(filePathOrBuffer);
 
     // Collect all buttons from all pages
     const allButtons: any[] = [];
@@ -1698,13 +1722,13 @@ class GridsetProcessor extends BaseProcessor {
    * @param options - Translation options (e.g., allowPartial for testing)
    * @returns Buffer of the translated gridset
    */
-  processLLMTranslations(
+  async processLLMTranslations(
     filePathOrBuffer: string | Buffer,
     llmTranslations: LLMLTranslationResult[],
     outputPath: string,
     options?: { allowPartial?: boolean }
-  ): Buffer {
-    const tree = this.loadIntoTree(filePathOrBuffer);
+  ): Promise<Uint8Array> {
+    const tree = await this.loadIntoTree(filePathOrBuffer);
 
     // Validate translations using shared utility
     const buttonIds = Object.values(tree.pages).flatMap((page) => page.buttons.map((b) => b.id));
@@ -1748,16 +1772,19 @@ class GridsetProcessor extends BaseProcessor {
     });
 
     // Save and return
-    this.saveFromTree(tree, outputPath);
-    return fs.readFileSync(outputPath);
+    await this.saveFromTree(tree, outputPath);
+    return readBinaryFromInput(outputPath);
   }
 
-  saveFromTree(tree: AACTree, outputPath: string): void {
-    const zip = new AdmZip();
+  async saveFromTree(tree: AACTree, outputPath: string): Promise<void> {
+    const JSZip = await getJSZip();
+    const zip = new JSZip();
 
     if (Object.keys(tree.pages).length === 0) {
       // Create empty zip for empty tree
-      zip.writeZip(outputPath);
+      const zipBuffer = await zip.generateAsync({ type: 'uint8array' });
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      require('fs').writeFileSync(outputPath, zipBuffer);
       return;
     }
 
@@ -1840,7 +1867,7 @@ class GridsetProcessor extends BaseProcessor {
       suppressEmptyNode: true,
     });
     const settingsXmlContent = settingsBuilder.build(settingsData);
-    zip.addFile('Settings0/settings.xml', Buffer.from(settingsXmlContent, 'utf8'));
+    zip.file('Settings0/settings.xml', settingsXmlContent, { binary: false });
 
     // Create Settings0/Styles/style.xml if there are styles
     if (uniqueStyles.size > 0) {
@@ -1878,7 +1905,7 @@ class GridsetProcessor extends BaseProcessor {
         indentBy: '  ',
       });
       const styleXmlContent = styleBuilder.build(styleData);
-      zip.addFile('Settings0/Styles/styles.xml', Buffer.from(styleXmlContent, 'utf8'));
+      zip.file('Settings0/Styles/styles.xml', styleXmlContent, { binary: false });
     }
 
     // Collect grid file paths for FileMap.xml
@@ -1978,8 +2005,8 @@ class GridsetProcessor extends BaseProcessor {
                       }
 
                       const cellData: Record<string, unknown> = {
-                        '@_X': position.x, // Grid3 uses 0-based X coordinates (defaults to 0 when omitted)
-                        '@_Y': position.y + yOffset, // Grid3 uses 0-based Y coordinates with workspace offset
+                        '@_X': position.x + 1, // Grid3 uses 1-based X coordinates
+                        '@_Y': position.y + yOffset + 1, // Grid3 uses 1-based Y coordinates with workspace offset
                         '@_ColumnSpan': position.columnSpan,
                         '@_RowSpan': position.rowSpan,
                         Content: {
@@ -2045,17 +2072,17 @@ class GridsetProcessor extends BaseProcessor {
       const xmlContent = builder.build(gridData);
 
       // Add to zip in Grids folder with proper Grid3 naming
-      const gridPath = `Grids\\${page.name || page.id}\\grid.xml`;
+      const gridPath = `Grids/${page.name || page.id}/grid.xml`;
       gridFilePaths.push(gridPath);
-      zip.addFile(gridPath, Buffer.from(xmlContent, 'utf8'));
+      zip.file(gridPath, xmlContent, { binary: false });
     });
 
     // Write image files to ZIP
     buttonImages.forEach((imgData) => {
       if (imgData.imageData && imgData.imageData.length > 0) {
         // Create image path in the grid's directory
-        const imagePath = `Grids\\${imgData.pageName}\\${imgData.x}-${imgData.y}-0-text-0.${imgData.ext}`;
-        zip.addFile(imagePath, imgData.imageData);
+        const imagePath = `Grids/${imgData.pageName}/${imgData.x}-${imgData.y}-0-text-0.${imgData.ext}`;
+        zip.file(imagePath, imgData.imageData);
       }
     });
 
@@ -2067,14 +2094,14 @@ class GridsetProcessor extends BaseProcessor {
         Entries: {
           Entry: gridFilePaths.map((gridPath) => {
             // Find all image files for this grid
-            const gridName = gridPath.match(/Grids\\([^\\]+)\\grid\.xml$/)?.[1] || '';
+            const gridName = gridPath.match(/Grids\/([^/]+)\/grid\.xml$/)?.[1] || '';
             const imageFiles: string[] = [];
 
             // Collect image filenames for buttons on this page
-            // IMPORTANT: FileMap.xml requires full paths like "Grids\PageName\1-5-0-text-0.png"
+            // IMPORTANT: FileMap.xml requires full paths like "Grids/PageName/1-5-0-text-0.png"
             buttonImages.forEach((imgData) => {
               if (imgData.pageName === gridName && imgData.imageData.length > 0) {
-                const imagePath = `Grids\\${gridName}\\${imgData.x}-${imgData.y}-0-text-0.${imgData.ext}`;
+                const imagePath = `Grids/${gridName}/${imgData.x}-${imgData.y}-0-text-0.${imgData.ext}`;
                 imageFiles.push(imagePath);
               }
             });
@@ -2099,10 +2126,12 @@ class GridsetProcessor extends BaseProcessor {
       indentBy: '  ',
     });
     const fileMapXmlContent = fileMapBuilder.build(fileMapData);
-    zip.addFile('FileMap.xml', Buffer.from(fileMapXmlContent, 'utf8'));
+    zip.file('FileMap.xml', fileMapXmlContent, { binary: false });
 
     // Write the zip file
-    zip.writeZip(outputPath);
+    const zipBuffer = await zip.generateAsync({ type: 'uint8array' });
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    require('fs').writeFileSync(outputPath, zipBuffer);
   }
 
   // Helper method to calculate column definitions based on page layout

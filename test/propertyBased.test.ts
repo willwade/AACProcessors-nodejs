@@ -11,13 +11,13 @@ import { AACTree, AACPage, AACButton } from '../src/core/treeStructure';
 describe('Property-Based Testing', () => {
   const tempDir = path.join(__dirname, 'temp_property');
 
-  beforeAll(() => {
+  beforeAll(async () => {
     if (!fs.existsSync(tempDir)) {
       fs.mkdirSync(tempDir, { recursive: true });
     }
   });
 
-  afterAll(() => {
+  afterAll(async () => {
     if (fs.existsSync(tempDir)) {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }
@@ -100,18 +100,18 @@ describe('Property-Based Testing', () => {
     });
 
   describe('Round-Trip Property Tests', () => {
-    it('DOT processor should preserve tree structure through round-trip', () => {
-      fc.assert(
-        fc.property(aacTreeGenerator, (originalTree) => {
+    it('DOT processor should preserve tree structure through round-trip', async () => {
+      await fc.assert(
+        fc.asyncProperty(aacTreeGenerator, async (originalTree) => {
           const processor = new DotProcessor();
 
           try {
             // Save tree to DOT format
             const outputPath = path.join(tempDir, `roundtrip_${Date.now()}_${Math.random()}.dot`);
-            processor.saveFromTree(originalTree, outputPath);
+            await processor.saveFromTree(originalTree, outputPath);
 
             // Load it back
-            const reloadedTree = processor.loadIntoTree(outputPath);
+            const reloadedTree = await processor.loadIntoTree(outputPath);
 
             // Clean up
             fs.unlinkSync(outputPath);
@@ -149,9 +149,9 @@ describe('Property-Based Testing', () => {
       );
     });
 
-    it('OPML processor should preserve hierarchical structure', () => {
-      fc.assert(
-        fc.property(aacTreeGenerator, (originalTree) => {
+    it('OPML processor should preserve hierarchical structure', async () => {
+      await fc.assert(
+        fc.asyncProperty(aacTreeGenerator, async (originalTree) => {
           const processor = new OpmlProcessor();
 
           try {
@@ -159,9 +159,9 @@ describe('Property-Based Testing', () => {
               tempDir,
               `opml_roundtrip_${Date.now()}_${Math.random()}.opml`
             );
-            processor.saveFromTree(originalTree, outputPath);
+            await processor.saveFromTree(originalTree, outputPath);
 
-            const reloadedTree = processor.loadIntoTree(outputPath);
+            const reloadedTree = await processor.loadIntoTree(outputPath);
 
             // Clean up
             fs.unlinkSync(outputPath);
@@ -180,9 +180,9 @@ describe('Property-Based Testing', () => {
       );
     });
 
-    it('OBF processor should preserve button structure', () => {
-      fc.assert(
-        fc.property(aacTreeGenerator, (originalTree) => {
+    it('OBF processor should preserve button structure', async () => {
+      await fc.assert(
+        fc.asyncProperty(aacTreeGenerator, async (originalTree) => {
           const processor = new ObfProcessor();
 
           try {
@@ -199,9 +199,9 @@ describe('Property-Based Testing', () => {
               tempDir,
               `obf_roundtrip_${Date.now()}_${Math.random()}.obz`
             );
-            processor.saveFromTree(originalTree, outputPath);
+            await processor.saveFromTree(originalTree, outputPath);
 
-            const reloadedTree = processor.loadIntoTree(outputPath);
+            const reloadedTree = await processor.loadIntoTree(outputPath);
 
             // Clean up
             fs.unlinkSync(outputPath);
@@ -233,12 +233,12 @@ describe('Property-Based Testing', () => {
       .dictionary(validLabelGenerator, validLabelGenerator, { maxKeys: 10 })
       .map((dict) => new Map(Object.entries(dict)));
 
-    it('Translation should preserve text count invariant', () => {
-      fc.assert(
-        fc.property(
+    it('Translation should preserve text count invariant', async () => {
+      await fc.assert(
+        fc.asyncProperty(
           fc.string({ minLength: 10, maxLength: 1000 }),
           translationMapGenerator,
-          (content, translations) => {
+          async (content, translations) => {
             const processor = new DotProcessor();
 
             try {
@@ -253,7 +253,7 @@ describe('Property-Based Testing', () => {
                 tempDir,
                 `translation_test_${Date.now()}_${Math.random()}.dot`
               );
-              const result = processor.processTexts(
+              const result = await processor.processTexts(
                 Buffer.from(dotContent),
                 translations,
                 outputPath
@@ -264,7 +264,7 @@ describe('Property-Based Testing', () => {
                 fs.unlinkSync(outputPath);
               }
 
-              const translatedContent = result.toString('utf8');
+              const translatedContent = Buffer.from(result).toString('utf8');
 
               // Should still be valid content
               expect(translatedContent.length).toBeGreaterThan(0);
@@ -281,9 +281,9 @@ describe('Property-Based Testing', () => {
       );
     });
 
-    it('Empty translation map should not change content', () => {
-      fc.assert(
-        fc.property(fc.string({ minLength: 10, maxLength: 200 }), (content) => {
+    it('Empty translation map should not change content', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.string({ minLength: 10, maxLength: 200 }), async (content) => {
           const processor = new DotProcessor();
           const emptyTranslations = new Map<string, string>();
 
@@ -294,7 +294,7 @@ describe('Property-Based Testing', () => {
               `empty_translation_${Date.now()}_${Math.random()}.dot`
             );
 
-            const result = processor.processTexts(
+            const result = await processor.processTexts(
               Buffer.from(dotContent),
               emptyTranslations,
               outputPath
@@ -305,7 +305,7 @@ describe('Property-Based Testing', () => {
               fs.unlinkSync(outputPath);
             }
 
-            const translatedContent = result.toString('utf8');
+            const translatedContent = Buffer.from(result).toString('utf8');
 
             // Content should be essentially unchanged
             return translatedContent.includes(content.slice(0, 50)) || translatedContent.length > 0;
@@ -320,7 +320,7 @@ describe('Property-Based Testing', () => {
   });
 
   describe('Data Structure Invariants', () => {
-    it('AACTree should maintain page uniqueness', () => {
+    it('AACTree should maintain page uniqueness', async () => {
       fc.assert(
         fc.property(aacTreeGenerator, (tree) => {
           const pageIds = Object.keys(tree.pages);
@@ -333,7 +333,7 @@ describe('Property-Based Testing', () => {
       );
     });
 
-    it('AACPage should maintain button ID uniqueness within page', () => {
+    it('AACPage should maintain button ID uniqueness within page', async () => {
       fc.assert(
         fc.property(aacPageGenerator, (page) => {
           const buttonIds = page.buttons.map((b) => b.id);
@@ -346,7 +346,7 @@ describe('Property-Based Testing', () => {
       );
     });
 
-    it('Navigation buttons should have valid target page IDs', () => {
+    it('Navigation buttons should have valid target page IDs', async () => {
       fc.assert(
         fc.property(aacTreeGenerator, (tree) => {
           const pageIds = new Set(Object.keys(tree.pages));
@@ -372,9 +372,9 @@ describe('Property-Based Testing', () => {
   });
 
   describe('Text Extraction Properties', () => {
-    it('Extracted texts should be non-empty strings', () => {
-      fc.assert(
-        fc.property(aacTreeGenerator, (tree) => {
+    it('Extracted texts should be non-empty strings', async () => {
+      await fc.assert(
+        fc.asyncProperty(aacTreeGenerator, async (tree) => {
           const processor = new DotProcessor();
 
           try {
@@ -395,9 +395,9 @@ describe('Property-Based Testing', () => {
               tempDir,
               `text_extraction_${Date.now()}_${Math.random()}.dot`
             );
-            processor.saveFromTree(tree, outputPath);
+            await processor.saveFromTree(tree, outputPath);
 
-            const extractedTexts = processor.extractTexts(outputPath);
+            const extractedTexts = await processor.extractTexts(outputPath);
 
             // Clean up
             fs.unlinkSync(outputPath);
@@ -419,9 +419,9 @@ describe('Property-Based Testing', () => {
       );
     });
 
-    it('Text extraction should be deterministic', () => {
-      fc.assert(
-        fc.property(aacTreeGenerator, (tree) => {
+    it('Text extraction should be deterministic', async () => {
+      await fc.assert(
+        fc.asyncProperty(aacTreeGenerator, async (tree) => {
           const processor = new DotProcessor();
 
           try {
@@ -429,11 +429,11 @@ describe('Property-Based Testing', () => {
               tempDir,
               `deterministic_${Date.now()}_${Math.random()}.dot`
             );
-            processor.saveFromTree(tree, outputPath);
+            await processor.saveFromTree(tree, outputPath);
 
             // Extract texts multiple times
-            const texts1 = processor.extractTexts(outputPath);
-            const texts2 = processor.extractTexts(outputPath);
+            const texts1 = await processor.extractTexts(outputPath);
+            const texts2 = await processor.extractTexts(outputPath);
 
             // Clean up
             fs.unlinkSync(outputPath);
@@ -451,9 +451,9 @@ describe('Property-Based Testing', () => {
   });
 
   describe('Error Handling Properties', () => {
-    it('Invalid input should not crash processors', () => {
-      fc.assert(
-        fc.property(fc.uint8Array({ minLength: 0, maxLength: 1000 }), (randomBytes) => {
+    it('Invalid input should not crash processors', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.uint8Array({ minLength: 0, maxLength: 1000 }), async (randomBytes) => {
           const processors = [
             new DotProcessor(),
             new OpmlProcessor(),
@@ -463,7 +463,7 @@ describe('Property-Based Testing', () => {
 
           for (const processor of processors) {
             try {
-              const result = processor.loadIntoTree(Buffer.from(randomBytes));
+              const result = await processor.loadIntoTree(Buffer.from(randomBytes));
               // Should return a valid AACTree (might be empty)
               expect(result).toBeInstanceOf(AACTree);
             } catch (error) {
@@ -478,9 +478,9 @@ describe('Property-Based Testing', () => {
       );
     });
 
-    it('Processors should handle extremely large valid inputs gracefully', () => {
-      fc.assert(
-        fc.property(fc.integer({ min: 100, max: 1000 }), (nodeCount) => {
+    it('Processors should handle extremely large valid inputs gracefully', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.integer({ min: 100, max: 1000 }), async (nodeCount) => {
           const processor = new DotProcessor();
 
           try {
@@ -492,7 +492,7 @@ describe('Property-Based Testing', () => {
             lines.push('}');
 
             const largeContent = lines.join('\n');
-            const tree = processor.loadIntoTree(Buffer.from(largeContent));
+            const tree = await processor.loadIntoTree(Buffer.from(largeContent));
 
             // Should handle large input without crashing
             expect(tree).toBeInstanceOf(AACTree);

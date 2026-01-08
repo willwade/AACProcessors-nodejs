@@ -6,16 +6,23 @@ import { ObfProcessor } from '../src/processors/obfProcessor';
 import { SnapProcessor } from '../src/processors/snapProcessor';
 import { AACTree, AACPage, AACButton } from '../src/core/treeStructure';
 
+const runDelayed = <T>(delayMs: number, task: () => Promise<T>): Promise<T> =>
+  new Promise((resolve, reject) => {
+    setTimeout(() => {
+      task().then(resolve).catch(reject);
+    }, delayMs);
+  });
+
 describe('Concurrency and Thread Safety Tests', () => {
   const tempDir = path.join(__dirname, 'temp_concurrency');
 
-  beforeAll(() => {
+  beforeAll(async () => {
     if (!fs.existsSync(tempDir)) {
       fs.mkdirSync(tempDir, { recursive: true });
     }
   });
 
-  afterAll(() => {
+  afterAll(async () => {
     if (fs.existsSync(tempDir)) {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }
@@ -42,23 +49,17 @@ describe('Concurrency and Thread Safety Tests', () => {
         .map(() => new DotProcessor());
 
       // Read the same file concurrently
-      const readPromises = processors.map(async (processor, index) => {
-        return new Promise((resolve, reject) => {
-          setTimeout(() => {
-            try {
-              const tree = processor.loadIntoTree(testFile);
-              const texts = processor.extractTexts(testFile);
-              resolve({
-                processorIndex: index,
-                pageCount: Object.keys(tree.pages).length,
-                textCount: texts.length,
-              });
-            } catch (error) {
-              reject(error);
-            }
-          }, Math.random() * 100); // Random delay to increase concurrency
-        });
-      });
+      const readPromises = processors.map((processor, index) =>
+        runDelayed(Math.random() * 100, async () => {
+          const tree = await processor.loadIntoTree(testFile);
+          const texts = await processor.extractTexts(testFile);
+          return {
+            processorIndex: index,
+            pageCount: Object.keys(tree.pages).length,
+            textCount: texts.length,
+          };
+        })
+      );
 
       const results = await Promise.all(readPromises);
 
@@ -104,21 +105,15 @@ describe('Concurrency and Thread Safety Tests', () => {
         });
 
       // Write to different files concurrently
-      const writePromises = trees.map(async (tree, index) => {
+      const writePromises = trees.map((tree, index) => {
         const outputPath = path.join(tempDir, `concurrent_write_${index}.dot`);
-        return new Promise((resolve, reject) => {
-          setTimeout(() => {
-            try {
-              processor.saveFromTree(tree, outputPath);
-              resolve({
-                index,
-                outputPath,
-                exists: fs.existsSync(outputPath),
-              });
-            } catch (error) {
-              reject(error);
-            }
-          }, Math.random() * 50);
+        return runDelayed(Math.random() * 50, async () => {
+          await processor.saveFromTree(tree, outputPath);
+          return {
+            index,
+            outputPath,
+            exists: fs.existsSync(outputPath),
+          };
         });
       });
 
@@ -158,30 +153,24 @@ describe('Concurrency and Thread Safety Tests', () => {
       tree.addPage(page);
 
       const dbPath = path.join(tempDir, 'concurrent_test.spb');
-      processor.saveFromTree(tree, dbPath);
+      await processor.saveFromTree(tree, dbPath);
 
       // Read from the same database concurrently
       const readPromises = Array(3)
         .fill(0)
-        .map(async (_, index) => {
-          return new Promise((resolve, reject) => {
-            setTimeout(() => {
-              try {
-                const readProcessor = new SnapProcessor();
-                const loadedTree = readProcessor.loadIntoTree(dbPath);
-                const texts = readProcessor.extractTexts(dbPath);
+        .map((_, index) =>
+          runDelayed(Math.random() * 100, async () => {
+            const readProcessor = new SnapProcessor();
+            const loadedTree = await readProcessor.loadIntoTree(dbPath);
+            const texts = await readProcessor.extractTexts(dbPath);
 
-                resolve({
-                  readerIndex: index,
-                  pageCount: Object.keys(loadedTree.pages).length,
-                  textCount: texts.length,
-                });
-              } catch (error) {
-                reject(error);
-              }
-            }, Math.random() * 100);
-          });
-        });
+            return {
+              readerIndex: index,
+              pageCount: Object.keys(loadedTree.pages).length,
+              textCount: texts.length,
+            };
+          })
+        );
 
       const results = await Promise.all(readPromises);
 
@@ -196,42 +185,36 @@ describe('Concurrency and Thread Safety Tests', () => {
     it('should handle database creation race conditions', async () => {
       const createPromises = Array(3)
         .fill(0)
-        .map(async (_, index) => {
-          return new Promise((resolve, reject) => {
-            setTimeout(() => {
-              try {
-                const processor = new SnapProcessor();
-                const tree = new AACTree();
-                const page = new AACPage({
-                  id: `race_page_${index}`,
-                  name: `Race Page ${index}`,
-                  buttons: [],
-                });
+        .map((_, index) =>
+          runDelayed(Math.random() * 50, async () => {
+            const processor = new SnapProcessor();
+            const tree = new AACTree();
+            const page = new AACPage({
+              id: `race_page_${index}`,
+              name: `Race Page ${index}`,
+              buttons: [],
+            });
 
-                const button = new AACButton({
-                  id: `race_btn_${index}`,
-                  label: `Race Button ${index}`,
-                  message: `Race Message ${index}`,
-                  type: 'SPEAK',
-                });
+            const button = new AACButton({
+              id: `race_btn_${index}`,
+              label: `Race Button ${index}`,
+              message: `Race Message ${index}`,
+              type: 'SPEAK',
+            });
 
-                page.addButton(button);
-                tree.addPage(page);
+            page.addButton(button);
+            tree.addPage(page);
 
-                const dbPath = path.join(tempDir, `race_test_${index}.spb`);
-                processor.saveFromTree(tree, dbPath);
+            const dbPath = path.join(tempDir, `race_test_${index}.spb`);
+            await processor.saveFromTree(tree, dbPath);
 
-                resolve({
-                  index,
-                  dbPath,
-                  exists: fs.existsSync(dbPath),
-                });
-              } catch (error) {
-                reject(error);
-              }
-            }, Math.random() * 50);
-          });
-        });
+            return {
+              index,
+              dbPath,
+              exists: fs.existsSync(dbPath),
+            };
+          })
+        );
 
       const results = await Promise.all(createPromises);
 
@@ -250,29 +233,22 @@ describe('Concurrency and Thread Safety Tests', () => {
 
       const operations = Array(20)
         .fill(0)
-        .map(async (_, index) => {
-          return new Promise((resolve, reject) => {
-            setTimeout(() => {
-              try {
-                // Rapid-fire operations
-                const tree = processor.loadIntoTree(Buffer.from(testContent));
-                const texts = processor.extractTexts(Buffer.from(testContent));
+        .map((_, index) =>
+          runDelayed(index * 10, async () => {
+            const tree = await processor.loadIntoTree(Buffer.from(testContent));
+            const texts = await processor.extractTexts(Buffer.from(testContent));
 
-                const outputPath = path.join(tempDir, `high_freq_${index}.dot`);
-                processor.saveFromTree(tree, outputPath);
+            const outputPath = path.join(tempDir, `high_freq_${index}.dot`);
+            await processor.saveFromTree(tree, outputPath);
 
-                resolve({
-                  index,
-                  success: true,
-                  pageCount: Object.keys(tree.pages).length,
-                  textCount: texts.length,
-                });
-              } catch (error) {
-                reject(error);
-              }
-            }, index * 10); // Staggered timing
-          });
-        });
+            return {
+              index,
+              success: true,
+              pageCount: Object.keys(tree.pages).length,
+              textCount: texts.length,
+            };
+          })
+        );
 
       const results = await Promise.all(operations);
 
@@ -292,56 +268,48 @@ describe('Concurrency and Thread Safety Tests', () => {
 
       const mixedOperations = Array(10)
         .fill(0)
-        .map(async (_, index) => {
-          return new Promise((resolve, reject) => {
-            setTimeout(() => {
-              try {
-                if (index % 2 === 0) {
-                  // Read operation
-                  const tree = processor.loadIntoTree(baseFile);
-                  const texts = processor.extractTexts(baseFile);
+        .map((_, index) =>
+          runDelayed(Math.random() * 100, async () => {
+            if (index % 2 === 0) {
+              const tree = await processor.loadIntoTree(baseFile);
+              const texts = await processor.extractTexts(baseFile);
 
-                  resolve({
-                    index,
-                    operation: 'read',
-                    pageCount: Object.keys(tree.pages).length,
-                    textCount: texts.length,
-                  });
-                } else {
-                  // Write operation
-                  const tree = new AACTree();
-                  const page = new AACPage({
-                    id: `mixed_page_${index}`,
-                    name: `Mixed Page ${index}`,
-                    buttons: [],
-                  });
+              return {
+                index,
+                operation: 'read',
+                pageCount: Object.keys(tree.pages).length,
+                textCount: texts.length,
+              };
+            }
 
-                  const button = new AACButton({
-                    id: `mixed_btn_${index}`,
-                    label: `Mixed Button ${index}`,
-                    message: `Mixed Message ${index}`,
-                    type: 'SPEAK',
-                  });
+            const tree = new AACTree();
+            const page = new AACPage({
+              id: `mixed_page_${index}`,
+              name: `Mixed Page ${index}`,
+              buttons: [],
+            });
 
-                  page.addButton(button);
-                  tree.addPage(page);
+            const button = new AACButton({
+              id: `mixed_btn_${index}`,
+              label: `Mixed Button ${index}`,
+              message: `Mixed Message ${index}`,
+              type: 'SPEAK',
+            });
 
-                  const outputPath = path.join(tempDir, `mixed_write_${index}.dot`);
-                  processor.saveFromTree(tree, outputPath);
+            page.addButton(button);
+            tree.addPage(page);
 
-                  resolve({
-                    index,
-                    operation: 'write',
-                    outputPath,
-                    exists: fs.existsSync(outputPath),
-                  });
-                }
-              } catch (error) {
-                reject(error);
-              }
-            }, Math.random() * 100);
-          });
-        });
+            const outputPath = path.join(tempDir, `mixed_write_${index}.dot`);
+            await processor.saveFromTree(tree, outputPath);
+
+            return {
+              index,
+              operation: 'write',
+              outputPath,
+              exists: fs.existsSync(outputPath),
+            };
+          })
+        );
 
       const results = await Promise.all(mixedOperations);
 
@@ -371,39 +339,35 @@ describe('Concurrency and Thread Safety Tests', () => {
       // Mix of valid and invalid operations
       const operations = Array(6)
         .fill(0)
-        .map(async (_, index) => {
-          return new Promise((resolve) => {
-            setTimeout(() => {
-              try {
-                if (index % 2 === 0) {
-                  // Valid operation
-                  const validContent = '{"id": "test", "buttons": []}';
-                  const tree = processor.loadIntoTree(Buffer.from(validContent));
-                  resolve({
-                    index,
-                    success: true,
-                    pageCount: Object.keys(tree.pages).length,
-                  });
-                } else {
-                  // Invalid operation
-                  const invalidContent = '{"invalid": json}';
-                  processor.loadIntoTree(Buffer.from(invalidContent));
-                  resolve({
-                    index,
-                    success: true, // Shouldn't reach here
-                    unexpected: true,
-                  });
-                }
-              } catch (error) {
-                resolve({
+        .map((_, index) =>
+          runDelayed(Math.random() * 50, async () => {
+            try {
+              if (index % 2 === 0) {
+                const validContent = '{"id": "test", "buttons": []}';
+                const tree = await processor.loadIntoTree(Buffer.from(validContent));
+                return {
                   index,
-                  success: false,
-                  error: error instanceof Error ? error.message : 'Unknown error',
-                });
+                  success: true,
+                  pageCount: Object.keys(tree.pages).length,
+                };
               }
-            }, Math.random() * 50);
-          });
-        });
+
+              const invalidContent = '{"invalid": json}';
+              await processor.loadIntoTree(Buffer.from(invalidContent));
+              return {
+                index,
+                success: true,
+                unexpected: true,
+              };
+            } catch (error) {
+              return {
+                index,
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error',
+              };
+            }
+          })
+        );
 
       const results = await Promise.all(operations);
 
@@ -440,36 +404,29 @@ describe('Concurrency and Thread Safety Tests', () => {
       fs.writeFileSync(referenceFile, referenceContent);
 
       // Get reference data
-      const referenceTree = processor.loadIntoTree(referenceFile);
-      const referenceTexts = processor.extractTexts(referenceFile);
+      const referenceTree = await processor.loadIntoTree(referenceFile);
+      const referenceTexts = await processor.extractTexts(referenceFile);
 
       // Perform many concurrent reads
       const integrityChecks = Array(15)
         .fill(0)
-        .map(async (_, index) => {
-          return new Promise((resolve, reject) => {
-            setTimeout(() => {
-              try {
-                const tree = processor.loadIntoTree(referenceFile);
-                const texts = processor.extractTexts(referenceFile);
+        .map((_, index) =>
+          runDelayed(Math.random() * 100, async () => {
+            const tree = await processor.loadIntoTree(referenceFile);
+            const texts = await processor.extractTexts(referenceFile);
 
-                // Verify data integrity
-                const pageCountMatch =
-                  Object.keys(tree.pages).length === Object.keys(referenceTree.pages).length;
-                const textCountMatch = texts.length === referenceTexts.length;
+            const pageCountMatch =
+              Object.keys(tree.pages).length === Object.keys(referenceTree.pages).length;
+            const textCountMatch = texts.length === referenceTexts.length;
 
-                resolve({
-                  index,
-                  pageCountMatch,
-                  textCountMatch,
-                  integrity: pageCountMatch && textCountMatch,
-                });
-              } catch (error) {
-                reject(error);
-              }
-            }, Math.random() * 100);
-          });
-        });
+            return {
+              index,
+              pageCountMatch,
+              textCountMatch,
+              integrity: pageCountMatch && textCountMatch,
+            };
+          })
+        );
 
       const results = await Promise.all(integrityChecks);
 

@@ -15,9 +15,6 @@ import {
   AACTreeMetadata,
 } from '../core/treeStructure';
 import { generateCloneId } from '../utilities/analytics/utils/idGenerator';
-import AdmZip from 'adm-zip';
-import fs from 'fs';
-import { ObfValidator } from '../validation/obfValidator';
 import { ValidationResult } from '../validation/validationTypes';
 import {
   extractAllButtonsForTranslation,
@@ -25,6 +22,40 @@ import {
   type ButtonForTranslation,
   type LLMLTranslationResult,
 } from '../utilities/translation/translationProcessor';
+import {
+  ProcessorInput,
+  readBinaryFromInput,
+  readTextFromInput,
+  writeTextToPath,
+  encodeBase64,
+} from '../utils/io';
+import type JSZip from 'jszip';
+
+// Use dynamic import for JSZip to support both browser and Node environments
+type JSZipStatic = typeof JSZip;
+let JSZipModuleObf: JSZipStatic | undefined;
+async function getJSZipObf(): Promise<JSZipStatic> {
+  if (!JSZipModuleObf) {
+    try {
+      // Try ES module import first (browser/Vite)
+      const module = await import('jszip');
+      JSZipModuleObf = module.default || module;
+    } catch (error) {
+      // Fall back to CommonJS require (Node.js)
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const module = require('jszip');
+        JSZipModuleObf = module.default || module;
+      } catch (err2) {
+        throw new Error('Zip handling requires JSZip in this environment.');
+      }
+    }
+  }
+  if (!JSZipModuleObf) {
+    throw new Error('Zip handling requires JSZip in this environment.');
+  }
+  return JSZipModuleObf;
+}
 
 const OBF_FORMAT_VERSION = 'open-board-0.1';
 
@@ -75,7 +106,7 @@ interface ObfBoard {
 }
 
 class ObfProcessor extends BaseProcessor {
-  private zipFile?: AdmZip;
+  private zipFile?: JSZip; // JSZip instance
   private imageCache: Map<string, string> = new Map(); // Cache for data URLs
 
   constructor(options?: ProcessorOptions) {
@@ -85,7 +116,7 @@ class ObfProcessor extends BaseProcessor {
   /**
    * Extract an image from the ZIP file as a Buffer
    */
-  private extractImageAsBuffer(imageId: string, images: any[]): Buffer | null {
+  private async extractImageAsBuffer(imageId: string, images: any[]): Promise<Buffer | null> {
     if (!this.zipFile || !images) {
       return null;
     }
@@ -105,9 +136,10 @@ class ObfProcessor extends BaseProcessor {
 
     for (const imagePath of possiblePaths) {
       try {
-        const entry = this.zipFile.getEntry(imagePath as string);
-        if (entry) {
-          return entry.getData(); // Return raw Buffer
+        const file = this.zipFile.file(imagePath as string);
+        if (file) {
+          const buffer = await file.async('nodebuffer');
+          return buffer;
         }
       } catch (err) {
         continue;
@@ -120,7 +152,7 @@ class ObfProcessor extends BaseProcessor {
   /**
    * Extract an image from the ZIP file and convert to data URL
    */
-  private extractImageAsDataUrl(imageId: string, images: any[]): string | null {
+  private async extractImageAsDataUrl(imageId: string, images: any[]): Promise<string | null> {
     // Check cache first
     if (this.imageCache.has(imageId)) {
       return this.imageCache.get(imageId) ?? null;
@@ -146,13 +178,13 @@ class ObfProcessor extends BaseProcessor {
 
     for (const imagePath of possiblePaths) {
       try {
-        const entry = this.zipFile.getEntry(imagePath as string);
-        if (entry) {
-          const buffer = entry.getData();
+        const file = this.zipFile.file(imagePath as string);
+        if (file) {
+          const buffer = await file.async('uint8array');
           const contentType =
             (imageData as { content_type?: string }).content_type ||
             this.getMimeTypeFromFilename(imagePath as string);
-          const dataUrl = `data:${contentType};base64,${buffer.toString('base64')}`;
+          const dataUrl = `data:${contentType};base64,${encodeBase64(buffer)}`;
           this.imageCache.set(imageId, dataUrl);
           return dataUrl;
         }
@@ -191,7 +223,7 @@ class ObfProcessor extends BaseProcessor {
     }
   }
 
-  private processBoard(boardData: ObfBoard, _boardPath: string): AACPage {
+  private async processBoard(boardData: ObfBoard, _boardPath: string): Promise<AACPage> {
     const sourceButtons = boardData.buttons || [];
 
     // Calculate page ID first (used to make button IDs unique)
@@ -202,63 +234,67 @@ class ObfProcessor extends BaseProcessor {
           ? String(boardData.id)
           : _boardPath?.split('/').pop() || '';
 
-    const buttons: AACButton[] = sourceButtons.map((btn: ObfButton): AACButton => {
-      const semanticAction: AACSemanticAction = btn.load_board
-        ? {
-            category: AACSemanticCategory.NAVIGATION,
-            intent: AACSemanticIntent.NAVIGATE_TO,
-            targetId: btn.load_board.path,
-            fallback: {
-              type: 'NAVIGATE',
-              targetPageId: btn.load_board.path,
-            },
-          }
-        : {
-            category: AACSemanticCategory.COMMUNICATION,
-            intent: AACSemanticIntent.SPEAK_TEXT,
-            text: String(btn?.vocalization || btn?.label || ''),
-            fallback: {
-              type: 'SPEAK',
-              message: String(btn?.vocalization || btn?.label || ''),
-            },
-          };
+    const buttons: AACButton[] = await Promise.all(
+      sourceButtons.map(async (btn: ObfButton): Promise<AACButton> => {
+        const semanticAction: AACSemanticAction = btn.load_board
+          ? {
+              category: AACSemanticCategory.NAVIGATION,
+              intent: AACSemanticIntent.NAVIGATE_TO,
+              targetId: btn.load_board.path,
+              fallback: {
+                type: 'NAVIGATE',
+                targetPageId: btn.load_board.path,
+              },
+            }
+          : {
+              category: AACSemanticCategory.COMMUNICATION,
+              intent: AACSemanticIntent.SPEAK_TEXT,
+              text: String(btn?.vocalization || btn?.label || ''),
+              fallback: {
+                type: 'SPEAK',
+                message: String(btn?.vocalization || btn?.label || ''),
+              },
+            };
 
-      // Resolve image if image_id is present
-      let resolvedImage: string | undefined;
-      let imageBuffer: Buffer | undefined;
-      if (btn.image_id && boardData.images) {
-        resolvedImage = this.extractImageAsDataUrl(btn.image_id, boardData.images) || undefined;
-        imageBuffer = this.extractImageAsBuffer(btn.image_id, boardData.images) || undefined;
-      }
+        // Resolve image if image_id is present
+        let resolvedImage: string | undefined;
+        let imageBuffer: Buffer | undefined;
+        if (btn.image_id && boardData.images) {
+          resolvedImage =
+            (await this.extractImageAsDataUrl(btn.image_id, boardData.images)) || undefined;
+          imageBuffer =
+            (await this.extractImageAsBuffer(btn.image_id, boardData.images)) || undefined;
+        }
 
-      // Build parameters object for Grid3 export compatibility
-      const buttonParameters: { imageData?: Buffer; image_id?: string; [key: string]: any } = {};
-      if (imageBuffer) {
-        buttonParameters.imageData = imageBuffer;
-      }
-      // Store image_id for web viewers to fetch images via API
-      if (btn.image_id) {
-        buttonParameters.image_id = btn.image_id;
-      }
+        // Build parameters object for Grid3 export compatibility
+        const buttonParameters: { imageData?: Buffer; image_id?: string; [key: string]: any } = {};
+        if (imageBuffer) {
+          buttonParameters.imageData = imageBuffer;
+        }
+        // Store image_id for web viewers to fetch images via API
+        if (btn.image_id) {
+          buttonParameters.image_id = btn.image_id;
+        }
 
-      return new AACButton({
-        // Make button ID unique by combining page ID and button ID
-        id: `${pageId}::${btn?.id || ''}`,
-        label: String(btn?.label || ''),
-        message: String(btn?.vocalization || btn?.label || ''),
-        visibility: mapObfVisibility(btn.hidden),
-        style: {
-          backgroundColor: btn.background_color,
-          borderColor: btn.border_color,
-        },
-        image: resolvedImage, // Set the resolved image data URL
-        resolvedImageEntry: resolvedImage,
-        parameters: Object.keys(buttonParameters).length > 0 ? buttonParameters : undefined,
-        semanticAction,
-        targetPageId: btn.load_board?.path,
-        semantic_id: btn.semantic_id, // Extract semantic_id if present
-      });
-    });
+        return new AACButton({
+          // Make button ID unique by combining page ID and button ID
+          id: `${pageId}::${btn?.id || ''}`,
+          label: String(btn?.label || ''),
+          message: String(btn?.vocalization || btn?.label || ''),
+          visibility: mapObfVisibility(btn.hidden),
+          style: {
+            backgroundColor: btn.background_color,
+            borderColor: btn.border_color,
+          },
+          image: resolvedImage, // Set the resolved image data URL
+          resolvedImageEntry: resolvedImage,
+          parameters: Object.keys(buttonParameters).length > 0 ? buttonParameters : undefined,
+          semanticAction,
+          targetPageId: btn.load_board?.path,
+          semantic_id: btn.semantic_id, // Extract semantic_id if present
+        });
+      })
+    );
 
     const buttonMap = new Map(buttons.map((btn) => [btn.id, btn]));
 
@@ -356,8 +392,8 @@ class ObfProcessor extends BaseProcessor {
     return page;
   }
 
-  extractTexts(filePathOrBuffer: string | Buffer): string[] {
-    const tree = this.loadIntoTree(filePathOrBuffer);
+  async extractTexts(filePathOrBuffer: ProcessorInput): Promise<string[]> {
+    const tree = await this.loadIntoTree(filePathOrBuffer);
     const texts: string[] = [];
 
     for (const pageId in tree.pages) {
@@ -372,22 +408,26 @@ class ObfProcessor extends BaseProcessor {
     return texts;
   }
 
-  loadIntoTree(filePathOrBuffer: string | Buffer): AACTree {
+  async loadIntoTree(filePathOrBuffer: ProcessorInput): Promise<AACTree> {
     // Detailed logging for debugging input
+    const bufferLength =
+      typeof filePathOrBuffer === 'string'
+        ? null
+        : readBinaryFromInput(filePathOrBuffer).byteLength;
     console.log('[OBF] loadIntoTree called with:', {
       type: typeof filePathOrBuffer,
-      isBuffer: Buffer.isBuffer(filePathOrBuffer),
+      isBuffer: typeof Buffer !== 'undefined' && Buffer.isBuffer(filePathOrBuffer),
       value:
         typeof filePathOrBuffer === 'string'
           ? filePathOrBuffer
-          : '[Buffer of length ' + filePathOrBuffer.length + ']',
+          : `[Buffer of length ${bufferLength ?? 0}]`,
     });
     const tree = new AACTree();
 
     // Helper: try to parse JSON OBF
-    function tryParseObfJson(data: string | Buffer): ObfBoard | null {
+    function tryParseObfJson(data: ProcessorInput): ObfBoard | null {
       try {
-        const str = typeof data === 'string' ? data : data.toString('utf8');
+        const str = typeof data === 'string' ? data : readTextFromInput(data);
 
         // Check for empty or whitespace-only content
         if (!str.trim()) {
@@ -411,11 +451,11 @@ class ObfProcessor extends BaseProcessor {
     // If input is a string path and ends with .obf, treat as JSON
     if (typeof filePathOrBuffer === 'string' && filePathOrBuffer.endsWith('.obf')) {
       try {
-        const content = fs.readFileSync(filePathOrBuffer, 'utf8');
+        const content = readTextFromInput(filePathOrBuffer);
         const boardData = tryParseObfJson(content);
         if (boardData) {
           console.log('[OBF] Detected .obf file, parsed as JSON');
-          const page = this.processBoard(boardData, filePathOrBuffer);
+          const page = await this.processBoard(boardData, filePathOrBuffer);
           tree.addPage(page);
 
           // Set metadata from root board
@@ -442,7 +482,7 @@ class ObfProcessor extends BaseProcessor {
     const asJson = tryParseObfJson(filePathOrBuffer);
     if (asJson) {
       console.log('[OBF] Detected buffer/string as OBF JSON');
-      const page = this.processBoard(asJson, '[bufferOrString]');
+      const page = await this.processBoard(asJson, '[bufferOrString]');
       tree.addPage(page);
 
       // Set metadata from root board
@@ -461,23 +501,23 @@ class ObfProcessor extends BaseProcessor {
     }
 
     // Otherwise, try as ZIP (.obz). Detect likely zip signature first; throw if neither JSON nor ZIP
-    function isLikelyZip(input: string | Buffer): boolean {
+    function isLikelyZip(input: ProcessorInput): boolean {
       if (typeof input === 'string') return input.endsWith('.zip') || input.endsWith('.obz');
-      if (Buffer.isBuffer(input) && input.length >= 2) {
-        return input[0] === 0x50 && input[1] === 0x4b; // 'PK'
-      }
-      return false;
+      const bytes = readBinaryFromInput(input);
+      return bytes.length >= 2 && bytes[0] === 0x50 && bytes[1] === 0x4b;
     }
 
     if (!isLikelyZip(filePathOrBuffer)) {
       throw new Error('Invalid OBF content: not JSON and not ZIP');
     }
 
-    let zip: AdmZip;
+    const JSZip = await getJSZipObf();
+    let zip: JSZip;
     try {
-      zip = new AdmZip(filePathOrBuffer);
+      const zipInput = readBinaryFromInput(filePathOrBuffer);
+      zip = await JSZip.loadAsync(zipInput);
     } catch (err) {
-      console.error('[OBF] Error instantiating AdmZip with input:', err);
+      console.error('[OBF] Error loading ZIP with JSZip:', err);
       throw err;
     }
 
@@ -486,12 +526,23 @@ class ObfProcessor extends BaseProcessor {
     this.imageCache.clear(); // Clear cache for new file
 
     console.log('[OBF] Detected zip archive, extracting .obf files');
-    zip.getEntries().forEach((entry) => {
-      if (entry.entryName.endsWith('.obf')) {
-        const content = entry.getData().toString('utf8');
+
+    // Collect all .obf entries
+    const obfEntries: Array<{ name: string; file: JSZip.JSZipObject }> = [];
+    zip.forEach((relativePath: string, file: JSZip.JSZipObject) => {
+      if (file.dir) return;
+      if (relativePath.endsWith('.obf')) {
+        obfEntries.push({ name: relativePath, file });
+      }
+    });
+
+    // Process each .obf entry
+    for (const entry of obfEntries) {
+      try {
+        const content = await entry.file.async('string');
         const boardData = tryParseObfJson(content);
         if (boardData) {
-          const page = this.processBoard(boardData, entry.entryName);
+          const page = await this.processBoard(boardData, entry.name);
           tree.addPage(page);
 
           // Set metadata if not already set (use first board as reference)
@@ -506,10 +557,12 @@ class ObfProcessor extends BaseProcessor {
             tree.rootId = page.id;
           }
         } else {
-          console.warn('[OBF] Skipped entry (not valid OBF JSON):', entry.entryName);
+          console.warn('[OBF] Skipped entry (not valid OBF JSON):', entry.name);
         }
+      } catch (err) {
+        console.warn('[OBF] Error processing entry:', entry.name, err);
       }
-    });
+    }
 
     return tree;
   }
@@ -610,13 +663,13 @@ class ObfProcessor extends BaseProcessor {
     };
   }
 
-  processTexts(
-    filePathOrBuffer: string | Buffer,
+  async processTexts(
+    filePathOrBuffer: ProcessorInput,
     translations: Map<string, string>,
     outputPath: string
-  ): Buffer {
+  ): Promise<Uint8Array> {
     // Load the tree, apply translations, and save to new file
-    const tree = this.loadIntoTree(filePathOrBuffer);
+    const tree = await this.loadIntoTree(filePathOrBuffer);
 
     // Apply translations to all text content
     Object.values(tree.pages).forEach((page) => {
@@ -646,11 +699,11 @@ class ObfProcessor extends BaseProcessor {
     });
 
     // Save the translated tree and return its content
-    this.saveFromTree(tree, outputPath);
-    return fs.readFileSync(outputPath);
+    await this.saveFromTree(tree, outputPath);
+    return readBinaryFromInput(outputPath);
   }
 
-  saveFromTree(tree: AACTree, outputPath: string): void {
+  async saveFromTree(tree: AACTree, outputPath: string): Promise<void> {
     if (outputPath.endsWith('.obf')) {
       // Save as single OBF JSON file
       const rootPage = tree.rootId ? tree.getPage(tree.rootId) : Object.values(tree.pages)[0];
@@ -659,18 +712,21 @@ class ObfProcessor extends BaseProcessor {
       }
 
       const obfBoard = this.createObfBoardFromPage(rootPage, 'Exported Board', tree.metadata);
-      fs.writeFileSync(outputPath, JSON.stringify(obfBoard, null, 2));
+      writeTextToPath(outputPath, JSON.stringify(obfBoard, null, 2));
     } else {
       // Save as OBZ (zip with multiple OBF files)
-      const zip = new AdmZip();
+      const JSZip = await getJSZipObf();
+      const zip = new JSZip();
 
       Object.values(tree.pages).forEach((page) => {
         const obfBoard = this.createObfBoardFromPage(page, 'Board', tree.metadata);
         const obfContent = JSON.stringify(obfBoard, null, 2);
-        zip.addFile(`${page.id}.obf`, Buffer.from(obfContent, 'utf8'));
+        zip.file(`${page.id}.obf`, obfContent);
       });
 
-      zip.writeZip(outputPath);
+      const zipBuffer = await zip.generateAsync({ type: 'uint8array' });
+      const { writeBinaryToPath } = await import('../utils/io');
+      writeBinaryToPath(outputPath, zipBuffer);
     }
   }
 
@@ -700,6 +756,7 @@ class ObfProcessor extends BaseProcessor {
    * @returns Promise with validation result
    */
   async validate(filePath: string): Promise<ValidationResult> {
+    const ObfValidator = this.getObfValidator();
     return ObfValidator.validateFile(filePath);
   }
 
@@ -712,8 +769,8 @@ class ObfProcessor extends BaseProcessor {
    * @param filePathOrBuffer - Path to OBF/OBZ file or buffer
    * @returns Array of symbol information for LLM processing
    */
-  extractSymbolsForLLM(filePathOrBuffer: string | Buffer): ButtonForTranslation[] {
-    const tree = this.loadIntoTree(filePathOrBuffer);
+  async extractSymbolsForLLM(filePathOrBuffer: ProcessorInput): Promise<ButtonForTranslation[]> {
+    const tree = await this.loadIntoTree(filePathOrBuffer);
 
     // Collect all buttons from all pages
     const allButtons: any[] = [];
@@ -745,13 +802,13 @@ class ObfProcessor extends BaseProcessor {
    * @param options - Translation options (e.g., allowPartial for testing)
    * @returns Buffer of the translated OBF/OBZ file
    */
-  processLLMTranslations(
-    filePathOrBuffer: string | Buffer,
+  async processLLMTranslations(
+    filePathOrBuffer: ProcessorInput,
     llmTranslations: LLMLTranslationResult[],
     outputPath: string,
     options?: { allowPartial?: boolean }
-  ): Buffer {
-    const tree = this.loadIntoTree(filePathOrBuffer);
+  ): Promise<Uint8Array> {
+    const tree = await this.loadIntoTree(filePathOrBuffer);
 
     // Validate translations using shared utility
     const buttonIds = Object.values(tree.pages).flatMap((page) => page.buttons.map((b) => b.id));
@@ -795,8 +852,17 @@ class ObfProcessor extends BaseProcessor {
     });
 
     // Save and return
-    this.saveFromTree(tree, outputPath);
-    return fs.readFileSync(outputPath);
+    await this.saveFromTree(tree, outputPath);
+    return readBinaryFromInput(outputPath);
+  }
+
+  private getObfValidator(): typeof import('../validation/obfValidator').ObfValidator {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-unsafe-return
+      return require('../validation/obfValidator').ObfValidator;
+    } catch (error) {
+      throw new Error('Validation utilities are not available in this environment.');
+    }
   }
 }
 

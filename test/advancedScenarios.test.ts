@@ -12,11 +12,11 @@ import { TestEnvironmentManager, PerformanceHelper, AsyncTestHelper } from './ut
 describe('Advanced Scenario Testing', () => {
   let testEnv: ReturnType<typeof TestEnvironmentManager.createTempEnvironment>;
 
-  beforeAll(() => {
+  beforeAll(async () => {
     testEnv = TestEnvironmentManager.createTempEnvironment('advanced-scenarios');
   });
 
-  afterAll(() => {
+  afterAll(async () => {
     testEnv.cleanup();
   });
 
@@ -29,7 +29,7 @@ describe('Advanced Scenario Testing', () => {
       const dotProcessor = new DotProcessor();
       const dotPath = path.join(testEnv.tempDir, 'initial.dot');
 
-      dotProcessor.saveFromTree(initialTree, dotPath);
+      await dotProcessor.saveFromTree(initialTree, dotPath);
       expect(fs.existsSync(dotPath)).toBe(true);
 
       // Step 2: Convert to multiple formats
@@ -43,17 +43,17 @@ describe('Advanced Scenario Testing', () => {
 
       for (const { ext, processor } of formats) {
         const convertedPath = path.join(testEnv.tempDir, `converted${ext}`);
-        processor.saveFromTree(initialTree, convertedPath);
+        await processor.saveFromTree(initialTree, convertedPath);
         convertedFiles[ext] = convertedPath;
         expect(fs.existsSync(convertedPath)).toBe(true);
       }
 
       // Step 3: Extract texts from all formats
       const allTexts: Record<string, string[]> = {};
-      allTexts['.dot'] = dotProcessor.extractTexts(dotPath);
+      allTexts['.dot'] = await dotProcessor.extractTexts(dotPath);
 
       for (const { ext, processor } of formats) {
-        allTexts[ext] = processor.extractTexts(convertedFiles[ext]);
+        allTexts[ext] = await processor.extractTexts(convertedFiles[ext]);
       }
 
       // Step 4: Create translations
@@ -65,13 +65,13 @@ describe('Advanced Scenario Testing', () => {
 
       // Translate DOT
       const translatedDotPath = path.join(testEnv.tempDir, 'translated.dot');
-      dotProcessor.processTexts(dotPath, translations, translatedDotPath);
+      await dotProcessor.processTexts(dotPath, translations, translatedDotPath);
       translatedFiles['.dot'] = translatedDotPath;
 
       // Translate other formats
       for (const { ext, processor } of formats) {
         const translatedPath = path.join(testEnv.tempDir, `translated${ext}`);
-        processor.processTexts(convertedFiles[ext], translations, translatedPath);
+        await processor.processTexts(convertedFiles[ext], translations, translatedPath);
         translatedFiles[ext] = translatedPath;
       }
 
@@ -88,7 +88,7 @@ describe('Advanced Scenario Testing', () => {
                 ? new ObfProcessor()
                 : new ApplePanelsProcessor();
 
-        const translatedTexts = processor.extractTexts(filePath);
+        const translatedTexts = await processor.extractTexts(filePath);
 
         // Should have some Spanish translations
         const hasSpanishContent = translatedTexts.some(
@@ -109,7 +109,7 @@ describe('Advanced Scenario Testing', () => {
 
       // Step 7: Verify round-trip consistency
       for (const { ext, processor } of formats) {
-        const reloadedTree = processor.loadIntoTree(translatedFiles[ext]);
+        const reloadedTree = await processor.loadIntoTree(translatedFiles[ext]);
         expect(Object.keys(reloadedTree.pages).length).toBeGreaterThan(0);
       }
     });
@@ -122,24 +122,24 @@ describe('Advanced Scenario Testing', () => {
       // User 1: Works with DOT format
       const dotProcessor = new DotProcessor();
       const dotPath = path.join(testEnv.tempDir, 'collaborative.dot');
-      dotProcessor.saveFromTree(baseTree, dotPath);
+      await dotProcessor.saveFromTree(baseTree, dotPath);
 
       // User 2: Converts to OPML and adds content
       const opmlProcessor = new OpmlProcessor();
       const opmlPath = path.join(testEnv.tempDir, 'collaborative.opml');
-      opmlProcessor.saveFromTree(baseTree, opmlPath);
+      await opmlProcessor.saveFromTree(baseTree, opmlPath);
 
       // User 3: Converts to OBF and modifies
       const obfProcessor = new ObfProcessor();
       const obfPath = path.join(testEnv.tempDir, 'collaborative.obf');
-      obfProcessor.saveFromTree(baseTree, obfPath);
+      await obfProcessor.saveFromTree(baseTree, obfPath);
 
       // Simulate concurrent modifications
       const modifications = await AsyncTestHelper.runConcurrently(
         [
           async () => {
             // DOT modification
-            const tree = dotProcessor.loadIntoTree(dotPath);
+            const tree = await dotProcessor.loadIntoTree(dotPath);
             const newPage = PageFactory.create({
               id: 'dot_addition',
               name: 'DOT Addition',
@@ -148,12 +148,12 @@ describe('Advanced Scenario Testing', () => {
             tree.addPage(newPage);
 
             const modifiedDotPath = path.join(testEnv.tempDir, 'modified.dot');
-            dotProcessor.saveFromTree(tree, modifiedDotPath);
+            await dotProcessor.saveFromTree(tree, modifiedDotPath);
             return modifiedDotPath;
           },
           async () => {
             // OPML modification
-            const tree = opmlProcessor.loadIntoTree(opmlPath);
+            const tree = await opmlProcessor.loadIntoTree(opmlPath);
             const newPage = PageFactory.create({
               id: 'opml_addition',
               name: 'OPML Addition',
@@ -162,12 +162,12 @@ describe('Advanced Scenario Testing', () => {
             tree.addPage(newPage);
 
             const modifiedOpmlPath = path.join(testEnv.tempDir, 'modified.opml');
-            opmlProcessor.saveFromTree(tree, modifiedOpmlPath);
+            await opmlProcessor.saveFromTree(tree, modifiedOpmlPath);
             return modifiedOpmlPath;
           },
           async () => {
             // OBF modification
-            const tree = obfProcessor.loadIntoTree(obfPath);
+            const tree = await obfProcessor.loadIntoTree(obfPath);
             const newPage = PageFactory.create({
               id: 'obf_addition',
               name: 'OBF Addition',
@@ -176,7 +176,7 @@ describe('Advanced Scenario Testing', () => {
             tree.addPage(newPage);
 
             const modifiedObfPath = path.join(testEnv.tempDir, 'modified.obf');
-            obfProcessor.saveFromTree(tree, modifiedObfPath);
+            await obfProcessor.saveFromTree(tree, modifiedObfPath);
             return modifiedObfPath;
           },
         ],
@@ -190,9 +190,9 @@ describe('Advanced Scenario Testing', () => {
       });
 
       // Merge scenario: Load all modified versions and verify content
-      const dotTree = dotProcessor.loadIntoTree(modifications[0]);
-      const opmlTree = opmlProcessor.loadIntoTree(modifications[1]);
-      const obfTree = obfProcessor.loadIntoTree(modifications[2]);
+      const dotTree = await dotProcessor.loadIntoTree(modifications[0]);
+      const opmlTree = await opmlProcessor.loadIntoTree(modifications[1]);
+      const obfTree = await obfProcessor.loadIntoTree(modifications[2]);
 
       expect(Object.keys(dotTree.pages).length).toBeGreaterThan(Object.keys(baseTree.pages).length);
       expect(Object.keys(opmlTree.pages).length).toBeGreaterThan(0);
@@ -219,10 +219,10 @@ describe('Advanced Scenario Testing', () => {
           const ext = ['.dot', '.opml', '.obf', '.plist'][i % processors.length];
 
           const filePath = path.join(testEnv.tempDir, `batch_${i}${ext}`);
-          processor.saveFromTree(tree, filePath);
+          await processor.saveFromTree(tree, filePath);
 
-          const reloadedTree = processor.loadIntoTree(filePath);
-          const texts = processor.extractTexts(filePath);
+          const reloadedTree = await processor.loadIntoTree(filePath);
+          const texts = await processor.extractTexts(filePath);
 
           return {
             index: i,
@@ -258,18 +258,18 @@ describe('Advanced Scenario Testing', () => {
         const largePath = path.join(testEnv.tempDir, 'large_board.dot');
 
         // Save large tree
-        processor.saveFromTree(largeTree, largePath);
+        await processor.saveFromTree(largeTree, largePath);
 
         // Load it back
-        const reloadedTree = processor.loadIntoTree(largePath);
+        const reloadedTree = await processor.loadIntoTree(largePath);
 
         // Extract texts
-        const texts = processor.extractTexts(largePath);
+        const texts = await processor.extractTexts(largePath);
 
         // Apply translations
         const translations = TestDataUtils.createTranslationMap(texts.slice(0, 100), 'fr');
         const translatedPath = path.join(testEnv.tempDir, 'large_translated.dot');
-        processor.processTexts(largePath, translations, translatedPath);
+        await processor.processTexts(largePath, translations, translatedPath);
 
         return {
           originalPages: Object.keys(largeTree.pages).length,
@@ -300,7 +300,7 @@ describe('Advanced Scenario Testing', () => {
 
       // Create valid file first
       const validPath = path.join(testEnv.tempDir, 'valid.dot');
-      processor.saveFromTree(validTree, validPath);
+      await processor.saveFromTree(validTree, validPath);
       const validContent = fs.readFileSync(validPath, 'utf8');
 
       // Test various corruption scenarios
@@ -332,8 +332,8 @@ describe('Advanced Scenario Testing', () => {
           fs.writeFileSync(corruptedPath, test.content);
 
           try {
-            const tree = processor.loadIntoTree(corruptedPath);
-            const texts = processor.extractTexts(corruptedPath);
+            const tree = await processor.loadIntoTree(corruptedPath);
+            const texts = await processor.extractTexts(corruptedPath);
 
             return {
               name: test.name,
@@ -378,8 +378,8 @@ describe('Advanced Scenario Testing', () => {
         const tempPath = path.join(testEnv.tempDir, `small_${i}.dot`);
 
         try {
-          processor.saveFromTree(tree, tempPath);
-          const reloadedTree = processor.loadIntoTree(tempPath);
+          await processor.saveFromTree(tree, tempPath);
+          const reloadedTree = await processor.loadIntoTree(tempPath);
 
           // Clean up immediately to simulate resource pressure
           fs.unlinkSync(tempPath);
@@ -417,7 +417,7 @@ describe('Advanced Scenario Testing', () => {
   });
 
   describe('Integration with External Systems', () => {
-    it('should handle processor factory with dynamic format detection', () => {
+    it('should handle processor factory with dynamic format detection', async () => {
       // Scenario: Dynamically process files based on extension
 
       const testFiles = [
@@ -433,30 +433,31 @@ describe('Advanced Scenario Testing', () => {
         },
       ];
 
-      const results = testFiles.map((file) => {
+      const results = [];
+      for (const file of testFiles) {
         const filePath = path.join(testEnv.tempDir, file.name);
         fs.writeFileSync(filePath, file.content);
 
         try {
           const processor = getProcessor(filePath);
-          const tree = processor.loadIntoTree(filePath);
-          const texts = processor.extractTexts(filePath);
+          const tree = await processor.loadIntoTree(filePath);
+          const texts = await processor.extractTexts(filePath);
 
-          return {
+          results.push({
             file: file.name,
             success: true,
             processorType: processor.constructor.name,
             pageCount: Object.keys(tree.pages).length,
             textCount: texts.length,
-          };
+          });
         } catch (error) {
-          return {
+          results.push({
             file: file.name,
             success: false,
             error: error instanceof Error ? error.message : 'Unknown error',
-          };
+          });
         }
-      });
+      }
 
       // All files should be processed successfully
       results.forEach((result) => {

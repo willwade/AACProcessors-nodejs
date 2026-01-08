@@ -10,7 +10,7 @@ describe('CLI Comprehensive Tests', () => {
   const cliPath = path.join(__dirname, '../dist/cli/index.js');
   const examplesDir = path.join(__dirname, '../examples');
 
-  beforeAll(() => {
+  beforeAll(async () => {
     if (!fs.existsSync(tempDir)) {
       fs.mkdirSync(tempDir, { recursive: true });
     }
@@ -22,19 +22,19 @@ describe('CLI Comprehensive Tests', () => {
     }
   });
 
-  afterAll(() => {
+  afterAll(async () => {
     if (fs.existsSync(tempDir)) {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }
   });
 
   describe('Command Parsing Tests', () => {
-    it('should parse extract command correctly', () => {
+    it('should parse extract command correctly', async () => {
       // Create a test DOT file
       const tree = TreeFactory.createSimple();
       const processor = new DotProcessor();
       const testFile = path.join(tempDir, 'test.dot');
-      processor.saveFromTree(tree, testFile);
+      await processor.saveFromTree(tree, testFile);
 
       const result = execSync(`node ${cliPath} extract ${testFile}`, {
         encoding: 'utf8',
@@ -47,13 +47,13 @@ describe('CLI Comprehensive Tests', () => {
       expect(result.trim().split('\n').length).toBeGreaterThan(0);
     });
 
-    it('should parse convert command with all options', () => {
+    it('should parse convert command with all options', async () => {
       const tree = TreeFactory.createSimple();
       const processor = new DotProcessor();
       const inputFile = path.join(tempDir, 'input.dot');
       const outputFile = path.join(tempDir, 'output.opml');
 
-      processor.saveFromTree(tree, inputFile);
+      await processor.saveFromTree(tree, inputFile);
 
       const result = execSync(`node ${cliPath} convert ${inputFile} ${outputFile} --format opml`, {
         encoding: 'utf8',
@@ -64,7 +64,7 @@ describe('CLI Comprehensive Tests', () => {
       expect(result).toContain('converted');
     });
 
-    it('should handle invalid command arguments gracefully', () => {
+    it('should handle invalid command arguments gracefully', async () => {
       expect(() => {
         execSync(`node ${cliPath} invalidcommand`, {
           encoding: 'utf8',
@@ -74,7 +74,7 @@ describe('CLI Comprehensive Tests', () => {
       }).toThrow();
     });
 
-    it('should show help when no arguments provided', () => {
+    it('should show help when no arguments provided', async () => {
       const result = execSync(`node ${cliPath}`, {
         encoding: 'utf8',
         cwd: tempDir,
@@ -85,7 +85,7 @@ describe('CLI Comprehensive Tests', () => {
       expect(result).toContain('convert');
     });
 
-    it('should show help with --help flag', () => {
+    it('should show help with --help flag', async () => {
       const result = execSync(`node ${cliPath} --help`, {
         encoding: 'utf8',
         cwd: tempDir,
@@ -95,7 +95,7 @@ describe('CLI Comprehensive Tests', () => {
       expect(result).toContain('Commands:');
     });
 
-    it('should show version with --version flag', () => {
+    it('should show version with --version flag', async () => {
       const result = execSync(`node ${cliPath} --version`, {
         encoding: 'utf8',
         cwd: tempDir,
@@ -106,11 +106,11 @@ describe('CLI Comprehensive Tests', () => {
   });
 
   describe('File Processing Tests', () => {
-    it('should extract text from DOT format via CLI', () => {
+    it('should extract text from DOT format via CLI', async () => {
       const tree = TreeFactory.createCommunicationBoard();
       const processor = new DotProcessor();
       const testFile = path.join(tempDir, 'communication.dot');
-      processor.saveFromTree(tree, testFile);
+      await processor.saveFromTree(tree, testFile);
 
       const result = execSync(`node ${cliPath} extract ${testFile}`, {
         encoding: 'utf8',
@@ -123,12 +123,12 @@ describe('CLI Comprehensive Tests', () => {
       expect(result).toContain('Activities'); // Page name
     });
 
-    it('should extract text from OPML format via CLI', () => {
+    it('should extract text from OPML format via CLI', async () => {
       // Create an OPML file first
       const tree = TreeFactory.createSimple();
       const dotProcessor = new DotProcessor();
       const dotFile = path.join(tempDir, 'temp.dot');
-      dotProcessor.saveFromTree(tree, dotFile);
+      await dotProcessor.saveFromTree(tree, dotFile);
 
       // Convert to OPML
       const opmlFile = path.join(tempDir, 'test.opml');
@@ -146,13 +146,13 @@ describe('CLI Comprehensive Tests', () => {
       expect(result).toContain('Home');
     });
 
-    it('should convert DOT to OPML format', () => {
+    it('should convert DOT to OPML format', async () => {
       const tree = TreeFactory.createSimple();
       const processor = new DotProcessor();
       const inputFile = path.join(tempDir, 'dot_to_opml.dot');
       const outputFile = path.join(tempDir, 'dot_to_opml.opml');
 
-      processor.saveFromTree(tree, inputFile);
+      await processor.saveFromTree(tree, inputFile);
 
       execSync(`node ${cliPath} convert ${inputFile} ${outputFile} --format opml`, {
         cwd: tempDir,
@@ -166,7 +166,7 @@ describe('CLI Comprehensive Tests', () => {
       expect(content).toContain('<opml');
     });
 
-    it('should convert OPML to DOT format', () => {
+    it('should convert OPML to DOT format', async () => {
       // First create an OPML file
       const tree = TreeFactory.createSimple();
       const dotProcessor = new DotProcessor();
@@ -174,7 +174,7 @@ describe('CLI Comprehensive Tests', () => {
       const opmlFile = path.join(tempDir, 'opml_to_dot.opml');
       const finalDotFile = path.join(tempDir, 'opml_to_dot.dot');
 
-      dotProcessor.saveFromTree(tree, tempDotFile);
+      await dotProcessor.saveFromTree(tree, tempDotFile);
 
       // Convert to OPML first
       execSync(`node ${cliPath} convert ${tempDotFile} ${opmlFile} --format opml`, {
@@ -194,7 +194,7 @@ describe('CLI Comprehensive Tests', () => {
       expect(content).toContain('digraph');
     });
 
-    it('should handle file not found errors', () => {
+    it('should handle file not found errors', async () => {
       const nonExistentFile = path.join(tempDir, 'does_not_exist.dot');
 
       expect(() => {
@@ -206,7 +206,7 @@ describe('CLI Comprehensive Tests', () => {
       }).toThrow();
     });
 
-    it('should handle unsupported file formats', () => {
+    it('should handle unsupported file formats', async () => {
       const unsupportedFile = path.join(tempDir, 'unsupported.xyz');
       fs.writeFileSync(unsupportedFile, 'unsupported content');
 
@@ -221,11 +221,11 @@ describe('CLI Comprehensive Tests', () => {
   });
 
   describe('Output Formatting Tests', () => {
-    it('should format output correctly for different formats', () => {
+    it('should format output correctly for different formats', async () => {
       const tree = TreeFactory.createCommunicationBoard();
       const processor = new DotProcessor();
       const testFile = path.join(tempDir, 'format_test.dot');
-      processor.saveFromTree(tree, testFile);
+      await processor.saveFromTree(tree, testFile);
 
       // Test default format
       const defaultResult = execSync(`node ${cliPath} extract ${testFile}`, {
@@ -237,11 +237,11 @@ describe('CLI Comprehensive Tests', () => {
       expect(typeof defaultResult).toBe('string');
     });
 
-    it('should handle verbose output mode', () => {
+    it('should handle verbose output mode', async () => {
       const tree = TreeFactory.createSimple();
       const processor = new DotProcessor();
       const testFile = path.join(tempDir, 'verbose_test.dot');
-      processor.saveFromTree(tree, testFile);
+      await processor.saveFromTree(tree, testFile);
 
       const result = execSync(`node ${cliPath} extract ${testFile} --verbose`, {
         encoding: 'utf8',
@@ -252,11 +252,11 @@ describe('CLI Comprehensive Tests', () => {
       // Verbose mode might include additional information
     });
 
-    it('should handle quiet output mode', () => {
+    it('should handle quiet output mode', async () => {
       const tree = TreeFactory.createSimple();
       const processor = new DotProcessor();
       const testFile = path.join(tempDir, 'quiet_test.dot');
-      processor.saveFromTree(tree, testFile);
+      await processor.saveFromTree(tree, testFile);
 
       const result = execSync(`node ${cliPath} extract ${testFile} --quiet`, {
         encoding: 'utf8',
@@ -267,7 +267,7 @@ describe('CLI Comprehensive Tests', () => {
       expect(result).toContain('Home');
     });
 
-    it('should display help information correctly', () => {
+    it('should display help information correctly', async () => {
       const helpResult = execSync(`node ${cliPath} help`, {
         encoding: 'utf8',
         cwd: tempDir,
@@ -279,7 +279,7 @@ describe('CLI Comprehensive Tests', () => {
       expect(helpResult).toContain('Options:');
     });
 
-    it('should display command-specific help', () => {
+    it('should display command-specific help', async () => {
       const extractHelp = execSync(`node ${cliPath} help extract`, {
         encoding: 'utf8',
         cwd: tempDir,
@@ -291,7 +291,7 @@ describe('CLI Comprehensive Tests', () => {
   });
 
   describe('Integration Tests', () => {
-    it('should process example.dot file correctly', () => {
+    it('should process example.dot file correctly', async () => {
       const exampleDotFile = path.join(examplesDir, 'example.dot');
 
       if (fs.existsSync(exampleDotFile)) {
@@ -307,7 +307,7 @@ describe('CLI Comprehensive Tests', () => {
       }
     });
 
-    it('should convert example.obf to dot format', () => {
+    it('should convert example.obf to dot format', async () => {
       const exampleObfFile = path.join(examplesDir, 'example.obf');
 
       if (fs.existsSync(exampleObfFile)) {
@@ -324,7 +324,7 @@ describe('CLI Comprehensive Tests', () => {
       }
     });
 
-    it('should handle batch processing of multiple files', () => {
+    it('should handle batch processing of multiple files', async () => {
       // Create multiple test files
       const tree1 = TreeFactory.createSimple();
       const tree2 = TreeFactory.createCommunicationBoard();
@@ -333,8 +333,8 @@ describe('CLI Comprehensive Tests', () => {
       const file1 = path.join(tempDir, 'batch1.dot');
       const file2 = path.join(tempDir, 'batch2.dot');
 
-      processor.saveFromTree(tree1, file1);
-      processor.saveFromTree(tree2, file2);
+      await processor.saveFromTree(tree1, file1);
+      await processor.saveFromTree(tree2, file2);
 
       // Process each file
       const result1 = execSync(`node ${cliPath} extract ${file1}`, {
@@ -354,7 +354,7 @@ describe('CLI Comprehensive Tests', () => {
   });
 
   describe('Error Handling Tests', () => {
-    it('should display helpful error messages for invalid files', () => {
+    it('should display helpful error messages for invalid files', async () => {
       const invalidFile = path.join(tempDir, 'invalid.dot');
       fs.writeFileSync(invalidFile, 'invalid dot content');
 
@@ -369,12 +369,12 @@ describe('CLI Comprehensive Tests', () => {
       }
     });
 
-    it('should handle permission errors gracefully', () => {
+    it('should handle permission errors gracefully', async () => {
       // Create a file and remove read permissions (on Unix systems)
       const restrictedFile = path.join(tempDir, 'restricted.dot');
       const tree = TreeFactory.createSimple();
       const processor = new DotProcessor();
-      processor.saveFromTree(tree, restrictedFile);
+      await processor.saveFromTree(tree, restrictedFile);
 
       try {
         // Try to change permissions (may not work on all systems)
@@ -402,7 +402,7 @@ describe('CLI Comprehensive Tests', () => {
       }
     });
 
-    it('should provide usage help for incorrect commands', () => {
+    it('should provide usage help for incorrect commands', async () => {
       try {
         execSync(`node ${cliPath} wrongcommand`, {
           encoding: 'utf8',
@@ -414,7 +414,7 @@ describe('CLI Comprehensive Tests', () => {
       }
     });
 
-    it('should handle missing required arguments', () => {
+    it('should handle missing required arguments', async () => {
       try {
         execSync(`node ${cliPath} extract`, {
           encoding: 'utf8',
@@ -426,11 +426,11 @@ describe('CLI Comprehensive Tests', () => {
       }
     });
 
-    it('should handle invalid output paths for convert command', () => {
+    it('should handle invalid output paths for convert command', async () => {
       const tree = TreeFactory.createSimple();
       const processor = new DotProcessor();
       const inputFile = path.join(tempDir, 'valid_input.dot');
-      processor.saveFromTree(tree, inputFile);
+      await processor.saveFromTree(tree, inputFile);
 
       // Try to write to an invalid path
       const invalidOutputPath = '/invalid/path/output.opml';

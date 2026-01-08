@@ -10,7 +10,7 @@ import {
 
 describe('Symbol Alignment Utilities', () => {
   describe('parseMessageWithSymbols', () => {
-    it('should parse plain text without symbols', () => {
+    it('should parse plain text without symbols', async () => {
       const result = parseMessageWithSymbols('Hello world');
 
       expect(result.text).toBe('Hello world');
@@ -18,7 +18,7 @@ describe('Symbol Alignment Utilities', () => {
       expect(result.symbols).toEqual([]);
     });
 
-    it('should parse text with richText symbols attached', () => {
+    it('should parse text with richText symbols attached', async () => {
       const richTextSymbols = [
         { text: 'apple', image: '[widgit]/food/apple.png' },
         { text: 'juice', image: '[widgit]/food/juice.png' },
@@ -43,7 +43,7 @@ describe('Symbol Alignment Utilities', () => {
       expect(juiceSymbol?.symbolRef).toBe('[widgit]/food/juice.png');
     });
 
-    it('should handle fuzzy matching for case differences', () => {
+    it('should handle fuzzy matching for case differences', async () => {
       const richTextSymbols = [{ text: 'Apple', image: '[widgit]/food/apple.png' }];
 
       const result = parseMessageWithSymbols('I want apple', richTextSymbols);
@@ -53,14 +53,14 @@ describe('Symbol Alignment Utilities', () => {
       expect(result.symbols[0].wordIndex).toBe(2);
     });
 
-    it('should normalize whitespace', () => {
+    it('should normalize whitespace', async () => {
       const result = parseMessageWithSymbols('I   want   apple');
 
       expect(result.text).toBe('I want apple');
       expect(result.words).toEqual(['I', 'want', 'apple']);
     });
 
-    it('should handle empty message', () => {
+    it('should handle empty message', async () => {
       const result = parseMessageWithSymbols('');
 
       expect(result.text).toBe('');
@@ -70,7 +70,7 @@ describe('Symbol Alignment Utilities', () => {
   });
 
   describe('alignWords', () => {
-    it('should align identical words (cognates)', () => {
+    it('should align identical words (cognates)', async () => {
       const originalWords = ['I', 'want', 'apple', 'juice'];
       const translatedWords = ['Yo', 'quiero', 'apple', 'jugo'];
 
@@ -86,7 +86,7 @@ describe('Symbol Alignment Utilities', () => {
       expect(appleAlignment?.translatedIndex).toBe(2);
     });
 
-    it('should use positional alignment for non-matching words', () => {
+    it('should use positional alignment for non-matching words', async () => {
       const originalWords = ['I', 'want', 'apple'];
       const translatedWords = ['Yo', 'quiero', 'manzana'];
 
@@ -103,7 +103,7 @@ describe('Symbol Alignment Utilities', () => {
       expect(alignment[2].translatedWord).toBe('manzana');
     });
 
-    it('should handle different length sentences', () => {
+    it('should handle different length sentences', async () => {
       const originalWords = ['Hello', 'world'];
       const translatedWords = ['Hola', 'mundo', 'amigo'];
 
@@ -114,7 +114,7 @@ describe('Symbol Alignment Utilities', () => {
       expect(alignment.filter((a) => a.originalIndex !== undefined)).toHaveLength(2);
     });
 
-    it('should handle numbers and punctuation', () => {
+    it('should handle numbers and punctuation', async () => {
       const originalWords = ['I', 'want', '2', 'apples'];
       const translatedWords = ['Quiero', '2', 'manzanas'];
 
@@ -128,7 +128,7 @@ describe('Symbol Alignment Utilities', () => {
   });
 
   describe('reattachSymbols', () => {
-    it('should reattach symbols to translated words based on alignment', () => {
+    it('should reattach symbols to translated words based on alignment', async () => {
       const originalParsed: ParsedMessage = {
         text: 'I want apple',
         words: ['I', 'want', 'apple'],
@@ -172,7 +172,7 @@ describe('Symbol Alignment Utilities', () => {
       expect(result.richTextSymbols[0].image).toBe('[widgit]/food/apple.png');
     });
 
-    it('should handle multiple symbols', () => {
+    it('should handle multiple symbols', async () => {
       const originalParsed: ParsedMessage = {
         text: 'I want apple juice',
         words: ['I', 'want', 'apple', 'juice'],
@@ -228,7 +228,7 @@ describe('Symbol Alignment Utilities', () => {
       expect(result.richTextSymbols[1].text).toBe('jugo');
     });
 
-    it('should fallback to original word if alignment not found', () => {
+    it('should fallback to original word if alignment not found', async () => {
       const originalParsed: ParsedMessage = {
         text: 'I want apple',
         words: ['I', 'want', 'apple'],
@@ -268,7 +268,7 @@ describe('Symbol Alignment Utilities', () => {
   });
 
   describe('translateWithSymbols (integration)', () => {
-    it('should complete the full pipeline', () => {
+    it('should complete the full pipeline', async () => {
       const originalMessage = 'I want apple juice';
       const translatedText = 'Yo quiero jugo de manzana';
       const richTextSymbols = [
@@ -290,14 +290,14 @@ describe('Symbol Alignment Utilities', () => {
       expect(juiceSymbol).toBeDefined();
     });
 
-    it('should handle messages without symbols', () => {
+    it('should handle messages without symbols', async () => {
       const result = translateWithSymbols('Hello', 'Hola');
 
       expect(result.text).toBe('Hola');
       expect(result.richTextSymbols).toEqual([]);
     });
 
-    it('should handle English to Spanish translation', () => {
+    it('should handle English to Spanish translation', async () => {
       const originalMessage = 'I want water';
       const translatedText = 'Yo quiero agua';
       const richTextSymbols = [{ text: 'water', image: '[widgit]/food/water.png' }];
@@ -311,7 +311,7 @@ describe('Symbol Alignment Utilities', () => {
       expect(result.richTextSymbols[0].text).toBeTruthy();
     });
 
-    it('should handle symbol library references', () => {
+    it('should handle symbol library references', async () => {
       const originalMessage = 'home';
       const translatedText = 'casa';
       const richTextSymbols = [{ text: 'home', image: '[widgit]/places/home.png' }];
@@ -323,7 +323,7 @@ describe('Symbol Alignment Utilities', () => {
   });
 
   describe('extractSymbolsFromButton', () => {
-    it('should extract symbols from semanticAction.richText.symbols', () => {
+    it('should extract symbols from semanticAction.richText.symbols', async () => {
       const button = {
         label: 'apple',
         message: 'I want apple',
@@ -340,7 +340,7 @@ describe('Symbol Alignment Utilities', () => {
       expect(symbols).toEqual([{ text: 'apple', image: '[widgit]/food/apple.png' }]);
     });
 
-    it('should extract symbols from symbolLibrary and symbolPath', () => {
+    it('should extract symbols from symbolLibrary and symbolPath', async () => {
       const button = {
         label: 'apple',
         message: 'apple',
@@ -356,7 +356,7 @@ describe('Symbol Alignment Utilities', () => {
       expect(symbols?.[0].image).toBe('[widgit]/food/apple.png');
     });
 
-    it('should extract symbols from image field if it is a symbol reference', () => {
+    it('should extract symbols from image field if it is a symbol reference', async () => {
       const button = {
         label: 'home',
         message: 'home',
@@ -371,7 +371,7 @@ describe('Symbol Alignment Utilities', () => {
       expect(symbols?.[0].image).toBe('[widgit]/places/home.png');
     });
 
-    it('should return undefined for regular image paths (not symbol references)', () => {
+    it('should return undefined for regular image paths (not symbol references)', async () => {
       const button = {
         label: 'photo',
         message: 'photo',
@@ -383,7 +383,7 @@ describe('Symbol Alignment Utilities', () => {
       expect(symbols).toBeUndefined();
     });
 
-    it('should return undefined for buttons without symbols', () => {
+    it('should return undefined for buttons without symbols', async () => {
       const button = {
         label: 'hello',
         message: 'hello',
@@ -394,7 +394,7 @@ describe('Symbol Alignment Utilities', () => {
       expect(symbols).toBeUndefined();
     });
 
-    it('should handle empty label and message', () => {
+    it('should handle empty label and message', async () => {
       const button = {
         symbolLibrary: 'widgit',
         symbolPath: '/food/apple.png',
@@ -407,7 +407,7 @@ describe('Symbol Alignment Utilities', () => {
   });
 
   describe('Real-world scenarios', () => {
-    it('should handle AAC gridset button translation', () => {
+    it('should handle AAC gridset button translation', async () => {
       // Simulate a real AAC button with a symbol
       const button = {
         id: 'btn1',
@@ -434,7 +434,7 @@ describe('Symbol Alignment Utilities', () => {
       expect(['manzana', 'quiero']).toContain(result.richTextSymbols[0].text);
     });
 
-    it('should handle multi-word phrases with symbols', () => {
+    it('should handle multi-word phrases with symbols', async () => {
       const originalMessage = 'I want to go home';
       const translatedText = 'Quiero ir a casa';
       const richTextSymbols = [{ text: 'home', image: '[widgit]/places/home.png' }];
@@ -445,7 +445,7 @@ describe('Symbol Alignment Utilities', () => {
       expect(result.richTextSymbols[0].image).toBe('[widgit]/places/home.png');
     });
 
-    it('should preserve all symbols in a sentence with multiple symbols', () => {
+    it('should preserve all symbols in a sentence with multiple symbols', async () => {
       const originalMessage = 'I eat apple and banana';
       const translatedText = 'Como manzana y plátano';
       const richTextSymbols = [

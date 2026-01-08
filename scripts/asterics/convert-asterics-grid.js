@@ -93,7 +93,7 @@ if (invalidFormats.length > 0) {
 const processor = new AstericsGridProcessor({ loadAudio: true });
 let tree;
 try {
-  tree = processor.loadIntoTree(inputPath);
+  tree = await processor.loadIntoTree(inputPath);
 } catch (error) {
   console.error(`Failed to load the source file: ${error.message}`);
   process.exit(1);
@@ -105,74 +105,78 @@ const results = [];
 console.log(`Converting "${path.basename(inputPath)}" → ${targetFormats.join(', ')}`);
 console.log(`Output directory: ${outputDir}\n`);
 
-targetFormats.forEach((formatKey) => {
-  const config = AVAILABLE_FORMATS[formatKey];
-  const outputFileName = `${outputBaseName}${config.extension}`;
-  const outputPath = path.join(outputDir, outputFileName);
+const processConversions = async () => {
+  for (const formatKey of targetFormats) {
+    const config = AVAILABLE_FORMATS[formatKey];
+    const outputFileName = `${outputBaseName}${config.extension}`;
+    const outputPath = path.join(outputDir, outputFileName);
 
-  if (!options.overwrite && fs.existsSync(outputPath)) {
-    console.warn(`[warn] ${outputFileName} already exists. Skipping (use --overwrite to regenerate).`);
-    results.push({
-      format: formatKey,
-      status: 'skipped',
-      outputPath,
-    });
-    return;
+    if (!options.overwrite && fs.existsSync(outputPath)) {
+      console.warn(`[warn] ${outputFileName} already exists. Skipping (use --overwrite to regenerate).`);
+      results.push({
+        format: formatKey,
+        status: 'skipped',
+        outputPath,
+      });
+      continue;
+    }
+
+    const startTime = Date.now();
+    try {
+      const formatProcessor = new config.Processor();
+      await formatProcessor.saveFromTree(tree, outputPath);
+      const stats = fs.statSync(outputPath);
+      const durationMs = Date.now() - startTime;
+      console.log(
+        `[ok] ${outputFileName} (${(stats.size / 1024).toFixed(1)} KB, ${durationMs} ms)`
+      );
+      results.push({
+        format: formatKey,
+        status: 'success',
+        outputPath,
+        size: stats.size,
+        durationMs,
+      });
+    } catch (error) {
+      const durationMs = Date.now() - startTime;
+      console.error(`[fail] ${outputFileName}: ${error.message}`);
+      results.push({
+        format: formatKey,
+        status: 'failed',
+        outputPath,
+        error: error.message,
+        durationMs,
+      });
+    }
   }
 
-  const startTime = Date.now();
-  try {
-    const formatProcessor = new config.Processor();
-    formatProcessor.saveFromTree(tree, outputPath);
-    const stats = fs.statSync(outputPath);
-    const durationMs = Date.now() - startTime;
-    console.log(
-      `[ok] ${outputFileName} (${(stats.size / 1024).toFixed(1)} KB, ${durationMs} ms)`
-    );
-    results.push({
-      format: formatKey,
-      status: 'success',
-      outputPath,
-      size: stats.size,
-      durationMs,
-    });
-  } catch (error) {
-    const durationMs = Date.now() - startTime;
-    console.error(`[fail] ${outputFileName}: ${error.message}`);
-    results.push({
-      format: formatKey,
-      status: 'failed',
-      outputPath,
-      error: error.message,
-      durationMs,
-    });
+  const successCount = results.filter((result) => result.status === 'success').length;
+  const failedCount = results.filter((result) => result.status === 'failed').length;
+  const skippedCount = results.filter((result) => result.status === 'skipped').length;
+
+  console.log('\nSummary');
+  console.log(`  Success : ${successCount}`);
+  console.log(`  Failed  : ${failedCount}`);
+  console.log(`  Skipped : ${skippedCount}`);
+
+  if (options.report) {
+    const reportPath = path.join(outputDir, `${outputBaseName}-conversion-report.json`);
+    const report = {
+      generatedAt: new Date().toISOString(),
+      input: {
+        path: inputPath,
+        size: sourceStats.size,
+      },
+      outputDirectory: outputDir,
+      results,
+    };
+    fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
+    console.log(`\nReport written to ${reportPath}`);
   }
-});
 
-const successCount = results.filter((result) => result.status === 'success').length;
-const failedCount = results.filter((result) => result.status === 'failed').length;
-const skippedCount = results.filter((result) => result.status === 'skipped').length;
+  if (failedCount > 0) {
+    process.exitCode = 1;
+  }
+};
 
-console.log('\nSummary');
-console.log(`  Success : ${successCount}`);
-console.log(`  Failed  : ${failedCount}`);
-console.log(`  Skipped : ${skippedCount}`);
-
-if (options.report) {
-  const reportPath = path.join(outputDir, `${outputBaseName}-conversion-report.json`);
-  const report = {
-    generatedAt: new Date().toISOString(),
-    input: {
-      path: inputPath,
-      size: sourceStats.size,
-    },
-    outputDirectory: outputDir,
-    results,
-  };
-  fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
-  console.log(`\nReport written to ${reportPath}`);
-}
-
-if (failedCount > 0) {
-  process.exitCode = 1;
-}
+processConversions();

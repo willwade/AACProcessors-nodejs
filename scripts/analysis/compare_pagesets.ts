@@ -43,12 +43,12 @@ async function main() {
   try {
     // Load and analyze 1
     const p1 = getProcessor(path.extname(file1) === '.zip' ? '.ce' : path.extname(file1));
-    const tree1 = p1.loadIntoTree(path.resolve(process.cwd(), file1));
+    const tree1 = await p1.loadIntoTree(path.resolve(process.cwd(), file1));
     const metrics1 = calculator.analyze(tree1, { spellingPageId: spelling1 });
 
     // Load and analyze 2
     const p2 = getProcessor(path.extname(file2) === '.zip' ? '.ce' : path.extname(file2));
-    const tree2 = p2.loadIntoTree(path.resolve(process.cwd(), file2));
+    const tree2 = await p2.loadIntoTree(path.resolve(process.cwd(), file2));
     const metrics2 = calculator.analyze(tree2, { spellingPageId: spelling2 });
 
     const comparison = comparer.compare(metrics1, metrics2, {

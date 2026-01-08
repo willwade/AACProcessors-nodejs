@@ -5,15 +5,15 @@ import { TouchChatProcessor } from '../src/processors/touchchatProcessor';
 describe('TouchChatProcessor round-trip', () => {
   const tcPath = path.join(__dirname, 'assets/excel/example.touchchat.json');
   const outPath = path.join(__dirname, 'out.touchchat.json');
-  afterAll(() => {
+  afterAll(async () => {
     if (fs.existsSync(outPath)) fs.unlinkSync(outPath);
   });
-  it('round-trips TouchChat JSON without losing pages or navigation', () => {
+  it('round-trips TouchChat JSON without losing pages or navigation', async () => {
     if (!fs.existsSync(tcPath)) return;
     const processor = new TouchChatProcessor();
-    const tree1 = processor.loadIntoTree(tcPath);
-    processor.saveFromTree(tree1, outPath);
-    const tree2 = processor.loadIntoTree(outPath);
+    const tree1 = await processor.loadIntoTree(tcPath);
+    await processor.saveFromTree(tree1, outPath);
+    const tree2 = await processor.loadIntoTree(outPath);
     expect(Object.keys(tree1.pages).sort()).toEqual(Object.keys(tree2.pages).sort());
     for (const pid in tree1.pages) {
       expect(tree2.pages).toHaveProperty(pid);

@@ -13,20 +13,20 @@ import { AACTree, AACPage, AACButton } from '../src/core/treeStructure';
 describe('ProcessTexts functionality', () => {
   const tempDir = path.join(__dirname, 'temp');
 
-  beforeAll(() => {
+  beforeAll(async () => {
     if (!fs.existsSync(tempDir)) {
       fs.mkdirSync(tempDir, { recursive: true });
     }
   });
 
-  afterAll(() => {
+  afterAll(async () => {
     if (fs.existsSync(tempDir)) {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }
   });
 
   describe('DotProcessor processTexts', () => {
-    it('should apply translations to dot file content', () => {
+    it('should apply translations to dot file content', async () => {
       const processor = new DotProcessor();
       const dotContent = `
         digraph G {
@@ -43,9 +43,13 @@ describe('ProcessTexts functionality', () => {
       ]);
 
       const outputPath = path.join(tempDir, 'translated.dot');
-      const result = processor.processTexts(Buffer.from(dotContent), translations, outputPath);
+      const result = await processor.processTexts(
+        Buffer.from(dotContent),
+        translations,
+        outputPath
+      );
 
-      const translatedContent = result.toString('utf8');
+      const translatedContent = Buffer.from(result).toString('utf8');
       expect(translatedContent).toContain('label="Hola"');
       expect(translatedContent).toContain('label="Mundo"');
       expect(translatedContent).toContain('label="Ir"');
@@ -53,7 +57,7 @@ describe('ProcessTexts functionality', () => {
   });
 
   describe('OpmlProcessor processTexts', () => {
-    it('should apply translations to OPML text attributes', () => {
+    it('should apply translations to OPML text attributes', async () => {
       const processor = new OpmlProcessor();
       const opmlContent = `<?xml version="1.0" encoding="UTF-8"?>
         <opml version="2.0">
@@ -73,9 +77,13 @@ describe('ProcessTexts functionality', () => {
       ]);
 
       const outputPath = path.join(tempDir, 'translated.opml');
-      const result = processor.processTexts(Buffer.from(opmlContent), translations, outputPath);
+      const result = await processor.processTexts(
+        Buffer.from(opmlContent),
+        translations,
+        outputPath
+      );
 
-      const translatedContent = result.toString('utf8');
+      const translatedContent = Buffer.from(result).toString('utf8');
       expect(translatedContent).toContain('text="Casa"');
       expect(translatedContent).toContain('text="Comida"');
       expect(translatedContent).toContain('text="Bebidas"');
@@ -85,7 +93,7 @@ describe('ProcessTexts functionality', () => {
   describe('Tree-based processors processTexts', () => {
     let testTree: AACTree;
 
-    beforeEach(() => {
+    beforeEach(async () => {
       // Create a test tree with translatable content
       testTree = new AACTree();
 
@@ -123,12 +131,12 @@ describe('ProcessTexts functionality', () => {
       testTree.addPage(page2);
     });
 
-    it('should translate ApplePanels content', () => {
+    it('should translate ApplePanels content', async () => {
       const processor = new ApplePanelsProcessor();
       const outputPath = path.join(tempDir, 'test.applepanels.plist');
 
       // First save the test tree
-      processor.saveFromTree(testTree, outputPath);
+      await processor.saveFromTree(testTree, outputPath);
 
       const translations = new Map([
         ['Main Page', 'Página Principal'],
@@ -139,13 +147,13 @@ describe('ProcessTexts functionality', () => {
       ]);
 
       const translatedPath = path.join(tempDir, 'translated.applepanels.plist');
-      const result = processor.processTexts(outputPath, translations, translatedPath);
+      const result = await processor.processTexts(outputPath, translations, translatedPath);
 
-      expect(result).toBeInstanceOf(Buffer);
+      expect(result).toBeInstanceOf(Uint8Array);
       expect(fs.existsSync(translatedPath)).toBe(true);
 
       // Verify translations were applied by loading the translated file
-      const translatedTree = processor.loadIntoTree(translatedPath);
+      const translatedTree = await processor.loadIntoTree(translatedPath);
       const pages = Object.values(translatedTree.pages);
       expect(pages.length).toBeGreaterThan(0);
 
@@ -167,12 +175,12 @@ describe('ProcessTexts functionality', () => {
       expect(helloButton.message).toBe('Hola Mundo');
     });
 
-    it('should translate OBF content', () => {
+    it('should translate OBF content', async () => {
       const processor = new ObfProcessor();
       const outputPath = path.join(tempDir, 'test.obf');
 
       // First save the test tree
-      processor.saveFromTree(testTree, outputPath);
+      await processor.saveFromTree(testTree, outputPath);
 
       const translations = new Map([
         ['Main Page', 'Página Principal'],
@@ -181,24 +189,24 @@ describe('ProcessTexts functionality', () => {
       ]);
 
       const translatedPath = path.join(tempDir, 'translated.obf');
-      const result = processor.processTexts(outputPath, translations, translatedPath);
+      const result = await processor.processTexts(outputPath, translations, translatedPath);
 
-      expect(result).toBeInstanceOf(Buffer);
+      expect(result).toBeInstanceOf(Uint8Array);
       expect(fs.existsSync(translatedPath)).toBe(true);
     });
 
-    it('should handle empty translations gracefully', () => {
+    it('should handle empty translations gracefully', async () => {
       const processor = new ApplePanelsProcessor();
       const outputPath = path.join(tempDir, 'test_empty.applepanels.plist');
 
-      processor.saveFromTree(testTree, outputPath);
+      await processor.saveFromTree(testTree, outputPath);
 
       const emptyTranslations = new Map<string, string>();
       const translatedPath = path.join(tempDir, 'empty_translated.applepanels.plist');
 
-      expect(() => {
-        processor.processTexts(outputPath, emptyTranslations, translatedPath);
-      }).not.toThrow();
+      await expect(
+        processor.processTexts(outputPath, emptyTranslations, translatedPath)
+      ).resolves.not.toThrow();
 
       expect(fs.existsSync(translatedPath)).toBe(true);
     });

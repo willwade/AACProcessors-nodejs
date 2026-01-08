@@ -11,8 +11,8 @@ import {
   AACSemanticCategory,
   AACSemanticIntent,
 } from '../core/treeStructure';
-import fs from 'fs';
 import { BaseProcessor, ProcessorOptions } from '../core/baseProcessor';
+import { ProcessorInput, readTextFromInput } from '../utils/io';
 
 interface ObfsetButton {
   id: string;
@@ -44,8 +44,8 @@ export class ObfsetProcessor extends BaseProcessor {
   /**
    * Extract all text content
    */
-  extractTexts(filePathOrBuffer: string | Buffer): string[] {
-    const tree = this.loadIntoTree(filePathOrBuffer);
+  async extractTexts(filePathOrBuffer: ProcessorInput): Promise<string[]> {
+    const tree = await this.loadIntoTree(filePathOrBuffer);
     const texts = new Set<string>();
 
     Object.values(tree.pages).forEach((page) => {
@@ -61,16 +61,11 @@ export class ObfsetProcessor extends BaseProcessor {
   /**
    * Load an .obfset file (JSON array of boards)
    */
-  loadIntoTree(filePathOrBuffer: string | Buffer): AACTree {
+  async loadIntoTree(filePathOrBuffer: ProcessorInput): Promise<AACTree> {
+    await Promise.resolve();
     const tree = new AACTree();
     tree.metadata.format = 'obfset';
-    let content: string;
-
-    if (Buffer.isBuffer(filePathOrBuffer)) {
-      content = filePathOrBuffer.toString('utf-8');
-    } else {
-      content = fs.readFileSync(filePathOrBuffer, 'utf-8');
-    }
+    const content = readTextFromInput(filePathOrBuffer);
 
     const boards: ObfsetBoard[] = JSON.parse(content);
 
@@ -210,18 +205,20 @@ export class ObfsetProcessor extends BaseProcessor {
   /**
    * Process texts (not supported for .obfset currently)
    */
-  processTexts(
-    _filePathOrBuffer: string | Buffer,
+  async processTexts(
+    _filePathOrBuffer: ProcessorInput,
     _translations: Map<string, string>,
     _outputPath: string
-  ): Buffer {
+  ): Promise<Uint8Array> {
+    await Promise.resolve();
     throw new Error('processTexts is not supported for .obfset currently');
   }
 
   /**
    * Save tree structure back to file
    */
-  saveFromTree(_tree: AACTree, _outputPath: string): void {
+  async saveFromTree(_tree: AACTree, _outputPath: string): Promise<void> {
+    await Promise.resolve();
     throw new Error('saveFromTree is not supported for .obfset currently');
   }
 

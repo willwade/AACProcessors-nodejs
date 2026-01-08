@@ -10,7 +10,7 @@ import {
 
 describe('Grid3 Wordlist Helpers', () => {
   describe('createWordlist', () => {
-    it('creates wordlist from simple string array', () => {
+    it('creates wordlist from simple string array', async () => {
       const input = ['hello', 'goodbye', 'thank you'];
       const wordlist = createWordlist(input);
 
@@ -20,7 +20,7 @@ describe('Grid3 Wordlist Helpers', () => {
       expect(wordlist.items[2].text).toBe('thank you');
     });
 
-    it('creates wordlist from array of WordListItem objects', () => {
+    it('creates wordlist from array of WordListItem objects', async () => {
       const input: WordListItem[] = [
         {
           text: 'hello',
@@ -41,7 +41,7 @@ describe('Grid3 Wordlist Helpers', () => {
       expect(wordlist.items[0].partOfSpeech).toBe('Interjection');
     });
 
-    it('creates wordlist from dictionary of strings', () => {
+    it('creates wordlist from dictionary of strings', async () => {
       const input = {
         greeting: 'hello',
         farewell: 'goodbye',
@@ -54,7 +54,7 @@ describe('Grid3 Wordlist Helpers', () => {
       expect(wordlist.items.map((i) => i.text)).toContain('goodbye');
     });
 
-    it('creates wordlist from dictionary of objects', () => {
+    it('creates wordlist from dictionary of objects', async () => {
       const input: Record<string, WordListItem> = {
         greeting: { text: 'hello', partOfSpeech: 'Interjection' },
         farewell: { text: 'goodbye', partOfSpeech: 'Interjection' },
@@ -65,19 +65,19 @@ describe('Grid3 Wordlist Helpers', () => {
       expect(wordlist.items[0].partOfSpeech).toBe('Interjection');
     });
 
-    it('handles empty array', () => {
+    it('handles empty array', async () => {
       const wordlist = createWordlist([]);
       expect(wordlist.items).toHaveLength(0);
     });
 
-    it('handles empty object', () => {
+    it('handles empty object', async () => {
       const wordlist = createWordlist({});
       expect(wordlist.items).toHaveLength(0);
     });
   });
 
   describe('wordlistToXml', () => {
-    it('converts wordlist to valid XML', () => {
+    it('converts wordlist to valid XML', async () => {
       const wordlist: WordList = {
         items: [
           {
@@ -99,7 +99,7 @@ describe('Grid3 Wordlist Helpers', () => {
       expect(xml).toContain('[WIDGIT]hello.emf');
     });
 
-    it('handles single item wordlist', () => {
+    it('handles single item wordlist', async () => {
       const wordlist: WordList = {
         items: [{ text: 'hello' }],
       };
@@ -109,7 +109,7 @@ describe('Grid3 Wordlist Helpers', () => {
       expect(xml).toContain('<WordList>');
     });
 
-    it('includes PartOfSpeech as Unknown when not specified', () => {
+    it('includes PartOfSpeech as Unknown when not specified', async () => {
       const wordlist: WordList = {
         items: [{ text: 'hello' }],
       };
@@ -149,7 +149,7 @@ describe('Grid3 Wordlist Helpers', () => {
       return zip.toBuffer();
     }
 
-    it('extracts wordlist from gridset', () => {
+    it('extracts wordlist from gridset', async () => {
       const wordlistXml = `<WordList>
   <Items>
     <WordListItem>
@@ -166,7 +166,7 @@ describe('Grid3 Wordlist Helpers', () => {
 </WordList>`;
 
       const gridset = createTestGridset('Greetings', wordlistXml);
-      const wordlists = extractWordlists(gridset);
+      const wordlists = await extractWordlists(gridset);
 
       expect(wordlists.size).toBe(1);
       expect(wordlists.has('Greetings')).toBe(true);
@@ -182,7 +182,7 @@ describe('Grid3 Wordlist Helpers', () => {
       expect(wordlist.items[1].text).toBe('goodbye');
     });
 
-    it('returns empty map for gridset without wordlists', () => {
+    it('returns empty map for gridset without wordlists', async () => {
       const zip = new AdmZip();
       const gridXml = `<?xml version="1.0" encoding="UTF-8"?>
 <Grid xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
@@ -191,12 +191,12 @@ describe('Grid3 Wordlist Helpers', () => {
 </Grid>`;
 
       zip.addFile('Grids/Home/grid.xml', Buffer.from(gridXml, 'utf8'));
-      const wordlists = extractWordlists(zip.toBuffer());
+      const wordlists = await extractWordlists(zip.toBuffer());
 
       expect(wordlists.size).toBe(0);
     });
 
-    it('handles multiple grids with wordlists', () => {
+    it('handles multiple grids with wordlists', async () => {
       const zip = new AdmZip();
 
       const createGrid = (name: string, items: string[]) => {
@@ -230,19 +230,21 @@ describe('Grid3 Wordlist Helpers', () => {
         Buffer.from(createGrid('Farewells', ['goodbye', 'bye']), 'utf8')
       );
 
-      const wordlists = extractWordlists(zip.toBuffer());
+      const wordlists = await extractWordlists(zip.toBuffer());
 
       expect(wordlists.size).toBe(2);
       expect(wordlists.get('Greetings')?.items).toHaveLength(2);
       expect(wordlists.get('Farewells')?.items).toHaveLength(2);
     });
 
-    it('throws error for invalid gridset buffer', () => {
+    it('throws error for invalid gridset buffer', async () => {
       const invalidBuffer = Buffer.from('not a zip file');
-      expect(() => extractWordlists(invalidBuffer)).toThrow();
+      await expect(async () => {
+        await extractWordlists(invalidBuffer);
+      }).rejects.toThrow();
     });
 
-    it('skips grids with malformed wordlist XML', () => {
+    it('skips grids with malformed wordlist XML', async () => {
       const zip = new AdmZip();
       const gridXml = `<?xml version="1.0" encoding="UTF-8"?>
 <Grid xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
@@ -254,7 +256,7 @@ describe('Grid3 Wordlist Helpers', () => {
 </Grid>`;
 
       zip.addFile('Grids/Test/grid.xml', Buffer.from(gridXml, 'utf8'));
-      const wordlists = extractWordlists(zip.toBuffer());
+      const wordlists = await extractWordlists(zip.toBuffer());
 
       // Should not throw, just skip the malformed grid
       expect(wordlists.size).toBe(0);
@@ -301,12 +303,12 @@ describe('Grid3 Wordlist Helpers', () => {
       return zip.toBuffer();
     }
 
-    it('updates wordlist in existing grid', () => {
+    it('updates wordlist in existing grid', async () => {
       const gridset = createTestGridset('Greetings');
       const newWordlist = createWordlist(['hello', 'hi', 'hey']);
 
-      const updated = updateWordlist(gridset, 'Greetings', newWordlist);
-      const wordlists = extractWordlists(updated);
+      const updated = await updateWordlist(gridset, 'Greetings', newWordlist);
+      const wordlists = await extractWordlists(updated);
 
       expect(wordlists.has('Greetings')).toBe(true);
       const wordlist = wordlists.get('Greetings');
@@ -318,7 +320,7 @@ describe('Grid3 Wordlist Helpers', () => {
       expect(wordlist.items.map((i) => i.text)).toEqual(['hello', 'hi', 'hey']);
     });
 
-    it('updates wordlist with metadata', () => {
+    it('updates wordlist with metadata', async () => {
       const gridset = createTestGridset('Greetings');
       const newWordlist = createWordlist([
         {
@@ -333,8 +335,8 @@ describe('Grid3 Wordlist Helpers', () => {
         },
       ]);
 
-      const updated = updateWordlist(gridset, 'Greetings', newWordlist);
-      const wordlists = extractWordlists(updated);
+      const updated = await updateWordlist(gridset, 'Greetings', newWordlist);
+      const wordlists = await extractWordlists(updated);
 
       const wordlist = wordlists.get('Greetings');
       expect(wordlist).toBeDefined();
@@ -345,36 +347,38 @@ describe('Grid3 Wordlist Helpers', () => {
       expect(wordlist.items[0].partOfSpeech).toBe('Interjection');
     });
 
-    it('replaces existing wordlist completely', () => {
+    it('replaces existing wordlist completely', async () => {
       const gridset = createTestGridset('Greetings');
-      const extracted1 = extractWordlists(gridset);
+      const extracted1 = await extractWordlists(gridset);
       expect(extracted1.get('Greetings')?.items[0].text).toBe('old');
 
       const newWordlist = createWordlist(['new1', 'new2']);
-      const updated = updateWordlist(gridset, 'Greetings', newWordlist);
-      const extracted2 = extractWordlists(updated);
+      const updated = await updateWordlist(gridset, 'Greetings', newWordlist);
+      const extracted2 = await extractWordlists(updated);
 
       expect(extracted2.get('Greetings')?.items).toHaveLength(2);
       expect(extracted2.get('Greetings')?.items[0].text).toBe('new1');
     });
 
-    it('throws error for non-existent grid', () => {
+    it('throws error for non-existent grid', async () => {
       const gridset = createTestGridset('Greetings');
       const newWordlist = createWordlist(['hello']);
 
-      expect(() => updateWordlist(gridset, 'NonExistent', newWordlist)).toThrow(
-        'Grid "NonExistent" not found in gridset'
-      );
+      await expect(async () => {
+        await updateWordlist(gridset, 'NonExistent', newWordlist);
+      }).rejects.toThrow('Grid "NonExistent" not found in gridset');
     });
 
-    it('throws error for invalid gridset buffer', () => {
+    it('throws error for invalid gridset buffer', async () => {
       const invalidBuffer = Buffer.from('not a zip file');
       const newWordlist = createWordlist(['hello']);
 
-      expect(() => updateWordlist(invalidBuffer, 'Greetings', newWordlist)).toThrow();
+      await expect(async () => {
+        await updateWordlist(invalidBuffer, 'Greetings', newWordlist);
+      }).rejects.toThrow();
     });
 
-    it('preserves other grids when updating one', () => {
+    it('preserves other grids when updating one', async () => {
       const zip = new AdmZip();
 
       const createGrid = (name: string) => `<?xml version="1.0" encoding="UTF-8"?>
@@ -395,8 +399,8 @@ describe('Grid3 Wordlist Helpers', () => {
       zip.addFile('Grids/Farewells/grid.xml', Buffer.from(createGrid('Farewells'), 'utf8'));
 
       const newWordlist = createWordlist(['updated']);
-      const updated = updateWordlist(zip.toBuffer(), 'Greetings', newWordlist);
-      const wordlists = extractWordlists(updated);
+      const updated = await updateWordlist(zip.toBuffer(), 'Greetings', newWordlist);
+      const wordlists = await extractWordlists(updated);
 
       expect(wordlists.get('Greetings')?.items[0].text).toBe('updated');
       expect(wordlists.get('Farewells')?.items[0].text).toBe('Farewells-item');

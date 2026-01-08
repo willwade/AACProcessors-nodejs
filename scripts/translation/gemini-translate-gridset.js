@@ -99,10 +99,9 @@ async function main() {
   console.log('');
 
   const processor = new GridsetProcessor();
-
   // Step 1: Extract symbol information
   console.log('STEP 1: Extracting symbol information from gridset...');
-  const symbolInfo = processor.extractSymbolsForLLM(inputPath);
+  const symbolInfo = await processor.extractSymbolsForLLM(inputPath);
 
   // NOTE: This script uses batch processing - sends ALL buttons in a single API call.
   // For large vocabularies (1000+ buttons), consider chunking by page to avoid:
@@ -231,13 +230,13 @@ Remember: Return ONLY the JSON array, no other text.`;
 
     // Step 7: Apply translations
     console.log('STEP 6: Applying translations to gridset...');
-    processor.processLLMTranslations(inputPath, translations, outputPath);
+    await processor.processLLMTranslations(inputPath, translations, outputPath);
     console.log('  Translations applied successfully!');
     console.log('');
 
     // Step 8: Verify
     console.log('STEP 7: Verifying results...');
-    const translatedTree = processor.loadIntoTree(outputPath);
+    const translatedTree = await processor.loadIntoTree(outputPath);
     
     let translatedCount = 0;
     let symbolPreservedCount = 0;

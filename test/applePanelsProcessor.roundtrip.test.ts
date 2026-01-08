@@ -8,14 +8,14 @@ import { ValidationFailureError } from '../src/validation';
 describe('ApplePanelsProcessor round-trip', () => {
   const outPath: string = path.join(__dirname, 'out.applepanels');
 
-  afterAll(() => {
+  afterAll(async () => {
     const asconfigPath = `${outPath}.ascconfig`;
     if (fs.existsSync(asconfigPath)) {
       fs.rmSync(asconfigPath, { recursive: true, force: true });
     }
   });
 
-  it('can save and load a constructed tree', () => {
+  it('can save and load a constructed tree', async () => {
     const processor = new ApplePanelsProcessor();
 
     // Create a simple tree programmatically
@@ -66,11 +66,11 @@ describe('ApplePanelsProcessor round-trip', () => {
     tree1.addPage(page2);
 
     // Save and reload
-    processor.saveFromTree(tree1, outPath);
+    await processor.saveFromTree(tree1, outPath);
     const asconfigPath = `${outPath}.ascconfig`;
     expect(fs.existsSync(asconfigPath)).toBe(true);
 
-    const tree2: AACTree = processor.loadIntoTree(asconfigPath);
+    const tree2: AACTree = await processor.loadIntoTree(asconfigPath);
 
     // Verify structure
     expect(Object.keys(tree2.pages)).toHaveLength(2);
@@ -93,14 +93,14 @@ describe('ApplePanelsProcessor round-trip', () => {
     }
   });
 
-  it('handles empty tree gracefully', () => {
+  it('handles empty tree gracefully', async () => {
     const processor = new ApplePanelsProcessor();
     const emptyTree = new AACTree();
 
-    processor.saveFromTree(emptyTree, outPath);
+    await processor.saveFromTree(emptyTree, outPath);
     const asconfigPath = `${outPath}.ascconfig`;
     expect(fs.existsSync(asconfigPath)).toBe(true);
 
-    expect(() => processor.loadIntoTree(asconfigPath)).toThrow(ValidationFailureError);
+    await expect(processor.loadIntoTree(asconfigPath)).rejects.toThrow(ValidationFailureError);
   });
 });

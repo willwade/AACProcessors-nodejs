@@ -9,13 +9,13 @@ import { AACTree, AACPage, AACButton } from '../src/core/treeStructure';
 describe('Memory Leak Detection Tests', () => {
   const tempDir = path.join(__dirname, 'temp_memory');
 
-  beforeAll(() => {
+  beforeAll(async () => {
     if (!fs.existsSync(tempDir)) {
       fs.mkdirSync(tempDir, { recursive: true });
     }
   });
 
-  afterAll(() => {
+  afterAll(async () => {
     if (fs.existsSync(tempDir)) {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }
@@ -69,7 +69,7 @@ describe('Memory Leak Detection Tests', () => {
   }
 
   describe('Repeated Operations Memory Tests', () => {
-    it('should not leak memory during repeated loadIntoTree operations', () => {
+    it('should not leak memory during repeated loadIntoTree operations', async () => {
       const processor = new DotProcessor();
       const testContent = `
         digraph G {
@@ -86,7 +86,7 @@ describe('Memory Leak Detection Tests', () => {
 
       // Perform many load operations
       for (let i = 0; i < 50; i++) {
-        const tree = processor.loadIntoTree(Buffer.from(testContent));
+        const tree = await processor.loadIntoTree(Buffer.from(testContent));
         expect(Object.keys(tree.pages).length).toBeGreaterThan(0);
 
         // Force GC every 10 iterations
@@ -106,7 +106,7 @@ describe('Memory Leak Detection Tests', () => {
       expect(memoryIncrease).toBeLessThan(20); // Less than 20MB increase
     });
 
-    it('should not leak memory during repeated saveFromTree operations', () => {
+    it('should not leak memory during repeated saveFromTree operations', async () => {
       const processor = new DotProcessor();
       const testTree = createTestTree(3, 5);
 
@@ -116,7 +116,7 @@ describe('Memory Leak Detection Tests', () => {
       // Perform many save operations
       for (let i = 0; i < 30; i++) {
         const outputPath = path.join(tempDir, `repeated_save_${i}.dot`);
-        processor.saveFromTree(testTree, outputPath);
+        await processor.saveFromTree(testTree, outputPath);
         expect(fs.existsSync(outputPath)).toBe(true);
 
         // Clean up file immediately to avoid disk space issues
@@ -137,7 +137,7 @@ describe('Memory Leak Detection Tests', () => {
       expect(memoryIncrease).toBeLessThan(15); // Less than 15MB increase
     });
 
-    it('should not leak memory during repeated translation operations', () => {
+    it('should not leak memory during repeated translation operations', async () => {
       const processor = new DotProcessor();
       const testContent = `
         digraph G {
@@ -161,7 +161,11 @@ describe('Memory Leak Detection Tests', () => {
       // Perform many translation operations
       for (let i = 0; i < 25; i++) {
         const outputPath = path.join(tempDir, `repeated_translation_${i}.dot`);
-        const result = processor.processTexts(Buffer.from(testContent), translations, outputPath);
+        const result = await processor.processTexts(
+          Buffer.from(testContent),
+          translations,
+          outputPath
+        );
 
         expect(result).toBeInstanceOf(Buffer);
         expect(fs.existsSync(outputPath)).toBe(true);
@@ -186,7 +190,7 @@ describe('Memory Leak Detection Tests', () => {
   });
 
   describe('Database Connection Memory Tests', () => {
-    it('should not leak memory with repeated database operations', () => {
+    it('should not leak memory with repeated database operations', async () => {
       const processor = new SnapProcessor();
       const testTree = createTestTree(2, 8);
 
@@ -198,15 +202,15 @@ describe('Memory Leak Detection Tests', () => {
         const dbPath = path.join(tempDir, `repeated_db_${i}.spb`);
 
         // Save to database
-        processor.saveFromTree(testTree, dbPath);
+        await processor.saveFromTree(testTree, dbPath);
         expect(fs.existsSync(dbPath)).toBe(true);
 
         // Load from database
-        const loadedTree = processor.loadIntoTree(dbPath);
+        const loadedTree = await processor.loadIntoTree(dbPath);
         expect(Object.keys(loadedTree.pages).length).toBe(Object.keys(testTree.pages).length);
 
         // Extract texts
-        const texts = processor.extractTexts(dbPath);
+        const texts = await processor.extractTexts(dbPath);
         expect(texts.length).toBeGreaterThan(0);
 
         // Clean up
@@ -227,7 +231,7 @@ describe('Memory Leak Detection Tests', () => {
       expect(memoryIncrease).toBeLessThan(25); // Less than 25MB increase
     });
 
-    it('should properly close database connections', () => {
+    it('should properly close database connections', async () => {
       const processor = new SnapProcessor();
       const testTree = createTestTree(1, 5);
 
@@ -238,8 +242,8 @@ describe('Memory Leak Detection Tests', () => {
         const dbPath = path.join(tempDir, `connection_test_${i}.spb`);
 
         try {
-          processor.saveFromTree(testTree, dbPath);
-          const loadedTree = processor.loadIntoTree(dbPath);
+          await processor.saveFromTree(testTree, dbPath);
+          const loadedTree = await processor.loadIntoTree(dbPath);
           expect(Object.keys(loadedTree.pages).length).toBeGreaterThan(0);
         } finally {
           // Clean up
@@ -264,7 +268,7 @@ describe('Memory Leak Detection Tests', () => {
   });
 
   describe('Large Data Memory Tests', () => {
-    it('should handle large trees without excessive memory retention', () => {
+    it('should handle large trees without excessive memory retention', async () => {
       const processor = new DotProcessor();
 
       const memBefore = getMemoryUsage();
@@ -275,9 +279,9 @@ describe('Memory Leak Detection Tests', () => {
         const largeTree = createTestTree(20, 25); // 20 pages, 25 buttons each = 500 buttons
 
         const outputPath = path.join(tempDir, `large_tree_${i}.dot`);
-        processor.saveFromTree(largeTree, outputPath);
+        await processor.saveFromTree(largeTree, outputPath);
 
-        const reloadedTree = processor.loadIntoTree(outputPath);
+        const reloadedTree = await processor.loadIntoTree(outputPath);
         expect(Object.keys(reloadedTree.pages).length).toBe(20);
 
         // Clean up
@@ -296,7 +300,7 @@ describe('Memory Leak Detection Tests', () => {
       expect(memoryIncrease).toBeLessThan(30); // Less than 30MB increase
     });
 
-    it('should handle large translation maps without memory leaks', () => {
+    it('should handle large translation maps without memory leaks', async () => {
       const processor = new DotProcessor();
 
       // Create content with many nodes
@@ -319,17 +323,17 @@ describe('Memory Leak Detection Tests', () => {
       // Perform translation multiple times
       for (let i = 0; i < 5; i++) {
         const outputPath = path.join(tempDir, `large_translation_${i}.dot`);
-        const result = processor.processTexts(
+        const result = await processor.processTexts(
           Buffer.from(largeContent),
           largeTranslations,
           outputPath
         );
 
-        expect(result).toBeInstanceOf(Buffer);
+        expect(Buffer.from(result)).toBeInstanceOf(Buffer);
         expect(fs.existsSync(outputPath)).toBe(true);
 
         // Verify some translations
-        const translatedContent = result.toString('utf8');
+        const translatedContent = Buffer.from(result).toString('utf8');
         expect(translatedContent).toContain('Texto 0');
         expect(translatedContent).toContain('Texto 199');
 
@@ -350,7 +354,7 @@ describe('Memory Leak Detection Tests', () => {
   });
 
   describe('Long-Running Operation Memory Tests', () => {
-    it('should maintain stable memory during extended operations', () => {
+    it('should maintain stable memory during extended operations', async () => {
       const processor = new DotProcessor();
       const testContent = 'digraph G { test [label="Extended Test"]; }';
 
@@ -362,8 +366,8 @@ describe('Memory Leak Detection Tests', () => {
       const maxOperations = 100;
 
       for (let i = 0; i < maxOperations; i++) {
-        const tree = processor.loadIntoTree(Buffer.from(testContent));
-        const texts = processor.extractTexts(Buffer.from(testContent));
+        const tree = await processor.loadIntoTree(Buffer.from(testContent));
+        const texts = await processor.extractTexts(Buffer.from(testContent));
 
         expect(Object.keys(tree.pages).length).toBeGreaterThan(0);
         expect(texts.length).toBeGreaterThan(0);
@@ -408,11 +412,11 @@ describe('Memory Leak Detection Tests', () => {
         const testTree = createTestTree(1, 3);
         const dbPath = path.join(tempDir, `temp_cleanup_${i}.spb`);
 
-        processor.saveFromTree(testTree, dbPath);
+        await processor.saveFromTree(testTree, dbPath);
 
         // Process with buffer (creates temp files)
         const buffer = fs.readFileSync(dbPath);
-        const reloadedTree = processor.loadIntoTree(buffer);
+        const reloadedTree = await processor.loadIntoTree(buffer);
         expect(Object.keys(reloadedTree.pages).length).toBeGreaterThan(0);
 
         // Clean up main file

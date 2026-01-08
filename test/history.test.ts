@@ -14,7 +14,7 @@ function dateToTicks(date: Date): bigint {
 describe('History analytics', () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'history-test-'));
 
-  afterAll(() => {
+  afterAll(async () => {
     try {
       fs.rmSync(tempDir, { recursive: true, force: true });
     } catch (error) {
@@ -22,14 +22,14 @@ describe('History analytics', () => {
     }
   });
 
-  it('converts .NET ticks to Date', () => {
+  it('converts .NET ticks to Date', async () => {
     const now = new Date('2024-01-01T00:00:00Z');
     const ticks = dateToTicks(now);
     const converted = Analytics.dotNetTicksToDate(ticks);
     expect(converted.toISOString()).toBe(now.toISOString());
   });
 
-  it('reads Grid 3 history from sqlite', () => {
+  it('reads Grid 3 history from sqlite', async () => {
     const dbPath = path.join(tempDir, 'grid3-history.sqlite');
     const db = new Database(dbPath);
     db.exec(`
@@ -66,7 +66,7 @@ describe('History analytics', () => {
     expect(entry.occurrences[0].longitude).toBeCloseTo(-1.2);
   });
 
-  it('skips Grid 3 history rows without text and falls back to plain text when XML is missing', () => {
+  it('skips Grid 3 history rows without text and falls back to plain text when XML is missing', async () => {
     const dbPath = path.join(tempDir, 'grid3-history-missing.sqlite');
     const db = new Database(dbPath);
     db.exec(`
@@ -104,7 +104,7 @@ describe('History analytics', () => {
     expect(history[0].occurrences).toHaveLength(1);
   });
 
-  it('reads Snap usage from pageset sqlite', () => {
+  it('reads Snap usage from pageset sqlite', async () => {
     const pagesetPath = path.join(tempDir, 'snap.sps');
     const db = new Database(pagesetPath);
     db.exec(`

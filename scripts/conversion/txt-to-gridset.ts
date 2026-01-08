@@ -209,7 +209,7 @@ async function convertTextFilesToGridset() {
   const processor = new GridsetProcessor();
   const outputPath = path.join(baseDir, 'converted-from-txt.gridset');
 
-  processor.saveFromTree(tree, outputPath);
+  await processor.saveFromTree(tree, outputPath);
 
   const stats = fs.statSync(outputPath);
   console.log(`🎉 Conversion complete!`);
