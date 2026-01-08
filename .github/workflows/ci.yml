@@ -45,6 +45,9 @@ jobs:
         env:
           CI: true
 
+      - name: Verify browser build output
+        run: test -f dist/browser/index.browser.js
+
       - name: Upload coverage reports
         uses: codecov/codecov-action@v3
         with:

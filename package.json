@@ -3,12 +3,13 @@
   "version": "0.0.0-development",
   "description": "A comprehensive TypeScript library for processing AAC (Augmentative and Alternative Communication) file formats with translation support",
   "main": "dist/index.js",
+  "browser": "dist/browser/index.browser.js",
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "node": "./dist/index.node.js",
-      "browser": "./dist/index.browser.js",
+      "browser": "./dist/browser/index.browser.js",
       "default": "./dist/index.node.js"
     },
     "./node": {
@@ -17,7 +18,7 @@
     },
     "./browser": {
       "types": "./dist/index.browser.d.ts",
-      "default": "./dist/index.browser.js"
+      "default": "./dist/browser/index.browser.js"
     },
     "./gridset": {
       "types": "./dist/gridset.d.ts",
@@ -81,11 +82,11 @@
     "test": "test"
   },
   "scripts": {
-    "build": "rimraf dist && mkdir dist && tsc && npm run copy:assets",
-    "build:node": "npm run build",
-    "build:browser": "npm run build",
-    "build:all": "npm run build",
-    "build:watch": "tsc --watch",
+    "build": "npm run build:all",
+    "build:node": "rimraf dist && mkdir dist && tsc -p tsconfig.node.json && npm run copy:assets",
+    "build:browser": "tsc -p tsconfig.browser.json",
+    "build:all": "npm run build:node && npm run build:browser",
+    "build:watch": "tsc -p tsconfig.node.json --watch",
     "clean": "rimraf dist coverage",
     "copy:assets": "cp -r src/utilities/analytics/reference/data dist/utilities/analytics/reference/",
     "lint": "eslint \"src/**/*.{js,ts}\" \"test/**/*.{js,ts}\"",
