@@ -206,9 +206,9 @@ describe('ProcessTexts with Real-World Data', () => {
       const translations = new Map([['home', 'casa']]);
       const outputPath = path.join(tempDir, 'translated_example.obz');
 
-      await expect(processor.processTexts(obzFile, translations, outputPath)).resolves.toBeInstanceOf(
-        Uint8Array
-      );
+      await expect(
+        processor.processTexts(obzFile, translations, outputPath)
+      ).resolves.toBeInstanceOf(Uint8Array);
     });
   });
 
@@ -314,9 +314,9 @@ describe('ProcessTexts with Real-World Data', () => {
       const translations = new Map([['home', 'casa']]);
       const outputPath = path.join(tempDir, 'translated_example.sps');
 
-      await expect(processor.processTexts(spsFile, translations, outputPath)).resolves.toBeInstanceOf(
-        Uint8Array
-      );
+      await expect(
+        processor.processTexts(spsFile, translations, outputPath)
+      ).resolves.toBeInstanceOf(Uint8Array);
     });
   });
 

@@ -4,7 +4,6 @@ import { OpmlProcessor } from '../src/processors/opmlProcessor';
 // import { AACTree } from '../src/core/treeStructure'; // Unused import
 const outPath = path.join(__dirname, 'out.opml');
 
-
 describe('OpmlProcessor round-trip', () => {
   const opmlPath = path.join(__dirname, 'assets/opml/example.opml');
   afterAll(async () => {
