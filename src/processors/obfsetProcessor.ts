@@ -44,8 +44,8 @@ export class ObfsetProcessor extends BaseProcessor {
   /**
    * Extract all text content
    */
-  extractTexts(filePathOrBuffer: ProcessorInput): string[] {
-    const tree = this.loadIntoTree(filePathOrBuffer);
+  async extractTexts(filePathOrBuffer: ProcessorInput): Promise<string[]> {
+    const tree = await this.loadIntoTree(filePathOrBuffer);
     const texts = new Set<string>();
 
     Object.values(tree.pages).forEach((page) => {
@@ -61,7 +61,7 @@ export class ObfsetProcessor extends BaseProcessor {
   /**
    * Load an .obfset file (JSON array of boards)
    */
-  loadIntoTree(filePathOrBuffer: ProcessorInput): AACTree {
+  async loadIntoTree(filePathOrBuffer: ProcessorInput): Promise<AACTree> {
     const tree = new AACTree();
     tree.metadata.format = 'obfset';
     const content = readTextFromInput(filePathOrBuffer);
@@ -204,18 +204,18 @@ export class ObfsetProcessor extends BaseProcessor {
   /**
    * Process texts (not supported for .obfset currently)
    */
-  processTexts(
+  async processTexts(
     _filePathOrBuffer: ProcessorInput,
     _translations: Map<string, string>,
     _outputPath: string
-  ): Uint8Array {
+  ): Promise<Uint8Array> {
     throw new Error('processTexts is not supported for .obfset currently');
   }
 
   /**
    * Save tree structure back to file
    */
-  saveFromTree(_tree: AACTree, _outputPath: string): void {
+  async saveFromTree(_tree: AACTree, _outputPath: string): Promise<void> {
     throw new Error('saveFromTree is not supported for .obfset currently');
   }
 

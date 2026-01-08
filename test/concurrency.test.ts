@@ -9,13 +9,13 @@ import { AACTree, AACPage, AACButton } from '../src/core/treeStructure';
 describe('Concurrency and Thread Safety Tests', () => {
   const tempDir = path.join(__dirname, 'temp_concurrency');
 
-  beforeAll(() => {
+  beforeAll(async () => {
     if (!fs.existsSync(tempDir)) {
       fs.mkdirSync(tempDir, { recursive: true });
     }
   });
 
-  afterAll(() => {
+  afterAll(async () => {
     if (fs.existsSync(tempDir)) {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }
@@ -46,8 +46,8 @@ describe('Concurrency and Thread Safety Tests', () => {
         return new Promise((resolve, reject) => {
           setTimeout(() => {
             try {
-              const tree = processor.loadIntoTree(testFile);
-              const texts = processor.extractTexts(testFile);
+              const tree = await processor.loadIntoTree(testFile);
+              const texts = await processor.extractTexts(testFile);
               resolve({
                 processorIndex: index,
                 pageCount: Object.keys(tree.pages).length,
@@ -109,7 +109,7 @@ describe('Concurrency and Thread Safety Tests', () => {
         return new Promise((resolve, reject) => {
           setTimeout(() => {
             try {
-              processor.saveFromTree(tree, outputPath);
+              await processor.saveFromTree(tree, outputPath);
               resolve({
                 index,
                 outputPath,
@@ -158,7 +158,7 @@ describe('Concurrency and Thread Safety Tests', () => {
       tree.addPage(page);
 
       const dbPath = path.join(tempDir, 'concurrent_test.spb');
-      processor.saveFromTree(tree, dbPath);
+      await processor.saveFromTree(tree, dbPath);
 
       // Read from the same database concurrently
       const readPromises = Array(3)
@@ -168,7 +168,7 @@ describe('Concurrency and Thread Safety Tests', () => {
             setTimeout(() => {
               try {
                 const readProcessor = new SnapProcessor();
-                const loadedTree = readProcessor.loadIntoTree(dbPath);
+                const loadedTree = await readProcessor.loadIntoTree(dbPath);
                 const texts = readProcessor.extractTexts(dbPath);
 
                 resolve({
@@ -219,7 +219,7 @@ describe('Concurrency and Thread Safety Tests', () => {
                 tree.addPage(page);
 
                 const dbPath = path.join(tempDir, `race_test_${index}.spb`);
-                processor.saveFromTree(tree, dbPath);
+                await processor.saveFromTree(tree, dbPath);
 
                 resolve({
                   index,
@@ -255,11 +255,11 @@ describe('Concurrency and Thread Safety Tests', () => {
             setTimeout(() => {
               try {
                 // Rapid-fire operations
-                const tree = processor.loadIntoTree(Buffer.from(testContent));
-                const texts = processor.extractTexts(Buffer.from(testContent));
+                const tree = await processor.loadIntoTree(Buffer.from(testContent));
+                const texts = await processor.extractTexts(Buffer.from(testContent));
 
                 const outputPath = path.join(tempDir, `high_freq_${index}.dot`);
-                processor.saveFromTree(tree, outputPath);
+                await processor.saveFromTree(tree, outputPath);
 
                 resolve({
                   index,
@@ -298,8 +298,8 @@ describe('Concurrency and Thread Safety Tests', () => {
               try {
                 if (index % 2 === 0) {
                   // Read operation
-                  const tree = processor.loadIntoTree(baseFile);
-                  const texts = processor.extractTexts(baseFile);
+                  const tree = await processor.loadIntoTree(baseFile);
+                  const texts = await processor.extractTexts(baseFile);
 
                   resolve({
                     index,
@@ -327,7 +327,7 @@ describe('Concurrency and Thread Safety Tests', () => {
                   tree.addPage(page);
 
                   const outputPath = path.join(tempDir, `mixed_write_${index}.dot`);
-                  processor.saveFromTree(tree, outputPath);
+                  await processor.saveFromTree(tree, outputPath);
 
                   resolve({
                     index,
@@ -378,7 +378,7 @@ describe('Concurrency and Thread Safety Tests', () => {
                 if (index % 2 === 0) {
                   // Valid operation
                   const validContent = '{"id": "test", "buttons": []}';
-                  const tree = processor.loadIntoTree(Buffer.from(validContent));
+                  const tree = await processor.loadIntoTree(Buffer.from(validContent));
                   resolve({
                     index,
                     success: true,
@@ -440,8 +440,8 @@ describe('Concurrency and Thread Safety Tests', () => {
       fs.writeFileSync(referenceFile, referenceContent);
 
       // Get reference data
-      const referenceTree = processor.loadIntoTree(referenceFile);
-      const referenceTexts = processor.extractTexts(referenceFile);
+      const referenceTree = await processor.loadIntoTree(referenceFile);
+      const referenceTexts = await processor.extractTexts(referenceFile);
 
       // Perform many concurrent reads
       const integrityChecks = Array(15)
@@ -450,8 +450,8 @@ describe('Concurrency and Thread Safety Tests', () => {
           return new Promise((resolve, reject) => {
             setTimeout(() => {
               try {
-                const tree = processor.loadIntoTree(referenceFile);
-                const texts = processor.extractTexts(referenceFile);
+                const tree = await processor.loadIntoTree(referenceFile);
+                const texts = await processor.extractTexts(referenceFile);
 
                 // Verify data integrity
                 const pageCountMatch =

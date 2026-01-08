@@ -8,11 +8,11 @@ describe('GridsetProcessor round-trip', () => {
   const exampleFile: string = path.join(__dirname, 'assets/gridset/example.gridset');
   const outPath: string = path.join(__dirname, 'out.gridset');
 
-  afterAll(() => {
+  afterAll(async () => {
     if (fs.existsSync(outPath)) fs.unlinkSync(outPath);
   });
 
-  it('round-trips gridset files without losing structure', () => {
+  it('round-trips gridset files without losing structure', async () => {
     if (!fs.existsSync(exampleFile)) {
       console.log('Skipping gridset round-trip test - example file not found');
       return;
@@ -20,13 +20,13 @@ describe('GridsetProcessor round-trip', () => {
 
     const processor = new GridsetProcessor({ preserveAllButtons: true });
     const fileBuffer = fs.readFileSync(exampleFile);
-    const tree1: AACTree = processor.loadIntoTree(fileBuffer);
+    const tree1: AACTree = await processor.loadIntoTree(fileBuffer);
 
-    processor.saveFromTree(tree1, outPath);
+    await processor.saveFromTree(tree1, outPath);
     expect(fs.existsSync(outPath)).toBe(true);
 
     const outBuffer = fs.readFileSync(outPath);
-    const tree2: AACTree = processor.loadIntoTree(outBuffer);
+    const tree2: AACTree = await processor.loadIntoTree(outBuffer);
 
     // Compare basic structure
     expect(Object.keys(tree2.pages).length).toBeGreaterThan(0);
@@ -62,7 +62,7 @@ describe('GridsetProcessor round-trip', () => {
     }
   });
 
-  it('can save and load a constructed tree', () => {
+  it('can save and load a constructed tree', async () => {
     const processor = new GridsetProcessor({ preserveAllButtons: true });
 
     // Create a simple tree programmatically
@@ -94,11 +94,11 @@ describe('GridsetProcessor round-trip', () => {
     tree1.addPage(page);
 
     // Save and reload
-    processor.saveFromTree(tree1, outPath);
+    await processor.saveFromTree(tree1, outPath);
     expect(fs.existsSync(outPath)).toBe(true);
 
     const outBuffer = fs.readFileSync(outPath);
-    const tree2: AACTree = processor.loadIntoTree(outBuffer);
+    const tree2: AACTree = await processor.loadIntoTree(outBuffer);
 
     // Verify structure
     expect(Object.keys(tree2.pages)).toHaveLength(1);
@@ -118,11 +118,11 @@ describe('GridsetProcessor round-trip', () => {
     expect(helloBtn).toBeDefined();
   });
 
-  it('handles empty tree gracefully', () => {
+  it('handles empty tree gracefully', async () => {
     const processor = new GridsetProcessor();
     const emptyTree = new AACTree();
 
-    processor.saveFromTree(emptyTree, outPath);
+    await processor.saveFromTree(emptyTree, outPath);
     expect(fs.existsSync(outPath)).toBe(true);
 
     const outBuffer = fs.readFileSync(outPath);

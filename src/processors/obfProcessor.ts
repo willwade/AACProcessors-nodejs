@@ -78,17 +78,26 @@ interface ObfBoard {
 }
 
 class ObfProcessor extends BaseProcessor {
-  private zipFile?: import('adm-zip');
+  private zipFile?: any; // JSZip instance
   private imageCache: Map<string, string> = new Map(); // Cache for data URLs
 
   constructor(options?: ProcessorOptions) {
     super(options);
   }
 
+  private getJSZip(): any {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-unsafe-return
+      return require('jszip');
+    } catch (error) {
+      throw new Error('Zip handling requires JSZip in this environment.');
+    }
+  }
+
   /**
    * Extract an image from the ZIP file as a Buffer
    */
-  private extractImageAsBuffer(imageId: string, images: any[]): Buffer | null {
+  private async extractImageAsBuffer(imageId: string, images: any[]): Promise<Buffer | null> {
     if (!this.zipFile || !images) {
       return null;
     }
@@ -108,9 +117,9 @@ class ObfProcessor extends BaseProcessor {
 
     for (const imagePath of possiblePaths) {
       try {
-        const entry = this.zipFile.getEntry(imagePath as string);
-        if (entry) {
-          return entry.getData(); // Return raw Buffer
+        const file = this.zipFile.file(imagePath as string);
+        if (file) {
+          return await file.async('nodebuffer');
         }
       } catch (err) {
         continue;
@@ -123,7 +132,7 @@ class ObfProcessor extends BaseProcessor {
   /**
    * Extract an image from the ZIP file and convert to data URL
    */
-  private extractImageAsDataUrl(imageId: string, images: any[]): string | null {
+  private async extractImageAsDataUrl(imageId: string, images: any[]): Promise<string | null> {
     // Check cache first
     if (this.imageCache.has(imageId)) {
       return this.imageCache.get(imageId) ?? null;
@@ -149,9 +158,9 @@ class ObfProcessor extends BaseProcessor {
 
     for (const imagePath of possiblePaths) {
       try {
-        const entry = this.zipFile.getEntry(imagePath as string);
-        if (entry) {
-          const buffer = entry.getData();
+        const file = this.zipFile.file(imagePath as string);
+        if (file) {
+          const buffer = await file.async('nodebuffer');
           const contentType =
             (imageData as { content_type?: string }).content_type ||
             this.getMimeTypeFromFilename(imagePath as string);
@@ -194,7 +203,7 @@ class ObfProcessor extends BaseProcessor {
     }
   }
 
-  private processBoard(boardData: ObfBoard, _boardPath: string): AACPage {
+  private async processBoard(boardData: ObfBoard, _boardPath: string): Promise<AACPage> {
     const sourceButtons = boardData.buttons || [];
 
     // Calculate page ID first (used to make button IDs unique)
@@ -205,7 +214,7 @@ class ObfProcessor extends BaseProcessor {
           ? String(boardData.id)
           : _boardPath?.split('/').pop() || '';
 
-    const buttons: AACButton[] = sourceButtons.map((btn: ObfButton): AACButton => {
+    const buttons: AACButton[] = await Promise.all(sourceButtons.map(async (btn: ObfButton): Promise<AACButton> => {
       const semanticAction: AACSemanticAction = btn.load_board
         ? {
             category: AACSemanticCategory.NAVIGATION,
@@ -230,8 +239,8 @@ class ObfProcessor extends BaseProcessor {
       let resolvedImage: string | undefined;
       let imageBuffer: Buffer | undefined;
       if (btn.image_id && boardData.images) {
-        resolvedImage = this.extractImageAsDataUrl(btn.image_id, boardData.images) || undefined;
-        imageBuffer = this.extractImageAsBuffer(btn.image_id, boardData.images) || undefined;
+        resolvedImage = (await this.extractImageAsDataUrl(btn.image_id, boardData.images)) || undefined;
+        imageBuffer = (await this.extractImageAsBuffer(btn.image_id, boardData.images)) || undefined;
       }
 
       // Build parameters object for Grid3 export compatibility
@@ -261,7 +270,7 @@ class ObfProcessor extends BaseProcessor {
         targetPageId: btn.load_board?.path,
         semantic_id: btn.semantic_id, // Extract semantic_id if present
       });
-    });
+    }));
 
     const buttonMap = new Map(buttons.map((btn) => [btn.id, btn]));
 
@@ -359,8 +368,8 @@ class ObfProcessor extends BaseProcessor {
     return page;
   }
 
-  extractTexts(filePathOrBuffer: ProcessorInput): string[] {
-    const tree = this.loadIntoTree(filePathOrBuffer);
+  async extractTexts(filePathOrBuffer: ProcessorInput): Promise<string[]> {
+    const tree = await this.loadIntoTree(filePathOrBuffer);
     const texts: string[] = [];
 
     for (const pageId in tree.pages) {
@@ -375,7 +384,7 @@ class ObfProcessor extends BaseProcessor {
     return texts;
   }
 
-  loadIntoTree(filePathOrBuffer: ProcessorInput): AACTree {
+  async loadIntoTree(filePathOrBuffer: ProcessorInput): Promise<AACTree> {
     // Detailed logging for debugging input
     const bufferLength =
       typeof filePathOrBuffer === 'string'
@@ -422,7 +431,7 @@ class ObfProcessor extends BaseProcessor {
         const boardData = tryParseObfJson(content);
         if (boardData) {
           console.log('[OBF] Detected .obf file, parsed as JSON');
-          const page = this.processBoard(boardData, filePathOrBuffer);
+          const page = await this.processBoard(boardData, filePathOrBuffer);
           tree.addPage(page);
 
           // Set metadata from root board
@@ -449,7 +458,7 @@ class ObfProcessor extends BaseProcessor {
     const asJson = tryParseObfJson(filePathOrBuffer);
     if (asJson) {
       console.log('[OBF] Detected buffer/string as OBF JSON');
-      const page = this.processBoard(asJson, '[bufferOrString]');
+      const page = await this.processBoard(asJson, '[bufferOrString]');
       tree.addPage(page);
 
       // Set metadata from root board
@@ -478,14 +487,13 @@ class ObfProcessor extends BaseProcessor {
       throw new Error('Invalid OBF content: not JSON and not ZIP');
     }
 
-    let zip: import('adm-zip');
+    const JSZip = this.getJSZip();
+    let zip: any;
     try {
-      const AdmZip = this.getAdmZip();
       const zipInput = readBinaryFromInput(filePathOrBuffer);
-      const zipBuffer = Buffer.isBuffer(zipInput) ? zipInput : Buffer.from(zipInput);
-      zip = new AdmZip(zipBuffer);
+      zip = await JSZip.loadAsync(zipInput);
     } catch (err) {
-      console.error('[OBF] Error instantiating AdmZip with input:', err);
+      console.error('[OBF] Error loading ZIP with JSZip:', err);
       throw err;
     }
 
@@ -494,12 +502,23 @@ class ObfProcessor extends BaseProcessor {
     this.imageCache.clear(); // Clear cache for new file
 
     console.log('[OBF] Detected zip archive, extracting .obf files');
-    zip.getEntries().forEach((entry) => {
-      if (entry.entryName.endsWith('.obf')) {
-        const content = entry.getData().toString('utf8');
+
+    // Collect all .obf entries
+    const obfEntries: Array<{ name: string; file: any }> = [];
+    zip.forEach((relativePath: string, file: any) => {
+      if (file.dir) return;
+      if (relativePath.endsWith('.obf')) {
+        obfEntries.push({ name: relativePath, file });
+      }
+    });
+
+    // Process each .obf entry
+    for (const entry of obfEntries) {
+      try {
+        const content = await entry.file.async('string');
         const boardData = tryParseObfJson(content);
         if (boardData) {
-          const page = this.processBoard(boardData, entry.entryName);
+          const page = await this.processBoard(boardData, entry.name);
           tree.addPage(page);
 
           // Set metadata if not already set (use first board as reference)
@@ -514,10 +533,12 @@ class ObfProcessor extends BaseProcessor {
             tree.rootId = page.id;
           }
         } else {
-          console.warn('[OBF] Skipped entry (not valid OBF JSON):', entry.entryName);
+          console.warn('[OBF] Skipped entry (not valid OBF JSON):', entry.name);
         }
+      } catch (err) {
+        console.warn('[OBF] Error processing entry:', entry.name, err);
       }
-    });
+    }
 
     return tree;
   }
@@ -618,13 +639,13 @@ class ObfProcessor extends BaseProcessor {
     };
   }
 
-  processTexts(
+  async processTexts(
     filePathOrBuffer: ProcessorInput,
     translations: Map<string, string>,
     outputPath: string
-  ): Uint8Array {
+  ): Promise<Uint8Array> {
     // Load the tree, apply translations, and save to new file
-    const tree = this.loadIntoTree(filePathOrBuffer);
+    const tree = await this.loadIntoTree(filePathOrBuffer);
 
     // Apply translations to all text content
     Object.values(tree.pages).forEach((page) => {
@@ -654,11 +675,11 @@ class ObfProcessor extends BaseProcessor {
     });
 
     // Save the translated tree and return its content
-    this.saveFromTree(tree, outputPath);
+    await this.saveFromTree(tree, outputPath);
     return readBinaryFromInput(outputPath);
   }
 
-  saveFromTree(tree: AACTree, outputPath: string): void {
+  async saveFromTree(tree: AACTree, outputPath: string): Promise<void> {
     if (outputPath.endsWith('.obf')) {
       // Save as single OBF JSON file
       const rootPage = tree.rootId ? tree.getPage(tree.rootId) : Object.values(tree.pages)[0];
@@ -670,16 +691,18 @@ class ObfProcessor extends BaseProcessor {
       writeTextToPath(outputPath, JSON.stringify(obfBoard, null, 2));
     } else {
       // Save as OBZ (zip with multiple OBF files)
-      const AdmZip = this.getAdmZip();
-      const zip = new AdmZip();
+      const JSZip = this.getJSZip();
+      const zip = new JSZip();
 
       Object.values(tree.pages).forEach((page) => {
         const obfBoard = this.createObfBoardFromPage(page, 'Board', tree.metadata);
         const obfContent = JSON.stringify(obfBoard, null, 2);
-        zip.addFile(`${page.id}.obf`, Buffer.from(obfContent, 'utf8'));
+        zip.file(`${page.id}.obf`, obfContent);
       });
 
-      zip.writeZip(outputPath);
+      const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
+      const { writeBinaryToPath } = await import('../utils/io');
+      writeBinaryToPath(outputPath, zipBuffer);
     }
   }
 
@@ -722,8 +745,8 @@ class ObfProcessor extends BaseProcessor {
    * @param filePathOrBuffer - Path to OBF/OBZ file or buffer
    * @returns Array of symbol information for LLM processing
    */
-  extractSymbolsForLLM(filePathOrBuffer: ProcessorInput): ButtonForTranslation[] {
-    const tree = this.loadIntoTree(filePathOrBuffer);
+  async extractSymbolsForLLM(filePathOrBuffer: ProcessorInput): Promise<ButtonForTranslation[]> {
+    const tree = await this.loadIntoTree(filePathOrBuffer);
 
     // Collect all buttons from all pages
     const allButtons: any[] = [];
@@ -755,13 +778,13 @@ class ObfProcessor extends BaseProcessor {
    * @param options - Translation options (e.g., allowPartial for testing)
    * @returns Buffer of the translated OBF/OBZ file
    */
-  processLLMTranslations(
+  async processLLMTranslations(
     filePathOrBuffer: ProcessorInput,
     llmTranslations: LLMLTranslationResult[],
     outputPath: string,
     options?: { allowPartial?: boolean }
-  ): Uint8Array {
-    const tree = this.loadIntoTree(filePathOrBuffer);
+  ): Promise<Uint8Array> {
+    const tree = await this.loadIntoTree(filePathOrBuffer);
 
     // Validate translations using shared utility
     const buttonIds = Object.values(tree.pages).flatMap((page) => page.buttons.map((b) => b.id));
@@ -805,17 +828,8 @@ class ObfProcessor extends BaseProcessor {
     });
 
     // Save and return
-    this.saveFromTree(tree, outputPath);
+    await this.saveFromTree(tree, outputPath);
     return readBinaryFromInput(outputPath);
-  }
-
-  private getAdmZip(): typeof import('adm-zip') {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-unsafe-return
-      return require('adm-zip');
-    } catch (error) {
-      throw new Error('Zip handling requires adm-zip in this environment.');
-    }
   }
 
   private getObfValidator(): typeof import('../validation/obfValidator').ObfValidator {

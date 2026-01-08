@@ -8,12 +8,12 @@ describe('ExcelProcessor', () => {
   let processor: ExcelProcessor;
   let tempDir: string;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     processor = new ExcelProcessor();
     tempDir = fs.mkdtempSync(path.join(__dirname, 'temp-excel-'));
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     // Clean up temp directory
     if (fs.existsSync(tempDir)) {
       fs.rmSync(tempDir, { recursive: true, force: true });
@@ -21,7 +21,7 @@ describe('ExcelProcessor', () => {
   });
 
   describe('Basic Functionality', () => {
-    it('should create an instance', () => {
+    it('should create an instance', async () => {
       expect(processor).toBeInstanceOf(ExcelProcessor);
     });
 
@@ -29,16 +29,16 @@ describe('ExcelProcessor', () => {
       const tree = new AACTree();
       const outputPath = path.join(tempDir, 'empty.xlsx');
 
-      await expect(processor.saveFromTree(tree, outputPath)).resolves.toBeUndefined();
+      await expect(await processor.saveFromTree(tree, outputPath)).resolves.toBeUndefined();
     });
 
-    it('should extract texts from non-existent file', () => {
-      const texts = processor.extractTexts('non-existent.xlsx');
+    it('should extract texts from non-existent file', async () => {
+      const texts = await processor.extractTexts('non-existent.xlsx');
       expect(texts).toEqual([]);
     });
 
-    it('should return empty tree for loadIntoTree', () => {
-      const tree = processor.loadIntoTree('any-file.xlsx');
+    it('should return empty tree for loadIntoTree', async () => {
+      const tree = await processor.loadIntoTree('any-file.xlsx');
       expect(tree).toBeInstanceOf(AACTree);
       expect(Object.keys(tree.pages)).toHaveLength(0);
     });
@@ -69,7 +69,7 @@ describe('ExcelProcessor', () => {
       tree.addPage(page);
 
       const outputPath = path.join(tempDir, 'simple.xlsx');
-      await processor.saveFromTree(tree, outputPath);
+      await await processor.saveFromTree(tree, outputPath);
       expect(fs.existsSync(outputPath)).toBe(true);
 
       // Check if file was created (may be async)
@@ -101,7 +101,7 @@ describe('ExcelProcessor', () => {
       tree.addPage(page);
 
       const outputPath = path.join(tempDir, 'styled.xlsx');
-      await processor.saveFromTree(tree, outputPath);
+      await await processor.saveFromTree(tree, outputPath);
       expect(fs.existsSync(outputPath)).toBe(true);
     });
 
@@ -152,7 +152,7 @@ describe('ExcelProcessor', () => {
       tree.rootId = 'home';
 
       const outputPath = path.join(tempDir, 'navigation.xlsx');
-      await processor.saveFromTree(tree, outputPath);
+      await await processor.saveFromTree(tree, outputPath);
       expect(fs.existsSync(outputPath)).toBe(true);
     });
 
@@ -197,13 +197,13 @@ describe('ExcelProcessor', () => {
       tree.addPage(page);
 
       const outputPath = path.join(tempDir, 'grid.xlsx');
-      await processor.saveFromTree(tree, outputPath);
+      await await processor.saveFromTree(tree, outputPath);
       expect(fs.existsSync(outputPath)).toBe(true);
     });
   });
 
   describe('Utility Methods', () => {
-    it('should sanitize worksheet names', () => {
+    it('should sanitize worksheet names', async () => {
       // Access private method through any cast for testing
       const sanitize = (processor as any).sanitizeWorksheetName;
 
@@ -215,7 +215,7 @@ describe('ExcelProcessor', () => {
       );
     });
 
-    it('should convert colors to ARGB', () => {
+    it('should convert colors to ARGB', async () => {
       const convert = (processor as any).convertColorToArgb;
 
       expect(convert('#FF0000')).toBe('FFFF0000');
@@ -227,11 +227,11 @@ describe('ExcelProcessor', () => {
   });
 
   describe('Error Handling', () => {
-    it('should handle processTexts gracefully', () => {
+    it('should handle processTexts gracefully', async () => {
       const translations = new Map([['Hello', 'Hola']]);
 
       expect(() => {
-        processor.processTexts('test.xlsx', translations, 'output.xlsx');
+        await await processor.processTexts('test.xlsx', translations, 'output.xlsx');
       }).not.toThrow();
     });
   });

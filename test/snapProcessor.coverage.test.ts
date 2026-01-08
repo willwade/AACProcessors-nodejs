@@ -8,23 +8,23 @@ describe('SnapProcessor Coverage', () => {
   const exampleFile: string = path.join(__dirname, 'assets/snap/example.sps');
   const tempDbPath = path.join(__dirname, 'temp_snap.db');
 
-  beforeEach(() => {
+  beforeEach(async () => {
     if (fs.existsSync(tempDbPath)) {
       fs.unlinkSync(tempDbPath);
     }
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     if (fs.existsSync(tempDbPath)) {
       fs.unlinkSync(tempDbPath);
     }
   });
 
   describe('Audio Handling', () => {
-    it('should load audio data when loadAudio is true', () => {
+    it('should load audio data when loadAudio is true', async () => {
       const saveProcessor = new SnapProcessor();
       const tree = TreeFactory.createSimple();
-      saveProcessor.saveFromTree(tree, tempDbPath);
+      await saveProcessor.saveFromTree(tree, tempDbPath);
 
       const db = new Database(tempDbPath);
       const firstButton = db.prepare('SELECT Id FROM Button ORDER BY Id LIMIT 1').get() as {
@@ -36,7 +36,7 @@ describe('SnapProcessor Coverage', () => {
       saveProcessor.addAudioToButton(tempDbPath, firstButton.Id, audioData, 'test.wav');
 
       const processor = new SnapProcessor(null, { loadAudio: true });
-      const loadedTree = processor.loadIntoTree(tempDbPath);
+      const loadedTree = await processor.loadIntoTree(tempDbPath);
       const page = Object.values(loadedTree.pages)[0];
       expect(page).toBeDefined();
       const buttonWithAudio = page?.buttons.find((button) => button.audioRecording);
@@ -44,7 +44,7 @@ describe('SnapProcessor Coverage', () => {
       expect(buttonWithAudio?.audioRecording?.data).toEqual(audioData);
     });
 
-    it('should add audio to a button', () => {
+    it('should add audio to a button', async () => {
       // Use a real file to test against
       fs.copyFileSync(exampleFile, tempDbPath);
 
@@ -62,7 +62,7 @@ describe('SnapProcessor Coverage', () => {
       db.close();
     });
 
-    it('should create an audio-enhanced pageset', () => {
+    it('should create an audio-enhanced pageset', async () => {
       const enhancedDbPath = path.join(__dirname, 'enhanced.db');
       if (fs.existsSync(enhancedDbPath)) {
         fs.unlinkSync(enhancedDbPath);
@@ -84,20 +84,20 @@ describe('SnapProcessor Coverage', () => {
   });
 
   describe('Database Corruption and Schema', () => {
-    it('should throw an error for a corrupted database file', () => {
+    it('should throw an error for a corrupted database file', async () => {
       fs.writeFileSync(tempDbPath, 'not a database');
       const processor = new SnapProcessor();
       expect(() => processor.loadIntoTree(tempDbPath)).toThrow('Invalid SQLite database file');
     });
 
-    it('should handle missing tables gracefully', () => {
+    it('should handle missing tables gracefully', async () => {
       const db = new Database(tempDbPath);
       db.exec('CREATE TABLE Page (Id INTEGER PRIMARY KEY, UniqueId TEXT, Name TEXT);');
       db.close();
 
       const processor = new SnapProcessor();
       // This should not throw, but return an empty tree
-      const tree = processor.loadIntoTree(tempDbPath);
+      const tree = await processor.loadIntoTree(tempDbPath);
       expect(tree.pages).toEqual({});
     });
   });

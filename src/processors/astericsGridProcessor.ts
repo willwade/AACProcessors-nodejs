@@ -734,8 +734,8 @@ class AstericsGridProcessor extends BaseProcessor {
     this.loadAudio = options.loadAudio || false;
   }
 
-  extractTexts(filePathOrBuffer: ProcessorInput): string[] {
-    const tree = this.loadIntoTree(filePathOrBuffer);
+  async extractTexts(filePathOrBuffer: ProcessorInput): Promise<string[]> {
+    const tree = await this.loadIntoTree(filePathOrBuffer);
     const texts: string[] = [];
 
     for (const pageId in tree.pages) {
@@ -845,7 +845,7 @@ class AstericsGridProcessor extends BaseProcessor {
     }
   }
 
-  loadIntoTree(filePathOrBuffer: ProcessorInput): AACTree {
+  async loadIntoTree(filePathOrBuffer: ProcessorInput): Promise<AACTree> {
     const tree = new AACTree();
     const filename =
       typeof filePathOrBuffer === 'string' ? getBasename(filePathOrBuffer) : 'upload.grd';
@@ -1305,11 +1305,11 @@ class AstericsGridProcessor extends BaseProcessor {
     });
   }
 
-  processTexts(
+  async processTexts(
     filePathOrBuffer: ProcessorInput,
     translations: Map<string, string>,
     outputPath: string
-  ): Uint8Array {
+  ): Promise<Uint8Array> {
     let content = readTextFromInput(filePathOrBuffer);
 
     // Remove BOM if present
@@ -1444,7 +1444,7 @@ class AstericsGridProcessor extends BaseProcessor {
     }
   }
 
-  saveFromTree(tree: AACTree, outputPath: string): void {
+  async saveFromTree(tree: AACTree, outputPath: string): Promise<void> {
     // Use default Asterics Grid styling instead of taking from first page
     // This prevents issues where the first page has unusual colors (like purple)
     const defaultPageStyle = {

@@ -9,7 +9,6 @@
  * do not have equivalent wordlist functionality.
  */
 
-import AdmZip from 'adm-zip';
 import { XMLParser, XMLBuilder } from 'fast-xml-parser';
 import { getZipEntriesWithPassword, resolveGridsetPasswordFromEnv } from './password';
 
@@ -121,36 +120,38 @@ export function wordlistToXml(wordlist: WordList): string {
  * @returns Map of grid names to their wordlists (if they have any)
  *
  * @example
- * const wordlists = extractWordlists(gridsetBuffer);
+ * const wordlists = await extractWordlists(gridsetBuffer);
  * wordlists.forEach((wordlist, gridName) => {
  *   console.log(`Grid "${gridName}" has ${wordlist.items.length} items`);
  * });
  */
-export function extractWordlists(
+export async function extractWordlists(
   gridsetBuffer: Buffer,
   password = resolveGridsetPasswordFromEnv()
-): Map<string, WordList> {
+): Promise<Map<string, WordList>> {
   const wordlists = new Map<string, WordList>();
   const parser = new XMLParser();
 
-  let zip: AdmZip;
+  let zip: any;
   try {
-    zip = new AdmZip(gridsetBuffer);
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const JSZip = require('jszip');
+    zip = await JSZip.loadAsync(gridsetBuffer);
   } catch (error: any) {
     throw new Error(`Invalid gridset buffer: ${error.message}`);
   }
-  const entries = getZipEntriesWithPassword(zip, password);
+  const entries = await getZipEntriesWithPassword(zip, password);
 
   // Process each grid file
-  entries.forEach((entry) => {
+  for (const entry of entries) {
     if (entry.entryName.startsWith('Grids/') && entry.entryName.endsWith('grid.xml')) {
       try {
-        const xmlContent = entry.getData().toString('utf8');
+        const xmlContent = (await entry.getData()).toString('utf8');
         const data = parser.parse(xmlContent);
         const grid = data.Grid || data.grid;
 
         if (!grid || !grid.WordList) {
-          return;
+          continue;
         }
 
         // Extract grid name from path (e.g., "Grids/MyGrid/grid.xml" -> "MyGrid")
@@ -162,7 +163,7 @@ export function extractWordlists(
         const itemsContainer = wordlistData.Items || wordlistData.items;
 
         if (!itemsContainer) {
-          return;
+          continue;
         }
 
         const itemArray = Array.isArray(itemsContainer.WordListItem)
@@ -185,7 +186,7 @@ export function extractWordlists(
         console.warn(`Failed to extract wordlist from ${entry.entryName}:`, error);
       }
     }
-  });
+  }
 
   return wordlists;
 }
@@ -204,12 +205,12 @@ export function extractWordlists(
  * const updatedGridset = updateWordlist(gridsetBuffer, 'Greetings', newWordlist);
  * fs.writeFileSync('updated-gridset.gridset', updatedGridset);
  */
-export function updateWordlist(
+export async function updateWordlist(
   gridsetBuffer: Buffer,
   gridName: string,
   wordlist: WordList,
   password = resolveGridsetPasswordFromEnv()
-): Buffer {
+): Promise<Buffer> {
   const parser = new XMLParser();
   const builder = new XMLBuilder({
     ignoreAttributes: false,
@@ -218,30 +219,32 @@ export function updateWordlist(
     suppressEmptyNode: false,
   });
 
-  let zip: AdmZip;
+  let zip: any;
   try {
-    zip = new AdmZip(gridsetBuffer);
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const JSZip = require('jszip');
+    zip = await JSZip.loadAsync(gridsetBuffer);
   } catch (error: any) {
     throw new Error(`Invalid gridset buffer: ${error.message}`);
   }
-  const entries = getZipEntriesWithPassword(zip, password);
+  const entries = await getZipEntriesWithPassword(zip, password);
 
   let found = false;
 
   // Find and update the grid
-  entries.forEach((entry) => {
+  for (const entry of entries) {
     if (entry.entryName.startsWith('Grids/') && entry.entryName.endsWith('grid.xml')) {
       const match = entry.entryName.match(/^Grids\/([^/]+)\//);
       const currentGridName = match ? match[1] : null;
 
       if (currentGridName === gridName) {
         try {
-          const xmlContent = entry.getData().toString('utf8');
+          const xmlContent = (await entry.getData()).toString('utf8');
           const data = parser.parse(xmlContent);
           const grid = data.Grid || data.grid;
 
           if (!grid) {
-            return;
+            continue;
           }
 
           // Build the new wordlist XML structure
@@ -275,11 +278,11 @@ export function updateWordlist(
         }
       }
     }
-  });
+  }
 
   if (!found) {
     throw new Error(`Grid "${gridName}" not found in gridset`);
   }
 
-  return zip.toBuffer();
+  return await zip.generateAsync({ type: 'nodebuffer' });
 }

@@ -91,12 +91,12 @@ describe('Validation - additional formats', () => {
     expect(result.format).toBe('obfset');
   });
 
-  it('exposes ValidationResult on OPML parse failures', () => {
+  it('exposes ValidationResult on OPML parse failures', async () => {
     const invalid = Buffer.from('<opml><body></body></opml>', 'utf8');
     expect(() => new OpmlProcessor().loadIntoTree(invalid)).toThrow(ValidationFailureError);
   });
 
-  it('exposes ValidationResult on DOT binary content', () => {
+  it('exposes ValidationResult on DOT binary content', async () => {
     const invalid = Buffer.from([0, 1, 2, 3]);
     expect(() => new DotProcessor().loadIntoTree(invalid)).toThrow(ValidationFailureError);
   });

@@ -1,4 +1,3 @@
-import AdmZip from 'adm-zip';
 import { XMLBuilder } from 'fast-xml-parser';
 import {
   AACTree,
@@ -59,17 +58,23 @@ export function getAllowedImageEntries(tree: AACTree): Set<string> {
  * @param entryPath Entry name inside the zip
  * @returns Image data buffer or null if not found
  */
-export function openImage(
+export async function openImage(
   gridsetBuffer: Buffer,
   entryPath: string,
   password = resolveGridsetPasswordFromEnv()
-): Buffer | null {
-  const zip = new AdmZip(gridsetBuffer);
-  const entries = getZipEntriesWithPassword(zip, password);
-  const want = normalizeZipPath(entryPath);
-  const entry = entries.find((e) => normalizeZipPath(e.entryName) === want);
-  if (!entry) return null;
-  return entry.getData();
+): Promise<Buffer | null> {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const JSZip = require('jszip');
+    const zip = await JSZip.loadAsync(gridsetBuffer);
+    const entries = await getZipEntriesWithPassword(zip, password);
+    const want = normalizeZipPath(entryPath);
+    const entry = entries.find((e: any) => normalizeZipPath(e.entryName) === want);
+    if (!entry) return null;
+    return await entry.getData();
+  } catch (error) {
+    return null;
+  }
 }
 
 /**

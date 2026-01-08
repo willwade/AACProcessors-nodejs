@@ -1,7 +1,6 @@
 import path from 'path';
 import { ProcessorOptions } from '../../core/baseProcessor';
 import { ProcessorInput } from '../../utils/io';
-import AdmZip from 'adm-zip';
 
 /**
  * Resolve the password to use for Grid3 archives.
@@ -28,12 +27,41 @@ export function resolveGridsetPasswordFromEnv(): string | undefined {
   return process.env.GRIDSET_PASSWORD;
 }
 
-// Wrapper to set the password before reading entries (typed getEntries lacks the optional arg)
-export function getZipEntriesWithPassword(zip: AdmZip, password?: string): AdmZip.IZipEntry[] {
+/**
+ * Get zip entries as an array from JSZip instance.
+ * JSZip doesn't have password protection at the entry level like AdmZip.
+ * Password protection for .gridsetx is handled at the archive level in crypto.ts.
+ *
+ * @param zip - JSZip instance
+ * @param password - Optional password (kept for API compatibility, not used with JSZip)
+ * @returns Array of entry objects with name and data
+ */
+export async function getZipEntriesWithPassword(
+  zip: any,
+  password?: string
+): Promise<Array<{ name: string; entryName: string; dir: boolean; getData: () => Promise<Buffer> }>> {
+  const entries: Array<{
+    name: string;
+    entryName: string;
+    dir: boolean;
+    getData: () => Promise<Buffer>;
+  }> = [];
+
+  // Note: JSZip doesn't support zip-level password protection like AdmZip
+  // Password protection for .gridsetx files is handled at the encrypted archive level
+  // in crypto.ts before the zip is loaded
   if (password) {
-    return (zip as unknown as { getEntries: (pw?: string) => AdmZip.IZipEntry[] }).getEntries(
-      password
-    );
+    console.warn('JSZip does not support zip-level password protection. For .gridsetx encrypted files, password is handled at the archive level.');
   }
-  return zip.getEntries();
+
+  zip.forEach((relativePath: string, file: any) => {
+    entries.push({
+      name: relativePath,
+      entryName: relativePath,
+      dir: file.dir || false,
+      getData: async () => await file.async('nodebuffer'),
+    });
+  });
+
+  return entries;
 }

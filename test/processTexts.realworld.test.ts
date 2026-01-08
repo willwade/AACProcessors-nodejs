@@ -12,13 +12,13 @@ describe('ProcessTexts with Real-World Data', () => {
   const examplesDir = path.join(__dirname, '../examples');
   const tempDir = path.join(__dirname, 'temp_realworld');
 
-  beforeAll(() => {
+  beforeAll(async () => {
     if (!fs.existsSync(tempDir)) {
       fs.mkdirSync(tempDir, { recursive: true });
     }
   });
 
-  afterAll(() => {
+  afterAll(async () => {
     if (fs.existsSync(tempDir)) {
       try {
         fs.rmSync(tempDir, { recursive: true, force: true });
@@ -32,7 +32,7 @@ describe('ProcessTexts with Real-World Data', () => {
     const dotFile = path.join(examplesDir, 'example.dot');
     const communikateDotFile = path.join(examplesDir, 'communikate.dot');
 
-    it('should extract and translate texts from example.dot', () => {
+    it('should extract and translate texts from example.dot', async () => {
       if (!fs.existsSync(dotFile)) {
         console.log('Skipping DOT test - example.dot not found');
         return;
@@ -41,7 +41,7 @@ describe('ProcessTexts with Real-World Data', () => {
       const processor = new DotProcessor();
 
       // First extract all texts to see what we're working with
-      const originalTexts = processor.extractTexts(dotFile);
+      const originalTexts = await processor.extractTexts(dotFile);
       expect(originalTexts.length).toBeGreaterThan(0);
       console.log('DOT original texts:', originalTexts.slice(0, 5)); // Show first 5
 
@@ -61,7 +61,7 @@ describe('ProcessTexts with Real-World Data', () => {
 
       if (translations.size > 0) {
         const outputPath = path.join(tempDir, 'translated_example.dot');
-        const result = processor.processTexts(dotFile, translations, outputPath);
+        const result = await processor.processTexts(dotFile, translations, outputPath);
 
         expect(result).toBeInstanceOf(Buffer);
         expect(fs.existsSync(outputPath)).toBe(true);
@@ -76,14 +76,14 @@ describe('ProcessTexts with Real-World Data', () => {
       }
     });
 
-    it('should handle communikate.dot file', () => {
+    it('should handle communikate.dot file', async () => {
       if (!fs.existsSync(communikateDotFile)) {
         console.log('Skipping communikate DOT test - file not found');
         return;
       }
 
       const processor = new DotProcessor();
-      const texts = processor.extractTexts(communikateDotFile);
+      const texts = await processor.extractTexts(communikateDotFile);
       expect(texts.length).toBeGreaterThan(0);
 
       // Test with a simple translation
@@ -91,7 +91,7 @@ describe('ProcessTexts with Real-World Data', () => {
       const outputPath = path.join(tempDir, 'translated_communikate.dot');
 
       expect(() => {
-        processor.processTexts(communikateDotFile, translations, outputPath);
+        await processor.processTexts(communikateDotFile, translations, outputPath);
       }).not.toThrow();
     });
   });
@@ -99,7 +99,7 @@ describe('ProcessTexts with Real-World Data', () => {
   describe('OPML Processor with Real Data', () => {
     const opmlFile = path.join(examplesDir, 'example.opml');
 
-    it('should extract and translate texts from example.opml', () => {
+    it('should extract and translate texts from example.opml', async () => {
       if (!fs.existsSync(opmlFile)) {
         console.log('Skipping OPML test - example.opml not found');
         return;
@@ -108,7 +108,7 @@ describe('ProcessTexts with Real-World Data', () => {
       const processor = new OpmlProcessor();
 
       // Extract texts to see the structure
-      const originalTexts = processor.extractTexts(opmlFile);
+      const originalTexts = await processor.extractTexts(opmlFile);
       expect(originalTexts.length).toBeGreaterThan(0);
       console.log('OPML original texts:', originalTexts.slice(0, 5));
 
@@ -128,7 +128,7 @@ describe('ProcessTexts with Real-World Data', () => {
 
       if (translations.size > 0) {
         const outputPath = path.join(tempDir, 'translated_example.opml');
-        const result = processor.processTexts(opmlFile, translations, outputPath);
+        const result = await processor.processTexts(opmlFile, translations, outputPath);
 
         expect(result).toBeInstanceOf(Buffer);
 
@@ -150,7 +150,7 @@ describe('ProcessTexts with Real-World Data', () => {
     const obfFile = path.join(examplesDir, 'example.obf');
     const obzFile = path.join(examplesDir, 'example.obz');
 
-    it('should extract and translate texts from example.obf', () => {
+    it('should extract and translate texts from example.obf', async () => {
       if (!fs.existsSync(obfFile)) {
         console.log('Skipping OBF test - example.obf not found');
         return;
@@ -159,7 +159,7 @@ describe('ProcessTexts with Real-World Data', () => {
       const processor = new ObfProcessor();
 
       // Extract texts to understand the content
-      const originalTexts = processor.extractTexts(obfFile);
+      const originalTexts = await processor.extractTexts(obfFile);
       expect(originalTexts.length).toBeGreaterThan(0);
       console.log('OBF original texts:', originalTexts.slice(0, 5));
 
@@ -181,25 +181,25 @@ describe('ProcessTexts with Real-World Data', () => {
 
       if (translations.size > 0) {
         const outputPath = path.join(tempDir, 'translated_example.obf');
-        const result = processor.processTexts(obfFile, translations, outputPath);
+        const result = await processor.processTexts(obfFile, translations, outputPath);
 
         expect(result).toBeInstanceOf(Buffer);
         expect(fs.existsSync(outputPath)).toBe(true);
 
         // Load the translated file and verify structure
-        const translatedTree = processor.loadIntoTree(outputPath);
+        const translatedTree = await processor.loadIntoTree(outputPath);
         expect(Object.keys(translatedTree.pages).length).toBeGreaterThan(0);
       }
     });
 
-    it('should handle OBZ (zip) files', () => {
+    it('should handle OBZ (zip) files', async () => {
       if (!fs.existsSync(obzFile)) {
         console.log('Skipping OBZ test - example.obz not found');
         return;
       }
 
       const processor = new ObfProcessor();
-      const texts = processor.extractTexts(obzFile);
+      const texts = await processor.extractTexts(obzFile);
       expect(texts.length).toBeGreaterThan(0);
 
       // Test with simple translation
@@ -207,7 +207,7 @@ describe('ProcessTexts with Real-World Data', () => {
       const outputPath = path.join(tempDir, 'translated_example.obz');
 
       expect(() => {
-        processor.processTexts(obzFile, translations, outputPath);
+        await processor.processTexts(obzFile, translations, outputPath);
       }).not.toThrow();
     });
   });
@@ -215,7 +215,7 @@ describe('ProcessTexts with Real-World Data', () => {
   describe('GridSet Processor with Real Data', () => {
     const gridsetFile = path.join(examplesDir, 'example.gridset');
 
-    it('should extract and translate texts from example.gridset', () => {
+    it('should extract and translate texts from example.gridset', async () => {
       if (!fs.existsSync(gridsetFile)) {
         console.log('Skipping GridSet test - example.gridset not found');
         return;
@@ -225,7 +225,7 @@ describe('ProcessTexts with Real-World Data', () => {
 
       // Extract texts from the real GridSet file
       const fileBuffer = fs.readFileSync(gridsetFile);
-      const originalTexts = processor.extractTexts(fileBuffer);
+      const originalTexts = await processor.extractTexts(fileBuffer);
       expect(originalTexts.length).toBeGreaterThan(0);
       console.log('GridSet original texts:', originalTexts.slice(0, 5));
 
@@ -248,14 +248,14 @@ describe('ProcessTexts with Real-World Data', () => {
 
       if (translations.size > 0) {
         const outputPath = path.join(tempDir, 'translated_example.gridset');
-        const result = processor.processTexts(fileBuffer, translations, outputPath);
+        const result = await processor.processTexts(fileBuffer, translations, outputPath);
 
         expect(result).toBeInstanceOf(Buffer);
         expect(fs.existsSync(outputPath)).toBe(true);
 
         // Verify the translated file can be loaded back
         const translatedBuffer = fs.readFileSync(outputPath);
-        const translatedTree = processor.loadIntoTree(translatedBuffer);
+        const translatedTree = await processor.loadIntoTree(translatedBuffer);
         expect(Object.keys(translatedTree.pages).length).toBeGreaterThan(0);
       }
     });
@@ -265,7 +265,7 @@ describe('ProcessTexts with Real-World Data', () => {
     const spbFile = path.join(examplesDir, 'example.spb');
     const spsFile = path.join(examplesDir, 'example.sps');
 
-    it('should extract and translate texts from example.spb', () => {
+    it('should extract and translate texts from example.spb', async () => {
       if (!fs.existsSync(spbFile)) {
         console.log('Skipping SPB test - example.spb not found');
         return;
@@ -274,7 +274,7 @@ describe('ProcessTexts with Real-World Data', () => {
       const processor = new SnapProcessor();
 
       // Extract texts from real Snap database
-      const originalTexts = processor.extractTexts(spbFile);
+      const originalTexts = await processor.extractTexts(spbFile);
       expect(originalTexts.length).toBeGreaterThan(0);
       console.log('Snap SPB original texts:', originalTexts.slice(0, 5));
 
@@ -293,21 +293,21 @@ describe('ProcessTexts with Real-World Data', () => {
 
       if (translations.size > 0) {
         const outputPath = path.join(tempDir, 'translated_example.spb');
-        const result = processor.processTexts(spbFile, translations, outputPath);
+        const result = await processor.processTexts(spbFile, translations, outputPath);
 
         expect(result).toBeInstanceOf(Buffer);
         expect(fs.existsSync(outputPath)).toBe(true);
       }
     });
 
-    it('should handle SPS files', () => {
+    it('should handle SPS files', async () => {
       if (!fs.existsSync(spsFile)) {
         console.log('Skipping SPS test - example.sps not found');
         return;
       }
 
       const processor = new SnapProcessor();
-      const texts = processor.extractTexts(spsFile);
+      const texts = await processor.extractTexts(spsFile);
       expect(texts.length).toBeGreaterThan(0);
 
       // Test basic translation functionality
@@ -315,7 +315,7 @@ describe('ProcessTexts with Real-World Data', () => {
       const outputPath = path.join(tempDir, 'translated_example.sps');
 
       expect(() => {
-        processor.processTexts(spsFile, translations, outputPath);
+        await processor.processTexts(spsFile, translations, outputPath);
       }).not.toThrow();
     });
   });
@@ -323,7 +323,7 @@ describe('ProcessTexts with Real-World Data', () => {
   describe('TouchChat Processor with Real Data', () => {
     const ceFile = path.join(examplesDir, 'example.ce');
 
-    it('should extract and translate texts from example.ce', () => {
+    it('should extract and translate texts from example.ce', async () => {
       if (!fs.existsSync(ceFile)) {
         console.log('Skipping TouchChat test - example.ce not found');
         return;
@@ -332,7 +332,7 @@ describe('ProcessTexts with Real-World Data', () => {
       const processor = new TouchChatProcessor();
 
       // Extract texts from real TouchChat file
-      const originalTexts = processor.extractTexts(ceFile);
+      const originalTexts = await processor.extractTexts(ceFile);
       expect(originalTexts.length).toBeGreaterThan(0);
       console.log('TouchChat original texts:', originalTexts.slice(0, 5));
 
@@ -351,7 +351,7 @@ describe('ProcessTexts with Real-World Data', () => {
 
       if (translations.size > 0) {
         const outputPath = path.join(tempDir, 'translated_example.ce');
-        const result = processor.processTexts(ceFile, translations, outputPath);
+        const result = await processor.processTexts(ceFile, translations, outputPath);
 
         expect(result).toBeInstanceOf(Buffer);
         expect(fs.existsSync(outputPath)).toBe(true);

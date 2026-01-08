@@ -10,7 +10,7 @@ import FileProcessor from '../../src/core/fileProcessor';
 
 describe('src/core Coverage Boost', () => {
   describe('AACButton constructor legacy mappings', () => {
-    it('should map legacy NAVIGATE type', () => {
+    it('should map legacy NAVIGATE type', async () => {
       const button = new AACButton({
         id: 'btn1',
         type: 'NAVIGATE',
@@ -20,7 +20,7 @@ describe('src/core Coverage Boost', () => {
       expect(button.type).toBe('NAVIGATE');
     });
 
-    it('should map legacy SPEAK type', () => {
+    it('should map legacy SPEAK type', async () => {
       const button = new AACButton({
         id: 'btn1',
         type: 'SPEAK',
@@ -30,7 +30,7 @@ describe('src/core Coverage Boost', () => {
       expect(button.type).toBe('SPEAK');
     });
 
-    it('should map legacy ACTION type', () => {
+    it('should map legacy ACTION type', async () => {
       const button = new AACButton({
         id: 'btn1',
         type: 'ACTION',
@@ -39,7 +39,7 @@ describe('src/core Coverage Boost', () => {
       expect(button.type).toBe('ACTION');
     });
 
-    it('should map legacy action object (NAVIGATE)', () => {
+    it('should map legacy action object (NAVIGATE)', async () => {
       const button = new AACButton({
         id: 'btn1',
         action: { type: 'NAVIGATE', targetPageId: 'page2' },
@@ -47,7 +47,7 @@ describe('src/core Coverage Boost', () => {
       expect(button.type).toBe('NAVIGATE');
     });
 
-    it('should map legacy action object (SPEAK)', () => {
+    it('should map legacy action object (SPEAK)', async () => {
       const button = new AACButton({
         id: 'btn1',
         action: { type: 'SPEAK', message: 'test' },
@@ -56,7 +56,7 @@ describe('src/core Coverage Boost', () => {
       expect(button.message).toBe('test');
     });
 
-    it('should map legacy action object (ACTION)', () => {
+    it('should map legacy action object (ACTION)', async () => {
       const button = new AACButton({
         id: 'btn1',
         action: { type: 'ACTION' },
@@ -66,7 +66,7 @@ describe('src/core Coverage Boost', () => {
   });
 
   describe('AACButton getters', () => {
-    it('should return SPEAK for SPEAK_IMMEDIATE intent', () => {
+    it('should return SPEAK for SPEAK_IMMEDIATE intent', async () => {
       const button = new AACButton({
         id: '1',
         semanticAction: { intent: AACSemanticIntent.SPEAK_IMMEDIATE },
@@ -74,19 +74,19 @@ describe('src/core Coverage Boost', () => {
       expect(button.type).toBe('SPEAK');
     });
 
-    it('should return null for empty SPEAK button action', () => {
+    it('should return null for empty SPEAK button action', async () => {
       const button = new AACButton({ id: '1' });
       // In constructor, default type is SPEAK, but message/label are empty
       expect(button.action).toBeNull();
     });
 
-    it('should handle NAVIGATE type from targetPageId fallback', () => {
+    it('should handle NAVIGATE type from targetPageId fallback', async () => {
       const button = new AACButton({ id: '1', targetPageId: 'p2' });
       expect(button.type).toBe('NAVIGATE');
       expect(button.action?.type).toBe('NAVIGATE');
     });
 
-    it('should handle SPEAK type from message fallback', () => {
+    it('should handle SPEAK type from message fallback', async () => {
       const button = new AACButton({ id: '1', message: 'hello' });
       expect(button.type).toBe('SPEAK');
       expect(button.action?.type).toBe('SPEAK');
@@ -94,7 +94,7 @@ describe('src/core Coverage Boost', () => {
   });
 
   describe('AACTree extra properties', () => {
-    it('should handle rootId getter/setter', () => {
+    it('should handle rootId getter/setter', async () => {
       const tree = new AACTree();
       tree.rootId = 'root1';
       expect(tree.rootId).toBe('root1');
@@ -104,7 +104,7 @@ describe('src/core Coverage Boost', () => {
       expect(tree.rootId).toBeNull();
       expect(tree.metadata.defaultHomePageId).toBeUndefined();
     });
-    it('should handle toolbarId and dashboardId', () => {
+    it('should handle toolbarId and dashboardId', async () => {
       const tree = new AACTree();
       tree.toolbarId = 'tb1';
       tree.dashboardId = 'db1';
@@ -121,7 +121,7 @@ describe('src/core Coverage Boost', () => {
   });
 
   describe('AACPage grid constructor', () => {
-    it('should create empty grid for columns/rows object', () => {
+    it('should create empty grid for columns/rows object', async () => {
       const page = new AACPage({
         id: 'p1',
         grid: { columns: 2, rows: 3 },
@@ -131,7 +131,7 @@ describe('src/core Coverage Boost', () => {
       expect(page.grid[0][0]).toBeNull();
     });
 
-    it('should default to empty grid if no grid provided', () => {
+    it('should default to empty grid if no grid provided', async () => {
       const page = new AACPage({ id: 'p1' });
       expect(page.grid).toEqual([]);
     });
@@ -161,7 +161,7 @@ describe('src/core Coverage Boost', () => {
       }
     }
 
-    it('should filter GO_BACK / GO_HOME navigation buttons', () => {
+    it('should filter GO_BACK / GO_HOME navigation buttons', async () => {
       const processor = new MockProcessor({ excludeNavigationButtons: true });
       const backBtn = new AACButton({
         id: 'back',
@@ -173,7 +173,7 @@ describe('src/core Coverage Boost', () => {
       expect(processor.callShouldFilter(backBtn)).toBe(true);
     });
 
-    it('should filter text editing category', () => {
+    it('should filter text editing category', async () => {
       const processor = new MockProcessor({ excludeSystemButtons: true });
       const editBtn = new AACButton({
         id: 'edit',
@@ -182,7 +182,7 @@ describe('src/core Coverage Boost', () => {
       expect(processor.callShouldFilter(editBtn)).toBe(true);
     });
 
-    it('should filter specific system intents', () => {
+    it('should filter specific system intents', async () => {
       const processor = new MockProcessor({ excludeSystemButtons: true });
       const deleteBtn = new AACButton({
         id: 'del',
@@ -194,12 +194,12 @@ describe('src/core Coverage Boost', () => {
       expect(processor.callShouldFilter(deleteBtn)).toBe(true);
     });
 
-    it('should handle output path without extension', () => {
+    it('should handle output path without extension', async () => {
       const processor = new MockProcessor();
       expect(processor.callGenerateOutputPath('myfile')).toBe('myfile_translated');
     });
 
-    it('should handle custom button filter', () => {
+    it('should handle custom button filter', async () => {
       const processor = new MockProcessor({
         customButtonFilter: (btn) => btn.label !== 'Secret',
       });
@@ -209,7 +209,7 @@ describe('src/core Coverage Boost', () => {
       expect(processor.callShouldFilter(normalBtn)).toBe(false);
     });
 
-    it('should handle addToExtractedMap with existing key', () => {
+    it('should handle addToExtractedMap with existing key', async () => {
       const processor = new MockProcessor();
       const extractedMap = new Map<string, any>();
       (processor as any).addToExtractedMap(extractedMap, 'test', 'Test', {
@@ -231,11 +231,11 @@ describe('src/core Coverage Boost', () => {
   });
 
   describe('FileProcessor', () => {
-    it('should return unknown for buffers (not yet implemented)', () => {
+    it('should return unknown for buffers (not yet implemented)', async () => {
       expect(FileProcessor.detectFormat(Buffer.from('test'))).toBe('unknown');
     });
 
-    it('should detect various extensions', () => {
+    it('should detect various extensions', async () => {
       expect(FileProcessor.detectFormat('test.gridset')).toBe('gridset');
       expect(FileProcessor.detectFormat('test.obz')).toBe('coughdrop');
       expect(FileProcessor.detectFormat('test.wfl')).toBe('touchchat');

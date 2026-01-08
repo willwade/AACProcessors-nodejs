@@ -3,7 +3,7 @@ import { AACTree, AACPage, AACButton, AACScanType } from '../src/core/treeStruct
 import { MetricsCalculator } from '../src/utilities/analytics/metrics/core';
 
 describe('Scanning Metrics', () => {
-  it('calculates linear scanning effort correctly', () => {
+  it('calculates linear scanning effort correctly', async () => {
     const tree = new AACTree();
     const page = new AACPage({
       id: 'root',
@@ -42,7 +42,7 @@ describe('Scanning Metrics', () => {
     expect(btn3Metrics?.effort).toBeCloseTo(0.345, 4);
   });
 
-  it('calculates row-column scanning effort correctly', () => {
+  it('calculates row-column scanning effort correctly', async () => {
     const tree = new AACTree();
     const page = new AACPage({
       id: 'root',
@@ -73,7 +73,7 @@ describe('Scanning Metrics', () => {
     expect(metrics?.effort).toBeCloseTo(0.88, 4);
   });
 
-  it('calculates block scanning effort correctly', () => {
+  it('calculates block scanning effort correctly', async () => {
     const tree = new AACTree();
     const page = new AACPage({
       id: 'root',
@@ -130,7 +130,7 @@ describe('Scanning Metrics', () => {
 
     expect(metrics?.effort).toBeCloseTo(0.7, 4);
   });
-  it('calculates error correction effort correctly', () => {
+  it('calculates error correction effort correctly', async () => {
     const tree = new AACTree();
     const page = new AACPage({
       id: 'root',

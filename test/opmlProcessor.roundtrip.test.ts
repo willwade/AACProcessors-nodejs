@@ -11,15 +11,15 @@ console.log('Diagnostic file write:', diagPath, 'exists?', fs.existsSync(diagPat
 
 describe('OpmlProcessor round-trip', () => {
   const opmlPath = path.join(__dirname, 'assets/opml/example.opml');
-  afterAll(() => {
+  afterAll(async () => {
     if (fs.existsSync(outPath)) fs.unlinkSync(outPath);
   });
-  it('round-trips OPML file without losing pages', () => {
+  it('round-trips OPML file without losing pages', async () => {
     const processor = new OpmlProcessor();
     const tree1 = processor.loadIntoTree(opmlPath);
     console.log('TEST: tree1.rootId =', tree1.rootId);
     console.log('TEST: tree1.pages =', Object.keys(tree1.pages));
-    processor.saveFromTree(tree1, outPath);
+    await processor.saveFromTree(tree1, outPath);
     const tree2 = processor.loadIntoTree(outPath);
     console.log('TEST: tree2.rootId =', tree2.rootId);
     console.log('TEST: tree2.pages =', Object.keys(tree2.pages));

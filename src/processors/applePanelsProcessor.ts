@@ -210,8 +210,8 @@ class ApplePanelsProcessor extends BaseProcessor {
       gridY: Math.floor(pixelY / cellSize),
     };
   }
-  extractTexts(filePathOrBuffer: ProcessorInput): string[] {
-    const tree = this.loadIntoTree(filePathOrBuffer);
+  async extractTexts(filePathOrBuffer: ProcessorInput): Promise<string[]> {
+    const tree = await this.loadIntoTree(filePathOrBuffer);
     const texts: string[] = [];
 
     for (const pageId in tree.pages) {
@@ -226,7 +226,7 @@ class ApplePanelsProcessor extends BaseProcessor {
     return texts;
   }
 
-  loadIntoTree(filePathOrBuffer: ProcessorInput): AACTree {
+  async loadIntoTree(filePathOrBuffer: ProcessorInput): Promise<AACTree> {
     const filename =
       typeof filePathOrBuffer === 'string' ? getBasename(filePathOrBuffer) : 'upload.plist';
     let buffer: Uint8Array;
@@ -415,13 +415,13 @@ class ApplePanelsProcessor extends BaseProcessor {
     }
   }
 
-  processTexts(
+  async processTexts(
     filePathOrBuffer: ProcessorInput,
     translations: Map<string, string>,
     outputPath: string
-  ): Uint8Array {
+  ): Promise<Uint8Array> {
     // Load the tree, apply translations, and save to new file
-    const tree = this.loadIntoTree(filePathOrBuffer);
+    const tree = await this.loadIntoTree(filePathOrBuffer);
 
     // Apply translations to all text content
     Object.values(tree.pages).forEach((page) => {
@@ -471,7 +471,7 @@ class ApplePanelsProcessor extends BaseProcessor {
     });
 
     // Save the translated tree to the requested location and return its content
-    this.saveFromTree(tree, outputPath);
+    await this.saveFromTree(tree, outputPath);
 
     if (outputPath.endsWith('.plist')) {
       return readBinaryFromInput(outputPath);
@@ -482,7 +482,7 @@ class ApplePanelsProcessor extends BaseProcessor {
     return readBinaryFromInput(panelDefsPath);
   }
 
-  saveFromTree(tree: AACTree, outputPath: string): void {
+  async saveFromTree(tree: AACTree, outputPath: string): Promise<void> {
     // Support two output modes:
     // 1) Single-file .plist (PanelDefinitions.plist content written directly)
     // 2) Apple Panels bundle folder (*.ascconfig) with Contents/Resources structure

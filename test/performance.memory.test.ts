@@ -12,19 +12,19 @@ const describeIfLocal = process.env.CI ? describe.skip : describe;
 describeIfLocal('Memory Performance Tests', () => {
   const tempDir = path.join(__dirname, 'temp_performance_memory');
 
-  beforeAll(() => {
+  beforeAll(async () => {
     if (!fs.existsSync(tempDir)) {
       fs.mkdirSync(tempDir, { recursive: true });
     }
   });
 
-  beforeEach(() => {
+  beforeEach(async () => {
     if (!fs.existsSync(tempDir)) {
       fs.mkdirSync(tempDir, { recursive: true });
     }
   });
 
-  afterAll(() => {
+  afterAll(async () => {
     // Add a small delay to allow pending I/O to complete
     return new Promise<void>((resolve) => {
       setTimeout(() => {
@@ -78,7 +78,7 @@ describeIfLocal('Memory Performance Tests', () => {
   }
 
   describe('TouchChatProcessor Memory Tests', () => {
-    it('should process 1000+ button boards under 50MB memory', () => {
+    it('should process 1000+ button boards under 50MB memory', async () => {
       const processor = new TouchChatProcessor();
 
       const {
@@ -92,11 +92,11 @@ describeIfLocal('Memory Performance Tests', () => {
       const outputPath = path.join(tempDir, 'large_touchchat.ce');
 
       const { memoryUsedMB: saveMemoryMB } = measureMemoryUsage(() => {
-        processor.saveFromTree(tree, outputPath);
+        await processor.saveFromTree(tree, outputPath);
       });
 
       const { result: loadedTree, memoryUsedMB: loadMemoryMB } = measureMemoryUsage(() => {
-        return processor.loadIntoTree(outputPath);
+        return await processor.loadIntoTree(outputPath);
       });
 
       expect(loadedTree).toBeDefined();
@@ -112,22 +112,22 @@ describeIfLocal('Memory Performance Tests', () => {
       );
     });
 
-    it('should handle streaming large files efficiently', () => {
+    it('should handle streaming large files efficiently', async () => {
       const processor = new TouchChatProcessor();
       const tree = TreeFactory.createLarge(50, 50); // 2500 buttons
 
       const outputPath = path.join(tempDir, 'streaming_touchchat.ce');
 
       const { memoryUsedMB } = measureMemoryUsage(() => {
-        processor.saveFromTree(tree, outputPath);
-        return processor.loadIntoTree(outputPath);
+        await processor.saveFromTree(tree, outputPath);
+        return await processor.loadIntoTree(outputPath);
       });
 
       expect(memoryUsedMB).toBeLessThan(75); // Slightly higher limit for larger dataset
       console.log(`TouchChat streaming - Memory used: ${memoryUsedMB.toFixed(2)}MB`);
     });
 
-    it('should garbage collect properly after processing', () => {
+    it('should garbage collect properly after processing', async () => {
       const processor = new TouchChatProcessor();
 
       // Force garbage collection if available
@@ -142,7 +142,7 @@ describeIfLocal('Memory Performance Tests', () => {
         const tree = TreeFactory.createLarge(20, 20);
         const outputPath = path.join(tempDir, `gc_test_${i}.ce`);
 
-        processor.saveFromTree(tree, outputPath);
+        await processor.saveFromTree(tree, outputPath);
         processor.loadIntoTree(outputPath);
 
         // Clean up file
@@ -165,7 +165,7 @@ describeIfLocal('Memory Performance Tests', () => {
   });
 
   describe('SnapProcessor Memory Tests', () => {
-    it('should process 1000+ button boards under 50MB memory', () => {
+    it('should process 1000+ button boards under 50MB memory', async () => {
       const processor = new SnapProcessor();
 
       const {
@@ -179,11 +179,11 @@ describeIfLocal('Memory Performance Tests', () => {
       const outputPath = path.join(tempDir, 'large_snap.sps');
 
       const { memoryUsedMB: saveMemoryMB } = measureMemoryUsage(() => {
-        processor.saveFromTree(tree, outputPath);
+        await processor.saveFromTree(tree, outputPath);
       });
 
       const { result: loadedTree, memoryUsedMB: loadMemoryMB } = measureMemoryUsage(() => {
-        return processor.loadIntoTree(outputPath);
+        return await processor.loadIntoTree(outputPath);
       });
 
       expect(loadedTree).toBeDefined();
@@ -198,7 +198,7 @@ describeIfLocal('Memory Performance Tests', () => {
       );
     });
 
-    it('should handle large audio content efficiently', () => {
+    it('should handle large audio content efficiently', async () => {
       const processor = new SnapProcessor();
 
       const { result: tree, memoryUsedMB } = measureMemoryUsage(() => {
@@ -222,11 +222,11 @@ describeIfLocal('Memory Performance Tests', () => {
       const outputPath = path.join(tempDir, 'audio_heavy_snap.sps');
 
       const { memoryUsedMB: saveMemoryMB } = measureMemoryUsage(() => {
-        processor.saveFromTree(tree, outputPath);
+        await processor.saveFromTree(tree, outputPath);
       });
 
       const { result: loadedTree, memoryUsedMB: loadMemoryMB } = measureMemoryUsage(() => {
-        return processor.loadIntoTree(outputPath);
+        return await processor.loadIntoTree(outputPath);
       });
 
       expect(loadedTree).toBeDefined();
@@ -238,7 +238,7 @@ describeIfLocal('Memory Performance Tests', () => {
       console.log(`Snap with audio - Memory used: ${totalMemoryUsed.toFixed(2)}MB`);
     });
 
-    it('should maintain memory usage under 100MB for large files', () => {
+    it('should maintain memory usage under 100MB for large files', async () => {
       const processor = new SnapProcessor();
 
       const { result: tree, memoryUsedMB: _memoryUsedMB } = measureMemoryUsage(() => {
@@ -265,8 +265,8 @@ describeIfLocal('Memory Performance Tests', () => {
       const outputPath = path.join(tempDir, 'very_large_snap.sps');
 
       const { memoryUsedMB: totalMemoryMB } = measureMemoryUsage(() => {
-        processor.saveFromTree(tree, outputPath);
-        return processor.loadIntoTree(outputPath);
+        await processor.saveFromTree(tree, outputPath);
+        return await processor.loadIntoTree(outputPath);
       });
 
       expect(totalMemoryMB).toBeLessThan(100);
@@ -275,7 +275,7 @@ describeIfLocal('Memory Performance Tests', () => {
   });
 
   describe('DotProcessor Memory Tests', () => {
-    it('should handle very large hierarchies efficiently', () => {
+    it('should handle very large hierarchies efficiently', async () => {
       const processor = new DotProcessor();
 
       const { result: tree, memoryUsedMB: _memoryUsedMB } = measureMemoryUsage(() => {
@@ -285,8 +285,8 @@ describeIfLocal('Memory Performance Tests', () => {
       const outputPath = path.join(tempDir, 'large_hierarchy.dot');
 
       const { memoryUsedMB: totalMemoryMB } = measureMemoryUsage(() => {
-        processor.saveFromTree(tree, outputPath);
-        return processor.loadIntoTree(outputPath);
+        await processor.saveFromTree(tree, outputPath);
+        return await processor.loadIntoTree(outputPath);
       });
 
       expect(totalMemoryMB).toBeLessThan(30); // DOT format should be very efficient
@@ -295,7 +295,7 @@ describeIfLocal('Memory Performance Tests', () => {
   });
 
   describe('Cross-Processor Memory Comparison', () => {
-    it('should compare memory usage across all processors', () => {
+    it('should compare memory usage across all processors', async () => {
       const tree = TreeFactory.createLarge(50, 20); // 1000 buttons
       const results: { [key: string]: number } = {};
 
@@ -303,8 +303,8 @@ describeIfLocal('Memory Performance Tests', () => {
       const touchChatProcessor = new TouchChatProcessor();
       const touchChatPath = path.join(tempDir, 'comparison_touchchat.ce');
       const { memoryUsedMB: touchChatMemory } = measureMemoryUsage(() => {
-        touchChatProcessor.saveFromTree(tree, touchChatPath);
-        return touchChatProcessor.loadIntoTree(touchChatPath);
+        await touchChatProcessor.saveFromTree(tree, touchChatPath);
+        return await touchChatProcessor.loadIntoTree(touchChatPath);
       });
       results['TouchChat'] = touchChatMemory;
 
@@ -312,8 +312,8 @@ describeIfLocal('Memory Performance Tests', () => {
       const snapProcessor = new SnapProcessor();
       const snapPath = path.join(tempDir, 'comparison_snap.sps');
       const { memoryUsedMB: snapMemory } = measureMemoryUsage(() => {
-        snapProcessor.saveFromTree(tree, snapPath);
-        return snapProcessor.loadIntoTree(snapPath);
+        await snapProcessor.saveFromTree(tree, snapPath);
+        return await snapProcessor.loadIntoTree(snapPath);
       });
       results['Snap'] = snapMemory;
 
@@ -321,8 +321,8 @@ describeIfLocal('Memory Performance Tests', () => {
       const dotProcessor = new DotProcessor();
       const dotPath = path.join(tempDir, 'comparison_dot.dot');
       const { memoryUsedMB: dotMemory } = measureMemoryUsage(() => {
-        dotProcessor.saveFromTree(tree, dotPath);
-        return dotProcessor.loadIntoTree(dotPath);
+        await dotProcessor.saveFromTree(tree, dotPath);
+        return await dotProcessor.loadIntoTree(dotPath);
       });
       results['DOT'] = dotMemory;
 
@@ -339,7 +339,7 @@ describeIfLocal('Memory Performance Tests', () => {
   });
 
   describe('Memory Leak Detection', () => {
-    it('should not leak memory during repeated operations', () => {
+    it('should not leak memory during repeated operations', async () => {
       const processor = new DotProcessor();
 
       if (global.gc) {
@@ -354,7 +354,7 @@ describeIfLocal('Memory Performance Tests', () => {
         const tree = TreeFactory.createLarge(10, 10);
         const outputPath = path.join(tempDir, `leak_test_${i}.dot`);
 
-        processor.saveFromTree(tree, outputPath);
+        await processor.saveFromTree(tree, outputPath);
         processor.loadIntoTree(outputPath);
 
         fs.unlinkSync(outputPath);

@@ -1,12 +1,12 @@
 import { describe, expect, it, jest } from '@jest/globals';
 
 describe('History analytics wrappers (mocked)', () => {
-  afterEach(() => {
+  afterEach(async () => {
     jest.resetModules();
     jest.clearAllMocks();
   });
 
-  it('wraps platform helpers and unifies histories', () => {
+  it('wraps platform helpers and unifies histories', async () => {
     jest.isolateModules(() => {
       jest.doMock('../src/processors/gridset/helpers', () => ({
         readGrid3History: jest.fn(() => [

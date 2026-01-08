@@ -10,7 +10,7 @@ describe('resolveGrid3CellImage', () => {
     return zip;
   }
 
-  it('resolves declared image in Images/ subfolder', () => {
+  it('resolves declared image in Images/ subfolder', async () => {
     const zip = mkZip({
       'Grids/Home/Images/dog.png': 'PNGDATA',
     });
@@ -21,7 +21,7 @@ describe('resolveGrid3CellImage', () => {
     expect(p).toBe('Grids/Home/Images/dog.png');
   });
 
-  it('uses FileMap dynamic files with coordinate prefix', () => {
+  it('uses FileMap dynamic files with coordinate prefix', async () => {
     const zip = mkZip({
       'Grids/Home/1-5-0-text-0.jpeg': 'IMG',
       'Grids/Home/1-5.jpeg': 'ALT',
@@ -35,7 +35,7 @@ describe('resolveGrid3CellImage', () => {
     expect(p).toBe('Grids/Home/1-5-0-text-0.jpeg');
   });
 
-  it('falls back to coordinate guesses when no name or map', () => {
+  it('falls back to coordinate guesses when no name or map', async () => {
     const zip = mkZip({
       'Grids/Home/1-1.jpeg': 'IMG',
     });
@@ -47,7 +47,7 @@ describe('resolveGrid3CellImage', () => {
     expect(p).toBe('Grids/Home/1-1.jpeg');
   });
 
-  it('treats built-in [grid3x] names as non-zip assets unless mapped', () => {
+  it('treats built-in [grid3x] names as non-zip assets unless mapped', async () => {
     const zip = mkZip({});
     const p1 = resolveGrid3CellImage(zip, {
       baseDir: 'Grids/Home/',

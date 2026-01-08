@@ -1,7 +1,7 @@
 import { AACTree, AACPage, TouchChat } from '../src/index';
 
 describe('TouchChat helpers', () => {
-  it('maps page buttons with resolved images', () => {
+  it('maps page buttons with resolved images', async () => {
     const tree = new AACTree();
     const page = new AACPage({
       id: 'page1',
@@ -16,7 +16,7 @@ describe('TouchChat helpers', () => {
     expect(empty.size).toBe(0);
   });
 
-  it('returns empty image sets/placeholders', () => {
+  it('returns empty image sets/placeholders', async () => {
     const tree = new AACTree();
     expect(TouchChat.getAllowedImageEntries(tree).size).toBe(0);
     expect(TouchChat.openImage('ce', 'entry')).toBeNull();

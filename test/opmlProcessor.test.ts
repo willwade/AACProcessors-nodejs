@@ -6,7 +6,7 @@ import { AACTree } from '../src/core/treeStructure';
 describe('OPMLProcessor', () => {
   const opmlPath: string = path.join(__dirname, 'assets/opml/example.opml');
 
-  it('can process .opml files and build a navigation tree', () => {
+  it('can process .opml files and build a navigation tree', async () => {
     const processor = new OpmlProcessor();
     const tree: AACTree = processor.loadIntoTree(opmlPath);
     expect(tree).toBeInstanceOf(AACTree);

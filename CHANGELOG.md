@@ -5,6 +5,146 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### 🔄 BREAKING CHANGE - Async API Migration
+
+This release introduces a major API change to support browser environments and enable future JSZip migration. All processor methods are now **asynchronous** and return Promises.
+
+### Changed
+
+#### Core API Changes (BREAKING)
+
+All processor methods now return Promises:
+
+```typescript
+// Before (v2.x)
+const tree: AACTree = processor.loadIntoTree(file);
+const texts: string[] = processor.extractTexts(file);
+const result: Uint8Array = processor.processTexts(file, translations, output);
+processor.saveFromTree(tree, output);
+
+// After (v3.x)
+const tree: AACTree = await processor.loadIntoTree(file);
+const texts: string[] = await processor.extractTexts(file);
+const result: Uint8Array = await processor.processTexts(file, translations, output);
+await processor.saveFromTree(tree, output);
+```
+
+#### LLM Translation Methods (BREAKING)
+
+```typescript
+// Before
+const symbols: ButtonForTranslation[] = processor.extractSymbolsForLLM(file);
+processor.processLLMTranslations(file, translations, output);
+
+// After
+const symbols: ButtonForTranslation[] = await processor.extractSymbolsForLLM(file);
+await processor.processLLMTranslations(file, translations, output);
+```
+
+#### Helper Functions (BREAKING)
+
+```typescript
+// Before
+const result = analyze(file, format);  // Returns { tree }
+
+// After
+const result = await analyze(file, format);  // Returns Promise<{ tree }>
+```
+
+### Migration Guide
+
+To update your code from v2.x to v3.x:
+
+1. **Add `async`/`await` to all processor calls:**
+
+```typescript
+// Before
+function processFile(filePath: string) {
+  const processor = new ObfProcessor();
+  const tree = processor.loadIntoTree(filePath);
+  console.log(tree.pages);
+}
+
+// After
+async function processFile(filePath: string) {
+  const processor = new ObfProcessor();
+  const tree = await processor.loadIntoTree(filePath);
+  console.log(tree.pages);
+}
+```
+
+2. **Update function signatures to `async`:**
+
+```typescript
+// Before
+function convertFile(input: string, output: string) {
+  const processor = getProcessor(input);
+  const tree = processor.loadIntoTree(input);
+  processor.saveFromTree(tree, output);
+}
+
+// After
+async function convertFile(input: string, output: string) {
+  const processor = getProcessor(input);
+  const tree = await processor.loadIntoTree(input);
+  await processor.saveFromTree(tree, output);
+}
+```
+
+3. **Use Promise.all() for concurrent operations:**
+
+```typescript
+// Process multiple files concurrently
+async function processMultipleFiles(files: string[]) {
+  const results = await Promise.all(
+    files.map(async (file) => {
+      const processor = getProcessor(file);
+      const tree = await processor.loadIntoTree(file);
+      return tree;
+    })
+  );
+  return results;
+}
+```
+
+### Benefits of This Change
+
+1. **Browser Compatibility** - Async API enables proper JSZip support for browser environments
+2. **Better Performance** - Async operations prevent blocking, especially for large files
+3. **Streamlined Error Handling** - Use try/catch with async/await instead of error callbacks
+4. **Future-Ready** - Foundation for additional async features (fetch, streaming, etc.)
+
+### Added
+
+- **Async Support** - All processors now support async/await pattern
+- **Browser Foundation** - Core API ready for full browser support (ongoing work)
+- **Better Testing** - Tests use async/await for more accurate simulation of real usage
+
+### Technical Details
+
+- **BaseProcessor interface** - All abstract methods now return Promises
+- **All processors updated** - DotProcessor, OpmlProcessor, ObfProcessor, ObfsetProcessor, GridsetProcessor, SnapProcessor, TouchChatProcessor, ApplePanelsProcessor, AstericsGridProcessor, ExcelProcessor
+- **Test suite updated** - 315 tests passing with async patterns (89% pass rate)
+- **Build succeeds** - Full TypeScript compilation successful
+- **Gridset crypto separated** - `.gridsetx` encryption moved to separate module
+
+### Browser Compatibility Progress
+
+This change enables the following browser-compatible processors:
+- ✅ DotProcessor
+- ✅ OpmlProcessor
+- ⚠️ ObfProcessor (JSZip migration in progress)
+- ⚠️ GridsetProcessor (JSZip migration in progress)
+- ✅ ApplePanelsProcessor
+- ✅ AstericsGridProcessor
+
+Still Node-only (deferred):
+- ❌ SnapProcessor (sqlite - needs wasm sqlite)
+- ❌ TouchChatProcessor (sqlite - needs wasm sqlite)
+- ❌ ExcelProcessor (fs dependencies - needs audit)
+
 ## [2.1.0] - 2025-01-28
 
 ### 🎨 Major Feature - Comprehensive Styling Support

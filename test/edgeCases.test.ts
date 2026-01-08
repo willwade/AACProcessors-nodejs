@@ -11,20 +11,20 @@ import { AACTree } from '../src/core/treeStructure';
 describe('Edge Case Tests', () => {
   const tempDir = path.join(__dirname, 'temp_edge_cases');
 
-  beforeAll(() => {
+  beforeAll(async () => {
     if (!fs.existsSync(tempDir)) {
       fs.mkdirSync(tempDir, { recursive: true });
     }
   });
 
-  afterAll(() => {
+  afterAll(async () => {
     if (fs.existsSync(tempDir)) {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }
   });
 
   describe('Empty and Minimal Content', () => {
-    it('should handle completely empty files', () => {
+    it('should handle completely empty files', async () => {
       const processors = [
         { name: 'DOT', processor: new DotProcessor(), testBuffer: true },
         { name: 'OPML', processor: new OpmlProcessor(), testBuffer: true },
@@ -38,7 +38,7 @@ describe('Edge Case Tests', () => {
       });
     });
 
-    it('should handle minimal valid content', () => {
+    it('should handle minimal valid content', async () => {
       const testCases = [
         {
           name: 'DOT',
@@ -59,17 +59,17 @@ describe('Edge Case Tests', () => {
       ];
 
       testCases.forEach(({ name, processor, content }) => {
-        const tree = processor.loadIntoTree(Buffer.from(content));
+        const tree = await processor.loadIntoTree(Buffer.from(content));
         expect(tree).toBeInstanceOf(AACTree);
         console.log(`${name} minimal content: ${Object.keys(tree.pages).length} pages`);
       });
     });
 
-    it('should handle single-element content', () => {
+    it('should handle single-element content', async () => {
       const dotProcessor = new DotProcessor();
       const singleNodeContent = 'digraph G { single [label="Only Node"]; }';
 
-      const tree = dotProcessor.loadIntoTree(Buffer.from(singleNodeContent));
+      const tree = await dotProcessor.loadIntoTree(Buffer.from(singleNodeContent));
       expect(Object.keys(tree.pages)).toHaveLength(1);
 
       const page = Object.values(tree.pages)[0];
@@ -79,7 +79,7 @@ describe('Edge Case Tests', () => {
   });
 
   describe('Unusual Characters and Encoding', () => {
-    it('should handle Unicode characters correctly', () => {
+    it('should handle Unicode characters correctly', async () => {
       const unicodeTestCases = [
         {
           name: 'Emoji',
@@ -111,7 +111,7 @@ describe('Edge Case Tests', () => {
       const processor = new DotProcessor();
 
       unicodeTestCases.forEach(({ name, content, expectedLabel }) => {
-        const tree = processor.loadIntoTree(Buffer.from(content, 'utf8'));
+        const tree = await processor.loadIntoTree(Buffer.from(content, 'utf8'));
         const page = Object.values(tree.pages)[0];
 
         expect(page.buttons).toHaveLength(1);
@@ -120,7 +120,7 @@ describe('Edge Case Tests', () => {
       });
     });
 
-    it('should handle special characters in file paths and content', () => {
+    it('should handle special characters in file paths and content', async () => {
       const processor = new DotProcessor();
       const specialContent = `
         digraph G {
@@ -133,7 +133,7 @@ describe('Edge Case Tests', () => {
         }
       `;
 
-      const tree = processor.loadIntoTree(Buffer.from(specialContent));
+      const tree = await processor.loadIntoTree(Buffer.from(specialContent));
       expect(Object.keys(tree.pages).length).toBeGreaterThan(0);
 
       const allButtons = Object.values(tree.pages).flatMap((page) => page.buttons);
@@ -145,7 +145,7 @@ describe('Edge Case Tests', () => {
       expect(labels).toContain('Label@with@symbols');
     });
 
-    it('should handle escaped characters correctly', () => {
+    it('should handle escaped characters correctly', async () => {
       const processor = new DotProcessor();
       const escapedContent = `
         digraph G {
@@ -155,7 +155,7 @@ describe('Edge Case Tests', () => {
         }
       `;
 
-      const tree = processor.loadIntoTree(Buffer.from(escapedContent));
+      const tree = await processor.loadIntoTree(Buffer.from(escapedContent));
       const allButtons = Object.values(tree.pages).flatMap((page) => page.buttons);
 
       expect(allButtons.length).toBe(3);
@@ -166,14 +166,14 @@ describe('Edge Case Tests', () => {
   });
 
   describe('Boundary Conditions', () => {
-    it('should handle maximum reasonable content sizes', () => {
+    it('should handle maximum reasonable content sizes', async () => {
       const processor = new DotProcessor();
 
       // Test very long labels
       const longLabel = 'A'.repeat(1000);
       const longLabelContent = `digraph G { long [label="${longLabel}"]; }`;
 
-      const tree = processor.loadIntoTree(Buffer.from(longLabelContent));
+      const tree = await processor.loadIntoTree(Buffer.from(longLabelContent));
       const page = Object.values(tree.pages)[0];
       expect(page.buttons[0].label).toBe(longLabel);
 
@@ -185,7 +185,7 @@ describe('Edge Case Tests', () => {
       manyNodesLines.push('}');
 
       const manyNodesContent = manyNodesLines.join('\n');
-      const manyNodesTree = processor.loadIntoTree(Buffer.from(manyNodesContent));
+      const manyNodesTree = await processor.loadIntoTree(Buffer.from(manyNodesContent));
 
       const totalButtons = Object.values(manyNodesTree.pages).reduce(
         (sum, page) => sum + page.buttons.length,
@@ -194,7 +194,7 @@ describe('Edge Case Tests', () => {
       expect(totalButtons).toBe(100);
     });
 
-    it('should handle deeply nested structures', () => {
+    it('should handle deeply nested structures', async () => {
       const processor = new OpmlProcessor();
 
       // Create deeply nested OPML
@@ -213,11 +213,11 @@ describe('Edge Case Tests', () => {
 
       nestedContent += '</body></opml>';
 
-      const tree = processor.loadIntoTree(Buffer.from(nestedContent));
+      const tree = await processor.loadIntoTree(Buffer.from(nestedContent));
       expect(Object.keys(tree.pages).length).toBeGreaterThan(0);
     });
 
-    it('should handle circular references gracefully', () => {
+    it('should handle circular references gracefully', async () => {
       const processor = new DotProcessor();
       const circularContent = `
         digraph G {
@@ -230,7 +230,7 @@ describe('Edge Case Tests', () => {
         }
       `;
 
-      const tree = processor.loadIntoTree(Buffer.from(circularContent));
+      const tree = await processor.loadIntoTree(Buffer.from(circularContent));
 
       // Test that traverse doesn't get stuck in infinite loop
       const visitedPages: string[] = [];
@@ -245,7 +245,7 @@ describe('Edge Case Tests', () => {
   });
 
   describe('Corrupted and Malformed Content', () => {
-    it('should handle partially corrupted JSON', () => {
+    it('should handle partially corrupted JSON', async () => {
       const processor = new ObfProcessor();
 
       const corruptedJsonCases = [
@@ -264,7 +264,7 @@ describe('Edge Case Tests', () => {
       });
     });
 
-    it('should handle malformed XML', () => {
+    it('should handle malformed XML', async () => {
       const processor = new OpmlProcessor();
 
       const malformedXmlCases = [
@@ -275,7 +275,7 @@ describe('Edge Case Tests', () => {
 
       malformedXmlCases.forEach((malformedXml) => {
         try {
-          const tree = processor.loadIntoTree(Buffer.from(malformedXml));
+          const tree = await processor.loadIntoTree(Buffer.from(malformedXml));
           // If it doesn't throw, it should return an empty tree or handle it gracefully
           expect(Object.keys(tree.pages).length).toBe(0);
         } catch (error) {
@@ -284,7 +284,7 @@ describe('Edge Case Tests', () => {
       });
     });
 
-    it('should handle binary data as text input', () => {
+    it('should handle binary data as text input', async () => {
       const processor = new DotProcessor();
 
       // Create some binary data
@@ -295,7 +295,7 @@ describe('Edge Case Tests', () => {
   });
 
   describe('Resource Limits and Cleanup', () => {
-    it('should clean up temporary files on errors', () => {
+    it('should clean up temporary files on errors', async () => {
       const processor = new SnapProcessor();
 
       const tempFilesBefore = fs.readdirSync(os.tmpdir()).length;
@@ -327,7 +327,7 @@ describe('Edge Case Tests', () => {
       const promises = Array(5)
         .fill(0)
         .map(async () => {
-          return processor.loadIntoTree(testFile);
+          return await processor.loadIntoTree(testFile);
         });
 
       const results = await Promise.all(promises);
@@ -339,7 +339,7 @@ describe('Edge Case Tests', () => {
       });
     });
 
-    it('should handle very long file paths', () => {
+    it('should handle very long file paths', async () => {
       const processor = new DotProcessor();
 
       // Create a very long but valid path
@@ -351,14 +351,14 @@ describe('Edge Case Tests', () => {
 
       fs.writeFileSync(longFilePath, testContent);
 
-      const tree = processor.loadIntoTree(longFilePath);
+      const tree = await processor.loadIntoTree(longFilePath);
       expect(tree).toBeInstanceOf(AACTree);
       expect(Object.keys(tree.pages).length).toBeGreaterThan(0);
     });
   });
 
   describe('Translation Edge Cases', () => {
-    it('should handle empty translation maps', () => {
+    it('should handle empty translation maps', async () => {
       const processor = new DotProcessor();
       const content = 'digraph G { test [label="Test"]; }';
       const outputPath = path.join(tempDir, 'empty_translation.dot');
@@ -366,26 +366,26 @@ describe('Edge Case Tests', () => {
       const emptyTranslations = new Map<string, string>();
 
       expect(() => {
-        processor.processTexts(Buffer.from(content), emptyTranslations, outputPath);
+        await processor.processTexts(Buffer.from(content), emptyTranslations, outputPath);
       }).not.toThrow();
 
       expect(fs.existsSync(outputPath)).toBe(true);
     });
 
-    it('should handle translations with special regex characters', () => {
+    it('should handle translations with special regex characters', async () => {
       const processor = new DotProcessor();
       const content = 'digraph G { test [label="$pecial [chars] (here)"]; }';
       const outputPath = path.join(tempDir, 'special_chars_translation.dot');
 
       const translations = new Map([['$pecial [chars] (here)', 'Caracteres especiales aquí']]);
 
-      const result = processor.processTexts(Buffer.from(content), translations, outputPath);
+      const result = await processor.processTexts(Buffer.from(content), translations, outputPath);
       const translatedContent = Buffer.from(result).toString('utf8');
 
       expect(translatedContent).toContain('Caracteres especiales aquí');
     });
 
-    it('should handle very large translation maps', () => {
+    it('should handle very large translation maps', async () => {
       const processor = new DotProcessor();
 
       // Create content with many translatable items
@@ -403,7 +403,7 @@ describe('Edge Case Tests', () => {
       }
 
       const outputPath = path.join(tempDir, 'large_translation.dot');
-      const result = processor.processTexts(Buffer.from(content), translations, outputPath);
+      const result = await processor.processTexts(Buffer.from(content), translations, outputPath);
 
       expect(Buffer.from(result)).toBeInstanceOf(Buffer);
       expect(fs.existsSync(outputPath)).toBe(true);

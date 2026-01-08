@@ -82,8 +82,8 @@ class SnapProcessor extends BaseProcessor {
       options.pageLayoutPreference !== undefined ? options.pageLayoutPreference : 'scanning'; // Default to scanning
   }
 
-  extractTexts(filePathOrBuffer: ProcessorInput): string[] {
-    const tree = this.loadIntoTree(filePathOrBuffer);
+  async extractTexts(filePathOrBuffer: ProcessorInput): Promise<string[]> {
+    const tree = await this.loadIntoTree(filePathOrBuffer);
     const texts: string[] = [];
 
     for (const pageId in tree.pages) {
@@ -101,7 +101,7 @@ class SnapProcessor extends BaseProcessor {
     return texts;
   }
 
-  loadIntoTree(filePathOrBuffer: ProcessorInput): AACTree {
+  async loadIntoTree(filePathOrBuffer: ProcessorInput): Promise<AACTree> {
     const tree = new AACTree();
     const filePath =
       typeof filePathOrBuffer === 'string'
@@ -731,13 +731,13 @@ class SnapProcessor extends BaseProcessor {
     }
   }
 
-  processTexts(
+  async processTexts(
     filePathOrBuffer: ProcessorInput,
     translations: Map<string, string>,
     outputPath: string
-  ): Uint8Array {
+  ): Promise<Uint8Array> {
     // Load the tree, apply translations, and save to new file
-    const tree = this.loadIntoTree(filePathOrBuffer);
+    const tree = await this.loadIntoTree(filePathOrBuffer);
 
     // Apply translations to all text content
     Object.values(tree.pages).forEach((page) => {
@@ -767,11 +767,11 @@ class SnapProcessor extends BaseProcessor {
     });
 
     // Save the translated tree and return its content
-    this.saveFromTree(tree, outputPath);
+    await this.saveFromTree(tree, outputPath);
     return fs.readFileSync(outputPath);
   }
 
-  saveFromTree(tree: AACTree, outputPath: string): void {
+  async saveFromTree(tree: AACTree, outputPath: string): Promise<void> {
     const outputDir = path.dirname(outputPath);
     if (!fs.existsSync(outputDir)) {
       fs.mkdirSync(outputDir, { recursive: true });

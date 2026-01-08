@@ -96,7 +96,7 @@ class OpmlProcessor extends BaseProcessor {
     return { page, childPages };
   }
 
-  extractTexts(filePathOrBuffer: ProcessorInput): string[] {
+  async extractTexts(filePathOrBuffer: ProcessorInput): Promise<string[]> {
     const content = readTextFromInput(filePathOrBuffer);
 
     const parser = new XMLParser({ ignoreAttributes: false });
@@ -132,7 +132,7 @@ class OpmlProcessor extends BaseProcessor {
     return texts;
   }
 
-  loadIntoTree(filePathOrBuffer: ProcessorInput): AACTree {
+  async loadIntoTree(filePathOrBuffer: ProcessorInput): Promise<AACTree> {
     const filename =
       typeof filePathOrBuffer === 'string' ? getBasename(filePathOrBuffer) : 'upload.opml';
     const buffer = readBinaryFromInput(filePathOrBuffer);
@@ -220,11 +220,11 @@ class OpmlProcessor extends BaseProcessor {
     }
   }
 
-  processTexts(
+  async processTexts(
     filePathOrBuffer: ProcessorInput,
     translations: Map<string, string>,
     outputPath: string
-  ): Uint8Array {
+  ): Promise<Uint8Array> {
     const content = readTextFromInput(filePathOrBuffer);
 
     let translatedContent = content;
@@ -246,7 +246,7 @@ class OpmlProcessor extends BaseProcessor {
     return resultBuffer;
   }
 
-  saveFromTree(tree: AACTree, outputPath: string): void {
+  async saveFromTree(tree: AACTree, outputPath: string): Promise<void> {
     // Helper to recursively build outline nodes with cycle detection
     function buildOutline(page: AACPage, visited: Set<string> = new Set()): OpmlOutline {
       // Prevent infinite recursion by tracking visited pages

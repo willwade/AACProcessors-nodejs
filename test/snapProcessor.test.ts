@@ -6,21 +6,21 @@ describe('SnapProcessor', () => {
   const exampleFile: string = path.join(__dirname, 'assets/snap/example.spb');
   const exampleSPSFile: string = path.join(__dirname, 'assets/snap/example.sps');
 
-  it('should extract all texts from a .spb file', () => {
+  it('should extract all texts from a .spb file', async () => {
     const processor = new SnapProcessor();
     const texts: string[] = processor.extractTexts(exampleFile);
     expect(Array.isArray(texts)).toBe(true);
     expect(texts.length).toBeGreaterThan(0);
   });
 
-  it('should extract all texts from a .sps file', () => {
+  it('should extract all texts from a .sps file', async () => {
     const processor = new SnapProcessor();
     const texts: string[] = processor.extractTexts(exampleSPSFile);
     expect(Array.isArray(texts)).toBe(true);
     expect(texts.length).toBeGreaterThan(0);
   });
 
-  it('should load the tree structure from a .spb file and use UniqueId for page ids', () => {
+  it('should load the tree structure from a .spb file and use UniqueId for page ids', async () => {
     const processor = new SnapProcessor();
     const tree: AACTree = processor.loadIntoTree(exampleFile);
     expect(tree).toBeTruthy();
@@ -32,7 +32,7 @@ describe('SnapProcessor', () => {
     });
   });
 
-  it('should load the tree structure from a .sps file and use UniqueId for page ids', () => {
+  it('should load the tree structure from a .sps file and use UniqueId for page ids', async () => {
     const processor = new SnapProcessor();
     const tree: AACTree = processor.loadIntoTree(exampleSPSFile);
     expect(tree).toBeTruthy();
@@ -59,14 +59,14 @@ describe('SnapProcessor', () => {
   });
 
   describe('Error Handling', () => {
-    it('should throw error for non-existent file', () => {
+    it('should throw error for non-existent file', async () => {
       const processor = new SnapProcessor();
       expect(() => {
         processor.loadIntoTree('/non/existent/file.spb');
       }).toThrow();
     });
 
-    it('should handle invalid buffer input', () => {
+    it('should handle invalid buffer input', async () => {
       const processor = new SnapProcessor();
       const invalidBuffer = Buffer.from('not a database file');
       expect(() => {
@@ -74,7 +74,7 @@ describe('SnapProcessor', () => {
       }).toThrow();
     });
 
-    it('should handle empty file path', () => {
+    it('should handle empty file path', async () => {
       const processor = new SnapProcessor();
       expect(() => {
         processor.loadIntoTree('');
@@ -83,18 +83,18 @@ describe('SnapProcessor', () => {
   });
 
   describe('Audio Options', () => {
-    it('should create processor with audio loading disabled by default', () => {
+    it('should create processor with audio loading disabled by default', async () => {
       const processor = new SnapProcessor();
       expect(processor).toBeDefined();
       // Audio loading is private, but we can test the behavior
     });
 
-    it('should create processor with audio loading enabled', () => {
+    it('should create processor with audio loading enabled', async () => {
       const processor = new SnapProcessor(null, { loadAudio: true });
       expect(processor).toBeDefined();
     });
 
-    it('should create processor with symbol resolver', () => {
+    it('should create processor with symbol resolver', async () => {
       const mockResolver = { resolve: jest.fn() };
       const processor = new SnapProcessor(mockResolver);
       expect(processor).toBeDefined();
