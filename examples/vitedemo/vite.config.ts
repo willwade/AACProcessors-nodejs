@@ -4,7 +4,11 @@ import path from 'path';
 export default defineConfig({
   resolve: {
     alias: {
-      'aac-processors': path.resolve(__dirname, '../../src/index.browser.ts')
+      'aac-processors': path.resolve(__dirname, '../../src/index.browser.ts'),
+      stream: path.resolve(__dirname, 'node_modules/stream-browserify'),
+      events: path.resolve(__dirname, 'node_modules/events'),
+      timers: path.resolve(__dirname, 'node_modules/timers-browserify'),
+      util: path.resolve(__dirname, 'node_modules/util')
     }
   },
   optimizeDeps: {
