@@ -32,8 +32,8 @@ describe('SnapProcessor Coverage', () => {
       };
       db.close();
 
-      const audioData = Buffer.from('audio data');
-      saveProcessor.addAudioToButton(tempDbPath, firstButton.Id, audioData, 'test.wav');
+      const audioData = new Uint8Array(Buffer.from('audio data'));
+      await saveProcessor.addAudioToButton(tempDbPath, firstButton.Id, audioData, 'test.wav');
 
       const processor = new SnapProcessor(null, { loadAudio: true });
       const loadedTree = await processor.loadIntoTree(tempDbPath);
@@ -49,8 +49,8 @@ describe('SnapProcessor Coverage', () => {
       fs.copyFileSync(exampleFile, tempDbPath);
 
       const processor = new SnapProcessor();
-      const audioData = Buffer.from('new audio data');
-      processor.addAudioToButton(tempDbPath, 1, audioData, 'test.wav');
+      const audioData = new Uint8Array(Buffer.from('new audio data'));
+      await processor.addAudioToButton(tempDbPath, 1, audioData, 'test.wav');
 
       const db = new Database(tempDbPath);
       const row = db.prepare('SELECT * FROM Button WHERE Id = ?').get(1) as any;
@@ -69,10 +69,10 @@ describe('SnapProcessor Coverage', () => {
       }
 
       const processor = new SnapProcessor();
-      const audioMappings = new Map<number, { audioData: Buffer; metadata?: string }>();
-      audioMappings.set(1, { audioData: Buffer.from('new audio') });
+      const audioMappings = new Map<number, { audioData: Uint8Array; metadata?: string }>();
+      audioMappings.set(1, { audioData: new Uint8Array(Buffer.from('new audio')) });
 
-      processor.createAudioEnhancedPageset(exampleFile, enhancedDbPath, audioMappings);
+      await processor.createAudioEnhancedPageset(exampleFile, enhancedDbPath, audioMappings);
 
       expect(fs.existsSync(enhancedDbPath)).toBe(true);
       const db = new Database(enhancedDbPath);
@@ -87,7 +87,7 @@ describe('SnapProcessor Coverage', () => {
     it('should throw an error for a corrupted database file', async () => {
       fs.writeFileSync(tempDbPath, 'not a database');
       const processor = new SnapProcessor();
-      expect(() => await processor.loadIntoTree(tempDbPath)).toThrow(
+      await expect(processor.loadIntoTree(tempDbPath)).rejects.toThrow(
         'Invalid SQLite database file'
       );
     });

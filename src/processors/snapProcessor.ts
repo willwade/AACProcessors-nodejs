@@ -1031,7 +1031,12 @@ class SnapProcessor extends BaseProcessor {
   /**
    * Add audio recording to a button in the database
    */
-  addAudioToButton(dbPath: string, buttonId: number, audioData: Buffer, metadata?: string): number {
+  async addAudioToButton(
+    dbPath: string,
+    buttonId: number,
+    audioData: Uint8Array,
+    metadata?: string
+  ): Promise<number> {
     const db = new Database(dbPath, { fileMustExist: true });
 
     try {
@@ -1080,18 +1085,18 @@ class SnapProcessor extends BaseProcessor {
   /**
    * Create a copy of the pageset with audio recordings added
    */
-  createAudioEnhancedPageset(
+  async createAudioEnhancedPageset(
     sourceDbPath: string,
     targetDbPath: string,
-    audioMappings: Map<number, { audioData: Buffer; metadata?: string }>
-  ): void {
+    audioMappings: Map<number, { audioData: Uint8Array; metadata?: string }>
+  ): Promise<void> {
     // Copy the source database to target
     fs.copyFileSync(sourceDbPath, targetDbPath);
 
     // Add audio recordings to the copy
-    audioMappings.forEach((audioInfo, buttonId) => {
-      this.addAudioToButton(targetDbPath, buttonId, audioInfo.audioData, audioInfo.metadata);
-    });
+    for (const [buttonId, audioInfo] of audioMappings.entries()) {
+      await this.addAudioToButton(targetDbPath, buttonId, audioInfo.audioData, audioInfo.metadata);
+    }
   }
 
   /**

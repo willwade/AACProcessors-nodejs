@@ -34,11 +34,9 @@ describe('Error Handling', () => {
         new ApplePanelsProcessor(),
       ];
 
-      processors.forEach((processor) => {
-        expect(() => {
-          await processor.loadIntoTree('/non/existent/file.ext');
-        }).rejects.toThrow();
-      });
+      for (const processor of processors) {
+        await expect(processor.loadIntoTree('/non/existent/file.ext')).rejects.toThrow();
+      }
     });
 
     it('should handle permission denied errors', async () => {
@@ -50,9 +48,7 @@ describe('Error Handling', () => {
         fs.chmodSync(restrictedFile, 0o000); // No permissions
 
         const processor = new DotProcessor();
-        expect(() => {
-          await processor.loadIntoTree(restrictedFile);
-        }).rejects.toThrow();
+        await expect(processor.loadIntoTree(restrictedFile)).rejects.toThrow();
       } catch (e) {
         // chmod might not work on all systems, skip this test
         console.log('Skipping permission test - chmod not supported');
@@ -72,36 +68,28 @@ describe('Error Handling', () => {
       const processor = new ObfProcessor();
       const invalidJson = Buffer.from('{ invalid json content }');
 
-      expect(() => {
-        await processor.loadIntoTree(invalidJson);
-      }).rejects.toThrow();
+      await expect(processor.loadIntoTree(invalidJson)).rejects.toThrow();
     });
 
     it('should handle invalid XML in OPML files', async () => {
       const processor = new OpmlProcessor();
       const invalidXml = Buffer.from('<invalid><unclosed>xml');
 
-      expect(() => {
-        await processor.loadIntoTree(invalidXml);
-      }).rejects.toThrow();
+      await expect(processor.loadIntoTree(invalidXml)).rejects.toThrow();
     });
 
     it('should handle invalid XML in GridSet files', async () => {
       const processor = new GridsetProcessor();
       const invalidZip = Buffer.from('not a zip file');
 
-      expect(() => {
-        await processor.loadIntoTree(invalidZip);
-      }).rejects.toThrow();
+      await expect(processor.loadIntoTree(invalidZip)).rejects.toThrow();
     });
 
     it('should handle corrupted SQLite databases', async () => {
       const processor = new SnapProcessor();
       const corruptedDb = Buffer.from('SQLite format 3\x00but corrupted data');
 
-      expect(() => {
-        await processor.loadIntoTree(corruptedDb);
-      }).rejects.toThrow();
+      await expect(processor.loadIntoTree(corruptedDb)).rejects.toThrow();
     });
   });
 
@@ -111,19 +99,17 @@ describe('Error Handling', () => {
 
       // Processors should throw meaningful errors
       const dotProcessor = new DotProcessor();
-      expect(() => dotProcessor.loadIntoTree(emptyBuffer)).toThrow();
+      await expect(dotProcessor.loadIntoTree(emptyBuffer)).rejects.toThrow();
 
       const snapProcessor = new SnapProcessor();
-      expect(() => {
-        snapProcessor.loadIntoTree(emptyBuffer);
-      }).rejects.toThrow();
+      await expect(snapProcessor.loadIntoTree(emptyBuffer)).rejects.toThrow();
     });
 
     it('should handle files with only whitespace', async () => {
       const whitespaceBuffer = Buffer.from('   \n\t  \n  ');
 
       const dotProcessor = new DotProcessor();
-      expect(() => dotProcessor.loadIntoTree(whitespaceBuffer)).toThrow();
+      await expect(dotProcessor.loadIntoTree(whitespaceBuffer)).rejects.toThrow();
     });
   });
 
@@ -139,10 +125,8 @@ describe('Error Handling', () => {
         '\n}';
 
       const processor = new DotProcessor();
-      expect(() => {
-        const result = await processor.loadIntoTree(Buffer.from(largeDotContent));
-        expect(Object.keys(result.pages).length).toBeGreaterThan(0);
-      }).not.toThrow();
+      const result = await processor.loadIntoTree(Buffer.from(largeDotContent));
+      expect(Object.keys(result.pages).length).toBeGreaterThan(0);
     });
 
     it('should clean up temporary files on error', async () => {
@@ -152,9 +136,7 @@ describe('Error Handling', () => {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const tempFilesBefore = fs.readdirSync(require('os').tmpdir()).length;
 
-      expect(() => {
-        await processor.loadIntoTree(invalidData);
-      }).rejects.toThrow();
+      await expect(processor.loadIntoTree(invalidData)).rejects.toThrow();
 
       // Give some time for cleanup
       setTimeout(() => {
@@ -179,9 +161,9 @@ describe('Error Handling', () => {
         ['valid', 'válido'],
       ]);
 
-      expect(() => {
-        await processor.processTexts(validContent, invalidTranslations, outputPath);
-      }).not.toThrow();
+      await expect(
+        processor.processTexts(validContent, invalidTranslations, outputPath)
+      ).resolves.not.toThrow();
     });
 
     it('should handle circular references in translation maps', async () => {
@@ -194,9 +176,9 @@ describe('Error Handling', () => {
         ['B', 'A'],
       ]);
 
-      expect(() => {
-        await processor.processTexts(validContent, circularTranslations, outputPath);
-      }).not.toThrow();
+      await expect(
+        processor.processTexts(validContent, circularTranslations, outputPath)
+      ).resolves.not.toThrow();
     });
   });
 
@@ -214,9 +196,7 @@ describe('Error Handling', () => {
         );
         const outputPath = path.join(readOnlyDir, 'output.dot');
 
-        expect(() => {
-          await processor.saveFromTree(tree, outputPath);
-        }).rejects.toThrow();
+        await expect(processor.saveFromTree(tree, outputPath)).rejects.toThrow();
       } catch (e) {
         // chmod might not work on all systems
         console.log('Skipping read-only directory test - chmod not supported');
@@ -237,9 +217,9 @@ describe('Error Handling', () => {
       const tree = await processor.loadIntoTree(Buffer.from('digraph G { node1 [label="test"]; }'));
 
       // Try to save to an invalid path
-      expect(() => {
-        await processor.saveFromTree(tree, '/invalid/path/that/does/not/exist/output.dot');
-      }).rejects.toThrow();
+      await expect(
+        processor.saveFromTree(tree, '/invalid/path/that/does/not/exist/output.dot')
+      ).rejects.toThrow();
     });
   });
 });

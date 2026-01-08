@@ -123,10 +123,10 @@ describe('Integration Tests', () => {
         { ext: '.grd', expectedType: AstericsGridProcessor },
       ];
 
-      testCases.forEach(({ ext, expectedType }) => {
+      for (const { ext, expectedType } of testCases) {
         const processor = getProcessor(ext);
         expect(processor).toBeInstanceOf(expectedType);
-      });
+      }
     });
 
     it('should handle unknown file extensions', async () => {
@@ -147,12 +147,12 @@ describe('Integration Tests', () => {
         '/complex/path/with.multiple.dots.obf',
       ];
 
-      testPaths.forEach((filePath) => {
+      for (const filePath of testPaths) {
         expect(() => {
           const processor = getProcessor(filePath);
           expect(processor).toBeDefined();
         }).not.toThrow();
-      });
+      }
     });
   });
 
@@ -190,8 +190,8 @@ describe('Integration Tests', () => {
       expect(Object.keys(reloadedTree.pages).length).toBeGreaterThan(0);
 
       // Verify content preservation
-      const originalTexts = dotProcessor.extractTexts(Buffer.from(dotContent));
-      const convertedTexts = opmlProcessor.extractTexts(opmlPath);
+      const originalTexts = await dotProcessor.extractTexts(Buffer.from(dotContent));
+      const convertedTexts = await opmlProcessor.extractTexts(opmlPath);
 
       console.log('Original texts:', originalTexts);
       console.log('Converted texts:', convertedTexts);
@@ -269,24 +269,24 @@ describe('Integration Tests', () => {
       `;
 
       // Extract texts from DOT
-      const originalTexts = dotProcessor.extractTexts(Buffer.from(dotContent));
+      const originalTexts = await dotProcessor.extractTexts(Buffer.from(dotContent));
       expect(originalTexts.length).toBeGreaterThan(0);
 
       // Create translations
       const translations = new Map<string, string>();
-      originalTexts.forEach((text) => {
+      for (const text of originalTexts) {
         if (text.toLowerCase().includes('hello')) {
           translations.set(text, text.replace(/hello/gi, 'hola'));
         }
         if (text.toLowerCase().includes('world')) {
           translations.set(text, text.replace(/world/gi, 'mundo'));
         }
-      });
+      }
 
       if (translations.size > 0) {
         // Apply translations in DOT format
         const translatedDotPath = path.join(tempDir, 'translated.dot');
-        const _translatedDotResult = dotProcessor.processTexts(
+        const _translatedDotResult = await dotProcessor.processTexts(
           Buffer.from(dotContent),
           translations,
           translatedDotPath
@@ -304,7 +304,7 @@ describe('Integration Tests', () => {
 
           // Verify translations are preserved in GridSet format
           const gridsetBuffer = fs.readFileSync(gridsetPath);
-          const gridsetTexts = gridsetProcessor.extractTexts(gridsetBuffer);
+          const gridsetTexts = await gridsetProcessor.extractTexts(gridsetBuffer);
 
           const hasTranslations = gridsetTexts.some(
             (text) => text.includes('hola') || text.includes('mundo')
@@ -343,13 +343,13 @@ describe('Integration Tests', () => {
 
       // Step 3: Create translations (simulate translation service)
       const translations = new Map<string, string>();
-      texts.forEach((text) => {
+      for (const text of texts) {
         if (text.includes('Home')) translations.set(text, text.replace('Home', 'Casa'));
         if (text.includes('Food')) translations.set(text, text.replace('Food', 'Comida'));
         if (text.includes('Drink')) translations.set(text, text.replace('Drink', 'Bebida'));
         if (text.includes('More')) translations.set(text, text.replace('More', 'Más'));
         if (text.includes('want')) translations.set(text, text.replace('want', 'quiero'));
-      });
+      }
 
       // Step 4: Apply translations
       const translatedPath = path.join(tempDir, 'workflow_translated.dot');
@@ -383,7 +383,7 @@ describe('Integration Tests', () => {
 
       const results: any[] = [];
 
-      testFiles.forEach(({ name, content }) => {
+      for (const { name, content } of testFiles) {
         const inputPath = path.join(tempDir, name);
         fs.writeFileSync(inputPath, content);
 
@@ -395,7 +395,7 @@ describe('Integration Tests', () => {
           pageCount: Object.keys(tree.pages).length,
           textCount: texts.length,
         });
-      });
+      }
 
       expect(results).toHaveLength(3);
       results.forEach((result) => {

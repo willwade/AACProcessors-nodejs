@@ -59,10 +59,10 @@ export function getAllowedImageEntries(tree: AACTree): Set<string> {
  * @returns Image data buffer or null if not found
  */
 export async function openImage(
-  gridsetBuffer: Buffer,
+  gridsetBuffer: Uint8Array,
   entryPath: string,
   password = resolveGridsetPasswordFromEnv()
-): Promise<Buffer | null> {
+): Promise<Uint8Array | null> {
   try {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const JSZip = require('jszip');

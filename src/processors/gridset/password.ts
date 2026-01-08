@@ -40,13 +40,13 @@ export async function getZipEntriesWithPassword(
   zip: any,
   password?: string
 ): Promise<
-  Array<{ name: string; entryName: string; dir: boolean; getData: () => Promise<Buffer> }>
+  Array<{ name: string; entryName: string; dir: boolean; getData: () => Promise<Uint8Array> }>
 > {
   const entries: Array<{
     name: string;
     entryName: string;
     dir: boolean;
-    getData: () => Promise<Buffer>;
+    getData: () => Promise<Uint8Array>;
   }> = [];
 
   // Note: JSZip doesn't support zip-level password protection like AdmZip
@@ -64,17 +64,8 @@ export async function getZipEntriesWithPassword(
       entryName: relativePath,
       dir: file.dir || false,
       getData: async () => {
-        // Use 'arraybuffer' in browser, 'nodebuffer' in Node.js
-        const isBrowser = typeof (globalThis as any).window !== 'undefined';
-        const type = isBrowser ? 'arraybuffer' : 'nodebuffer';
-        const data = await file.async(type);
-        // Convert ArrayBuffer to Buffer-like object in browser
-        if (isBrowser && data instanceof ArrayBuffer) {
-          // Create Uint8Array from ArrayBuffer, which is compatible with our Buffer polyfill
-          const uint8Array = new Uint8Array(data);
-          return uint8Array as any;
-        }
-        return data;
+        // Use 'uint8array' which is supported everywhere
+        return await file.async('uint8array');
       },
     });
   });

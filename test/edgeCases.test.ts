@@ -31,11 +31,11 @@ describe('Edge Case Tests', () => {
         { name: 'OBF', processor: new ObfProcessor(), testBuffer: true },
       ];
 
-      processors.forEach(({ processor, testBuffer }) => {
-        if (!testBuffer) return;
+      for (const { processor, testBuffer } of processors) {
+        if (!testBuffer) continue;
         const emptyBuffer = Buffer.alloc(0);
-        expect(() => await processor.loadIntoTree(emptyBuffer)).toThrow();
-      });
+        await expect(processor.loadIntoTree(emptyBuffer)).rejects.toThrow();
+      }
     });
 
     it('should handle minimal valid content', async () => {
@@ -58,11 +58,11 @@ describe('Edge Case Tests', () => {
         },
       ];
 
-      testCases.forEach(({ name, processor, content }) => {
+      for (const { name, processor, content } of testCases) {
         const tree = await processor.loadIntoTree(Buffer.from(content));
         expect(tree).toBeInstanceOf(AACTree);
         console.log(`${name} minimal content: ${Object.keys(tree.pages).length} pages`);
-      });
+      }
     });
 
     it('should handle single-element content', async () => {
@@ -110,14 +110,14 @@ describe('Edge Case Tests', () => {
 
       const processor = new DotProcessor();
 
-      unicodeTestCases.forEach(({ name, content, expectedLabel }) => {
+      for (const { name, content, expectedLabel } of unicodeTestCases) {
         const tree = await processor.loadIntoTree(Buffer.from(content, 'utf8'));
         const page = Object.values(tree.pages)[0];
 
         expect(page.buttons).toHaveLength(1);
         expect(page.buttons[0].label).toBe(expectedLabel);
         console.log(`${name} Unicode test passed: "${expectedLabel}"`);
-      });
+      }
     });
 
     it('should handle special characters in file paths and content', async () => {
@@ -256,12 +256,10 @@ describe('Edge Case Tests', () => {
         '{"buttons": [{"id": "btn1"}]}', // Missing required fields
       ];
 
-      corruptedJsonCases.forEach((corruptedJson, index) => {
-        expect(() => {
-          await processor.loadIntoTree(Buffer.from(corruptedJson));
-        }).toThrow();
+      for (const [index, corruptedJson] of corruptedJsonCases.entries()) {
+        await expect(processor.loadIntoTree(Buffer.from(corruptedJson))).rejects.toThrow();
         console.log(`Corrupted JSON case ${index + 1} handled correctly`);
-      });
+      }
     });
 
     it('should handle malformed XML', async () => {
@@ -273,7 +271,7 @@ describe('Edge Case Tests', () => {
         '<?xml version="1.0"?><opml><body><outline></body></opml>', // Wrong nesting
       ];
 
-      malformedXmlCases.forEach((malformedXml) => {
+      for (const malformedXml of malformedXmlCases) {
         try {
           const tree = await processor.loadIntoTree(Buffer.from(malformedXml));
           // If it doesn't throw, it should return an empty tree or handle it gracefully
@@ -281,7 +279,7 @@ describe('Edge Case Tests', () => {
         } catch (error) {
           expect(error).toBeDefined();
         }
-      });
+      }
     });
 
     it('should handle binary data as text input', async () => {
@@ -290,7 +288,7 @@ describe('Edge Case Tests', () => {
       // Create some binary data
       const binaryData = Buffer.from([0x00, 0x01, 0x02, 0x03, 0xff, 0xfe, 0xfd]);
 
-      expect(() => await processor.loadIntoTree(binaryData)).toThrow();
+      await expect(processor.loadIntoTree(binaryData)).rejects.toThrow();
     });
   });
 
@@ -303,10 +301,7 @@ describe('Edge Case Tests', () => {
       // Try to process invalid SQLite data multiple times
       for (let i = 0; i < 5; i++) {
         const invalidData = Buffer.from(`invalid sqlite data ${i}`);
-
-        expect(() => {
-          await processor.loadIntoTree(invalidData);
-        }).toThrow();
+        await expect(processor.loadIntoTree(invalidData)).rejects.toThrow();
       }
 
       // Give some time for cleanup
@@ -365,9 +360,9 @@ describe('Edge Case Tests', () => {
 
       const emptyTranslations = new Map<string, string>();
 
-      expect(() => {
-        await processor.processTexts(Buffer.from(content), emptyTranslations, outputPath);
-      }).not.toThrow();
+      await expect(
+        processor.processTexts(Buffer.from(content), emptyTranslations, outputPath)
+      ).resolves.not.toThrow();
 
       expect(fs.existsSync(outputPath)).toBe(true);
     });

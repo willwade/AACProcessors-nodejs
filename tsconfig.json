@@ -13,5 +13,5 @@
   },
   "include": ["src/**/*"],
   "exclude": [
-    "src/cli","node_modules", "dist", "examples", "test"]
+    "node_modules", "dist", "examples", "test"]
 }

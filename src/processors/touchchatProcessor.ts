@@ -1251,11 +1251,11 @@ class TouchChatProcessor extends BaseProcessor {
    * @returns Buffer of the translated TouchChat file
    */
   async processLLMTranslations(
-    filePathOrBuffer: string | Buffer,
+    filePathOrBuffer: string | Uint8Array,
     llmTranslations: LLMLTranslationResult[],
     outputPath: string,
     options?: { allowPartial?: boolean }
-  ): Promise<Buffer> {
+  ): Promise<Uint8Array> {
     const tree = await this.loadIntoTree(filePathOrBuffer);
 
     // Validate translations using shared utility

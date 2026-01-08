@@ -106,7 +106,7 @@ describe('analyze', () => {
       const tempFile = path.join(tempDir, 'test.dot');
       fs.writeFileSync(tempFile, 'digraph G { "Home" -> "Food"; }');
 
-      const { tree } = analyze(tempFile, 'dot');
+      const { tree } = await analyze(tempFile, 'dot');
       expect(tree).toBeDefined();
       expect(tree.pages).toBeDefined();
     });
@@ -118,7 +118,7 @@ describe('analyze', () => {
       const tempFile = path.join(tempDir, 'test.opml');
       await processor.saveFromTree(tree, tempFile);
 
-      const { tree: analyzedTree } = analyze(tempFile, 'opml');
+      const { tree: analyzedTree } = await analyze(tempFile, 'opml');
       expect(analyzedTree).toBeDefined();
       expect(analyzedTree.pages).toBeDefined();
       // OPML processor may create additional pages for circular references
@@ -128,7 +128,7 @@ describe('analyze', () => {
     it('should handle file reading errors', async () => {
       const nonExistentFile = path.join(tempDir, 'nonexistent.opml');
 
-      expect(() => analyze(nonExistentFile, 'opml')).toThrow();
+      await expect(analyze(nonExistentFile, 'opml')).rejects.toThrow();
     });
 
     it('should handle invalid format in analyze', async () => {
@@ -136,7 +136,7 @@ describe('analyze', () => {
       const tempFile = path.join(tempDir, 'test.txt');
       fs.writeFileSync(tempFile, 'dummy content');
 
-      expect(() => analyze(tempFile, 'invalid')).toThrow('Unknown format: invalid');
+      await expect(analyze(tempFile, 'invalid')).rejects.toThrow('Unknown format: invalid');
     });
 
     it('should work with different file formats', async () => {
@@ -147,7 +147,7 @@ describe('analyze', () => {
       const dotFile = path.join(tempDir, 'test.dot');
       await dotProcessor.saveFromTree(tree, dotFile);
 
-      const dotResult = analyze(dotFile, 'dot');
+      const dotResult = await analyze(dotFile, 'dot');
       expect(dotResult).toHaveProperty('tree');
       expect(dotResult.tree).toBeDefined();
 
@@ -156,7 +156,7 @@ describe('analyze', () => {
       const opmlFile = path.join(tempDir, 'test.opml');
       await opmlProcessor.saveFromTree(tree, opmlFile);
 
-      const opmlResult = analyze(opmlFile, 'opml');
+      const opmlResult = await analyze(opmlFile, 'opml');
       expect(opmlResult).toHaveProperty('tree');
       expect(opmlResult.tree).toBeDefined();
     });
@@ -167,7 +167,7 @@ describe('analyze', () => {
       const tempFile = path.join(tempDir, 'communication.opml');
       await processor.saveFromTree(tree, tempFile);
 
-      const { tree: analyzedTree } = analyze(tempFile, 'opml');
+      const { tree: analyzedTree } = await analyze(tempFile, 'opml');
       expect(analyzedTree).toBeDefined();
       expect(analyzedTree.pages).toBeDefined();
       expect(Object.keys(analyzedTree.pages).length).toBeGreaterThan(0);

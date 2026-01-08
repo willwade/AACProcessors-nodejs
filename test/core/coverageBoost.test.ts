@@ -139,16 +139,16 @@ describe('src/core Coverage Boost', () => {
 
   describe('BaseProcessor features', () => {
     class MockProcessor extends BaseProcessor {
-      extractTexts() {
+      async extractTexts() {
         return [];
       }
-      loadIntoTree() {
+      async loadIntoTree() {
         return new AACTree();
       }
-      processTexts() {
-        return Buffer.alloc(0);
+      async processTexts() {
+        return new Uint8Array(0);
       }
-      saveFromTree() {}
+      async saveFromTree() {}
 
       public callShouldFilter(btn: AACButton) {
         return this.shouldFilterButton(btn);

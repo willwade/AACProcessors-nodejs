@@ -127,7 +127,7 @@ export function wordlistToXml(wordlist: WordList): string {
  * });
  */
 export async function extractWordlists(
-  gridsetBuffer: Buffer,
+  gridsetBuffer: Uint8Array,
   password = resolveGridsetPasswordFromEnv()
 ): Promise<Map<string, WordList>> {
   const wordlists = new Map<string, WordList>();
@@ -207,11 +207,11 @@ export async function extractWordlists(
  * fs.writeFileSync('updated-gridset.gridset', updatedGridset);
  */
 export async function updateWordlist(
-  gridsetBuffer: Buffer,
+  gridsetBuffer: Uint8Array,
   gridName: string,
   wordlist: WordList,
   password = resolveGridsetPasswordFromEnv()
-): Promise<Buffer> {
+): Promise<Uint8Array> {
   const parser = new XMLParser();
   const builder = new XMLBuilder({
     ignoreAttributes: false,

@@ -101,6 +101,6 @@ describe('ApplePanelsProcessor round-trip', () => {
     const asconfigPath = `${outPath}.ascconfig`;
     expect(fs.existsSync(asconfigPath)).toBe(true);
 
-    expect(() => processor.loadIntoTree(asconfigPath)).toThrow(ValidationFailureError);
+    await expect(processor.loadIntoTree(asconfigPath)).rejects.toThrow(ValidationFailureError);
   });
 });

@@ -469,7 +469,7 @@ class GridsetProcessor extends BaseProcessor {
       passwordProtected: !!password,
     };
 
-    const readEntryBuffer = async (entry: any): Promise<Buffer> => {
+    const readEntryBuffer = async (entry: any): Promise<Uint8Array> => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-argument
       const raw = await entry.getData();
       if (!isEncryptedArchive) {
@@ -1726,7 +1726,7 @@ class GridsetProcessor extends BaseProcessor {
     llmTranslations: LLMLTranslationResult[],
     outputPath: string,
     options?: { allowPartial?: boolean }
-  ): Promise<Buffer> {
+  ): Promise<Uint8Array> {
     const tree = await this.loadIntoTree(filePathOrBuffer);
 
     // Validate translations using shared utility

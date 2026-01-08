@@ -9,12 +9,12 @@ describe('GridsetProcessor round-trip', () => {
   afterAll(() => {
     if (fs.existsSync(outPath)) fs.unlinkSync(outPath);
   });
-  it('round-trips Gridset JSON without losing pages or navigation', () => {
+  it('round-trips Gridset JSON without losing pages or navigation', async () => {
     if (!fs.existsSync(gsPath)) return;
     const processor = new GridsetProcessor();
-    const tree1 = processor.loadIntoTree(gsPath);
-    processor.saveFromTree(tree1, outPath);
-    const tree2 = processor.loadIntoTree(outPath);
+    const tree1 = await processor.loadIntoTree(gsPath);
+    await processor.saveFromTree(tree1, outPath);
+    const tree2 = await processor.loadIntoTree(outPath);
     expect(Object.keys(tree1.pages).sort()).toEqual(Object.keys(tree2.pages).sort());
     for (const pid in tree1.pages) {
       expect(tree2.pages).toHaveProperty(pid);

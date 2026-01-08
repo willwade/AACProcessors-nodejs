@@ -37,9 +37,7 @@ describe('DotProcessor', () => {
   describe('Error Handling', () => {
     it('should throw error for non-existent file', async () => {
       const processor = new DotProcessor();
-      expect(() => {
-        await processor.loadIntoTree('/non/existent/file.dot');
-      }).rejects.toThrow();
+      await expect(processor.loadIntoTree('/non/existent/file.dot')).rejects.toThrow();
     });
 
     it('should handle malformed dot content gracefully', async () => {
@@ -53,7 +51,7 @@ describe('DotProcessor', () => {
     it('should handle empty file gracefully', async () => {
       const processor = new DotProcessor();
       const emptyContent = Buffer.from('');
-      expect(() => await processor.loadIntoTree(emptyContent)).toThrow();
+      await expect(processor.loadIntoTree(emptyContent)).rejects.toThrow();
     });
 
     it('should handle content with only comments', async () => {

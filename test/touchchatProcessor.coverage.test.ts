@@ -38,7 +38,7 @@ describe('TouchChatProcessor Coverage', () => {
       zip.writeZip(tempZipPath);
 
       const processor = new TouchChatProcessor();
-      expect(() => await processor.loadIntoTree(tempZipPath)).toThrow(
+      await expect(processor.loadIntoTree(tempZipPath)).rejects.toThrow(
         'No .c4v vocab DB found in TouchChat export'
       );
     });

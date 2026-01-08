@@ -50,7 +50,7 @@ describe('Advanced Scenario Testing', () => {
 
       // Step 3: Extract texts from all formats
       const allTexts: Record<string, string[]> = {};
-      allTexts['.dot'] = dotProcessor.extractTexts(dotPath);
+      allTexts['.dot'] = await dotProcessor.extractTexts(dotPath);
 
       for (const { ext, processor } of formats) {
         allTexts[ext] = await processor.extractTexts(convertedFiles[ext]);
@@ -65,7 +65,7 @@ describe('Advanced Scenario Testing', () => {
 
       // Translate DOT
       const translatedDotPath = path.join(testEnv.tempDir, 'translated.dot');
-      dotProcessor.processTexts(dotPath, translations, translatedDotPath);
+      await dotProcessor.processTexts(dotPath, translations, translatedDotPath);
       translatedFiles['.dot'] = translatedDotPath;
 
       // Translate other formats
@@ -433,7 +433,8 @@ describe('Advanced Scenario Testing', () => {
         },
       ];
 
-      const results = testFiles.map((file) => {
+      const results = [];
+      for (const file of testFiles) {
         const filePath = path.join(testEnv.tempDir, file.name);
         fs.writeFileSync(filePath, file.content);
 
@@ -442,21 +443,21 @@ describe('Advanced Scenario Testing', () => {
           const tree = await processor.loadIntoTree(filePath);
           const texts = await processor.extractTexts(filePath);
 
-          return {
+          results.push({
             file: file.name,
             success: true,
             processorType: processor.constructor.name,
             pageCount: Object.keys(tree.pages).length,
             textCount: texts.length,
-          };
+          });
         } catch (error) {
-          return {
+          results.push({
             file: file.name,
             success: false,
             error: error instanceof Error ? error.message : 'Unknown error',
-          };
+          });
         }
-      });
+      }
 
       // All files should be processed successfully
       results.forEach((result) => {

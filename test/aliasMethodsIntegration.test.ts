@@ -203,15 +203,11 @@ describe('Alias Methods Integration', () => {
       }
 
       // Test that existing methods still work
-      expect(() => {
-        const texts = await processor.extractTexts(exampleFile);
-        expect(Array.isArray(texts)).toBe(true);
-      }).not.toThrow();
+      const texts = await processor.extractTexts(exampleFile);
+      expect(Array.isArray(texts)).toBe(true);
 
-      expect(() => {
-        const tree = await processor.loadIntoTree(exampleFile);
-        expect(tree).toBeDefined();
-      }).not.toThrow();
+      const tree = await processor.loadIntoTree(exampleFile);
+      expect(tree).toBeDefined();
     });
   });
 

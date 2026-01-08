@@ -94,7 +94,7 @@ program
   .option('--exclude-buttons <list>', 'Comma-separated list of button labels/terms to exclude')
   .option('--gridset-password <password>', 'Password for encrypted Grid3 archives (.gridsetx)')
   .action(
-    (
+    async (
       file: string,
       options: {
         format?: string;
@@ -113,7 +113,7 @@ program
         // Auto-detect format if not specified
         const format = options.format || detectFormat(file);
         const processor = getProcessor(format, filteringOptions);
-        const tree = processor.loadIntoTree(file);
+        const tree = await processor.loadIntoTree(file);
 
         const result = {
           format,
@@ -147,7 +147,7 @@ program
   .option('--exclude-buttons <list>', 'Comma-separated list of button labels/terms to exclude')
   .option('--gridset-password <password>', 'Password for encrypted Grid3 archives (.gridsetx)')
   .action(
-    (
+    async (
       file: string,
       options: {
         format?: string;
@@ -167,7 +167,7 @@ program
         // Auto-detect format if not specified
         const format = options.format || detectFormat(file);
         const processor = getProcessor(format, filteringOptions);
-        const texts = processor.extractTexts(file);
+        const texts = await processor.extractTexts(file);
 
         if (!options.quiet) {
           if (options.verbose) {
@@ -236,7 +236,7 @@ program
         const inputProcessor = getProcessor(inputFormat, filteringOptions);
 
         // Load the tree (handle both files and folders)
-        const tree = inputProcessor.loadIntoTree(input);
+        const tree = await inputProcessor.loadIntoTree(input);
 
         // Save using output format with same filtering options
         const outputProcessor = getProcessor(options.format, filteringOptions);
