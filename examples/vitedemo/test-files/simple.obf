@@ -1,0 +1,53 @@
+{
+  "format": "open-board-0.1",
+  "id": "inline_images",
+  "locale": "en",
+  "name": "Simple Images Board",
+  "description_html": "This is an .obf file with images included as data attributes within the file. It also includes some simple styling.",
+  "grid": {
+    "rows": 2,
+    "columns": 2,
+    "order": [
+      [1, null],
+      [null, 2]
+    ]
+  },
+  "buttons": [
+    {
+      "id": 1,
+      "label": "kids",
+      "vocalization": "children",
+      "ext_speaker_best": true,
+      "image_id": "12345",
+      "background_color": "rgb(255, 255, 255)",
+      "border_color": "rgba(150, 150, 150, 0.5)"
+    },
+    {
+      "id": 2,
+      "label": "cat",
+      "vocalization": "feline",
+      "image_id": 119,
+      "background_color": "rgba(0, 255, 0, 0.5)",
+      "border_color": "rgb(150, 150, 150)"
+    }
+  ],
+  "images": [
+
+    {
+      "id":"12345", 
+      "width":100, 
+      "height":100, 
+      "url":"https://d18vdu4p71yql0.cloudfront.net/libraries/noun-project/No-09d75d7313.svg", 
+      "data":"data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB2ZXJzaW9uPSIxLjEiIGlkPSJMYXllcl8xIiB4PSIwcHgiIHk9IjBweCIgd2lkdGg9IjEwMHB4IiBoZWlnaHQ9IjEwMHB4IiB2aWV3Qm94PSIwIDAgMTAwIDEwMCIgc3R5bGU9ImVuYWJsZS1iYWNrZ3JvdW5kOm5ldyAwIDAgMTAwIDEwMDsiIHhtbDpzcGFjZT0icHJlc2VydmUiPgo8cGF0aCBzdHlsZT0iZmlsbDojMDEwMTAxOyIgZD0iTTUwLDBDMjIuMzg4LDAsMCwyMi4zODgsMCw1MHMyMi4zODgsNTAsNTAsNTBzNTAtMjIuMzg4LDUwLTUwUzc3LjYxMiwwLDUwLDB6IE01MCwxMi41ICBjOC4wOTQsMCwxNS41MzksMi42MzcsMjEuNjY4LDcuMDA3TDE5LjQ5NCw3MS42NTVDMTUuMTI1LDY1LjUyNywxMi41LDU4LjA4MSwxMi41LDUwQzEyLjUsMjkuMzIxLDI5LjMyMSwxMi41LDUwLDEyLjV6IE01MCw4Ny41ICBjLTguMDk0LDAtMTUuNTM5LTIuNjM3LTIxLjY2OC03LjAwN2w1Mi4xNzQtNTIuMTQ4Qzg0Ljg3NSwzNC40NzMsODcuNSw0MS45MTksODcuNSw1MEM4Ny41LDcwLjY3OSw3MC42NzksODcuNSw1MCw4Ny41eiIvPgo8L3N2Zz4K", 
+      "content_type":"image/svg+xml"
+    },
+    {
+      "id":119, 
+      "width":100, 
+      "height":100, 
+      "url":"https://d18vdu4p71yql0.cloudfront.net/libraries/noun-project/No-09d75d7313.svg", 
+      "content_type":"image/svg+xml"
+   }
+  ],
+  "sounds": []
+}

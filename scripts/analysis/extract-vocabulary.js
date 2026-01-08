@@ -53,7 +53,7 @@ function buildVocabularySummary(tree) {
   };
 }
 
-function main() {
+async function main() {
   const inputPath = process.argv[2] || path.resolve(__dirname, '../../examples/example.sps');
   const outputPath = process.argv[3];
 
@@ -65,7 +65,7 @@ function main() {
 
   const { getProcessor } = requireLibrary();
   const processor = getProcessor(resolvedInput);
-  const tree = processor.loadIntoTree(resolvedInput);
+  const tree = await processor.loadIntoTree(resolvedInput);
   const summary = buildVocabularySummary(tree);
 
   console.log(`\n📄 Pages analysed: ${summary.pageCount}`);

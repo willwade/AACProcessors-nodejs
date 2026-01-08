@@ -8,7 +8,7 @@ async function main() {
   }
 
   const processor = new TouchChatProcessor();
-  const texts = processor.extractTexts(filePath);
+  const texts = await processor.extractTexts(filePath);
   console.log('Found texts:', texts.length);
   
   // Group texts by length to help identify patterns

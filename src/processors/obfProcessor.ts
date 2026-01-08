@@ -228,63 +228,67 @@ class ObfProcessor extends BaseProcessor {
           ? String(boardData.id)
           : _boardPath?.split('/').pop() || '';
 
-    const buttons: AACButton[] = await Promise.all(sourceButtons.map(async (btn: ObfButton): Promise<AACButton> => {
-      const semanticAction: AACSemanticAction = btn.load_board
-        ? {
-            category: AACSemanticCategory.NAVIGATION,
-            intent: AACSemanticIntent.NAVIGATE_TO,
-            targetId: btn.load_board.path,
-            fallback: {
-              type: 'NAVIGATE',
-              targetPageId: btn.load_board.path,
-            },
-          }
-        : {
-            category: AACSemanticCategory.COMMUNICATION,
-            intent: AACSemanticIntent.SPEAK_TEXT,
-            text: String(btn?.vocalization || btn?.label || ''),
-            fallback: {
-              type: 'SPEAK',
-              message: String(btn?.vocalization || btn?.label || ''),
-            },
-          };
+    const buttons: AACButton[] = await Promise.all(
+      sourceButtons.map(async (btn: ObfButton): Promise<AACButton> => {
+        const semanticAction: AACSemanticAction = btn.load_board
+          ? {
+              category: AACSemanticCategory.NAVIGATION,
+              intent: AACSemanticIntent.NAVIGATE_TO,
+              targetId: btn.load_board.path,
+              fallback: {
+                type: 'NAVIGATE',
+                targetPageId: btn.load_board.path,
+              },
+            }
+          : {
+              category: AACSemanticCategory.COMMUNICATION,
+              intent: AACSemanticIntent.SPEAK_TEXT,
+              text: String(btn?.vocalization || btn?.label || ''),
+              fallback: {
+                type: 'SPEAK',
+                message: String(btn?.vocalization || btn?.label || ''),
+              },
+            };
 
-      // Resolve image if image_id is present
-      let resolvedImage: string | undefined;
-      let imageBuffer: Buffer | undefined;
-      if (btn.image_id && boardData.images) {
-        resolvedImage = (await this.extractImageAsDataUrl(btn.image_id, boardData.images)) || undefined;
-        imageBuffer = (await this.extractImageAsBuffer(btn.image_id, boardData.images)) || undefined;
-      }
+        // Resolve image if image_id is present
+        let resolvedImage: string | undefined;
+        let imageBuffer: Buffer | undefined;
+        if (btn.image_id && boardData.images) {
+          resolvedImage =
+            (await this.extractImageAsDataUrl(btn.image_id, boardData.images)) || undefined;
+          imageBuffer =
+            (await this.extractImageAsBuffer(btn.image_id, boardData.images)) || undefined;
+        }
 
-      // Build parameters object for Grid3 export compatibility
-      const buttonParameters: { imageData?: Buffer; image_id?: string; [key: string]: any } = {};
-      if (imageBuffer) {
-        buttonParameters.imageData = imageBuffer;
-      }
-      // Store image_id for web viewers to fetch images via API
-      if (btn.image_id) {
-        buttonParameters.image_id = btn.image_id;
-      }
+        // Build parameters object for Grid3 export compatibility
+        const buttonParameters: { imageData?: Buffer; image_id?: string; [key: string]: any } = {};
+        if (imageBuffer) {
+          buttonParameters.imageData = imageBuffer;
+        }
+        // Store image_id for web viewers to fetch images via API
+        if (btn.image_id) {
+          buttonParameters.image_id = btn.image_id;
+        }
 
-      return new AACButton({
-        // Make button ID unique by combining page ID and button ID
-        id: `${pageId}::${btn?.id || ''}`,
-        label: String(btn?.label || ''),
-        message: String(btn?.vocalization || btn?.label || ''),
-        visibility: mapObfVisibility(btn.hidden),
-        style: {
-          backgroundColor: btn.background_color,
-          borderColor: btn.border_color,
-        },
-        image: resolvedImage, // Set the resolved image data URL
-        resolvedImageEntry: resolvedImage,
-        parameters: Object.keys(buttonParameters).length > 0 ? buttonParameters : undefined,
-        semanticAction,
-        targetPageId: btn.load_board?.path,
-        semantic_id: btn.semantic_id, // Extract semantic_id if present
-      });
-    }));
+        return new AACButton({
+          // Make button ID unique by combining page ID and button ID
+          id: `${pageId}::${btn?.id || ''}`,
+          label: String(btn?.label || ''),
+          message: String(btn?.vocalization || btn?.label || ''),
+          visibility: mapObfVisibility(btn.hidden),
+          style: {
+            backgroundColor: btn.background_color,
+            borderColor: btn.border_color,
+          },
+          image: resolvedImage, // Set the resolved image data URL
+          resolvedImageEntry: resolvedImage,
+          parameters: Object.keys(buttonParameters).length > 0 ? buttonParameters : undefined,
+          semanticAction,
+          targetPageId: btn.load_board?.path,
+          semantic_id: btn.semantic_id, // Extract semantic_id if present
+        });
+      })
+    );
 
     const buttonMap = new Map(buttons.map((btn) => [btn.id, btn]));
 

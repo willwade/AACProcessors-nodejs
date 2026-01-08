@@ -239,7 +239,9 @@ describe('Grid3 Wordlist Helpers', () => {
 
     it('throws error for invalid gridset buffer', async () => {
       const invalidBuffer = Buffer.from('not a zip file');
-      await expect(async () => { await extractWordlists(invalidBuffer); }).rejects.toThrow();
+      await expect(async () => {
+        await extractWordlists(invalidBuffer);
+      }).rejects.toThrow();
     });
 
     it('skips grids with malformed wordlist XML', async () => {

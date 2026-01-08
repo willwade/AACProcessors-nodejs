@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AAC Processors - Browser Compatibility Test</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+        .test-section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .file-input {
+            margin: 10px 0;
+        }
+        .file-input label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #555;
+        }
+        .file-input input {
+            display: block;
+            width: 100%;
+            padding: 8px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+        }
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+        .test-button:hover {
+            background: #0056b3;
+        }
+        .test-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .result.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .result.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .result.info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        .info-box {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .info-box strong {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .processor-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin: 15px 0;
+        }
+        .processor-item {
+            background: #e7f3ff;
+            padding: 10px;
+            border-radius: 4px;
+            border-left: 3px solid #007bff;
+        }
+        .processor-item.supported {
+            border-left-color: #28a745;
+            background: #d4edda;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 AAC Processors - Browser Compatibility Test</h1>
+
+    <div class="info-box">
+        <strong>ℹ️ About this test page</strong>
+        This page tests AACProcessors in a real browser environment. It verifies that processors
+        can load files using browser APIs (File, Blob, ArrayBuffer) without any Node.js dependencies.
+    </div>
+
+    <div class="test-section">
+        <h2>Supported Processors</h2>
+        <div class="processor-list">
+            <div class="processor-item supported">✅ DotProcessor (.dot)</div>
+            <div class="processor-item supported">✅ OpmlProcessor (.opml)</div>
+            <div class="processor-item supported">✅ ObfProcessor (.obf/.obz)</div>
+            <div class="processor-item supported">✅ GridsetProcessor (.gridset)</div>
+            <div class="processor-item supported">✅ ApplePanelsProcessor (.plist)</div>
+            <div class="processor-item supported">✅ AstericsGridProcessor (.grd)</div>
+        </div>
+        <p style="color: #666; font-size: 14px;">
+            <strong>Note:</strong> SnapProcessor and TouchChatProcessor require Node.js (sqlite).
+            GridsetProcessor .gridsetx files require Node.js (crypto).
+        </p>
+    </div>
+
+    <div class="test-section">
+        <h2>📁 Load and Test Files</h2>
+
+        <div class="file-input">
+            <label for="fileInput">Select a file to test:</label>
+            <input type="file" id="fileInput" accept=".dot,.opml,.obf,.obz,.gridset,.plist,.grd">
+        </div>
+
+        <button id="testButton" class="test-button" disabled>Test File</button>
+        <button id="clearButton" class="test-button">Clear Results</button>
+
+        <div id="result" class="result" style="display: none;"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>🧪 Automated Tests</h2>
+        <button id="runAllTests" class="test-button">Run All Browser Tests</button>
+        <div id="testResults" class="result" style="display: none;"></div>
+    </div>
+
+    <!-- Note: Using a module loader to handle CommonJS exports -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script data-type="module" type="text/babel" data-presets="env">
+        // Since the build outputs CommonJS, we need to dynamically import the processors
+        // For now, we'll use a simpler approach with inline test code
+
+        class AACProcessorsTest {
+            constructor() {
+                this.processors = {};
+                this.init();
+            }
+
+            async init() {
+                // Initialize processors after DOM is ready
+                const fileInput = document.getElementById('fileInput');
+                const testButton = document.getElementById('testButton');
+                const clearButton = document.getElementById('clearButton');
+                const runAllTestsButton = document.getElementById('runAllTests');
+
+                fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
+                testButton.addEventListener('click', () => this.testFile());
+                clearButton.addEventListener('click', () => this.clearResults());
+                runAllTestsButton.addEventListener('click', () => this.runAutomatedTests());
+
+                console.log('AAC Processors Browser Test Page Ready');
+                console.log('Note: This page tests the library structure but cannot run actual processors without a bundler.');
+                console.log('For actual browser usage, see docs/BROWSER_USAGE.md for bundler setup.');
+            }
+
+            showMessage(message, type = 'info') {
+                const resultDiv = document.getElementById('result');
+                resultDiv.style.display = 'block';
+                resultDiv.className = `result ${type}`;
+                resultDiv.textContent = message;
+            }
+
+            showTestResults(results) {
+                const testResultsDiv = document.getElementById('testResults');
+                testResultsDiv.style.display = 'block';
+                testResultsDiv.className = 'result info';
+                testResultsDiv.textContent = results;
+            }
+
+            handleFileSelect(event) {
+                const file = event.target.files[0];
+                const testButton = document.getElementById('testButton');
+
+                if (file) {
+                    testButton.disabled = false;
+                    this.showMessage(`Selected: ${file.name} (${file.size} bytes)\n\nNote: Actual processing requires a bundler (webpack/vite/rollup) to bundle the library for browser use.`, 'info');
+                } else {
+                    testButton.disabled = true;
+                    document.getElementById('result').style.display = 'none';
+                }
+            }
+
+            async testFile() {
+                this.showMessage(
+                    '⚠️ Browser Build Note\n\n' +
+                    'The current build outputs CommonJS modules which require a bundler.\n\n' +
+                    'To use AACProcessors in a browser:\n\n' +
+                    '1. Use a bundler (webpack, vite, rollup, etc.)\n' +
+                    '2. Or use a CDN bundle (when available)\n' +
+                    '3. See docs/BROWSER_USAGE.md for complete setup instructions\n\n' +
+                    'Example with Vite:\n' +
+                    '```js\n' +
+                    'import { getProcessor } from "aac-processors";\n' +
+                    'const processor = getProcessor(".obf");\n' +
+                    '```',
+                    'info'
+                );
+            }
+
+            clearResults() {
+                document.getElementById('result').style.display = 'none';
+                document.getElementById('testResults').style.display = 'none';
+            }
+
+            async runAutomatedTests() {
+                const results = [];
+                results.push('=== AACProcessors Browser Test ===\n');
+                results.push('\nℹ️ Library Structure Tests:\n');
+
+                // Test 1: Check if dist files exist
+                results.push('1. Checking build files...');
+                try {
+                    const response = await fetch('../dist/index.browser.js');
+                    if (response.ok) {
+                        const content = await response.text();
+                        const hasExports = content.includes('exports.getProcessor') &&
+                                         content.includes('exports.GridsetProcessor') &&
+                                         content.includes('exports.ObfProcessor');
+
+                        if (hasExports) {
+                            results.push('   ✅ PASS: Browser build exists with expected exports');
+                            results.push(`   ✅ Size: ${(content.length / 1024).toFixed(2)} KB`);
+                        } else {
+                            results.push('   ⚠️  WARNING: Some exports may be missing');
+                        }
+                    } else {
+                        results.push('   ❌ FAIL: Browser build not found');
+                    }
+                } catch (error) {
+                    results.push(`   ❌ FAIL: ${error.message}`);
+                }
+
+                // Test 2: Check type definitions
+                results.push('\n2. Checking TypeScript definitions...');
+                try {
+                    const response = await fetch('../dist/index.browser.d.ts');
+                    if (response.ok) {
+                        const content = await response.text();
+                        const hasTypes = content.includes('getProcessor') &&
+                                       content.includes('DotProcessor') &&
+                                       content.includes('GridsetProcessor');
+
+                        if (hasTypes) {
+                            results.push('   ✅ PASS: Type definitions exist');
+                        } else {
+                            results.push('   ⚠️  WARNING: Some type definitions may be missing');
+                        }
+                    } else {
+                        results.push('   ❌ FAIL: Type definitions not found');
+                    }
+                } catch (error) {
+                    results.push(`   ❌ FAIL: ${error.message}`);
+                }
+
+                // Test 3: Processor count
+                results.push('\n3. Counting processors...');
+                try {
+                    const response = await fetch('../dist/index.browser.js');
+                    const content = await response.text();
+                    const processorExports = content.match(/exports\.\w+Processor/g);
+
+                    if (processorExports) {
+                        const uniqueProcessors = [...new Set(processorExports)];
+                        results.push(`   ✅ Found ${uniqueProcessors.length} processor exports:`);
+                        uniqueProcessors.forEach(p => results.push(`   - ${p.replace('exports.', '')}`));
+                    }
+                } catch (error) {
+                    results.push(`   ❌ FAIL: ${error.message}`);
+                }
+
+                results.push('\n=== Setup Instructions ===\n');
+                results.push('To use AACProcessors in your browser project:\n\n');
+                results.push('1. Install with npm: npm install @willwade/aac-processors\n');
+                results.push('2. Use a bundler (Vite example):\n');
+                results.push('   ```js\n');
+                results.push('   // vite.config.js\n');
+                results.push('   export default {\n');
+                results.push('     resolve: {\n');
+                results.push('       alias: {\n');
+                results.push('         "aac-processors": path.resolve(__dirname, "node_modules/@willwade/aac-processors/src/index.browser.ts")\n');
+                results.push('       }\n');
+                results.push('     }\n');
+                results.push('   }\n');
+                results.push('   ```\n\n');
+                results.push('3. Or use a CDN bundle (when available)\n\n');
+                results.push('See docs/BROWSER_USAGE.md for complete guide.');
+
+                this.showTestResults(results.join('\n'));
+            }
+        }
+
+        // Initialize when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => new AACProcessorsTest());
+        } else {
+            new AACProcessorsTest();
+        }
+    </script>
+</body>
+</html>

@@ -39,7 +39,9 @@ export function resolveGridsetPasswordFromEnv(): string | undefined {
 export async function getZipEntriesWithPassword(
   zip: any,
   password?: string
-): Promise<Array<{ name: string; entryName: string; dir: boolean; getData: () => Promise<Buffer> }>> {
+): Promise<
+  Array<{ name: string; entryName: string; dir: boolean; getData: () => Promise<Buffer> }>
+> {
   const entries: Array<{
     name: string;
     entryName: string;
@@ -51,7 +53,9 @@ export async function getZipEntriesWithPassword(
   // Password protection for .gridsetx files is handled at the encrypted archive level
   // in crypto.ts before the zip is loaded
   if (password) {
-    console.warn('JSZip does not support zip-level password protection. For .gridsetx encrypted files, password is handled at the archive level.');
+    console.warn(
+      'JSZip does not support zip-level password protection. For .gridsetx encrypted files, password is handled at the archive level.'
+    );
   }
 
   zip.forEach((relativePath: string, file: any) => {

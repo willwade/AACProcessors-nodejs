@@ -85,11 +85,11 @@ function getCellActions(button) {
   return actions.join('; ') || '(none)';
 }
 
-function extractSymbolUsage(gridsetFile, vocabName) {
+async function extractSymbolUsage(gridsetFile, vocabName) {
   console.log(`Loading gridset: ${gridsetFile}`);
 
   const proc = new GridsetProcessor();
-  const tree = proc.loadIntoTree(gridsetFile);
+  const tree = await proc.loadIntoTree(gridsetFile);
 
   const symbolMap = new Map(); // symbol-id -> array of usage entries
 
@@ -270,7 +270,7 @@ function generateSummary(symbolMap) {
   return summary;
 }
 
-function main() {
+async function main() {
   const args = process.argv.slice(2);
 
   if (args.length === 0) {
@@ -302,7 +302,7 @@ Examples:
   }
 
   try {
-    const symbolMap = extractSymbolUsage(gridsetFile, vocabName);
+    const symbolMap = await extractSymbolUsage(gridsetFile, vocabName);
     generateCSV(symbolMap, outputFile);
 
     const summary = generateSummary(symbolMap);

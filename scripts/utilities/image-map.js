@@ -11,7 +11,7 @@ const { GridsetProcessor, Gridset } = require('../dist/index');
     console.log('Loading gridset:', file);
 
     const proc = new GridsetProcessor();
-    const tree = proc.loadIntoTree(file);
+    const tree = await proc.loadIntoTree(file);
 
     const pageIds = Object.keys(tree.pages);
     const rootId = tree.rootId || pageIds[0];

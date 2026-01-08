@@ -43,10 +43,10 @@ async function main() {
 
   try {
     const p1 = getProcessor(path.extname(file1) === '.zip' ? '.ce' : path.extname(file1));
-    const tree1 = p1.loadIntoTree(path.resolve(process.cwd(), file1));
+    const tree1 = await p1.loadIntoTree(path.resolve(process.cwd(), file1));
     
     const p2 = getProcessor(path.extname(file2) === '.zip' ? '.ce' : path.extname(file2));
-    const tree2 = p2.loadIntoTree(path.resolve(process.cwd(), file2));
+    const tree2 = await p2.loadIntoTree(path.resolve(process.cwd(), file2));
 
     const scenarios = [
       { name: 'Direct Selection (Touch)', config: undefined },

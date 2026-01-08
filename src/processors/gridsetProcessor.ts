@@ -552,10 +552,15 @@ class GridsetProcessor extends BaseProcessor {
 
     // Debug: log all entry names
     console.log('[Gridset] Total zip entries:', entries.length);
-    const gridEntries = entries.filter(e => e.entryName.startsWith('Grids/') && e.entryName.endsWith('grid.xml'));
+    const gridEntries = entries.filter(
+      (e) => e.entryName.startsWith('Grids/') && e.entryName.endsWith('grid.xml')
+    );
     console.log('[Gridset] Grid XML entries found:', gridEntries.length);
     if (gridEntries.length > 0) {
-      console.log('[Gridset] First few grid entries:', gridEntries.slice(0, 3).map(e => e.entryName));
+      console.log(
+        '[Gridset] First few grid entries:',
+        gridEntries.slice(0, 3).map((e) => e.entryName)
+      );
     }
 
     // First pass: collect all grid names and IDs for navigation resolution
@@ -604,7 +609,10 @@ class GridsetProcessor extends BaseProcessor {
         try {
           const buffer = await readEntryBuffer(entry);
           xmlContent = decodeText(buffer);
-          console.log(`[Gridset] Raw XML content (first 200 chars) for ${entry.entryName}:`, xmlContent.substring(0, 200));
+          console.log(
+            `[Gridset] Raw XML content (first 200 chars) for ${entry.entryName}:`,
+            xmlContent.substring(0, 200)
+          );
         } catch (e) {
           // Skip unreadable files
           continue;

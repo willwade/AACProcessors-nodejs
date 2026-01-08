@@ -15,7 +15,7 @@ function requireLibrary() {
   }
 }
 
-function loadVocabularySet(filePath) {
+async function loadVocabularySet(filePath) {
   const resolved = path.resolve(process.cwd(), filePath);
   if (!fs.existsSync(resolved)) {
     throw new Error(`Input file not found: ${resolved}`);
@@ -23,7 +23,7 @@ function loadVocabularySet(filePath) {
 
   const { getProcessor } = requireLibrary();
   const processor = getProcessor(resolved);
-  const tree = processor.loadIntoTree(resolved);
+  const tree = await processor.loadIntoTree(resolved);
   const summary = buildVocabularySummary(tree);
   return {
     summary,
@@ -36,11 +36,11 @@ function diffSets(left, right) {
   return Array.from(left).filter((item) => !right.has(item)).sort((a, b) => a.localeCompare(b));
 }
 
-function main() {
+async function main() {
   const [firstInput = path.resolve(__dirname, '../../examples/example.sps'), secondInput = path.resolve(__dirname, '../../examples/example2.grd')] = process.argv.slice(2);
 
-  const first = loadVocabularySet(firstInput);
-  const second = loadVocabularySet(secondInput);
+  const first = await loadVocabularySet(firstInput);
+  const second = await loadVocabularySet(secondInput);
 
   console.log(`Comparing vocabulary between:\n - ${first.source}\n - ${second.source}`);
   console.log(`\n${first.summary.uniqueVocabulary.length} unique terms in first file.`);

@@ -88,7 +88,10 @@ describe('Browser Compatibility', () => {
     it('should load OBF from ArrayBuffer', async () => {
       const processor = new ObfProcessor();
       const buffer = readFileSync(examplePath);
-      const arrayBuffer = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+      const arrayBuffer = buffer.buffer.slice(
+        buffer.byteOffset,
+        buffer.byteOffset + buffer.byteLength
+      );
       const tree: AACTree = await processor.loadIntoTree(arrayBuffer);
 
       expect(tree).toBeDefined();

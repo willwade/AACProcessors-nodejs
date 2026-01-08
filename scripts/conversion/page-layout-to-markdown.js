@@ -104,7 +104,7 @@ function findPage(tree, identifier) {
   );
 }
 
-function main() {
+async function main() {
   const [input = path.resolve(__dirname, '../../examples/example.sps'), pageIdentifier, outputPath] = process.argv.slice(2);
   const resolvedInput = path.resolve(process.cwd(), input);
 
@@ -115,7 +115,7 @@ function main() {
 
   const { getProcessor } = requireLibrary();
   const processor = getProcessor(resolvedInput);
-  const tree = processor.loadIntoTree(resolvedInput);
+  const tree = await processor.loadIntoTree(resolvedInput);
   const page = findPage(tree, pageIdentifier);
 
   if (!page) {
