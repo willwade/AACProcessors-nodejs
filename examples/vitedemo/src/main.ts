@@ -74,9 +74,9 @@ import {
   GridsetProcessor,
   ApplePanelsProcessor,
   AstericsGridProcessor,
-  type AACTree,
-  type AACPage,
-  type AACButton
+  AACTree,
+  AACPage,
+  AACButton
 } from 'aac-processors';
 
 // UI Elements
@@ -93,11 +93,38 @@ const results = document.getElementById('results') as HTMLElement;
 const logPanel = document.getElementById('logPanel') as HTMLElement;
 const testResults = document.getElementById('testResults') as HTMLElement;
 const testList = document.getElementById('testList') as HTMLElement;
+const tabButtons = document.querySelectorAll('.tab-btn') as NodeListOf<HTMLButtonElement>;
+const inspectTab = document.getElementById('inspectTab') as HTMLElement;
+const pagesetTab = document.getElementById('pagesetTab') as HTMLElement;
+const templateSelect = document.getElementById('templateSelect') as HTMLSelectElement;
+const formatSelect = document.getElementById('formatSelect') as HTMLSelectElement;
+const createPagesetBtn = document.getElementById('createPagesetBtn') as HTMLButtonElement;
+const previewPagesetBtn = document.getElementById('previewPagesetBtn') as HTMLButtonElement;
+const convertToObfBtn = document.getElementById('convertToObfBtn') as HTMLButtonElement;
+const convertToObzBtn = document.getElementById('convertToObzBtn') as HTMLButtonElement;
+const conversionStatus = document.getElementById('conversionStatus') as HTMLElement;
+const pagesetOutput = document.getElementById('pagesetOutput') as HTMLElement;
 
 // State
 let currentFile: File | null = null;
 let currentProcessor: any = null;
 let currentTree: AACTree | null = null;
+let currentSourceLabel = 'pageset';
+
+// Tabs
+function setActiveTab(tabId: string) {
+  tabButtons.forEach((btn) => {
+    btn.classList.toggle('active', btn.dataset.tab === tabId);
+  });
+  inspectTab.classList.toggle('active', tabId === 'inspectTab');
+  pagesetTab.classList.toggle('active', tabId === 'pagesetTab');
+}
+
+tabButtons.forEach((btn) => {
+  btn.addEventListener('click', () => {
+    setActiveTab(btn.dataset.tab || 'inspectTab');
+  });
+});
 
 // Logging
 function log(message: string, type: 'info' | 'success' | 'error' | 'warn' = 'info') {
@@ -107,6 +134,52 @@ function log(message: string, type: 'info' | 'success' | 'error' | 'warn' = 'inf
   logPanel.appendChild(entry);
   logPanel.scrollTop = logPanel.scrollHeight;
   console.log(`[${type.toUpperCase()}]`, message);
+}
+
+function setConversionStatus(message: string, state: 'success' | 'warn' | 'info' = 'info') {
+  conversionStatus.textContent = message;
+  conversionStatus.classList.remove('success', 'warn');
+  if (state !== 'info') {
+    conversionStatus.classList.add(state);
+  }
+}
+
+function updateConvertButtons() {
+  const hasTree = !!currentTree;
+  convertToObfBtn.disabled = !hasTree;
+  convertToObzBtn.disabled = !hasTree;
+  if (!hasTree) {
+    setConversionStatus('No pageset loaded yet.', 'info');
+  } else {
+    setConversionStatus(`Ready to export: ${currentSourceLabel}`, 'success');
+  }
+}
+
+function updateStatsForTree(tree: AACTree, textCount?: number, loadTimeMs?: number) {
+  const pageCount = Object.keys(tree.pages).length;
+  const buttonCount = Object.values(tree.pages).reduce(
+    (sum: number, page: AACPage) => sum + page.buttons.length,
+    0
+  );
+
+  document.getElementById('pageCount')!.textContent = pageCount.toString();
+  document.getElementById('buttonCount')!.textContent = buttonCount.toString();
+  document.getElementById('textCount')!.textContent = (textCount ?? 0).toString();
+  document.getElementById('loadTime')!.textContent =
+    loadTimeMs !== undefined ? `${loadTimeMs.toFixed(0)}ms` : '—';
+  stats.style.display = 'grid';
+}
+
+function collectTextCount(tree: AACTree): number {
+  const texts = new Set<string>();
+  Object.values(tree.pages).forEach((page) => {
+    if (page.name) texts.add(page.name);
+    page.buttons.forEach((button) => {
+      if (button.label) texts.add(button.label);
+      if (button.message) texts.add(button.message);
+    });
+  });
+  return texts.size;
 }
 
 // Get file extension
@@ -146,6 +219,7 @@ function handleFile(file: File) {
     fileDetails.textContent = `${file.name} • ${formatFileSize(file.size)}`;
     fileInfo.style.display = 'block';
     processBtn.disabled = false;
+    currentSourceLabel = file.name;
 
     log(`Using processor: ${currentProcessor.constructor.name}`, 'success');
   } catch (error) {
@@ -213,22 +287,13 @@ processBtn.addEventListener('click', async () => {
     log(`Extracted ${texts.length} texts`, 'success');
 
     // Update stats
-    const pageCount = Object.keys(currentTree.pages).length;
-    const buttonCount = Object.values(currentTree.pages).reduce(
-      (sum: number, page: AACPage) => sum + page.buttons.length,
-      0
-    );
-
-    document.getElementById('pageCount')!.textContent = pageCount.toString();
-    document.getElementById('buttonCount')!.textContent = buttonCount.toString();
-    document.getElementById('textCount')!.textContent = texts.length.toString();
-    document.getElementById('loadTime')!.textContent = `${loadTime.toFixed(0)}ms`;
-    stats.style.display = 'grid';
+    updateStatsForTree(currentTree, texts.length, loadTime);
 
     // Display results
     displayResults(currentTree);
+    updateConvertButtons();
 
-    log(`✅ Successfully processed ${pageCount} pages with ${buttonCount} buttons`, 'success');
+    log(`✅ Successfully processed ${Object.keys(currentTree.pages).length} pages`, 'success');
   } catch (error) {
     const errorMsg = (error as Error).message;
     log(`❌ Error: ${errorMsg}`, 'error');
@@ -343,12 +408,299 @@ clearBtn.addEventListener('click', () => {
   currentFile = null;
   currentProcessor = null;
   currentTree = null;
+  currentSourceLabel = 'pageset';
   fileInput.value = '';
   fileInfo.style.display = 'none';
   stats.style.display = 'none';
   results.innerHTML = '<p style="color: #999; text-align: center; padding: 40px;">Load a file to see its contents here</p>';
   testResults.style.display = 'none';
   logPanel.innerHTML = '<div class="log-entry log-info">Cleared. Ready to process files...</div>';
+  pagesetOutput.textContent = 'Generate or convert a pageset to preview the output JSON.';
+  updateConvertButtons();
+});
+
+function sanitizeFilename(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '') || 'pageset';
+}
+
+function buildSampleTree(template: string): AACTree {
+  const tree = new AACTree();
+  tree.metadata = {
+    name: template === 'home' ? 'Home & Core Demo' : 'Starter Demo',
+    description: 'Generated in the AAC Processors browser demo',
+    locale: 'en',
+  };
+
+  if (template === 'home') {
+    const hello = new AACButton({ id: 'hello', label: 'Hello', message: 'Hello', action: { type: 'SPEAK' } });
+    const want = new AACButton({ id: 'want', label: 'I want', message: 'I want', action: { type: 'SPEAK' } });
+    const help = new AACButton({ id: 'help', label: 'Help', message: 'Help', action: { type: 'SPEAK' } });
+    const more = new AACButton({
+      id: 'more',
+      label: 'More',
+      targetPageId: 'core',
+      action: { type: 'NAVIGATE', targetPageId: 'core' },
+    });
+    const yes = new AACButton({ id: 'yes', label: 'Yes', message: 'Yes', action: { type: 'SPEAK' } });
+    const no = new AACButton({ id: 'no', label: 'No', message: 'No', action: { type: 'SPEAK' } });
+    const stop = new AACButton({ id: 'stop', label: 'Stop', message: 'Stop', action: { type: 'SPEAK' } });
+    const go = new AACButton({ id: 'go', label: 'Go', message: 'Go', action: { type: 'SPEAK' } });
+    const food = new AACButton({
+      id: 'food',
+      label: 'Food',
+      targetPageId: 'food',
+      action: { type: 'NAVIGATE', targetPageId: 'food' },
+    });
+
+    const homePage = new AACPage({
+      id: 'home',
+      name: 'Home',
+      buttons: [hello, want, help, more, yes, no, stop, go, food],
+      grid: [
+        [hello, want, help],
+        [more, yes, no],
+        [stop, go, food],
+      ],
+    });
+
+    const hungry = new AACButton({ id: 'hungry', label: 'Hungry', message: 'I am hungry', action: { type: 'SPEAK' } });
+    const drink = new AACButton({ id: 'drink', label: 'Drink', message: 'I want a drink', action: { type: 'SPEAK' } });
+    const snack = new AACButton({ id: 'snack', label: 'Snack', message: 'Snack', action: { type: 'SPEAK' } });
+    const backFood = new AACButton({
+      id: 'back-food',
+      label: 'Back',
+      targetPageId: 'home',
+      action: { type: 'NAVIGATE', targetPageId: 'home' },
+    });
+
+    const foodPage = new AACPage({
+      id: 'food',
+      name: 'Food',
+      buttons: [hungry, drink, snack, backFood],
+      grid: [
+        [hungry, drink],
+        [snack, backFood],
+      ],
+    });
+
+    const coreYes = new AACButton({ id: 'core-yes', label: 'Yes', message: 'Yes', action: { type: 'SPEAK' } });
+    const coreNo = new AACButton({ id: 'core-no', label: 'No', message: 'No', action: { type: 'SPEAK' } });
+    const coreStop = new AACButton({ id: 'core-stop', label: 'Stop', message: 'Stop', action: { type: 'SPEAK' } });
+    const coreGo = new AACButton({ id: 'core-go', label: 'Go', message: 'Go', action: { type: 'SPEAK' } });
+    const backCore = new AACButton({
+      id: 'back-core',
+      label: 'Back',
+      targetPageId: 'home',
+      action: { type: 'NAVIGATE', targetPageId: 'home' },
+    });
+
+    const corePage = new AACPage({
+      id: 'core',
+      name: 'Core Words',
+      buttons: [coreYes, coreNo, coreStop, coreGo, backCore],
+      grid: [
+        [coreYes, coreNo],
+        [coreStop, coreGo],
+        [backCore, null],
+      ],
+    });
+
+    tree.addPage(homePage);
+    tree.addPage(corePage);
+    tree.addPage(foodPage);
+    tree.rootId = 'home';
+    return tree;
+  }
+
+  const hello = new AACButton({ id: 'hello', label: 'Hello', message: 'Hello', action: { type: 'SPEAK' } });
+  const thanks = new AACButton({ id: 'thanks', label: 'Thanks', message: 'Thank you', action: { type: 'SPEAK' } });
+  const yes = new AACButton({ id: 'yes', label: 'Yes', message: 'Yes', action: { type: 'SPEAK' } });
+  const more = new AACButton({
+    id: 'more',
+    label: 'Feelings',
+    targetPageId: 'feelings',
+    action: { type: 'NAVIGATE', targetPageId: 'feelings' },
+  });
+
+  const homePage = new AACPage({
+    id: 'home',
+    name: 'Starter',
+    buttons: [hello, thanks, yes, more],
+    grid: [
+      [hello, thanks],
+      [yes, more],
+    ],
+  });
+
+  const happy = new AACButton({ id: 'happy', label: 'Happy', message: 'I feel happy', action: { type: 'SPEAK' } });
+  const sad = new AACButton({ id: 'sad', label: 'Sad', message: 'I feel sad', action: { type: 'SPEAK' } });
+  const back = new AACButton({
+    id: 'back',
+    label: 'Back',
+    targetPageId: 'home',
+    action: { type: 'NAVIGATE', targetPageId: 'home' },
+  });
+
+  const feelingsPage = new AACPage({
+    id: 'feelings',
+    name: 'Feelings',
+    buttons: [happy, sad, back],
+    grid: [
+      [happy, sad],
+      [back, null],
+    ],
+  });
+
+  tree.addPage(homePage);
+  tree.addPage(feelingsPage);
+  tree.rootId = 'home';
+  return tree;
+}
+
+function buildFallbackObfBoard(page: AACPage, metadata?: AACTree['metadata']) {
+  const rows = page.grid.length || 1;
+  const columns = page.grid.reduce((max, row) => Math.max(max, row.length), 0) || page.buttons.length;
+  const order: (string | null)[][] = [];
+  const positions = new Map<string, number>();
+
+  if (page.grid.length) {
+    page.grid.forEach((row, rowIndex) => {
+      const orderRow: (string | null)[] = [];
+      for (let colIndex = 0; colIndex < columns; colIndex++) {
+        const cell = row[colIndex] || null;
+        if (cell) {
+          const id = String(cell.id ?? '');
+          orderRow.push(id);
+          positions.set(id, rowIndex * columns + colIndex);
+        } else {
+          orderRow.push(null);
+        }
+      }
+      order.push(orderRow);
+    });
+  } else {
+    const fallbackRow = page.buttons.map((button, index) => {
+      const id = String(button.id ?? '');
+      positions.set(id, index);
+      return id;
+    });
+    order.push(fallbackRow);
+  }
+
+  return {
+    format: 'open-board-0.1',
+    id: page.id,
+    locale: metadata?.locale || page.locale || 'en',
+    name: page.name || metadata?.name || 'Board',
+    description_html: page.descriptionHtml || metadata?.description || '',
+    grid: { rows, columns, order },
+    buttons: page.buttons.map((button) => ({
+      id: button.id,
+      label: button.label,
+      vocalization: button.message || button.label,
+      load_board: button.targetPageId ? { path: button.targetPageId } : undefined,
+      box_id: positions.get(String(button.id ?? '')),
+      background_color: button.style?.backgroundColor,
+      border_color: button.style?.borderColor,
+    })),
+  };
+}
+
+async function buildObfExport(tree: AACTree, format: 'obf' | 'obz') {
+  const obfProcessor = new ObfProcessor();
+  const obfInternal = obfProcessor as ObfProcessor & {
+    createObfBoardFromPage?: (page: AACPage, fallbackName: string, metadata?: AACTree['metadata']) => any;
+  };
+
+  const boards = Object.values(tree.pages).map((page) => ({
+    pageId: page.id,
+    board: obfInternal.createObfBoardFromPage
+      ? obfInternal.createObfBoardFromPage(page, 'Board', tree.metadata)
+      : buildFallbackObfBoard(page, tree.metadata),
+  }));
+
+  if (format === 'obf') {
+    const rootPage = tree.rootId ? tree.getPage(tree.rootId) : Object.values(tree.pages)[0];
+    const board =
+      boards.find((entry) => entry.pageId === rootPage?.id)?.board ?? boards[0]?.board ?? {};
+    const json = JSON.stringify(board, null, 2);
+    return { filename: `${sanitizeFilename(tree.metadata?.name || 'pageset')}.obf`, data: json };
+  }
+
+  const module = await import('jszip');
+  const JSZip = module.default || module;
+  const zip = new JSZip();
+  boards.forEach((entry) => {
+    zip.file(`${entry.pageId}.obf`, JSON.stringify(entry.board, null, 2));
+  });
+  const zipData = await zip.generateAsync({ type: 'uint8array' });
+  return { filename: `${sanitizeFilename(tree.metadata?.name || 'pageset')}.obz`, data: zipData };
+}
+
+function triggerDownload(data: Uint8Array | string, filename: string, mime: string) {
+  const blob = new Blob([data], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+createPagesetBtn.addEventListener('click', async () => {
+  const template = templateSelect.value;
+  const format = formatSelect.value === 'obz' ? 'obz' : 'obf';
+  const tree = buildSampleTree(template);
+  currentTree = tree;
+  currentSourceLabel = `${tree.metadata?.name || 'sample pageset'}`;
+  updateConvertButtons();
+
+  const exportData = await buildObfExport(tree, format);
+  const isObf = typeof exportData.data === 'string';
+  triggerDownload(
+    exportData.data,
+    exportData.filename,
+    isObf ? 'application/json' : 'application/zip'
+  );
+
+  pagesetOutput.textContent = isObf
+    ? exportData.data
+    : `Generated OBZ with ${Object.keys(tree.pages).length} boards.`;
+
+  log(`Created sample pageset and exported ${exportData.filename}`, 'success');
+  setConversionStatus(`Exported ${exportData.filename}`, 'success');
+});
+
+previewPagesetBtn.addEventListener('click', () => {
+  const tree = buildSampleTree(templateSelect.value);
+  currentTree = tree;
+  currentSourceLabel = `${tree.metadata?.name || 'sample pageset'}`;
+  displayResults(tree);
+  updateStatsForTree(tree, collectTextCount(tree));
+  updateConvertButtons();
+  setActiveTab('inspectTab');
+  log('Previewing sample pageset in viewer', 'info');
+});
+
+convertToObfBtn.addEventListener('click', async () => {
+  if (!currentTree) return;
+  const exportData = await buildObfExport(currentTree, 'obf');
+  triggerDownload(exportData.data, exportData.filename, 'application/json');
+  pagesetOutput.textContent = exportData.data as string;
+  log(`Converted ${currentSourceLabel} to ${exportData.filename}`, 'success');
+  setConversionStatus(`Exported ${exportData.filename}`, 'success');
+});
+
+convertToObzBtn.addEventListener('click', async () => {
+  if (!currentTree) return;
+  const exportData = await buildObfExport(currentTree, 'obz');
+  triggerDownload(exportData.data, exportData.filename, 'application/zip');
+  pagesetOutput.textContent = `Generated OBZ with ${Object.keys(currentTree.pages).length} boards.`;
+  log(`Converted ${currentSourceLabel} to ${exportData.filename}`, 'success');
+  setConversionStatus(`Exported ${exportData.filename}`, 'success');
 });
 
 // Run compatibility tests

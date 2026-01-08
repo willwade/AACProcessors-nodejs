@@ -63,6 +63,39 @@
             border-bottom: 2px solid #667eea;
         }
 
+        .tab-header {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            border: 1px solid #d6daf5;
+            background: #f7f8ff;
+            color: #3d4bb8;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            background: #667eea;
+            color: #fff;
+            border-color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
         .upload-area {
             border: 2px dashed #ccc;
             border-radius: 8px;
@@ -290,6 +323,83 @@
             font-size: 13px;
         }
 
+        .demo-section {
+            background: #f8f9ff;
+            border-radius: 10px;
+            padding: 15px;
+            border: 1px solid #e4e7ff;
+            margin-bottom: 15px;
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #3942a3;
+            margin-bottom: 10px;
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 10px;
+            font-size: 12px;
+            color: #4d4d4d;
+        }
+
+        .field select,
+        .field input {
+            border: 1px solid #d7d9f5;
+            border-radius: 6px;
+            padding: 8px 10px;
+            font-size: 13px;
+        }
+
+        .action-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .action-row .btn {
+            margin-bottom: 0;
+        }
+
+        .hint {
+            font-size: 12px;
+            color: #667;
+            margin-top: 8px;
+        }
+
+        .status-pill {
+            margin-top: 10px;
+            font-size: 12px;
+            padding: 8px 10px;
+            border-radius: 8px;
+            background: #eef0ff;
+            color: #4a4a8a;
+        }
+
+        .status-pill.success {
+            background: #e0f4e7;
+            color: #256d3b;
+        }
+
+        .status-pill.warn {
+            background: #fff4d6;
+            color: #7a5a00;
+        }
+
+        .code-preview {
+            background: #0f172a;
+            color: #d7e3ff;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            max-height: 220px;
+            overflow: auto;
+            white-space: pre-wrap;
+        }
+
         @media (max-width: 1024px) {
             .main-grid {
                 grid-template-columns: 1fr;
@@ -361,11 +471,56 @@
 
             <!-- Right Panel: Results -->
             <div class="panel results-panel">
-                <div class="panel-title">📊 File Contents</div>
-                <div id="results">
-                    <p style="color: #999; text-align: center; padding: 40px;">
-                        Load a file to see its contents here
-                    </p>
+                <div class="panel-title">📊 AAC Pageset Lab</div>
+                <div class="tab-header">
+                    <button class="tab-btn active" data-tab="inspectTab">Inspect</button>
+                    <button class="tab-btn" data-tab="pagesetTab">Create & Convert</button>
+                </div>
+                <div class="tab-content active" id="inspectTab">
+                    <div id="results">
+                        <p style="color: #999; text-align: center; padding: 40px;">
+                            Load a file to see its contents here
+                        </p>
+                    </div>
+                </div>
+                <div class="tab-content" id="pagesetTab">
+                    <div class="demo-section">
+                        <div class="section-title">✨ Create a Sample Pageset</div>
+                        <div class="field">
+                            <label for="templateSelect">Template</label>
+                            <select id="templateSelect">
+                                <option value="starter">Starter 2x2 + Feelings</option>
+                                <option value="home">Home & Core 3x3</option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label for="formatSelect">Output format</label>
+                            <select id="formatSelect">
+                                <option value="obf">OBF (.obf)</option>
+                                <option value="obz">OBZ (.obz)</option>
+                            </select>
+                        </div>
+                        <div class="action-row">
+                            <button class="btn" id="createPagesetBtn">Generate & Download</button>
+                            <button class="btn btn-secondary" id="previewPagesetBtn">Preview in Viewer</button>
+                        </div>
+                        <div class="hint">Creates a demo AACTree, then exports to OBF/OBZ.</div>
+                    </div>
+
+                    <div class="demo-section">
+                        <div class="section-title">🔁 Convert Loaded Pageset</div>
+                        <div class="action-row">
+                            <button class="btn" id="convertToObfBtn" disabled>Download .obf</button>
+                            <button class="btn btn-secondary" id="convertToObzBtn" disabled>Download .obz</button>
+                        </div>
+                        <div class="hint">Upload and process a file first, then export it in another format.</div>
+                        <div class="status-pill" id="conversionStatus">No pageset loaded yet.</div>
+                    </div>
+
+                    <div class="demo-section">
+                        <div class="section-title">📄 Export Preview</div>
+                        <pre class="code-preview" id="pagesetOutput">Generate or convert a pageset to preview the output JSON.</pre>
+                    </div>
                 </div>
             </div>
         </div>

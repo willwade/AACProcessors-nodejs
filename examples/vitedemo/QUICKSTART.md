@@ -40,6 +40,7 @@ The `test-files/` folder contains example AAC files you can use:
 - **Navigation**: Click NAVIGATE buttons to jump between pages
 - **Stats**: See page/button/text counts and load time
 - **Logs**: Watch the processing log in real-time
+- **Pageset Lab**: Open the "Create & Convert" tab to generate a sample pageset or convert an upload to OBF/OBZ
 
 ## 🛠️ Development
 
