@@ -8,7 +8,7 @@ describe("OPMLProcessor.saveFromTree", () => {
   afterAll(() => {
     if (fs.existsSync(outPath)) fs.unlinkSync(outPath);
   });
-  it("exports tree to OPML XML", () => {
+  it("exports tree to OPML XML", async () => {
     const processor = new OpmlProcessor();
     const tree = await processor.loadIntoTree(opmlPath);
     await processor.saveFromTree(tree, outPath);

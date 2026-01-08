@@ -102,7 +102,7 @@ describe('Property-Based Testing', () => {
   describe('Round-Trip Property Tests', () => {
     it('DOT processor should preserve tree structure through round-trip', async () => {
       fc.assert(
-        fc.property(aacTreeGenerator, (originalTree) => {
+        fc.property(aacTreeGenerator, async (originalTree) => {
           const processor = new DotProcessor();
 
           try {
@@ -151,7 +151,7 @@ describe('Property-Based Testing', () => {
 
     it('OPML processor should preserve hierarchical structure', async () => {
       fc.assert(
-        fc.property(aacTreeGenerator, (originalTree) => {
+        fc.property(aacTreeGenerator, async (originalTree) => {
           const processor = new OpmlProcessor();
 
           try {
@@ -182,7 +182,7 @@ describe('Property-Based Testing', () => {
 
     it('OBF processor should preserve button structure', async () => {
       fc.assert(
-        fc.property(aacTreeGenerator, (originalTree) => {
+        fc.property(aacTreeGenerator, async (originalTree) => {
           const processor = new ObfProcessor();
 
           try {
@@ -238,7 +238,7 @@ describe('Property-Based Testing', () => {
         fc.property(
           fc.string({ minLength: 10, maxLength: 1000 }),
           translationMapGenerator,
-          (content, translations) => {
+          async (content, translations) => {
             const processor = new DotProcessor();
 
             try {
@@ -283,7 +283,7 @@ describe('Property-Based Testing', () => {
 
     it('Empty translation map should not change content', async () => {
       fc.assert(
-        fc.property(fc.string({ minLength: 10, maxLength: 200 }), (content) => {
+        fc.property(fc.string({ minLength: 10, maxLength: 200 }), async (content) => {
           const processor = new DotProcessor();
           const emptyTranslations = new Map<string, string>();
 
@@ -374,7 +374,7 @@ describe('Property-Based Testing', () => {
   describe('Text Extraction Properties', () => {
     it('Extracted texts should be non-empty strings', async () => {
       fc.assert(
-        fc.property(aacTreeGenerator, (tree) => {
+        fc.property(aacTreeGenerator, async (tree) => {
           const processor = new DotProcessor();
 
           try {
@@ -421,7 +421,7 @@ describe('Property-Based Testing', () => {
 
     it('Text extraction should be deterministic', async () => {
       fc.assert(
-        fc.property(aacTreeGenerator, (tree) => {
+        fc.property(aacTreeGenerator, async (tree) => {
           const processor = new DotProcessor();
 
           try {
@@ -453,7 +453,7 @@ describe('Property-Based Testing', () => {
   describe('Error Handling Properties', () => {
     it('Invalid input should not crash processors', async () => {
       fc.assert(
-        fc.property(fc.uint8Array({ minLength: 0, maxLength: 1000 }), (randomBytes) => {
+        fc.property(fc.uint8Array({ minLength: 0, maxLength: 1000 }), async (randomBytes) => {
           const processors = [
             new DotProcessor(),
             new OpmlProcessor(),
@@ -480,7 +480,7 @@ describe('Property-Based Testing', () => {
 
     it('Processors should handle extremely large valid inputs gracefully', async () => {
       fc.assert(
-        fc.property(fc.integer({ min: 100, max: 1000 }), (nodeCount) => {
+        fc.property(fc.integer({ min: 100, max: 1000 }), async (nodeCount) => {
           const processor = new DotProcessor();
 
           try {

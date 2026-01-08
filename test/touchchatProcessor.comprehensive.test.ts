@@ -32,9 +32,7 @@ describe('TouchChatProcessor - Comprehensive Coverage Tests', () => {
       const tree = TreeFactory.createSimple();
       const outputPath = path.join(tempDir, 'v1_test.ce');
 
-      expect(() => {
-        await processor.saveFromTree(tree, outputPath);
-      }).not.toThrow();
+      await expect(processor.saveFromTree(tree, outputPath)).resolves.not.toThrow();
 
       expect(fs.existsSync(outputPath)).toBe(true);
 
@@ -216,9 +214,7 @@ describe('TouchChatProcessor - Comprehensive Coverage Tests', () => {
       const corruptedPath = path.join(tempDir, 'corrupted.ce');
       fs.writeFileSync(corruptedPath, 'This is not a valid zip file');
 
-      expect(() => {
-        await processor.loadIntoTree(corruptedPath);
-      }).toThrow();
+      await expect(processor.loadIntoTree(corruptedPath)).rejects.toThrow();
     });
 
     it('should process databases with missing required tables', async () => {
@@ -231,9 +227,7 @@ describe('TouchChatProcessor - Comprehensive Coverage Tests', () => {
       const invalidPath = path.join(tempDir, 'invalid.ce');
       zip.writeZip(invalidPath);
 
-      expect(() => {
-        await processor.loadIntoTree(invalidPath);
-      }).toThrow();
+      await expect(processor.loadIntoTree(invalidPath)).rejects.toThrow();
     });
 
     it('should handle databases with foreign key constraints', async () => {
@@ -241,9 +235,7 @@ describe('TouchChatProcessor - Comprehensive Coverage Tests', () => {
       const tree = TreeFactory.createCommunicationBoard();
       const outputPath = path.join(tempDir, 'fk_test.ce');
 
-      expect(() => {
-        await processor.saveFromTree(tree, outputPath);
-      }).not.toThrow();
+      await expect(processor.saveFromTree(tree, outputPath)).resolves.not.toThrow();
 
       const loadedTree = await processor.loadIntoTree(outputPath);
       expect(loadedTree).toBeDefined();

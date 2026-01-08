@@ -126,7 +126,7 @@ describe('GridsetProcessor round-trip', () => {
     expect(fs.existsSync(outPath)).toBe(true);
 
     const outBuffer = fs.readFileSync(outPath);
-    const reloadedTree: AACTree = processor.loadIntoTree(outBuffer);
+    const reloadedTree: AACTree = await processor.loadIntoTree(outBuffer);
     expect(Object.keys(reloadedTree.pages)).toHaveLength(0);
   });
 });

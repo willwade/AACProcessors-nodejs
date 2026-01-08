@@ -96,10 +96,7 @@ describe('SnapProcessor - Comprehensive Coverage Tests', () => {
 
       const outputPath = path.join(tempDir, 'missing_audio.sps');
 
-      expect(() => {
-        await processor.saveFromTree(tree, outputPath);
-      }).not.toThrow();
-
+      await expect(processor.saveFromTree(tree, outputPath)).resolves.not.toThrow();
       const loadedTree = await processor.loadIntoTree(outputPath);
       expect(loadedTree).toBeDefined();
     });

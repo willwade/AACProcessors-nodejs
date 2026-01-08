@@ -149,7 +149,7 @@ describe('ProcessTexts functionality', () => {
       const translatedPath = path.join(tempDir, 'translated.applepanels.plist');
       const result = await processor.processTexts(outputPath, translations, translatedPath);
 
-      expect(result).toBeInstanceOf(Buffer);
+      expect(result).toBeInstanceOf(Uint8Array);
       expect(fs.existsSync(translatedPath)).toBe(true);
 
       // Verify translations were applied by loading the translated file
@@ -191,7 +191,7 @@ describe('ProcessTexts functionality', () => {
       const translatedPath = path.join(tempDir, 'translated.obf');
       const result = await processor.processTexts(outputPath, translations, translatedPath);
 
-      expect(result).toBeInstanceOf(Buffer);
+      expect(result).toBeInstanceOf(Uint8Array);
       expect(fs.existsSync(translatedPath)).toBe(true);
     });
 
@@ -204,9 +204,9 @@ describe('ProcessTexts functionality', () => {
       const emptyTranslations = new Map<string, string>();
       const translatedPath = path.join(tempDir, 'empty_translated.applepanels.plist');
 
-      expect(() => {
-        await processor.processTexts(outputPath, emptyTranslations, translatedPath);
-      }).not.toThrow();
+      await expect(
+        processor.processTexts(outputPath, emptyTranslations, translatedPath)
+      ).resolves.not.toThrow();
 
       expect(fs.existsSync(translatedPath)).toBe(true);
     });

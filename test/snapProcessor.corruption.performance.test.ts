@@ -47,9 +47,7 @@ describe('SnapProcessor - Database Corruption & Performance Tests', () => {
       fs.writeFileSync(corruptedPath, corruptedData);
 
       // Should handle corruption gracefully
-      expect(() => {
-        await processor.loadIntoTree(corruptedPath);
-      }).toThrow(); // Expected to throw, but shouldn't crash the process
+      await expect(processor.loadIntoTree(corruptedPath)).rejects.toThrow();
     });
 
     it('should recover from corrupted audio blob data', async () => {
@@ -100,9 +98,7 @@ describe('SnapProcessor - Database Corruption & Performance Tests', () => {
       const invalidPath = path.join(tempDir, 'missing_tables.sps');
       zip.writeZip(invalidPath);
 
-      expect(() => {
-        await processor.loadIntoTree(invalidPath);
-      }).toThrow();
+      await expect(processor.loadIntoTree(invalidPath)).rejects.toThrow();
     });
 
     it('should process files with invalid foreign keys', async () => {
@@ -111,9 +107,7 @@ describe('SnapProcessor - Database Corruption & Performance Tests', () => {
       const outputPath = path.join(tempDir, 'foreign_keys.sps');
 
       // This should work with proper relationships
-      expect(() => {
-        await processor.saveFromTree(tree, outputPath);
-      }).not.toThrow();
+      await expect(processor.saveFromTree(tree, outputPath)).resolves.not.toThrow();
 
       const loadedTree = await processor.loadIntoTree(outputPath);
       expect(loadedTree).toBeDefined();
@@ -132,27 +126,21 @@ describe('SnapProcessor - Database Corruption & Performance Tests', () => {
       const truncatedPath = path.join(tempDir, 'truncated.sps');
       fs.writeFileSync(truncatedPath, truncatedData);
 
-      expect(() => {
-        await processor.loadIntoTree(truncatedPath);
-      }).toThrow();
+      await expect(processor.loadIntoTree(truncatedPath)).rejects.toThrow();
     });
 
     it('should handle completely invalid file formats', async () => {
       const invalidPath = path.join(tempDir, 'not_a_zip.sps');
       fs.writeFileSync(invalidPath, 'This is just plain text, not a zip file');
 
-      expect(() => {
-        await processor.loadIntoTree(invalidPath);
-      }).toThrow();
+      await expect(processor.loadIntoTree(invalidPath)).rejects.toThrow();
     });
 
     it('should handle empty files', async () => {
       const emptyPath = path.join(tempDir, 'empty.sps');
       fs.writeFileSync(emptyPath, '');
 
-      expect(() => {
-        await processor.loadIntoTree(emptyPath);
-      }).toThrow();
+      await expect(processor.loadIntoTree(emptyPath)).rejects.toThrow();
     });
 
     it('should handle files with invalid zip structure', async () => {
@@ -161,9 +149,7 @@ describe('SnapProcessor - Database Corruption & Performance Tests', () => {
       const fakeZipData = Buffer.from('PK\x03\x04\x14\x00\x00\x00invalid zip data');
       fs.writeFileSync(invalidZipPath, fakeZipData);
 
-      expect(() => {
-        await processor.loadIntoTree(invalidZipPath);
-      }).toThrow();
+      await expect(processor.loadIntoTree(invalidZipPath)).rejects.toThrow();
     });
   });
 

@@ -117,10 +117,10 @@ describe('SnapProcessor Audio Support', () => {
       fs.copyFileSync(exampleSPSFile, testDbPath);
 
       // Create some test audio data
-      const testAudioData: Buffer = Buffer.from('RIFF....WAVE....', 'ascii'); // Minimal WAV-like data
+      const testAudioData: Uint8Array = new Uint8Array(Buffer.from('RIFF....WAVE....', 'ascii')); // Minimal WAV-like data
 
       // Add audio to a button (using button ID 1 as a test)
-      const audioId: number = processor.addAudioToButton(
+      const audioId: number = await processor.addAudioToButton(
         testDbPath,
         1,
         testAudioData,

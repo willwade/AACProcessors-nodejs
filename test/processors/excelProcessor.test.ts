@@ -29,7 +29,8 @@ describe('ExcelProcessor', () => {
       const tree = new AACTree();
       const outputPath = path.join(tempDir, 'empty.xlsx');
 
-      await expect(await processor.saveFromTree(tree, outputPath)).resolves.toBeUndefined();
+      await processor.saveFromTree(tree, outputPath);
+      expect(fs.existsSync(outputPath)).toBe(true);
     });
 
     it('should extract texts from non-existent file', async () => {
@@ -230,9 +231,9 @@ describe('ExcelProcessor', () => {
     it('should handle processTexts gracefully', async () => {
       const translations = new Map([['Hello', 'Hola']]);
 
-      expect(() => {
-        await processor.processTexts('test.xlsx', translations, 'output.xlsx');
-      }).not.toThrow();
+      await expect(
+        processor.processTexts('test.xlsx', translations, 'output.xlsx')
+      ).resolves.not.toThrow();
     });
   });
 });
