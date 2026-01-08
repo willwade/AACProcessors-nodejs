@@ -9,8 +9,10 @@ describe('SnapProcessor - Comprehensive Coverage Tests', () => {
   let processor: SnapProcessor;
   const tempDir = path.join(__dirname, 'temp_snap');
   const _exampleFile = path.join(__dirname, 'assets/snap/example.sps');
+  let warnSpy: jest.SpyInstance;
 
   beforeAll(async () => {
+    warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
     if (!fs.existsSync(tempDir)) {
       fs.mkdirSync(tempDir, { recursive: true });
     }
@@ -24,6 +26,7 @@ describe('SnapProcessor - Comprehensive Coverage Tests', () => {
     if (fs.existsSync(tempDir)) {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }
+    warnSpy.mockRestore();
   });
 
   describe('Audio Handling Tests', () => {

@@ -1,12 +1,11 @@
 /* eslint-disable @typescript-eslint/require-await */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
-import * as fs from 'fs';
-import * as path from 'path';
 import * as xml2js from 'xml2js';
 import JSZip from 'jszip';
 import { BaseValidator } from './baseValidator';
 import { ValidationResult } from './validationTypes';
+import { getFs, getPath } from '../utils/io';
 
 /**
  * Validator for Grid3/Smartbox Gridset files (.gridset, .gridsetx)
@@ -21,6 +20,8 @@ export class GridsetValidator extends BaseValidator {
    */
   static async validateFile(filePath: string): Promise<ValidationResult> {
     const validator = new GridsetValidator();
+    const fs = getFs();
+    const path = getPath();
     const content = fs.readFileSync(filePath);
     const stats = fs.statSync(filePath);
     return validator.validate(content, path.basename(filePath), stats.size);

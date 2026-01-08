@@ -8,8 +8,10 @@ import { AACTree, AACPage, AACButton } from '../src/core/treeStructure';
 
 describe('Performance Tests', () => {
   const tempDir = path.join(__dirname, 'temp_performance');
+  let warnSpy: jest.SpyInstance;
 
   beforeAll(async () => {
+    warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
     if (!fs.existsSync(tempDir)) {
       fs.mkdirSync(tempDir, { recursive: true });
     }
@@ -19,6 +21,7 @@ describe('Performance Tests', () => {
     if (fs.existsSync(tempDir)) {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }
+    warnSpy.mockRestore();
   });
 
   // Helper function to measure memory usage

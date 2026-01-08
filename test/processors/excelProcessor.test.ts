@@ -7,6 +7,11 @@ import { AACSemanticIntent } from '../../src/index';
 describe('ExcelProcessor', () => {
   let processor: ExcelProcessor;
   let tempDir: string;
+  let warnSpy: jest.SpyInstance;
+
+  beforeAll(async () => {
+    warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+  });
 
   beforeEach(async () => {
     processor = new ExcelProcessor();
@@ -18,6 +23,10 @@ describe('ExcelProcessor', () => {
     if (fs.existsSync(tempDir)) {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }
+  });
+
+  afterAll(async () => {
+    warnSpy.mockRestore();
   });
 
   describe('Basic Functionality', () => {

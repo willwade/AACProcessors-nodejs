@@ -1,7 +1,12 @@
-import path from 'path';
 import type JSZip from 'jszip';
 import { ProcessorOptions } from '../../core/baseProcessor';
 import { ProcessorInput } from '../../utils/io';
+
+function getExtension(source: string): string {
+  const index = source.lastIndexOf('.');
+  if (index === -1) return '';
+  return source.slice(index);
+}
 
 /**
  * Resolve the password to use for Grid3 archives.
@@ -14,18 +19,19 @@ export function resolveGridsetPassword(
   source?: ProcessorInput
 ): string | undefined {
   if (options?.gridsetPassword) return options.gridsetPassword;
-  if (process.env.GRIDSET_PASSWORD) return process.env.GRIDSET_PASSWORD;
+  const envPassword = typeof process !== 'undefined' ? process.env?.GRIDSET_PASSWORD : undefined;
+  if (envPassword) return envPassword;
 
   if (typeof source === 'string') {
-    const ext = path.extname(source).toLowerCase();
-    if (ext === '.gridsetx') return process.env.GRIDSET_PASSWORD;
+    const ext = getExtension(source).toLowerCase();
+    if (ext === '.gridsetx') return envPassword;
   }
 
   return undefined;
 }
 
 export function resolveGridsetPasswordFromEnv(): string | undefined {
-  return process.env.GRIDSET_PASSWORD;
+  return typeof process !== 'undefined' ? process.env?.GRIDSET_PASSWORD : undefined;
 }
 
 /**

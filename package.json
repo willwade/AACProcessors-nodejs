@@ -93,6 +93,7 @@
     "lint:fix": "eslint \"src/**/*.{js,ts}\" \"test/**/*.{js,ts}\" --fix",
     "format": "prettier --write \"src/**/*.{js,ts}\" \"test/**/*.{js,ts}\" \"*.{js,ts,json,md}\"",
     "format:check": "prettier --check \"src/**/*.{js,ts}\" \"test/**/*.{js,ts}\" \"*.{js,ts,json,md}\"",
+    "smoke:browser": "node scripts/smoke-browser-bundle.js",
     "test": "npm run build && jest",
     "test:watch": "npm run build && jest --watch",
     "test:coverage": "npm run build && jest --coverage",

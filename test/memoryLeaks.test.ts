@@ -8,8 +8,10 @@ import { AACTree, AACPage, AACButton } from '../src/core/treeStructure';
 
 describe('Memory Leak Detection Tests', () => {
   const tempDir = path.join(__dirname, 'temp_memory');
+  let warnSpy: jest.SpyInstance;
 
   beforeAll(async () => {
+    warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
     if (!fs.existsSync(tempDir)) {
       fs.mkdirSync(tempDir, { recursive: true });
     }
@@ -19,6 +21,7 @@ describe('Memory Leak Detection Tests', () => {
     if (fs.existsSync(tempDir)) {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }
+    warnSpy.mockRestore();
   });
 
   // Helper function to get memory usage

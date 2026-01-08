@@ -13,9 +13,7 @@
  * This module provides symbol resolution and metadata extraction.
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
-import AdmZip from 'adm-zip';
+import { getFs, getPath } from '../../utils/io';
 
 /**
  * Default Grid 3 installation paths by platform
@@ -109,6 +107,38 @@ export interface SymbolResolutionResult {
  */
 export const DEFAULT_LOCALE = 'en-GB';
 
+function getNodeFs(): typeof import('fs') {
+  try {
+    return getFs();
+  } catch {
+    throw new Error('Symbol library access is not available in this environment.');
+  }
+}
+
+function getNodePath(): typeof import('path') {
+  try {
+    return getPath();
+  } catch {
+    throw new Error('Path utilities are not available in this environment.');
+  }
+}
+
+let cachedAdmZip: typeof import('adm-zip') | null = null;
+function getAdmZip(): typeof import('adm-zip') {
+  if (cachedAdmZip) return cachedAdmZip;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const module = require('adm-zip') as typeof import('adm-zip') & {
+      default?: typeof import('adm-zip');
+    };
+    const resolved = module.default || module;
+    cachedAdmZip = resolved;
+    return resolved;
+  } catch {
+    throw new Error('Symbol library access requires AdmZip in this environment.');
+  }
+}
+
 /**
  * Parse a symbol reference string
  * @param reference - Symbol reference like "[widgit]/food/apple.png"
@@ -153,26 +183,33 @@ export function isSymbolReference(reference: string): boolean {
  * @returns Default Grid 3 path or empty string if not found
  */
 export function getDefaultGrid3Path(): string {
-  const platform = process.platform as keyof typeof DEFAULT_GRID3_PATHS;
+  const platform = (
+    typeof process !== 'undefined' && process.platform ? process.platform : 'unknown'
+  ) as keyof typeof DEFAULT_GRID3_PATHS;
   const defaultPath = DEFAULT_GRID3_PATHS[platform] || '';
 
-  if (defaultPath && fs.existsSync(defaultPath)) {
-    return defaultPath;
-  }
-
-  // Try to find Grid 3 in common locations
-  const commonPaths = [
-    'C:\\Program Files (x86)\\Smartbox\\Grid 3',
-    'C:\\Program Files\\Smartbox\\Grid 3',
-    'C:\\Program Files\\Smartbox\\Grid 3',
-    '/Applications/Grid 3.app',
-    '/opt/smartbox/grid3',
-  ];
-
-  for (const testPath of commonPaths) {
-    if (fs.existsSync(testPath)) {
-      return testPath;
+  try {
+    const fs = getNodeFs();
+    if (defaultPath && fs.existsSync(defaultPath)) {
+      return defaultPath;
     }
+
+    // Try to find Grid 3 in common locations
+    const commonPaths = [
+      'C:\\Program Files (x86)\\Smartbox\\Grid 3',
+      'C:\\Program Files\\Smartbox\\Grid 3',
+      'C:\\Program Files\\Smartbox\\Grid 3',
+      '/Applications/Grid 3.app',
+      '/opt/smartbox/grid3',
+    ];
+
+    for (const testPath of commonPaths) {
+      if (fs.existsSync(testPath)) {
+        return testPath;
+      }
+    }
+  } catch {
+    return '';
   }
 
   return '';
@@ -185,6 +222,7 @@ export function getDefaultGrid3Path(): string {
  * @returns Path to Symbol Libraries directory (e.g., "C:\...\Grid 3\Resources\Symbols")
  */
 export function getSymbolLibrariesDir(grid3Path: string): string {
+  const path = getNodePath();
   return path.join(grid3Path, SYMBOLS_SUBDIR);
 }
 
@@ -199,6 +237,7 @@ export function getSymbolSearchIndexesDir(
   grid3Path: string,
   locale: string = DEFAULT_LOCALE
 ): string {
+  const path = getNodePath();
   return path.join(grid3Path, SYMBOLSEARCH_SUBDIR, locale, 'symbolsearch');
 }
 
@@ -218,6 +257,7 @@ export function getAvailableSymbolLibraries(
 
   const symbolsDir = getSymbolLibrariesDir(grid3Path);
 
+  const fs = getNodeFs();
   if (!fs.existsSync(symbolsDir)) {
     return [];
   }
@@ -227,6 +267,7 @@ export function getAvailableSymbolLibraries(
 
   for (const file of files) {
     if (file.endsWith('.symbols')) {
+      const path = getNodePath();
       const fullPath = path.join(symbolsDir, file);
       const stats = fs.statSync(fullPath);
       const libraryName = path.basename(file, '.symbols');
@@ -271,7 +312,9 @@ export function getSymbolLibraryInfo(
   ];
 
   for (const file of variations) {
+    const path = getNodePath();
     const fullPath = path.join(symbolsDir, file);
+    const fs = getNodeFs();
     if (fs.existsSync(fullPath)) {
       const stats = fs.statSync(fullPath);
       return {
@@ -329,6 +372,7 @@ export function resolveSymbolReference(
 
   try {
     // .symbols files are ZIP archives
+    const AdmZip = getAdmZip();
     const zip = new AdmZip(libraryInfo.pixFile);
 
     // The path in the symbol reference becomes the path within the symbols/ folder
@@ -527,7 +571,8 @@ export function analyzeSymbolUsage(tree: any): SymbolUsageStats {
  */
 export function symbolReferenceToFilename(reference: string, cellX: number, cellY: number): string {
   const parsed = parseSymbolReference(reference);
-  const ext = path.extname(parsed.path) || '.png';
+  const dotIndex = parsed.path.lastIndexOf('.');
+  const ext = dotIndex >= 0 ? parsed.path.slice(dotIndex) : '.png';
 
   // Grid 3 format: {x}-{y}-0-text-0.{ext}
   return `${cellX}-${cellY}-0-text-0${ext}`;
