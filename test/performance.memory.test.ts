@@ -143,7 +143,7 @@ describeIfLocal('Memory Performance Tests', () => {
         const outputPath = path.join(tempDir, `gc_test_${i}.ce`);
 
         await processor.saveFromTree(tree, outputPath);
-        processor.loadIntoTree(outputPath);
+        await processor.loadIntoTree(outputPath);
 
         // Clean up file
         fs.unlinkSync(outputPath);
@@ -355,7 +355,7 @@ describeIfLocal('Memory Performance Tests', () => {
         const outputPath = path.join(tempDir, `leak_test_${i}.dot`);
 
         await processor.saveFromTree(tree, outputPath);
-        processor.loadIntoTree(outputPath);
+        await processor.loadIntoTree(outputPath);
 
         fs.unlinkSync(outputPath);
 

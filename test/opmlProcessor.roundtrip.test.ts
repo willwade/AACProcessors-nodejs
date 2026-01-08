@@ -16,11 +16,11 @@ describe('OpmlProcessor round-trip', () => {
   });
   it('round-trips OPML file without losing pages', async () => {
     const processor = new OpmlProcessor();
-    const tree1 = processor.loadIntoTree(opmlPath);
+    const tree = await processor.loadIntoTree(opmlPath);
     console.log('TEST: tree1.rootId =', tree1.rootId);
     console.log('TEST: tree1.pages =', Object.keys(tree1.pages));
     await processor.saveFromTree(tree1, outPath);
-    const tree2 = processor.loadIntoTree(outPath);
+    const tree = await processor.loadIntoTree(outPath);
     console.log('TEST: tree2.rootId =', tree2.rootId);
     console.log('TEST: tree2.pages =', Object.keys(tree2.pages));
     // Compare set of page names (labels)

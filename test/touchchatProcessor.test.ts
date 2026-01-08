@@ -8,14 +8,14 @@ describe('TouchChatProcessor', () => {
 
   it('should load a .ce file into a tree', async () => {
     const processor = new TouchChatProcessor();
-    const tree: AACTree = processor.loadIntoTree(exampleFile);
+    const tree: AACTree = await processor.loadIntoTree(exampleFile);
     expect(tree).toBeDefined();
     expect(Object.keys(tree.pages).length).toBeGreaterThan(0);
   });
 
   it('should extract all texts from a .ce file', async () => {
     const processor = new TouchChatProcessor();
-    const texts: string[] = processor.extractTexts(exampleFile);
+    const texts: string[] = await processor.extractTexts(exampleFile);
     expect(Array.isArray(texts)).toBe(true);
     expect(texts.length).toBeGreaterThan(0);
   });

@@ -10,8 +10,8 @@ describe("OPMLProcessor.saveFromTree", () => {
   });
   it("exports tree to OPML XML", () => {
     const processor = new OpmlProcessor();
-    const tree = processor.loadIntoTree(opmlPath);
-    processor.saveFromTree(tree, outPath);
+    const tree = await processor.loadIntoTree(opmlPath);
+    await processor.saveFromTree(tree, outPath);
     const exported = fs.readFileSync(outPath, "utf8");
     expect(exported).toContain("<?xml");
     expect(exported).toContain("<opml");

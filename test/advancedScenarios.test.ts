@@ -53,7 +53,7 @@ describe('Advanced Scenario Testing', () => {
       allTexts['.dot'] = dotProcessor.extractTexts(dotPath);
 
       for (const { ext, processor } of formats) {
-        allTexts[ext] = processor.extractTexts(convertedFiles[ext]);
+        allTexts[ext] = await processor.extractTexts(convertedFiles[ext]);
       }
 
       // Step 4: Create translations

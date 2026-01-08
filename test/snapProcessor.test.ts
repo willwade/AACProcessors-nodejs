@@ -8,21 +8,21 @@ describe('SnapProcessor', () => {
 
   it('should extract all texts from a .spb file', async () => {
     const processor = new SnapProcessor();
-    const texts: string[] = processor.extractTexts(exampleFile);
+    const texts: string[] = await processor.extractTexts(exampleFile);
     expect(Array.isArray(texts)).toBe(true);
     expect(texts.length).toBeGreaterThan(0);
   });
 
   it('should extract all texts from a .sps file', async () => {
     const processor = new SnapProcessor();
-    const texts: string[] = processor.extractTexts(exampleSPSFile);
+    const texts: string[] = await processor.extractTexts(exampleSPSFile);
     expect(Array.isArray(texts)).toBe(true);
     expect(texts.length).toBeGreaterThan(0);
   });
 
   it('should load the tree structure from a .spb file and use UniqueId for page ids', async () => {
     const processor = new SnapProcessor();
-    const tree: AACTree = processor.loadIntoTree(exampleFile);
+    const tree: AACTree = await processor.loadIntoTree(exampleFile);
     expect(tree).toBeTruthy();
     const pageIds: string[] = Object.keys(tree.pages);
     expect(pageIds.length).toBeGreaterThan(0);
@@ -34,7 +34,7 @@ describe('SnapProcessor', () => {
 
   it('should load the tree structure from a .sps file and use UniqueId for page ids', async () => {
     const processor = new SnapProcessor();
-    const tree: AACTree = processor.loadIntoTree(exampleSPSFile);
+    const tree: AACTree = await processor.loadIntoTree(exampleSPSFile);
     expect(tree).toBeTruthy();
     const pageIds: string[] = Object.keys(tree.pages);
     expect(pageIds.length).toBeGreaterThan(0);
@@ -62,7 +62,7 @@ describe('SnapProcessor', () => {
     it('should throw error for non-existent file', async () => {
       const processor = new SnapProcessor();
       expect(() => {
-        processor.loadIntoTree('/non/existent/file.spb');
+        await processor.loadIntoTree('/non/existent/file.spb');
       }).toThrow();
     });
 
@@ -70,14 +70,14 @@ describe('SnapProcessor', () => {
       const processor = new SnapProcessor();
       const invalidBuffer = Buffer.from('not a database file');
       expect(() => {
-        processor.loadIntoTree(invalidBuffer);
+        await processor.loadIntoTree(invalidBuffer);
       }).toThrow();
     });
 
     it('should handle empty file path', async () => {
       const processor = new SnapProcessor();
       expect(() => {
-        processor.loadIntoTree('');
+        await processor.loadIntoTree('');
       }).toThrow();
     });
   });

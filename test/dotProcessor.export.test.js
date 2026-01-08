@@ -10,8 +10,8 @@ describe("DotProcessor.saveFromTree", () => {
   });
   it("exports tree to DOT format", () => {
     const processor = new DotProcessor();
-    const tree = processor.loadIntoTree(dotPath);
-    processor.saveFromTree(tree, outPath);
+    const tree = await processor.loadIntoTree(dotPath);
+    await processor.saveFromTree(tree, outPath);
     const exported = fs.readFileSync(outPath, "utf8");
     expect(exported).toContain('digraph "AACBoard"');
     expect(exported).toContain("[");

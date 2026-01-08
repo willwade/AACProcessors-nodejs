@@ -14,7 +14,7 @@ describe('SnapProcessor round-trip', () => {
     const processor = new SnapProcessor();
     const tree1 = processor.loadIntoTree(snapPath);
     await processor.saveFromTree(tree1, outPath);
-    const tree2 = processor.loadIntoTree(outPath);
+    const tree2 = await processor.loadIntoTree(outPath);
     expect(Object.keys(tree1.pages).sort()).toEqual(Object.keys(tree2.pages).sort());
     for (const pid in tree1.pages) {
       expect(tree2.pages).toHaveProperty(pid);
@@ -33,7 +33,7 @@ describe('SnapProcessor round-trip', () => {
     const processor = new SnapProcessor();
     const tree1 = processor.loadIntoTree(spsPath);
     await processor.saveFromTree(tree1, outPath);
-    const tree2 = processor.loadIntoTree(outPath);
+    const tree2 = await processor.loadIntoTree(outPath);
     expect(Object.keys(tree1.pages).sort()).toEqual(Object.keys(tree2.pages).sort());
   });
 });

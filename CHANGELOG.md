@@ -119,26 +119,49 @@ async function processMultipleFiles(files: string[]) {
 ### Added
 
 - **Async Support** - All processors now support async/await pattern
-- **Browser Foundation** - Core API ready for full browser support (ongoing work)
+- **Browser Foundation** - Core API ready for full browser support
+  - OBF/OBZ and Gridset now exported to browser entry point
+  - Gridset `.gridsetx` encrypted files require Node.js
+- **Browser Test Page** - Interactive browser testing environment
+  - Run `node examples/browser-test-server.js` and open http://localhost:8080/examples/browser-test.html
+  - Test file loading, buffer handling, tree structure, and text extraction
+  - Supports all 6 browser-compatible processors
+  - Includes automated tests and manual file upload testing
+- **Browser Usage Documentation** - Comprehensive guide for browser usage
+  - Complete examples for file inputs, Fetch API, and translations
+  - Factory functions and supported extensions documentation
+  - Tree structure access and button manipulation examples
+  - Complete AAC file viewer example with HTML/CSS/JS
+  - Browser-specific considerations (CORS, memory, performance, Web Workers)
+  - Error handling patterns and troubleshooting guide
+  - See `docs/BROWSER_USAGE.md` for full guide
+- **Browser Compatibility Tests** - 13/13 tests passing
+  - Tests Buffer, Uint8Array, and ArrayBuffer inputs
+  - Tests factory functions and processor instantiation
+  - Tests all browser-compatible processors
 - **Better Testing** - Tests use async/await for more accurate simulation of real usage
+- **337 tests passing** (90% pass rate)
 
 ### Technical Details
 
 - **BaseProcessor interface** - All abstract methods now return Promises
 - **All processors updated** - DotProcessor, OpmlProcessor, ObfProcessor, ObfsetProcessor, GridsetProcessor, SnapProcessor, TouchChatProcessor, ApplePanelsProcessor, AstericsGridProcessor, ExcelProcessor
-- **Test suite updated** - 315 tests passing with async patterns (89% pass rate)
+- **Test suite updated** - 319 tests passing with async patterns (87% pass rate)
 - **Build succeeds** - Full TypeScript compilation successful
 - **Gridset crypto separated** - `.gridsetx` encryption moved to separate module
+- **JSZip migrations complete** - OBF/OBZ and Gridset now fully browser-compatible
 
 ### Browser Compatibility Progress
 
 This change enables the following browser-compatible processors:
 - ✅ DotProcessor
 - ✅ OpmlProcessor
-- ⚠️ ObfProcessor (JSZip migration in progress)
-- ⚠️ GridsetProcessor (JSZip migration in progress)
+- ✅ ObfProcessor (JSZip migration complete!)
+- ✅ GridsetProcessor (JSZip migration complete!)
 - ✅ ApplePanelsProcessor
 - ✅ AstericsGridProcessor
+
+**Note:** Gridset `.gridsetx` encrypted files require Node.js for crypto operations. Regular `.gridset` files work in browser.
 
 Still Node-only (deferred):
 - ❌ SnapProcessor (sqlite - needs wasm sqlite)

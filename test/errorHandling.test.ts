@@ -36,8 +36,8 @@ describe('Error Handling', () => {
 
       processors.forEach((processor) => {
         expect(() => {
-          processor.loadIntoTree('/non/existent/file.ext');
-        }).toThrow();
+          await processor.loadIntoTree('/non/existent/file.ext');
+        }).rejects.toThrow();
       });
     });
 
@@ -51,8 +51,8 @@ describe('Error Handling', () => {
 
         const processor = new DotProcessor();
         expect(() => {
-          processor.loadIntoTree(restrictedFile);
-        }).toThrow();
+          await processor.loadIntoTree(restrictedFile);
+        }).rejects.toThrow();
       } catch (e) {
         // chmod might not work on all systems, skip this test
         console.log('Skipping permission test - chmod not supported');
@@ -73,8 +73,8 @@ describe('Error Handling', () => {
       const invalidJson = Buffer.from('{ invalid json content }');
 
       expect(() => {
-        processor.loadIntoTree(invalidJson);
-      }).toThrow();
+        await processor.loadIntoTree(invalidJson);
+      }).rejects.toThrow();
     });
 
     it('should handle invalid XML in OPML files', async () => {
@@ -82,8 +82,8 @@ describe('Error Handling', () => {
       const invalidXml = Buffer.from('<invalid><unclosed>xml');
 
       expect(() => {
-        processor.loadIntoTree(invalidXml);
-      }).toThrow();
+        await processor.loadIntoTree(invalidXml);
+      }).rejects.toThrow();
     });
 
     it('should handle invalid XML in GridSet files', async () => {
@@ -91,8 +91,8 @@ describe('Error Handling', () => {
       const invalidZip = Buffer.from('not a zip file');
 
       expect(() => {
-        processor.loadIntoTree(invalidZip);
-      }).toThrow();
+        await processor.loadIntoTree(invalidZip);
+      }).rejects.toThrow();
     });
 
     it('should handle corrupted SQLite databases', async () => {
@@ -100,8 +100,8 @@ describe('Error Handling', () => {
       const corruptedDb = Buffer.from('SQLite format 3\x00but corrupted data');
 
       expect(() => {
-        processor.loadIntoTree(corruptedDb);
-      }).toThrow();
+        await processor.loadIntoTree(corruptedDb);
+      }).rejects.toThrow();
     });
   });
 
@@ -116,7 +116,7 @@ describe('Error Handling', () => {
       const snapProcessor = new SnapProcessor();
       expect(() => {
         snapProcessor.loadIntoTree(emptyBuffer);
-      }).toThrow();
+      }).rejects.toThrow();
     });
 
     it('should handle files with only whitespace', async () => {
@@ -153,8 +153,8 @@ describe('Error Handling', () => {
       const tempFilesBefore = fs.readdirSync(require('os').tmpdir()).length;
 
       expect(() => {
-        processor.loadIntoTree(invalidData);
-      }).toThrow();
+        await processor.loadIntoTree(invalidData);
+      }).rejects.toThrow();
 
       // Give some time for cleanup
       setTimeout(() => {
@@ -216,7 +216,7 @@ describe('Error Handling', () => {
 
         expect(() => {
           await processor.saveFromTree(tree, outputPath);
-        }).toThrow();
+        }).rejects.toThrow();
       } catch (e) {
         // chmod might not work on all systems
         console.log('Skipping read-only directory test - chmod not supported');
@@ -239,7 +239,7 @@ describe('Error Handling', () => {
       // Try to save to an invalid path
       expect(() => {
         await processor.saveFromTree(tree, '/invalid/path/that/does/not/exist/output.dot');
-      }).toThrow();
+      }).rejects.toThrow();
     });
   });
 });

@@ -8,7 +8,7 @@ describe('DotProcessor', () => {
 
   it('can process .dot files and build a navigation tree', async () => {
     const processor = new DotProcessor();
-    const tree: AACTree = processor.loadIntoTree(dotPath);
+    const tree: AACTree = await processor.loadIntoTree(dotPath);
     expect(tree).toBeInstanceOf(AACTree);
     // Should have at least one page
     expect(Object.keys(tree.pages).length).toBeGreaterThan(0);
@@ -38,8 +38,8 @@ describe('DotProcessor', () => {
     it('should throw error for non-existent file', async () => {
       const processor = new DotProcessor();
       expect(() => {
-        processor.loadIntoTree('/non/existent/file.dot');
-      }).toThrow();
+        await processor.loadIntoTree('/non/existent/file.dot');
+      }).rejects.toThrow();
     });
 
     it('should handle malformed dot content gracefully', async () => {
@@ -53,7 +53,7 @@ describe('DotProcessor', () => {
     it('should handle empty file gracefully', async () => {
       const processor = new DotProcessor();
       const emptyContent = Buffer.from('');
-      expect(() => processor.loadIntoTree(emptyContent)).toThrow();
+      expect(() => await processor.loadIntoTree(emptyContent)).toThrow();
     });
 
     it('should handle content with only comments', async () => {

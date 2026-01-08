@@ -20,7 +20,7 @@ describe('SnapProcessor Audio Support', () => {
     }
 
     const processor = new SnapProcessor();
-    const tree: AACTree = processor.loadIntoTree(exampleSPSFile);
+    const tree: AACTree = await processor.loadIntoTree(exampleSPSFile);
 
     expect(tree).toBeDefined();
     expect(tree.pages).toBeDefined();
@@ -43,7 +43,7 @@ describe('SnapProcessor Audio Support', () => {
     }
 
     const processor = new SnapProcessor(null, { loadAudio: true });
-    const tree: AACTree = processor.loadIntoTree(exampleSPSFile);
+    const tree: AACTree = await processor.loadIntoTree(exampleSPSFile);
 
     expect(tree).toBeDefined();
     expect(tree.pages).toBeDefined();
@@ -76,7 +76,7 @@ describe('SnapProcessor Audio Support', () => {
     // This should work with any page that has buttons
     try {
       // Try to find a page with buttons
-      const tree: AACTree = processor.loadIntoTree(exampleSPSFile);
+      const tree: AACTree = await processor.loadIntoTree(exampleSPSFile);
       const pages: AACPage[] = Object.values(tree.pages);
 
       if (pages.length > 0) {
@@ -146,7 +146,7 @@ describe('SnapProcessor Audio Support', () => {
     }
 
     const processor = new SnapProcessor(null, { loadAudio: true });
-    const tree: AACTree = processor.loadIntoTree(enhancedSPSFile);
+    const tree: AACTree = await processor.loadIntoTree(enhancedSPSFile);
 
     expect(tree).toBeDefined();
     expect(tree.pages).toBeDefined();

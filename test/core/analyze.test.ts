@@ -116,7 +116,7 @@ describe('analyze', () => {
       const tree = TreeFactory.createSimple();
       const processor = new OpmlProcessor();
       const tempFile = path.join(tempDir, 'test.opml');
-      await await processor.saveFromTree(tree, tempFile);
+      await processor.saveFromTree(tree, tempFile);
 
       const { tree: analyzedTree } = analyze(tempFile, 'opml');
       expect(analyzedTree).toBeDefined();
@@ -165,7 +165,7 @@ describe('analyze', () => {
       const tree = TreeFactory.createCommunicationBoard();
       const processor = new OpmlProcessor();
       const tempFile = path.join(tempDir, 'communication.opml');
-      await await processor.saveFromTree(tree, tempFile);
+      await processor.saveFromTree(tree, tempFile);
 
       const { tree: analyzedTree } = analyze(tempFile, 'opml');
       expect(analyzedTree).toBeDefined();

@@ -34,7 +34,7 @@ describe('Edge Case Tests', () => {
       processors.forEach(({ processor, testBuffer }) => {
         if (!testBuffer) return;
         const emptyBuffer = Buffer.alloc(0);
-        expect(() => processor.loadIntoTree(emptyBuffer)).toThrow();
+        expect(() => await processor.loadIntoTree(emptyBuffer)).toThrow();
       });
     });
 
@@ -258,7 +258,7 @@ describe('Edge Case Tests', () => {
 
       corruptedJsonCases.forEach((corruptedJson, index) => {
         expect(() => {
-          processor.loadIntoTree(Buffer.from(corruptedJson));
+          await processor.loadIntoTree(Buffer.from(corruptedJson));
         }).toThrow();
         console.log(`Corrupted JSON case ${index + 1} handled correctly`);
       });
@@ -290,7 +290,7 @@ describe('Edge Case Tests', () => {
       // Create some binary data
       const binaryData = Buffer.from([0x00, 0x01, 0x02, 0x03, 0xff, 0xfe, 0xfd]);
 
-      expect(() => processor.loadIntoTree(binaryData)).toThrow();
+      expect(() => await processor.loadIntoTree(binaryData)).toThrow();
     });
   });
 
@@ -305,7 +305,7 @@ describe('Edge Case Tests', () => {
         const invalidData = Buffer.from(`invalid sqlite data ${i}`);
 
         expect(() => {
-          processor.loadIntoTree(invalidData);
+          await processor.loadIntoTree(invalidData);
         }).toThrow();
       }
 

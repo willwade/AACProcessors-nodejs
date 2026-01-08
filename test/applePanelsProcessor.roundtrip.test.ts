@@ -70,7 +70,7 @@ describe('ApplePanelsProcessor round-trip', () => {
     const asconfigPath = `${outPath}.ascconfig`;
     expect(fs.existsSync(asconfigPath)).toBe(true);
 
-    const tree2: AACTree = processor.loadIntoTree(asconfigPath);
+    const tree2: AACTree = await processor.loadIntoTree(asconfigPath);
 
     // Verify structure
     expect(Object.keys(tree2.pages)).toHaveLength(2);

@@ -59,7 +59,19 @@ export async function getZipEntriesWithPassword(
       name: relativePath,
       entryName: relativePath,
       dir: file.dir || false,
-      getData: async () => await file.async('nodebuffer'),
+      getData: async () => {
+        // Use 'arraybuffer' in browser, 'nodebuffer' in Node.js
+        const isBrowser = typeof (globalThis as any).window !== 'undefined';
+        const type = isBrowser ? 'arraybuffer' : 'nodebuffer';
+        const data = await file.async(type);
+        // Convert ArrayBuffer to Buffer-like object in browser
+        if (isBrowser && data instanceof ArrayBuffer) {
+          // Create Uint8Array from ArrayBuffer, which is compatible with our Buffer polyfill
+          const uint8Array = new Uint8Array(data);
+          return uint8Array as any;
+        }
+        return data;
+      },
     });
   });
 

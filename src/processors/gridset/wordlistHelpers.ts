@@ -270,7 +270,7 @@ export async function updateWordlist(
 
           // Rebuild the XML
           const updatedXml = builder.build(data);
-          zip.updateFile(entry, Buffer.from(updatedXml, 'utf8'));
+          zip.file(entry.entryName, updatedXml, 'utf8');
           found = true;
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);

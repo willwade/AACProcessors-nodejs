@@ -29,6 +29,28 @@ import {
   writeTextToPath,
 } from '../utils/io';
 
+// Use dynamic import for JSZip to support both browser and Node environments
+let JSZipModuleObf: any;
+async function getJSZipObf() {
+  if (!JSZipModuleObf) {
+    try {
+      // Try ES module import first (browser/Vite)
+      const module = await import('jszip');
+      JSZipModuleObf = module.default || module;
+    } catch (error) {
+      // Fall back to CommonJS require (Node.js)
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const module = require('jszip');
+        JSZipModuleObf = module.default || module;
+      } catch (err2) {
+        throw new Error('Zip handling requires JSZip in this environment.');
+      }
+    }
+  }
+  return JSZipModuleObf;
+}
+
 const OBF_FORMAT_VERSION = 'open-board-0.1';
 
 interface ObfButton {
@@ -83,15 +105,6 @@ class ObfProcessor extends BaseProcessor {
 
   constructor(options?: ProcessorOptions) {
     super(options);
-  }
-
-  private getJSZip(): any {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-unsafe-return
-      return require('jszip');
-    } catch (error) {
-      throw new Error('Zip handling requires JSZip in this environment.');
-    }
   }
 
   /**
@@ -487,7 +500,7 @@ class ObfProcessor extends BaseProcessor {
       throw new Error('Invalid OBF content: not JSON and not ZIP');
     }
 
-    const JSZip = this.getJSZip();
+    const JSZip = await getJSZipObf();
     let zip: any;
     try {
       const zipInput = readBinaryFromInput(filePathOrBuffer);
@@ -691,7 +704,7 @@ class ObfProcessor extends BaseProcessor {
       writeTextToPath(outputPath, JSON.stringify(obfBoard, null, 2));
     } else {
       // Save as OBZ (zip with multiple OBF files)
-      const JSZip = this.getJSZip();
+      const JSZip = await getJSZipObf();
       const zip = new JSZip();
 
       Object.values(tree.pages).forEach((page) => {

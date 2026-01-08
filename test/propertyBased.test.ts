@@ -432,8 +432,8 @@ describe('Property-Based Testing', () => {
             await processor.saveFromTree(tree, outputPath);
 
             // Extract texts multiple times
-            const texts1 = processor.extractTexts(outputPath);
-            const texts2 = processor.extractTexts(outputPath);
+            const texts1 = await processor.extractTexts(outputPath);
+            const texts2 = await processor.extractTexts(outputPath);
 
             // Clean up
             fs.unlinkSync(outputPath);

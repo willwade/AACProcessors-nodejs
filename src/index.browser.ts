@@ -2,6 +2,10 @@
  * AACProcessors Browser Entry
  *
  * Browser-safe exports only (no Node-only dependencies).
+ *
+ * **NOTE: Gridset .gridsetx files**
+ * GridsetProcessor supports regular `.gridset` files in browser.
+ * Encrypted `.gridsetx` files require Node.js for crypto operations and are not supported in browser.
  */
 
 // ===================================================================
@@ -17,6 +21,7 @@ export * from './core/stringCasing';
 export { DotProcessor } from './processors/dotProcessor';
 export { OpmlProcessor } from './processors/opmlProcessor';
 export { ObfProcessor } from './processors/obfProcessor';
+export { GridsetProcessor } from './processors/gridsetProcessor';
 export { ApplePanelsProcessor } from './processors/applePanelsProcessor';
 export { AstericsGridProcessor } from './processors/astericsGridProcessor';
 
@@ -28,6 +33,7 @@ import { BaseProcessor } from './core/baseProcessor';
 import { DotProcessor } from './processors/dotProcessor';
 import { OpmlProcessor } from './processors/opmlProcessor';
 import { ObfProcessor } from './processors/obfProcessor';
+import { GridsetProcessor } from './processors/gridsetProcessor';
 import { ApplePanelsProcessor } from './processors/applePanelsProcessor';
 import { AstericsGridProcessor } from './processors/astericsGridProcessor';
 
@@ -50,6 +56,8 @@ export function getProcessor(filePathOrExtension: string): BaseProcessor {
     case '.obf':
     case '.obz':
       return new ObfProcessor();
+    case '.gridset':
+      return new GridsetProcessor();
     case '.plist':
       return new ApplePanelsProcessor();
     case '.grd':
@@ -64,7 +72,7 @@ export function getProcessor(filePathOrExtension: string): BaseProcessor {
  * @returns Array of supported file extensions
  */
 export function getSupportedExtensions(): string[] {
-  return ['.dot', '.opml', '.obf', '.obz', '.plist', '.grd'];
+  return ['.dot', '.opml', '.obf', '.obz', '.gridset', '.plist', '.grd'];
 }
 
 /**

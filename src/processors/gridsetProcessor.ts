@@ -35,19 +35,31 @@ import { isSymbolLibraryReference } from './gridset/resolver';
 import { generateCloneId } from '../utilities/analytics/utils/idGenerator';
 import { translateWithSymbols, extractSymbolsFromButton } from './gridset/symbolAlignment';
 import { ProcessorInput, readBinaryFromInput } from '../utils/io';
+// Use dynamic import for JSZip to support both browser and Node environments
+let JSZipModule: any;
+async function getJSZip() {
+  if (!JSZipModule) {
+    try {
+      // Try ES module import first (browser/Vite)
+      const module = await import('jszip');
+      JSZipModule = module.default || module;
+    } catch (error) {
+      // Fall back to CommonJS require (Node.js)
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const module = require('jszip');
+        JSZipModule = module.default || module;
+      } catch (err2) {
+        throw new Error('Zip handling requires JSZip in this environment.');
+      }
+    }
+  }
+  return JSZipModule;
+}
 
 class GridsetProcessor extends BaseProcessor {
   constructor(options?: ProcessorOptions) {
     super(options);
-  }
-
-  private getJSZip(): any {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-unsafe-return
-      return require('jszip');
-    } catch (error) {
-      throw new Error('Zip handling requires JSZip in this environment.');
-    }
   }
 
   // Determine password to use when opening encrypted gridset archives (.gridsetx)
@@ -433,7 +445,7 @@ class GridsetProcessor extends BaseProcessor {
 
     let zip: any;
     try {
-      const JSZip = this.getJSZip();
+      const JSZip = await getJSZip();
       const zipInput = readBinaryFromInput(filePathOrBuffer);
       const zipBuffer = Buffer.isBuffer(zipInput) ? zipInput : Buffer.from(zipInput);
       zip = await JSZip.loadAsync(zipBuffer);
@@ -540,7 +552,12 @@ class GridsetProcessor extends BaseProcessor {
     }
 
     // Debug: log all entry names
-    // console.log('Gridset zip entries:', entries.map(e => e.entryName));
+    console.log('[Gridset] Total zip entries:', entries.length);
+    const gridEntries = entries.filter(e => e.entryName.startsWith('Grids/') && e.entryName.endsWith('grid.xml'));
+    console.log('[Gridset] Grid XML entries found:', gridEntries.length);
+    if (gridEntries.length > 0) {
+      console.log('[Gridset] First few grid entries:', gridEntries.slice(0, 3).map(e => e.entryName));
+    }
 
     // First pass: collect all grid names and IDs for navigation resolution
     const gridNameToIdMap = new Map<string, string>();
@@ -586,7 +603,9 @@ class GridsetProcessor extends BaseProcessor {
       if (entry.entryName.startsWith('Grids/') && entry.entryName.endsWith('grid.xml')) {
         let xmlContent: string;
         try {
-          xmlContent = (await readEntryBuffer(entry)).toString('utf8');
+          const buffer = await readEntryBuffer(entry);
+          xmlContent = buffer.toString('utf8');
+          console.log(`[Gridset] Raw XML content (first 200 chars) for ${entry.entryName}:`, xmlContent.substring(0, 200));
         } catch (e) {
           // Skip unreadable files
           continue;
@@ -594,6 +613,7 @@ class GridsetProcessor extends BaseProcessor {
         let data: any;
         try {
           data = parser.parse(xmlContent);
+          console.log(`[Gridset] Parsed ${entry.entryName}, root keys:`, Object.keys(data));
         } catch (error: any) {
           // Skip malformed XML but log the specific error
           console.warn(`Malformed XML in ${entry.entryName}: ${error.message}`);
@@ -603,6 +623,7 @@ class GridsetProcessor extends BaseProcessor {
         // Grid3 XML: <Grid> root
         const grid = data.Grid || data.grid;
         if (!grid) {
+          console.warn(`[Gridset] No Grid/grid found in ${entry.entryName}`);
           continue;
         }
         // Defensive: GridGuid and Name required
@@ -1748,7 +1769,7 @@ class GridsetProcessor extends BaseProcessor {
   }
 
   async saveFromTree(tree: AACTree, outputPath: string): Promise<void> {
-    const JSZip = this.getJSZip();
+    const JSZip = await getJSZip();
     const zip = new JSZip();
 
     if (Object.keys(tree.pages).length === 0) {

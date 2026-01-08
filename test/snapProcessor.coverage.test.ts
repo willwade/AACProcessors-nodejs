@@ -87,7 +87,7 @@ describe('SnapProcessor Coverage', () => {
     it('should throw an error for a corrupted database file', async () => {
       fs.writeFileSync(tempDbPath, 'not a database');
       const processor = new SnapProcessor();
-      expect(() => processor.loadIntoTree(tempDbPath)).toThrow('Invalid SQLite database file');
+      expect(() => await processor.loadIntoTree(tempDbPath)).toThrow('Invalid SQLite database file');
     });
 
     it('should handle missing tables gracefully', async () => {

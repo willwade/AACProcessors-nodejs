@@ -142,7 +142,6 @@
     "npm": ">=9.0.0"
   },
   "devDependencies": {
-    "@types/adm-zip": "^0.5.7",
     "@types/better-sqlite3": "^7.6.13",
     "@types/exceljs": "^0.5.3",
     "@types/jest": "^29.5.12",
@@ -163,7 +162,6 @@
   },
   "dependencies": {
     "@types/xml2js": "^0.4.14",
-    "adm-zip": "^0.5.16",
     "axios": "^1.11.0",
     "better-sqlite3": "^12.5.0",
     "commander": "^13.1.0",

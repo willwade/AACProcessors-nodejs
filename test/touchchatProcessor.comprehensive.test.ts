@@ -217,7 +217,7 @@ describe('TouchChatProcessor - Comprehensive Coverage Tests', () => {
       fs.writeFileSync(corruptedPath, 'This is not a valid zip file');
 
       expect(() => {
-        processor.loadIntoTree(corruptedPath);
+        await processor.loadIntoTree(corruptedPath);
       }).toThrow();
     });
 
@@ -232,7 +232,7 @@ describe('TouchChatProcessor - Comprehensive Coverage Tests', () => {
       zip.writeZip(invalidPath);
 
       expect(() => {
-        processor.loadIntoTree(invalidPath);
+        await processor.loadIntoTree(invalidPath);
       }).toThrow();
     });
 

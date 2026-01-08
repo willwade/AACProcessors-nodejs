@@ -387,7 +387,7 @@ describe('Concurrency and Thread Safety Tests', () => {
                 } else {
                   // Invalid operation
                   const invalidContent = '{"invalid": json}';
-                  processor.loadIntoTree(Buffer.from(invalidContent));
+                  await processor.loadIntoTree(Buffer.from(invalidContent));
                   resolve({
                     index,
                     success: true, // Shouldn't reach here

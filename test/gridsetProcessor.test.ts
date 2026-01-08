@@ -28,7 +28,7 @@ describe('GridsetProcessor', () => {
       const _processor = new GridsetProcessor();
       expect(() => {
         const _nonExistentBuffer = fs.readFileSync('/non/existent/file.gridset');
-      }).toThrow();
+      }).rejects.toThrow();
     });
 
     it('should handle invalid zip content', async () => {

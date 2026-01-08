@@ -48,7 +48,7 @@ describe('SnapProcessor - Database Corruption & Performance Tests', () => {
 
       // Should handle corruption gracefully
       expect(() => {
-        processor.loadIntoTree(corruptedPath);
+        await processor.loadIntoTree(corruptedPath);
       }).toThrow(); // Expected to throw, but shouldn't crash the process
     });
 
@@ -101,7 +101,7 @@ describe('SnapProcessor - Database Corruption & Performance Tests', () => {
       zip.writeZip(invalidPath);
 
       expect(() => {
-        processor.loadIntoTree(invalidPath);
+        await processor.loadIntoTree(invalidPath);
       }).toThrow();
     });
 
@@ -133,7 +133,7 @@ describe('SnapProcessor - Database Corruption & Performance Tests', () => {
       fs.writeFileSync(truncatedPath, truncatedData);
 
       expect(() => {
-        processor.loadIntoTree(truncatedPath);
+        await processor.loadIntoTree(truncatedPath);
       }).toThrow();
     });
 
@@ -142,7 +142,7 @@ describe('SnapProcessor - Database Corruption & Performance Tests', () => {
       fs.writeFileSync(invalidPath, 'This is just plain text, not a zip file');
 
       expect(() => {
-        processor.loadIntoTree(invalidPath);
+        await processor.loadIntoTree(invalidPath);
       }).toThrow();
     });
 
@@ -151,7 +151,7 @@ describe('SnapProcessor - Database Corruption & Performance Tests', () => {
       fs.writeFileSync(emptyPath, '');
 
       expect(() => {
-        processor.loadIntoTree(emptyPath);
+        await processor.loadIntoTree(emptyPath);
       }).toThrow();
     });
 
@@ -162,7 +162,7 @@ describe('SnapProcessor - Database Corruption & Performance Tests', () => {
       fs.writeFileSync(invalidZipPath, fakeZipData);
 
       expect(() => {
-        processor.loadIntoTree(invalidZipPath);
+        await processor.loadIntoTree(invalidZipPath);
       }).toThrow();
     });
   });

@@ -69,7 +69,7 @@ describe('ExcelProcessor', () => {
       tree.addPage(page);
 
       const outputPath = path.join(tempDir, 'simple.xlsx');
-      await await processor.saveFromTree(tree, outputPath);
+      await processor.saveFromTree(tree, outputPath);
       expect(fs.existsSync(outputPath)).toBe(true);
 
       // Check if file was created (may be async)
@@ -101,7 +101,7 @@ describe('ExcelProcessor', () => {
       tree.addPage(page);
 
       const outputPath = path.join(tempDir, 'styled.xlsx');
-      await await processor.saveFromTree(tree, outputPath);
+      await processor.saveFromTree(tree, outputPath);
       expect(fs.existsSync(outputPath)).toBe(true);
     });
 
@@ -152,7 +152,7 @@ describe('ExcelProcessor', () => {
       tree.rootId = 'home';
 
       const outputPath = path.join(tempDir, 'navigation.xlsx');
-      await await processor.saveFromTree(tree, outputPath);
+      await processor.saveFromTree(tree, outputPath);
       expect(fs.existsSync(outputPath)).toBe(true);
     });
 
@@ -197,7 +197,7 @@ describe('ExcelProcessor', () => {
       tree.addPage(page);
 
       const outputPath = path.join(tempDir, 'grid.xlsx');
-      await await processor.saveFromTree(tree, outputPath);
+      await processor.saveFromTree(tree, outputPath);
       expect(fs.existsSync(outputPath)).toBe(true);
     });
   });
@@ -231,7 +231,7 @@ describe('ExcelProcessor', () => {
       const translations = new Map([['Hello', 'Hola']]);
 
       expect(() => {
-        await await processor.processTexts('test.xlsx', translations, 'output.xlsx');
+        await processor.processTexts('test.xlsx', translations, 'output.xlsx');
       }).not.toThrow();
     });
   });

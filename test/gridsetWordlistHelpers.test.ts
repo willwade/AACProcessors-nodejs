@@ -239,7 +239,7 @@ describe('Grid3 Wordlist Helpers', () => {
 
     it('throws error for invalid gridset buffer', async () => {
       const invalidBuffer = Buffer.from('not a zip file');
-      expect(() => extractWordlists(invalidBuffer)).toThrow();
+      await expect(async () => { await extractWordlists(invalidBuffer); }).rejects.toThrow();
     });
 
     it('skips grids with malformed wordlist XML', async () => {
@@ -362,16 +362,18 @@ describe('Grid3 Wordlist Helpers', () => {
       const gridset = createTestGridset('Greetings');
       const newWordlist = createWordlist(['hello']);
 
-      expect(() => updateWordlist(gridset, 'NonExistent', newWordlist)).toThrow(
-        'Grid "NonExistent" not found in gridset'
-      );
+      await expect(async () => {
+        await updateWordlist(gridset, 'NonExistent', newWordlist);
+      }).rejects.toThrow('Grid "NonExistent" not found in gridset');
     });
 
     it('throws error for invalid gridset buffer', async () => {
       const invalidBuffer = Buffer.from('not a zip file');
       const newWordlist = createWordlist(['hello']);
 
-      expect(() => updateWordlist(invalidBuffer, 'Greetings', newWordlist)).toThrow();
+      await expect(async () => {
+        await updateWordlist(invalidBuffer, 'Greetings', newWordlist);
+      }).rejects.toThrow();
     });
 
     it('preserves other grids when updating one', async () => {
