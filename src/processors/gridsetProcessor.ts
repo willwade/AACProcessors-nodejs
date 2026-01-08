@@ -402,6 +402,12 @@ class GridsetProcessor extends BaseProcessor {
         if (s.r !== undefined) {
           const rElements = Array.isArray(s.r) ? s.r : [s.r];
           for (const r of rElements) {
+            if (typeof r === 'number') {
+              if (r !== 0) {
+                parts.push(String(r));
+              }
+              continue;
+            }
             if (typeof r === 'object' && r !== null && '#text' in r) {
               parts.push(String(r['#text']));
             } else {
