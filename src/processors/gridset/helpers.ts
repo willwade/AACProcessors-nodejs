@@ -71,7 +71,11 @@ export async function openImage(
     const want = normalizeZipPath(entryPath);
     const entry = entries.find((e: any) => normalizeZipPath(e.entryName) === want);
     if (!entry) return null;
-    return await entry.getData();
+    const data = await entry.getData();
+    if (typeof Buffer !== 'undefined' && typeof Buffer.from === 'function') {
+      return Buffer.from(data);
+    }
+    return data;
   } catch (error) {
     return null;
   }

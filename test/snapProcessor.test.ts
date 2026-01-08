@@ -61,24 +61,18 @@ describe('SnapProcessor', () => {
   describe('Error Handling', () => {
     it('should throw error for non-existent file', async () => {
       const processor = new SnapProcessor();
-      expect(() => {
-        await processor.loadIntoTree('/non/existent/file.spb');
-      }).toThrow();
+      await expect(processor.loadIntoTree('/non/existent/file.spb')).rejects.toThrow();
     });
 
     it('should handle invalid buffer input', async () => {
       const processor = new SnapProcessor();
       const invalidBuffer = Buffer.from('not a database file');
-      expect(() => {
-        await processor.loadIntoTree(invalidBuffer);
-      }).toThrow();
+      await expect(processor.loadIntoTree(invalidBuffer)).rejects.toThrow();
     });
 
     it('should handle empty file path', async () => {
       const processor = new SnapProcessor();
-      expect(() => {
-        await processor.loadIntoTree('');
-      }).toThrow();
+      await expect(processor.loadIntoTree('')).rejects.toThrow();
     });
   });
 

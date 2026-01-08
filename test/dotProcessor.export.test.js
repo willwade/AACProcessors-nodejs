@@ -8,7 +8,7 @@ describe("DotProcessor.saveFromTree", () => {
   afterAll(() => {
     if (fs.existsSync(outPath)) fs.unlinkSync(outPath);
   });
-  it("exports tree to DOT format", () => {
+  it("exports tree to DOT format", async () => {
     const processor = new DotProcessor();
     const tree = await processor.loadIntoTree(dotPath);
     await processor.saveFromTree(tree, outPath);

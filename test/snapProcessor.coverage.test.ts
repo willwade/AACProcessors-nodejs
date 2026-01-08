@@ -41,7 +41,9 @@ describe('SnapProcessor Coverage', () => {
       expect(page).toBeDefined();
       const buttonWithAudio = page?.buttons.find((button) => button.audioRecording);
       expect(buttonWithAudio).toBeDefined();
-      expect(buttonWithAudio?.audioRecording?.data).toEqual(audioData);
+      expect(Buffer.from(buttonWithAudio?.audioRecording?.data || [])).toEqual(
+        Buffer.from(audioData)
+      );
     });
 
     it('should add audio to a button', async () => {
@@ -58,7 +60,7 @@ describe('SnapProcessor Coverage', () => {
       const audioRow = db
         .prepare('SELECT * FROM PageSetData WHERE Id = ?')
         .get(row.MessageRecordingId) as any;
-      expect(audioRow.Data).toEqual(audioData);
+      expect(Buffer.from(audioRow.Data)).toEqual(Buffer.from(audioData));
       db.close();
     });
 

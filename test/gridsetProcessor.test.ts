@@ -25,26 +25,21 @@ describe('GridsetProcessor', () => {
 
   describe('Error Handling', () => {
     it('should throw error for non-existent file', async () => {
-      const _processor = new GridsetProcessor();
       expect(() => {
-        const _nonExistentBuffer = fs.readFileSync('/non/existent/file.gridset');
-      }).rejects.toThrow();
+        fs.readFileSync('/non/existent/file.gridset');
+      }).toThrow();
     });
 
     it('should handle invalid zip content', async () => {
       const processor = new GridsetProcessor();
       const invalidBuffer = Buffer.from('not a zip file');
-      await expect(async () => {
-        await processor.loadIntoTree(invalidBuffer);
-      }).rejects.toThrow();
+      await expect(processor.loadIntoTree(invalidBuffer)).rejects.toThrow();
     });
 
     it('should handle empty buffer', async () => {
       const processor = new GridsetProcessor();
       const emptyBuffer = Buffer.alloc(0);
-      await expect(async () => {
-        await processor.loadIntoTree(emptyBuffer);
-      }).rejects.toThrow();
+      await expect(processor.loadIntoTree(emptyBuffer)).rejects.toThrow();
     });
   });
 

@@ -2004,8 +2004,8 @@ class GridsetProcessor extends BaseProcessor {
                       }
 
                       const cellData: Record<string, unknown> = {
-                        '@_X': position.x, // Grid3 uses 0-based X coordinates (defaults to 0 when omitted)
-                        '@_Y': position.y + yOffset, // Grid3 uses 0-based Y coordinates with workspace offset
+                        '@_X': position.x + 1, // Grid3 uses 1-based X coordinates
+                        '@_Y': position.y + yOffset + 1, // Grid3 uses 1-based Y coordinates with workspace offset
                         '@_ColumnSpan': position.columnSpan,
                         '@_RowSpan': position.rowSpan,
                         Content: {
@@ -2071,7 +2071,7 @@ class GridsetProcessor extends BaseProcessor {
       const xmlContent = builder.build(gridData);
 
       // Add to zip in Grids folder with proper Grid3 naming
-      const gridPath = `Grids\\${page.name || page.id}\\grid.xml`;
+      const gridPath = `Grids/${page.name || page.id}/grid.xml`;
       gridFilePaths.push(gridPath);
       zip.file(gridPath, xmlContent, 'utf8');
     });
@@ -2080,7 +2080,7 @@ class GridsetProcessor extends BaseProcessor {
     buttonImages.forEach((imgData) => {
       if (imgData.imageData && imgData.imageData.length > 0) {
         // Create image path in the grid's directory
-        const imagePath = `Grids\\${imgData.pageName}\\${imgData.x}-${imgData.y}-0-text-0.${imgData.ext}`;
+        const imagePath = `Grids/${imgData.pageName}/${imgData.x}-${imgData.y}-0-text-0.${imgData.ext}`;
         zip.file(imagePath, imgData.imageData);
       }
     });
@@ -2093,14 +2093,14 @@ class GridsetProcessor extends BaseProcessor {
         Entries: {
           Entry: gridFilePaths.map((gridPath) => {
             // Find all image files for this grid
-            const gridName = gridPath.match(/Grids\\([^\\]+)\\grid\.xml$/)?.[1] || '';
+            const gridName = gridPath.match(/Grids\/([^/]+)\/grid\.xml$/)?.[1] || '';
             const imageFiles: string[] = [];
 
             // Collect image filenames for buttons on this page
-            // IMPORTANT: FileMap.xml requires full paths like "Grids\PageName\1-5-0-text-0.png"
+            // IMPORTANT: FileMap.xml requires full paths like "Grids/PageName/1-5-0-text-0.png"
             buttonImages.forEach((imgData) => {
               if (imgData.pageName === gridName && imgData.imageData.length > 0) {
-                const imagePath = `Grids\\${gridName}\\${imgData.x}-${imgData.y}-0-text-0.${imgData.ext}`;
+                const imagePath = `Grids/${gridName}/${imgData.x}-${imgData.y}-0-text-0.${imgData.ext}`;
                 imageFiles.push(imagePath);
               }
             });

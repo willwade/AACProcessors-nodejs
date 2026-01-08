@@ -90,9 +90,9 @@ describe('ProcessTexts with Real-World Data', () => {
       const translations = new Map([['Core', 'Núcleo']]);
       const outputPath = path.join(tempDir, 'translated_communikate.dot');
 
-      expect(() => {
-        await processor.processTexts(communikateDotFile, translations, outputPath);
-      }).not.toThrow();
+      await expect(
+        processor.processTexts(communikateDotFile, translations, outputPath)
+      ).resolves.toBeInstanceOf(Uint8Array);
     });
   });
 
@@ -206,9 +206,9 @@ describe('ProcessTexts with Real-World Data', () => {
       const translations = new Map([['home', 'casa']]);
       const outputPath = path.join(tempDir, 'translated_example.obz');
 
-      expect(() => {
-        await processor.processTexts(obzFile, translations, outputPath);
-      }).not.toThrow();
+      await expect(processor.processTexts(obzFile, translations, outputPath)).resolves.toBeInstanceOf(
+        Uint8Array
+      );
     });
   });
 
@@ -314,9 +314,9 @@ describe('ProcessTexts with Real-World Data', () => {
       const translations = new Map([['home', 'casa']]);
       const outputPath = path.join(tempDir, 'translated_example.sps');
 
-      expect(() => {
-        await processor.processTexts(spsFile, translations, outputPath);
-      }).not.toThrow();
+      await expect(processor.processTexts(spsFile, translations, outputPath)).resolves.toBeInstanceOf(
+        Uint8Array
+      );
     });
   });
 

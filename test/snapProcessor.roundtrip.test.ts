@@ -12,7 +12,7 @@ describe('SnapProcessor round-trip', () => {
   it('round-trips Snap JSON without losing pages or navigation', async () => {
     if (!fs.existsSync(snapPath)) return;
     const processor = new SnapProcessor();
-    const tree1 = processor.loadIntoTree(snapPath);
+    const tree1 = await processor.loadIntoTree(snapPath);
     await processor.saveFromTree(tree1, outPath);
     const tree2 = await processor.loadIntoTree(outPath);
     expect(Object.keys(tree1.pages).sort()).toEqual(Object.keys(tree2.pages).sort());
@@ -28,10 +28,10 @@ describe('SnapProcessor round-trip', () => {
     expect(tree2.metadata.locale).toBe(tree1.metadata.locale);
   });
 
-  it.skip('round-trips .sps file without losing pages (saveFromTree not implemented)', () => {
+  it.skip('round-trips .sps file without losing pages (saveFromTree not implemented)', async () => {
     if (!fs.existsSync(spsPath)) return;
     const processor = new SnapProcessor();
-    const tree1 = processor.loadIntoTree(spsPath);
+    const tree1 = await processor.loadIntoTree(spsPath);
     await processor.saveFromTree(tree1, outPath);
     const tree2 = await processor.loadIntoTree(outPath);
     expect(Object.keys(tree1.pages).sort()).toEqual(Object.keys(tree2.pages).sort());
