@@ -35,9 +35,11 @@ import { isSymbolLibraryReference } from './gridset/resolver';
 import { generateCloneId } from '../utilities/analytics/utils/idGenerator';
 import { translateWithSymbols, extractSymbolsFromButton } from './gridset/symbolAlignment';
 import { ProcessorInput, readBinaryFromInput, decodeText } from '../utils/io';
+import type JSZip from 'jszip';
 // Use dynamic import for JSZip to support both browser and Node environments
-let JSZipModule: any;
-async function getJSZip() {
+type JSZipStatic = typeof JSZip;
+let JSZipModule: JSZipStatic | undefined;
+async function getJSZip(): Promise<JSZipStatic> {
   if (!JSZipModule) {
     try {
       // Try ES module import first (browser/Vite)
@@ -53,6 +55,9 @@ async function getJSZip() {
         throw new Error('Zip handling requires JSZip in this environment.');
       }
     }
+  }
+  if (!JSZipModule) {
+    throw new Error('Zip handling requires JSZip in this environment.');
   }
   return JSZipModule;
 }
@@ -443,7 +448,7 @@ class GridsetProcessor extends BaseProcessor {
   async loadIntoTree(filePathOrBuffer: ProcessorInput): Promise<AACTree> {
     const tree = new AACTree();
 
-    let zip: any;
+    let zip: JSZip;
     try {
       const JSZip = await getJSZip();
       const zipInput = readBinaryFromInput(filePathOrBuffer);
@@ -452,11 +457,7 @@ class GridsetProcessor extends BaseProcessor {
       throw new Error(`Invalid ZIP file format: ${error.message}`);
     }
     const password = this.getGridsetPassword(filePathOrBuffer);
-    const entries = await getZipEntriesWithPassword(
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-      zip,
-      password
-    );
+    const entries = getZipEntriesWithPassword(zip, password);
     const parser = new XMLParser({ ignoreAttributes: false });
     const isEncryptedArchive =
       typeof filePathOrBuffer === 'string' && filePathOrBuffer.toLowerCase().endsWith('.gridsetx');
@@ -617,9 +618,9 @@ class GridsetProcessor extends BaseProcessor {
           // Skip unreadable files
           continue;
         }
-        let data: any;
+        let data: Record<string, unknown>;
         try {
-          data = parser.parse(xmlContent);
+          data = parser.parse(xmlContent) as Record<string, unknown>;
           console.log(`[Gridset] Parsed ${entry.entryName}, root keys:`, Object.keys(data));
         } catch (error: any) {
           // Skip malformed XML but log the specific error
@@ -628,7 +629,7 @@ class GridsetProcessor extends BaseProcessor {
         }
 
         // Grid3 XML: <Grid> root
-        const grid = data.Grid || data.grid;
+        const grid = (data as { Grid?: any; grid?: any }).Grid || (data as { grid?: any }).grid;
         if (!grid) {
           console.warn(`[Gridset] No Grid/grid found in ${entry.entryName}`);
           continue;
@@ -1866,7 +1867,7 @@ class GridsetProcessor extends BaseProcessor {
       suppressEmptyNode: true,
     });
     const settingsXmlContent = settingsBuilder.build(settingsData);
-    zip.file('Settings0/settings.xml', settingsXmlContent, 'utf8');
+    zip.file('Settings0/settings.xml', settingsXmlContent, { binary: false });
 
     // Create Settings0/Styles/style.xml if there are styles
     if (uniqueStyles.size > 0) {
@@ -1904,7 +1905,7 @@ class GridsetProcessor extends BaseProcessor {
         indentBy: '  ',
       });
       const styleXmlContent = styleBuilder.build(styleData);
-      zip.file('Settings0/Styles/styles.xml', styleXmlContent, 'utf8');
+      zip.file('Settings0/Styles/styles.xml', styleXmlContent, { binary: false });
     }
 
     // Collect grid file paths for FileMap.xml
@@ -2073,7 +2074,7 @@ class GridsetProcessor extends BaseProcessor {
       // Add to zip in Grids folder with proper Grid3 naming
       const gridPath = `Grids/${page.name || page.id}/grid.xml`;
       gridFilePaths.push(gridPath);
-      zip.file(gridPath, xmlContent, 'utf8');
+      zip.file(gridPath, xmlContent, { binary: false });
     });
 
     // Write image files to ZIP
@@ -2125,7 +2126,7 @@ class GridsetProcessor extends BaseProcessor {
       indentBy: '  ',
     });
     const fileMapXmlContent = fileMapBuilder.build(fileMapData);
-    zip.file('FileMap.xml', fileMapXmlContent, 'utf8');
+    zip.file('FileMap.xml', fileMapXmlContent, { binary: false });
 
     // Write the zip file
     const zipBuffer = await zip.generateAsync({ type: 'uint8array' });

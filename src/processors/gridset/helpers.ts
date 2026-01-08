@@ -65,11 +65,11 @@ export async function openImage(
 ): Promise<Uint8Array | null> {
   try {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const JSZip = require('jszip');
+    const JSZip = require('jszip') as typeof import('jszip');
     const zip = await JSZip.loadAsync(gridsetBuffer);
-    const entries = await getZipEntriesWithPassword(zip, password);
+    const entries = getZipEntriesWithPassword(zip, password);
     const want = normalizeZipPath(entryPath);
-    const entry = entries.find((e: any) => normalizeZipPath(e.entryName) === want);
+    const entry = entries.find((e) => normalizeZipPath(e.entryName) === want);
     if (!entry) return null;
     const data = await entry.getData();
     if (typeof Buffer !== 'undefined' && typeof Buffer.from === 'function') {

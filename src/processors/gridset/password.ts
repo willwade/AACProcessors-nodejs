@@ -1,4 +1,5 @@
 import path from 'path';
+import type JSZip from 'jszip';
 import { ProcessorOptions } from '../../core/baseProcessor';
 import { ProcessorInput } from '../../utils/io';
 
@@ -36,12 +37,14 @@ export function resolveGridsetPasswordFromEnv(): string | undefined {
  * @param password - Optional password (kept for API compatibility, not used with JSZip)
  * @returns Array of entry objects with name and data
  */
-export async function getZipEntriesWithPassword(
-  zip: any,
-  password?: string
-): Promise<
-  Array<{ name: string; entryName: string; dir: boolean; getData: () => Promise<Uint8Array> }>
-> {
+type ZipEntry = {
+  name: string;
+  entryName: string;
+  dir: boolean;
+  getData: () => Promise<Uint8Array>;
+};
+
+export function getZipEntriesWithPassword(zip: JSZip, password?: string): ZipEntry[] {
   const entries: Array<{
     name: string;
     entryName: string;
@@ -58,7 +61,7 @@ export async function getZipEntriesWithPassword(
     );
   }
 
-  zip.forEach((relativePath: string, file: any) => {
+  zip.forEach((relativePath: string, file: JSZip.JSZipObject) => {
     entries.push({
       name: relativePath,
       entryName: relativePath,

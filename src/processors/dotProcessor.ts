@@ -91,6 +91,7 @@ class DotProcessor extends BaseProcessor {
   }
 
   async extractTexts(filePathOrBuffer: ProcessorInput): Promise<string[]> {
+    await Promise.resolve();
     const content = readTextFromInput(filePathOrBuffer);
 
     const { nodes, edges } = this.parseDotFile(content);
@@ -112,6 +113,7 @@ class DotProcessor extends BaseProcessor {
   }
 
   async loadIntoTree(filePathOrBuffer: ProcessorInput): Promise<AACTree> {
+    await Promise.resolve();
     const filename =
       typeof filePathOrBuffer === 'string' ? getBasename(filePathOrBuffer) : 'upload.dot';
     const buffer = readBinaryFromInput(filePathOrBuffer);
@@ -217,6 +219,7 @@ class DotProcessor extends BaseProcessor {
     translations: Map<string, string>,
     outputPath: string
   ): Promise<Uint8Array> {
+    await Promise.resolve();
     const content = readTextFromInput(filePathOrBuffer);
     let translatedContent = content;
 
@@ -239,6 +242,7 @@ class DotProcessor extends BaseProcessor {
   }
 
   async saveFromTree(tree: AACTree, _outputPath: string): Promise<void> {
+    await Promise.resolve();
     let dotContent = `digraph "${tree.metadata?.name || 'AACBoard'}" {\n`;
 
     // Helper to escape DOT string

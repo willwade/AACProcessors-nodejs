@@ -12,7 +12,6 @@ import {
   OpmlProcessor,
   ObfProcessor,
   GridsetProcessor,
-  ApplePanelsProcessor,
   AstericsGridProcessor,
 } from '../src/index';
 import { AACTree } from '../src/core/treeStructure';

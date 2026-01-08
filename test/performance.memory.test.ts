@@ -96,7 +96,7 @@ describeIfLocal('Memory Performance Tests', () => {
       }
     }, 10);
 
-    let result: T;
+    let result: T | undefined;
     try {
       result = await operation();
     } finally {
@@ -108,7 +108,7 @@ describeIfLocal('Memory Performance Tests', () => {
     const peakMemoryUsed = peakMemory - initialMemory.heapUsed;
 
     return {
-      result: result!,
+      result: result as T,
       memoryUsedMB: memoryUsed / (1024 * 1024),
       peakMemoryMB: peakMemoryUsed / (1024 * 1024),
     };

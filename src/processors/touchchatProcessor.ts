@@ -133,6 +133,7 @@ class TouchChatProcessor extends BaseProcessor {
   }
 
   async loadIntoTree(filePathOrBuffer: ProcessorInput): Promise<AACTree> {
+    await Promise.resolve();
     // Unzip .ce file, extract the .c4v SQLite DB, and parse pages/buttons
     let tmpDir: string | null = null;
     let db: Database.Database | null = null;
@@ -684,6 +685,7 @@ class TouchChatProcessor extends BaseProcessor {
   }
 
   async saveFromTree(tree: AACTree, outputPath: string): Promise<void> {
+    await Promise.resolve();
     // Create a TouchChat database that matches the expected schema for loading
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'touchchat-export-'));
     const dbPath = path.join(tmpDir, 'vocab.c4v');

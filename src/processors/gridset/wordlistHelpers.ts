@@ -10,6 +10,7 @@
  */
 
 import { XMLParser, XMLBuilder } from 'fast-xml-parser';
+import type JSZip from 'jszip';
 import { getZipEntriesWithPassword, resolveGridsetPasswordFromEnv } from './password';
 import { decodeText } from '../../utils/io';
 
@@ -133,15 +134,15 @@ export async function extractWordlists(
   const wordlists = new Map<string, WordList>();
   const parser = new XMLParser();
 
-  let zip: any;
+  let zip: JSZip;
   try {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const JSZip = require('jszip');
+    const JSZip = require('jszip') as typeof import('jszip');
     zip = await JSZip.loadAsync(gridsetBuffer);
   } catch (error: any) {
     throw new Error(`Invalid gridset buffer: ${error.message}`);
   }
-  const entries = await getZipEntriesWithPassword(zip, password);
+  const entries = getZipEntriesWithPassword(zip, password);
 
   // Process each grid file
   for (const entry of entries) {
@@ -220,15 +221,15 @@ export async function updateWordlist(
     suppressEmptyNode: false,
   });
 
-  let zip: any;
+  let zip: JSZip;
   try {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const JSZip = require('jszip');
+    const JSZip = require('jszip') as typeof import('jszip');
     zip = await JSZip.loadAsync(gridsetBuffer);
   } catch (error: any) {
     throw new Error(`Invalid gridset buffer: ${error.message}`);
   }
-  const entries = await getZipEntriesWithPassword(zip, password);
+  const entries = getZipEntriesWithPassword(zip, password);
 
   let found = false;
 
@@ -271,7 +272,7 @@ export async function updateWordlist(
 
           // Rebuild the XML
           const updatedXml = builder.build(data);
-          zip.file(entry.entryName, updatedXml, 'utf8');
+          zip.file(entry.entryName, updatedXml, { binary: false });
           found = true;
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);

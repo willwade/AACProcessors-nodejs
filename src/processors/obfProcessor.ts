@@ -29,10 +29,12 @@ import {
   writeTextToPath,
   encodeBase64,
 } from '../utils/io';
+import type JSZip from 'jszip';
 
 // Use dynamic import for JSZip to support both browser and Node environments
-let JSZipModuleObf: any;
-async function getJSZipObf() {
+type JSZipStatic = typeof JSZip;
+let JSZipModuleObf: JSZipStatic | undefined;
+async function getJSZipObf(): Promise<JSZipStatic> {
   if (!JSZipModuleObf) {
     try {
       // Try ES module import first (browser/Vite)
@@ -48,6 +50,9 @@ async function getJSZipObf() {
         throw new Error('Zip handling requires JSZip in this environment.');
       }
     }
+  }
+  if (!JSZipModuleObf) {
+    throw new Error('Zip handling requires JSZip in this environment.');
   }
   return JSZipModuleObf;
 }
@@ -101,7 +106,7 @@ interface ObfBoard {
 }
 
 class ObfProcessor extends BaseProcessor {
-  private zipFile?: any; // JSZip instance
+  private zipFile?: JSZip; // JSZip instance
   private imageCache: Map<string, string> = new Map(); // Cache for data URLs
 
   constructor(options?: ProcessorOptions) {
@@ -133,7 +138,8 @@ class ObfProcessor extends BaseProcessor {
       try {
         const file = this.zipFile.file(imagePath as string);
         if (file) {
-          return await file.async('nodebuffer');
+          const buffer = await file.async('nodebuffer');
+          return buffer;
         }
       } catch (err) {
         continue;
@@ -174,7 +180,7 @@ class ObfProcessor extends BaseProcessor {
       try {
         const file = this.zipFile.file(imagePath as string);
         if (file) {
-          const buffer = await file.async('nodebuffer');
+          const buffer = await file.async('uint8array');
           const contentType =
             (imageData as { content_type?: string }).content_type ||
             this.getMimeTypeFromFilename(imagePath as string);
@@ -506,7 +512,7 @@ class ObfProcessor extends BaseProcessor {
     }
 
     const JSZip = await getJSZipObf();
-    let zip: any;
+    let zip: JSZip;
     try {
       const zipInput = readBinaryFromInput(filePathOrBuffer);
       zip = await JSZip.loadAsync(zipInput);
@@ -522,8 +528,8 @@ class ObfProcessor extends BaseProcessor {
     console.log('[OBF] Detected zip archive, extracting .obf files');
 
     // Collect all .obf entries
-    const obfEntries: Array<{ name: string; file: any }> = [];
-    zip.forEach((relativePath: string, file: any) => {
+    const obfEntries: Array<{ name: string; file: JSZip.JSZipObject }> = [];
+    zip.forEach((relativePath: string, file: JSZip.JSZipObject) => {
       if (file.dir) return;
       if (relativePath.endsWith('.obf')) {
         obfEntries.push({ name: relativePath, file });

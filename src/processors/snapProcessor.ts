@@ -102,6 +102,7 @@ class SnapProcessor extends BaseProcessor {
   }
 
   async loadIntoTree(filePathOrBuffer: ProcessorInput): Promise<AACTree> {
+    await Promise.resolve();
     const tree = new AACTree();
     const filePath =
       typeof filePathOrBuffer === 'string'
@@ -772,6 +773,7 @@ class SnapProcessor extends BaseProcessor {
   }
 
   async saveFromTree(tree: AACTree, outputPath: string): Promise<void> {
+    await Promise.resolve();
     const outputDir = path.dirname(outputPath);
     if (!fs.existsSync(outputDir)) {
       fs.mkdirSync(outputDir, { recursive: true });
@@ -1037,6 +1039,7 @@ class SnapProcessor extends BaseProcessor {
     audioData: Uint8Array,
     metadata?: string
   ): Promise<number> {
+    await Promise.resolve();
     const db = new Database(dbPath, { fileMustExist: true });
 
     try {

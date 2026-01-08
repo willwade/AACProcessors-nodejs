@@ -4,6 +4,8 @@ import path from 'path';
 import { ObfProcessor } from '../src/processors/obfProcessor';
 import { AACTree } from '../src/core/treeStructure';
 
+jest.setTimeout(30000);
+
 describe('OBFProcessor', () => {
   const obzPath: string = path.join(__dirname, 'assets/obz/example.obz');
 

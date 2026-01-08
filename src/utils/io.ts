@@ -14,7 +14,10 @@ export function getFs(): typeof import('fs') {
       throw new Error('File system access is not available in this environment.');
     }
   }
-  return cachedFs!;
+  if (!cachedFs) {
+    throw new Error('File system access is not available in this environment.');
+  }
+  return cachedFs;
 }
 
 export function getPath(): typeof import('path') {
@@ -26,7 +29,10 @@ export function getPath(): typeof import('path') {
       throw new Error('Path utilities are not available in this environment.');
     }
   }
-  return cachedPath!;
+  if (!cachedPath) {
+    throw new Error('Path utilities are not available in this environment.');
+  }
+  return cachedPath;
 }
 
 export function getBasename(filePath: string): string {

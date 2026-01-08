@@ -89,7 +89,7 @@ describe('Gridset helper APIs', () => {
     const buf = zip.toBuffer();
 
     const data = await Gridset.openImage(buf, 'Grids/Home/Images/dog.png');
-    expect(data?.toString('utf8')).toBe('DOGDATA');
+    expect(Buffer.from(data || []).toString('utf8')).toBe('DOGDATA');
 
     const missing = await Gridset.openImage(buf, 'Grids/Home/Images/cat.png');
     expect(missing).toBeNull();
