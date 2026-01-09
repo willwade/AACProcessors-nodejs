@@ -3,6 +3,13 @@ import { program } from 'commander';
 import { prettyPrintTree } from './prettyPrint';
 import { getProcessor } from '../core/analyze';
 import { ProcessorOptions } from '../core/baseProcessor';
+import {
+  exportHistoryToBaton,
+  readGrid3History,
+  readSnapUsage,
+} from '../utilities/analytics/history';
+import { ComparisonAnalyzer, MetricsCalculator } from '../utilities/analytics';
+import { CellScanningOrder, ScanningSelectionMethod } from '../types/aac';
 import path from 'path';
 import fs from 'fs';
 
@@ -366,6 +373,218 @@ program
       } catch (error) {
         console.error(
           'Error validating file:',
+          error instanceof Error ? error.message : String(error)
+        );
+        process.exit(1);
+      }
+    }
+  );
+
+program
+  .command('history <input>')
+  .option('--format <format>', 'Output format: raw or baton', 'raw')
+  .option('--out <path>', 'Write output to a file instead of stdout')
+  .option('--source <source>', 'History source: auto, grid3, snap', 'auto')
+  .option('--anonymous-uuid <uuid>', 'Anonymous UUID for baton export')
+  .option('--export-date <iso>', 'Export date for baton export (ISO string)')
+  .option('--encryption <mode>', 'Encryption label for baton export', 'none')
+  .option('--version <version>', 'Baton export version', '1.0')
+  .action(
+    (
+      input: string,
+      options: {
+        format?: string;
+        out?: string;
+        source?: string;
+        anonymousUuid?: string;
+        exportDate?: string;
+        encryption?: string;
+        version?: string;
+      }
+    ) => {
+      try {
+        if (!fs.existsSync(input)) {
+          throw new Error(`File not found: ${input}`);
+        }
+
+        const normalizedSource = (options.source || 'auto').toLowerCase();
+        const ext = path.extname(input).toLowerCase();
+        const isGrid3Db =
+          ext === '.sqlite' || path.basename(input).toLowerCase() === 'history.sqlite';
+        const isSnap = ext === '.sps' || ext === '.spb';
+
+        let entries;
+        if (normalizedSource === 'grid3' || (normalizedSource === 'auto' && isGrid3Db)) {
+          entries = readGrid3History(input);
+        } else if (normalizedSource === 'snap' || (normalizedSource === 'auto' && isSnap)) {
+          entries = readSnapUsage(input);
+        } else {
+          throw new Error('Unable to detect history source. Use --source grid3 or --source snap.');
+        }
+
+        const format = (options.format || 'raw').toLowerCase();
+        let payload: unknown = entries;
+
+        if (format === 'baton') {
+          payload = exportHistoryToBaton(entries, {
+            version: options.version,
+            exportDate: options.exportDate,
+            encryption: options.encryption,
+            anonymousUUID: options.anonymousUuid,
+          });
+        } else if (format !== 'raw') {
+          throw new Error(`Unsupported format: ${format}`);
+        }
+
+        const output = JSON.stringify(payload, null, 2);
+        if (options.out) {
+          fs.writeFileSync(options.out, output);
+        } else {
+          console.log(output);
+        }
+      } catch (error) {
+        console.error(
+          'Error exporting history:',
+          error instanceof Error ? error.message : String(error)
+        );
+        process.exit(1);
+      }
+    }
+  );
+
+program
+  .command('metrics <file>')
+  .option('--format <format>', 'Format type (auto-detected if not specified)')
+  .option('--pretty', 'Pretty print JSON output')
+  .option('--out <path>', 'Write output to a file instead of stdout')
+  .option('--preserve-all-buttons', 'Preserve all buttons including navigation/system buttons')
+  .option('--no-exclude-navigation', "Don't exclude navigation buttons (Home, Back)")
+  .option('--no-exclude-system', "Don't exclude system buttons (Delete, Clear, etc.)")
+  .option('--exclude-buttons <list>', 'Comma-separated list of button labels/terms to exclude')
+  .option('--gridset-password <password>', 'Password for encrypted Grid3 archives (.gridsetx)')
+  .option('--access-method <method>', 'direct or scanning', 'direct')
+  .option('--scanning-pattern <pattern>', 'linear, row-column, or block', 'row-column')
+  .option(
+    '--selection-method <method>',
+    'auto-1-switch, step-1-switch, or step-2-switch',
+    'auto-1-switch'
+  )
+  .option('--error-correction', 'Enable scanning error correction', false)
+  .option('--use-prediction', 'Enable prediction in CARE scoring', false)
+  .option('--no-smart-grammar', 'Disable smart grammar word forms')
+  .option('--care', 'Include CARE comparison output', false)
+  .action(
+    async (
+      file: string,
+      options: {
+        format?: string;
+        pretty?: boolean;
+        out?: string;
+        preserveAllButtons?: boolean;
+        excludeNavigation?: boolean;
+        excludeSystem?: boolean;
+        excludeButtons?: string;
+        gridsetPassword?: string;
+        accessMethod?: string;
+        scanningPattern?: string;
+        selectionMethod?: string;
+        errorCorrection?: boolean;
+        usePrediction?: boolean;
+        smartGrammar?: boolean;
+        care?: boolean;
+      }
+    ) => {
+      try {
+        const filteringOptions = parseFilteringOptions(options);
+        const format = options.format || detectFormat(file);
+        const processor = getProcessor(format, filteringOptions);
+        const tree = await processor.loadIntoTree(file);
+
+        const accessMethod = (options.accessMethod || 'direct').toLowerCase();
+        const scanningPattern = (options.scanningPattern || 'row-column').toLowerCase();
+        const selectionMethodParam = (options.selectionMethod || 'auto-1-switch').toLowerCase();
+        const errorCorrection = !!options.errorCorrection;
+
+        let scanningConfig = undefined;
+        if (accessMethod === 'scanning') {
+          let cellScanningOrder = CellScanningOrder.SimpleScan;
+          let blockScanEnabled = false;
+
+          switch (scanningPattern) {
+            case 'linear':
+              cellScanningOrder = CellScanningOrder.SimpleScan;
+              break;
+            case 'row-column':
+              cellScanningOrder = CellScanningOrder.RowColumnScan;
+              break;
+            case 'block':
+              cellScanningOrder = CellScanningOrder.RowColumnScan;
+              blockScanEnabled = true;
+              break;
+            default:
+              throw new Error(`Unsupported scanning pattern: ${scanningPattern}`);
+          }
+
+          let selectionMethod = ScanningSelectionMethod.AutoScan;
+          switch (selectionMethodParam) {
+            case 'auto-1-switch':
+              selectionMethod = ScanningSelectionMethod.AutoScan;
+              break;
+            case 'step-1-switch':
+              selectionMethod = ScanningSelectionMethod.StepScan1Switch;
+              break;
+            case 'step-2-switch':
+              selectionMethod = ScanningSelectionMethod.StepScan2Switch;
+              break;
+            default:
+              throw new Error(`Unsupported selection method: ${selectionMethodParam}`);
+          }
+
+          scanningConfig = {
+            cellScanningOrder,
+            blockScanEnabled,
+            selectionMethod,
+            errorCorrectionEnabled: errorCorrection,
+            errorRate: errorCorrection ? 0.1 : undefined,
+          };
+        }
+
+        const calculator = new MetricsCalculator();
+        const metrics = calculator.analyze(tree, {
+          scanningConfig,
+          useSmartGrammar: options.smartGrammar,
+        });
+
+        let care = undefined;
+        if (options.care) {
+          const comparison = new ComparisonAnalyzer();
+          care = comparison.compare(metrics, metrics, {
+            includeSentences: true,
+            usePrediction: !!options.usePrediction,
+            scanningConfig,
+          });
+        }
+
+        const result = {
+          format,
+          filtering: filteringOptions,
+          accessMethod,
+          scanningPattern,
+          selectionMethod: selectionMethodParam,
+          errorCorrection,
+          metrics,
+          care,
+        };
+
+        const output = options.pretty ? JSON.stringify(result, null, 2) : JSON.stringify(result);
+        if (options.out) {
+          fs.writeFileSync(options.out, output);
+        } else {
+          console.log(output);
+        }
+      } catch (error) {
+        console.error(
+          'Error calculating metrics:',
           error instanceof Error ? error.message : String(error)
         );
         process.exit(1);

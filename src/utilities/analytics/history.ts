@@ -55,6 +55,97 @@ export interface HistoryEntry {
 
 export { dotNetTicksToDate };
 
+export interface BatonExportMetadata {
+  timestamp: string;
+  latitude?: number | null;
+  longitude?: number | null;
+}
+
+export interface BatonExportSentence {
+  uuid: string;
+  anonymousUUID: string;
+  content: string;
+  metadata: BatonExportMetadata[];
+  source: HistorySource;
+}
+
+export interface BatonExport {
+  version: string;
+  exportDate: string;
+  encryption: string;
+  sentenceCount: number;
+  sentences: BatonExportSentence[];
+}
+
+const generateUuid = (): string => {
+  if (typeof globalThis.crypto?.randomUUID === 'function') {
+    return globalThis.crypto.randomUUID();
+  }
+  // RFC4122-ish fallback for Node without crypto.randomUUID
+  const hex = '0123456789abcdef';
+  const bytes = Array.from({ length: 16 }, () => Math.floor(Math.random() * 256));
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const toHex = (b: number): string => hex[(b >> 4) & 0x0f] + hex[b & 0x0f];
+  return (
+    toHex(bytes[0]) +
+    toHex(bytes[1]) +
+    toHex(bytes[2]) +
+    toHex(bytes[3]) +
+    '-' +
+    toHex(bytes[4]) +
+    toHex(bytes[5]) +
+    '-' +
+    toHex(bytes[6]) +
+    toHex(bytes[7]) +
+    '-' +
+    toHex(bytes[8]) +
+    toHex(bytes[9]) +
+    '-' +
+    toHex(bytes[10]) +
+    toHex(bytes[11]) +
+    toHex(bytes[12]) +
+    toHex(bytes[13]) +
+    toHex(bytes[14]) +
+    toHex(bytes[15])
+  );
+};
+
+export function exportHistoryToBaton(
+  entries: HistoryEntry[],
+  options?: {
+    version?: string;
+    exportDate?: string | Date;
+    encryption?: string;
+    anonymousUUID?: string;
+  }
+): BatonExport {
+  const exportDate =
+    options?.exportDate instanceof Date
+      ? options.exportDate.toISOString()
+      : options?.exportDate || new Date().toISOString();
+  const anonymousUUID = options?.anonymousUUID || generateUuid();
+  const sentences = entries.map((entry) => ({
+    uuid: generateUuid(),
+    anonymousUUID,
+    content: entry.content,
+    metadata: entry.occurrences.map((occ) => ({
+      timestamp: occ.timestamp.toISOString(),
+      latitude: occ.latitude ?? null,
+      longitude: occ.longitude ?? null,
+    })),
+    source: entry.source,
+  }));
+
+  return {
+    version: options?.version || '1.0',
+    exportDate,
+    encryption: options?.encryption || 'none',
+    sentenceCount: sentences.length,
+    sentences,
+  };
+}
+
 /**
  * Read Grid 3 phrase history from a history.sqlite database and tag entries with their source.
  */
