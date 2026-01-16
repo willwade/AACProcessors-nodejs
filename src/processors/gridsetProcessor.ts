@@ -34,7 +34,7 @@ import { type SymbolReference, parseSymbolReference } from './gridset/symbols';
 import { isSymbolLibraryReference } from './gridset/resolver';
 import { generateCloneId } from '../utilities/analytics/utils/idGenerator';
 import { translateWithSymbols, extractSymbolsFromButton } from './gridset/symbolAlignment';
-import { ProcessorInput, readBinaryFromInput, decodeText } from '../utils/io';
+import { ProcessorInput, readBinaryFromInput, decodeText, writeBinaryToPath } from '../utils/io';
 import type JSZip from 'jszip';
 // Use dynamic import for JSZip to support both browser and Node environments
 type JSZipStatic = typeof JSZip;
@@ -1794,8 +1794,7 @@ class GridsetProcessor extends BaseProcessor {
     if (Object.keys(tree.pages).length === 0) {
       // Create empty zip for empty tree
       const zipBuffer = await zip.generateAsync({ type: 'uint8array' });
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      require('fs').writeFileSync(outputPath, zipBuffer);
+      writeBinaryToPath(outputPath, zipBuffer);
       return;
     }
 
@@ -2141,8 +2140,7 @@ class GridsetProcessor extends BaseProcessor {
 
     // Write the zip file
     const zipBuffer = await zip.generateAsync({ type: 'uint8array' });
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    require('fs').writeFileSync(outputPath, zipBuffer);
+    writeBinaryToPath(outputPath, zipBuffer);
   }
 
   // Helper method to calculate column definitions based on page layout
