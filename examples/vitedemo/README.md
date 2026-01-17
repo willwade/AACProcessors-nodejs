@@ -30,15 +30,13 @@ npm run dev
 
 The demo will open automatically at: http://localhost:3000
 
-### 3. Build for Production
+### 3. Build for Production (Not Supported Yet)
 
-```bash
-npm run build
-npm run preview
-```
+This demo is intended for `npm run dev` only. The production build currently fails because the
+demo source includes strict TypeScript issues, so it will not work "out of the box."
 
-Note: `npm run build` runs `tsc` with strict settings. If you hit TypeScript errors in the demo
-code, use `npm run dev` for browser verification or fix the demo types before building.
+If you need a no-build browser check, use the browser test page served by:
+`node examples/browser-test-server.js`
 
 ## How to Use
 
