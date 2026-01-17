@@ -88,7 +88,7 @@
     "build:all": "npm run build:node && npm run build:browser",
     "build:watch": "tsc -p tsconfig.node.json --watch",
     "clean": "rimraf dist coverage",
-    "copy:assets": "cp -r src/utilities/analytics/reference/data dist/utilities/analytics/reference/",
+    "copy:assets": "node scripts/copy-assets.js",
     "lint": "eslint \"src/**/*.{js,ts}\" \"test/**/*.{js,ts}\"",
     "lint:fix": "eslint \"src/**/*.{js,ts}\" \"test/**/*.{js,ts}\" --fix",
     "format": "prettier --write \"src/**/*.{js,ts}\" \"test/**/*.{js,ts}\" \"*.{js,ts,json,md}\"",

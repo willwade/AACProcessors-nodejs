@@ -4,12 +4,33 @@ export type BinaryOutput = Buffer | Uint8Array;
 
 let cachedFs: typeof import('fs') | null = null;
 let cachedPath: typeof import('path') | null = null;
+let cachedRequire: NodeRequire | null | undefined = undefined;
+
+type NodeRequire = (id: string) => any;
+
+function getNodeRequire(): NodeRequire {
+  if (cachedRequire === undefined) {
+    if (typeof require === 'function') {
+      cachedRequire = require;
+    } else if (typeof globalThis !== 'undefined') {
+      const maybeRequire = (globalThis as { require?: unknown }).require;
+      cachedRequire = typeof maybeRequire === 'function' ? (maybeRequire as NodeRequire) : null;
+    } else {
+      cachedRequire = null;
+    }
+  }
+  if (!cachedRequire) {
+    throw new Error('File system access is not available in this environment.');
+  }
+  return cachedRequire;
+}
 
 export function getFs(): typeof import('fs') {
   if (!cachedFs) {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      cachedFs = require('fs');
+      const nodeRequire = getNodeRequire();
+      const fsModule = 'fs';
+      cachedFs = nodeRequire(fsModule);
     } catch {
       throw new Error('File system access is not available in this environment.');
     }
@@ -23,8 +44,9 @@ export function getFs(): typeof import('fs') {
 export function getPath(): typeof import('path') {
   if (!cachedPath) {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      cachedPath = require('path');
+      const nodeRequire = getNodeRequire();
+      const pathModule = 'path';
+      cachedPath = nodeRequire(pathModule);
     } catch {
       throw new Error('Path utilities are not available in this environment.');
     }

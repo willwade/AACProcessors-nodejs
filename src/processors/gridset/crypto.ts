@@ -13,11 +13,16 @@
  * @returns Decrypted and inflated buffer
  */
 export function decryptGridsetEntry(buffer: Buffer, password?: string): Buffer {
+  const nodeRequire =
+    typeof require === 'function' ? require : (undefined as undefined | ((id: string) => any));
+  if (!nodeRequire) {
+    throw new Error('Crypto utilities are not available in this environment.');
+  }
   // Dynamic require to avoid breaking in browser environments
-  // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-unsafe-return
-  const crypto = require('crypto');
-  // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-unsafe-return
-  const zlib = require('zlib');
+  const cryptoModule = 'crypto';
+  const zlibModule = 'zlib';
+  const crypto = nodeRequire(cryptoModule);
+  const zlib = nodeRequire(zlibModule);
 
   const pwd = (password || 'Chocolate').padEnd(32, ' ');
   const key = Buffer.from(pwd.slice(0, 32), 'utf8');
@@ -43,10 +48,13 @@ export function decryptGridsetEntry(buffer: Buffer, password?: string): Buffer {
  */
 export function isCryptoAvailable(): boolean {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    require('crypto');
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    require('zlib');
+    const nodeRequire =
+      typeof require === 'function' ? require : (undefined as undefined | ((id: string) => any));
+    if (!nodeRequire) return false;
+    const cryptoModule = 'crypto';
+    const zlibModule = 'zlib';
+    nodeRequire(cryptoModule);
+    nodeRequire(zlibModule);
     return true;
   } catch {
     return false;
