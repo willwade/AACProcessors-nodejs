@@ -8,7 +8,7 @@ let cachedRequire: NodeRequire | null | undefined = undefined;
 
 type NodeRequire = (id: string) => any;
 
-function getNodeRequire(): NodeRequire {
+export function getNodeRequire(): NodeRequire {
   if (cachedRequire === undefined) {
     if (typeof require === 'function') {
       cachedRequire = require;
