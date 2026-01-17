@@ -227,12 +227,16 @@ class ObfProcessor extends BaseProcessor {
     const sourceButtons = boardData.buttons || [];
 
     // Calculate page ID first (used to make button IDs unique)
-    const pageId =
-      _boardPath && _boardPath.endsWith('.obf') && !_boardPath.includes('/')
-        ? _boardPath // Zip entry - use filename to match navigation paths
-        : boardData?.id
-          ? String(boardData.id)
-          : _boardPath?.split('/').pop() || '';
+    const isZipEntry =
+      _boardPath &&
+      _boardPath.endsWith('.obf') &&
+      !_boardPath.includes('/') &&
+      !_boardPath.includes('\\');
+    const pageId = isZipEntry
+      ? _boardPath // Zip entry - use filename to match navigation paths
+      : boardData?.id
+        ? String(boardData.id)
+        : _boardPath?.split(/[/\\]/).pop() || '';
 
     const buttons: AACButton[] = await Promise.all(
       sourceButtons.map(async (btn: ObfButton): Promise<AACButton> => {

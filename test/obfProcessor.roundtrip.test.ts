@@ -4,7 +4,7 @@ import path from 'path';
 import { ObfProcessor } from '../src/processors/obfProcessor';
 import { AACTree, AACPage, AACButton } from '../src/core/treeStructure';
 
-jest.setTimeout(30000);
+jest.setTimeout(process.platform === 'win32' ? 60000 : 30000);
 
 describe('OBFProcessor round-trip', () => {
   const obfPath: string = path.join(__dirname, 'assets/obf/example.obf');

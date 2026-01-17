@@ -8,7 +8,7 @@ import { GridsetProcessor } from '../src/processors/gridsetProcessor';
 import { SnapProcessor } from '../src/processors/snapProcessor';
 import { TouchChatProcessor } from '../src/processors/touchchatProcessor';
 
-jest.setTimeout(30000);
+jest.setTimeout(process.platform === 'win32' ? 60000 : 30000);
 
 describe('ProcessTexts with Real-World Data', () => {
   const examplesDir = path.join(__dirname, '../examples');

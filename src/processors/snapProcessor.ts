@@ -19,6 +19,7 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
+import os from 'os';
 import { SnapValidator } from '../validation/snapValidator';
 import { ValidationResult } from '../validation/validationTypes';
 import { ProcessorInput } from '../utils/io';
@@ -104,13 +105,20 @@ class SnapProcessor extends BaseProcessor {
   async loadIntoTree(filePathOrBuffer: ProcessorInput): Promise<AACTree> {
     await Promise.resolve();
     const tree = new AACTree();
+    let tempDir: string | null = null;
     const filePath =
-      typeof filePathOrBuffer === 'string'
-        ? filePathOrBuffer
-        : path.join(process.cwd(), 'temp.spb');
+      typeof filePathOrBuffer !== 'string'
+        ? (() => {
+            tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'snap-'));
+            return path.join(tempDir, 'input.spb');
+          })()
+        : filePathOrBuffer;
 
-    if (Buffer.isBuffer(filePathOrBuffer)) {
-      fs.writeFileSync(filePath, filePathOrBuffer);
+    if (typeof filePathOrBuffer !== 'string') {
+      const buffer = Buffer.isBuffer(filePathOrBuffer)
+        ? filePathOrBuffer
+        : Buffer.from(filePathOrBuffer);
+      fs.writeFileSync(filePath, buffer);
     }
 
     let db: any = null;
@@ -722,11 +730,11 @@ class SnapProcessor extends BaseProcessor {
       }
 
       // Clean up temporary file if created from buffer
-      if (Buffer.isBuffer(filePathOrBuffer) && fs.existsSync(filePath)) {
+      if (tempDir && fs.existsSync(tempDir)) {
         try {
-          fs.unlinkSync(filePath);
+          fs.rmSync(tempDir, { recursive: true, force: true });
         } catch (e) {
-          console.warn('Failed to clean up temporary file:', e);
+          console.warn('Failed to clean up temporary files:', e);
         }
       }
     }
