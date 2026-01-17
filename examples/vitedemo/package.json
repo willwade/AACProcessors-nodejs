@@ -13,6 +13,11 @@
     "vite": "^6.0.1"
   },
   "dependencies": {
-    "jszip": "^3.10.1"
+    "@willwade/aac-processors": "file:../..",
+    "events": "^3.3.0",
+    "jszip": "^3.10.1",
+    "stream-browserify": "^3.0.0",
+    "timers-browserify": "^2.0.12",
+    "util": "^0.12.5"
   }
 }

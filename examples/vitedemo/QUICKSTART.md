@@ -1,10 +1,5 @@
 # 🎯 AAC Processors Browser Demo - Quick Start
 
-## 🚀 Running the Demo
-
-The demo is already running! Open your browser to:
-
-**http://localhost:3000**
 
 ## 📁 Test Files Included
 
@@ -47,6 +42,7 @@ The `test-files/` folder contains example AAC files you can use:
 ### Restart Server
 ```bash
 cd examples/vitedemo
+npm install
 npm run dev
 ```
 
