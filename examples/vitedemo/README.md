@@ -37,6 +37,9 @@ npm run build
 npm run preview
 ```
 
+Note: `npm run build` runs `tsc` with strict settings. If you hit TypeScript errors in the demo
+code, use `npm run dev` for browser verification or fix the demo types before building.
+
 ## How to Use
 
 1. **Upload a file**
