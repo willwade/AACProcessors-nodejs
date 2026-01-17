@@ -55,7 +55,7 @@ export class GridsetValidator extends BaseValidator {
     // Try to parse as XML and check for gridset structure
     try {
       const contentStr = Buffer.isBuffer(content) ? content.toString('utf-8') : content;
-      const xml2js = getXml2js()
+      const xml2js = getXml2js();
       const parser = new xml2js.Parser();
       const result = await parser.parseStringPromise(contentStr as string);
       return result && (result.gridset || result.Gridset);
@@ -122,7 +122,7 @@ export class GridsetValidator extends BaseValidator {
     let xmlObj: any = null;
     await this.add_check('xml_parse', 'valid XML', async () => {
       try {
-        const xml2js = getXml2js()
+        const xml2js = getXml2js();
         const parser = new xml2js.Parser();
         const contentStr = content.toString('utf-8');
         xmlObj = await parser.parseStringPromise(contentStr);
@@ -171,7 +171,7 @@ export class GridsetValidator extends BaseValidator {
       } else {
         try {
           const gridsetXml = await gridsetEntry.async('string');
-          const xml2js = getXml2js()
+          const xml2js = getXml2js();
           const parser = new xml2js.Parser();
           const xmlObj = await parser.parseStringPromise(gridsetXml);
           const gridset = xmlObj.gridset || xmlObj.Gridset;
@@ -194,7 +194,7 @@ export class GridsetValidator extends BaseValidator {
       } else {
         try {
           const settingsXml = await settingsEntry.async('string');
-          const xml2js = getXml2js()
+          const xml2js = getXml2js();
           const parser = new xml2js.Parser();
           const xmlObj = await parser.parseStringPromise(settingsXml);
           const settings =
