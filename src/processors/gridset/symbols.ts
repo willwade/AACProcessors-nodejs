@@ -13,7 +13,7 @@
  * This module provides symbol resolution and metadata extraction.
  */
 
-import { getFs, getPath } from '../../utils/io';
+import { getFs, getNodeRequire, getPath } from '../../utils/io';
 
 /**
  * Default Grid 3 installation paths by platform
@@ -127,8 +127,9 @@ let cachedAdmZip: typeof import('adm-zip') | null = null;
 function getAdmZip(): typeof import('adm-zip') {
   if (cachedAdmZip) return cachedAdmZip;
   try {
+    const nodeRequire = getNodeRequire();
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const module = require('adm-zip') as typeof import('adm-zip') & {
+    const module = nodeRequire('adm-zip') as typeof import('adm-zip') & {
       default?: typeof import('adm-zip');
     };
     const resolved = module.default || module;

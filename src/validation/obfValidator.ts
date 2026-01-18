@@ -6,8 +6,7 @@
 import JSZip from 'jszip';
 import { BaseValidator } from './baseValidator';
 import { ValidationResult } from './validationTypes';
-import * as fs from 'fs';
-import * as path from 'path';
+import { getFs, getPath, readBinaryFromInput } from '../utils/io';
 
 const OBF_FORMAT = 'open-board-0.1';
 const OBF_FORMAT_CURRENT_VERSION = 0.1;
@@ -25,9 +24,9 @@ export class ObfValidator extends BaseValidator {
    */
   static async validateFile(filePath: string): Promise<ValidationResult> {
     const validator = new ObfValidator();
-    const content = fs.readFileSync(filePath);
-    const stats = fs.statSync(filePath);
-    return validator.validate(content, path.basename(filePath), stats.size);
+    const content = readBinaryFromInput(filePath);
+    const stats = getFs().statSync(filePath);
+    return validator.validate(content, getPath().basename(filePath), stats.size);
   }
 
   /**
