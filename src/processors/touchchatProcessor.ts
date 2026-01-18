@@ -22,6 +22,7 @@ import { ValidationResult } from '../validation/validationTypes';
 import {
   ProcessorInput,
   getFs,
+  getNodeRequire,
   getOs,
   getPath,
   isNodeRuntime,
@@ -38,30 +39,7 @@ import {
   requireBetterSqlite3,
   type SqliteDatabaseAdapter,
 } from '../utils/sqlite';
-import type JSZip from 'jszip';
-
-type JSZipStatic = typeof JSZip;
-let JSZipModuleTouchChat: JSZipStatic | undefined;
-async function getJSZipTouchChat(): Promise<JSZipStatic> {
-  if (!JSZipModuleTouchChat) {
-    try {
-      const module = await import('jszip');
-      JSZipModuleTouchChat = module.default || module;
-    } catch (error) {
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const module = require('jszip');
-        JSZipModuleTouchChat = module.default || module;
-      } catch {
-        throw new Error('Zip handling requires JSZip in this environment.');
-      }
-    }
-  }
-  if (!JSZipModuleTouchChat) {
-    throw new Error('Zip handling requires JSZip in this environment.');
-  }
-  return JSZipModuleTouchChat;
-}
+import { openZipFromInput } from '../utils/zip';
 
 interface TouchChatButton {
   id: number;
@@ -175,17 +153,12 @@ class TouchChatProcessor extends BaseProcessor {
 
       // Step 1: Unzip
       const zipInput = readBinaryFromInput(filePathOrBuffer);
-      const JSZip = await getJSZipTouchChat();
-      const zip = await JSZip.loadAsync(zipInput);
-      const vocabEntry = Object.keys(zip.files).find((name) => name.endsWith('.c4v'));
+      const { zip } = await openZipFromInput(zipInput);
+      const vocabEntry = zip.listFiles().find((name) => name.endsWith('.c4v'));
       if (!vocabEntry) {
         throw new Error('No .c4v vocab DB found in TouchChat export');
       }
-      const vocabFile = zip.file(vocabEntry);
-      if (!vocabFile) {
-        throw new Error('Failed to read .c4v vocab DB from TouchChat export');
-      }
-      const dbBuffer = await vocabFile.async('uint8array');
+      const dbBuffer = await zip.readFile(vocabEntry);
       const dbResult = await openSqliteDatabase(dbBuffer, { readonly: true });
       db = dbResult.db;
       cleanup = dbResult.cleanup;
@@ -1123,11 +1096,10 @@ class TouchChatProcessor extends BaseProcessor {
       db.close();
 
       // Create zip file with the database
-      const JSZip = await getJSZipTouchChat();
-      const zip = new JSZip();
-      zip.file('vocab.c4v', fs.readFileSync(dbPath));
-      const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
-      fs.writeFileSync(outputPath, zipBuffer);
+      const AdmZip = getNodeRequire()('adm-zip') as typeof import('adm-zip');
+      const zip = new AdmZip();
+      zip.addLocalFile(dbPath, '', 'vocab.c4v');
+      zip.writeZip(outputPath);
     } finally {
       // Clean up
       if (fs.existsSync(tmpDir)) {
