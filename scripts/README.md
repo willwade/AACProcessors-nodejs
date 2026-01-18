@@ -71,6 +71,7 @@ Translation and localization tools.
 General-purpose utility scripts.
 
 - **image-map.js** - Image mapping and analysis tools
+- **bench.js** - Run simple performance benchmarks for load/extract/process paths
 
 ## 🚀 Usage
 
@@ -84,6 +85,15 @@ npm run build
 node scripts/analysis/analyze_pageset.js path/to/pageset.gridset
 node scripts/analysis/extract_vocabulary.js path/to/pageset.gridset
 npx ts-node scripts/conversion/txt-to-gridset.ts input.tsv output.gridset
+
+# Benchmark a processor by file type (loadIntoTree)
+node scripts/bench.js --file examples/example.gridset
+
+# Benchmark text extraction
+node scripts/bench.js --file examples/example.obz --mode extract --iterations 10
+
+# Benchmark translation processing
+node scripts/bench.js --file examples/example.sps --mode process --iterations 3
 ```
 
 ## 🔑 Environment Variables

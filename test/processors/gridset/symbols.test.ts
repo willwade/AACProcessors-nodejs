@@ -52,10 +52,7 @@ describe('gridset symbols utilities', () => {
     };
 
     const refs = extractSymbolReferences(tree);
-    expect(refs).toEqual([
-      '[tawasl]/animals/cat.png',
-      '[widgit]/food/apple.png',
-    ]);
+    expect(refs).toEqual(['[tawasl]/animals/cat.png', '[widgit]/food/apple.png']);
 
     const usage = analyzeSymbolUsage(tree);
     expect(usage.totalSymbols).toBe(2);
@@ -65,11 +62,7 @@ describe('gridset symbols utilities', () => {
   });
 
   it('creates embedded filenames for symbol references', () => {
-    expect(symbolReferenceToFilename('[widgit]/food/apple.png', 2, 3)).toBe(
-      '2-3-0-text-0.png'
-    );
-    expect(symbolReferenceToFilename('[widgit]/food/apple', 1, 1)).toBe(
-      '1-1-0-text-0.png'
-    );
+    expect(symbolReferenceToFilename('[widgit]/food/apple.png', 2, 3)).toBe('2-3-0-text-0.png');
+    expect(symbolReferenceToFilename('[widgit]/food/apple', 1, 1)).toBe('1-1-0-text-0.png');
   });
 });
