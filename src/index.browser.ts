@@ -6,6 +6,10 @@
  * **NOTE: Gridset .gridsetx files**
  * GridsetProcessor supports regular `.gridset` files in browser.
  * Encrypted `.gridsetx` files require Node.js for crypto operations and are not supported in browser.
+ *
+ * **NOTE: SQLite-backed formats**
+ * Snap (.sps/.spb) and TouchChat (.ce) require a WASM-backed SQLite engine.
+ * Configure `sql.js` in browser builds via `configureSqlJs()` before loading these formats.
  */
 
 // ===================================================================
@@ -22,6 +26,8 @@ export { DotProcessor } from './processors/dotProcessor';
 export { OpmlProcessor } from './processors/opmlProcessor';
 export { ObfProcessor } from './processors/obfProcessor';
 export { GridsetProcessor } from './processors/gridsetProcessor';
+export { SnapProcessor } from './processors/snapProcessor';
+export { TouchChatProcessor } from './processors/touchchatProcessor';
 export { ApplePanelsProcessor } from './processors/applePanelsProcessor';
 export { AstericsGridProcessor } from './processors/astericsGridProcessor';
 
@@ -34,8 +40,11 @@ import { DotProcessor } from './processors/dotProcessor';
 import { OpmlProcessor } from './processors/opmlProcessor';
 import { ObfProcessor } from './processors/obfProcessor';
 import { GridsetProcessor } from './processors/gridsetProcessor';
+import { SnapProcessor } from './processors/snapProcessor';
+import { TouchChatProcessor } from './processors/touchchatProcessor';
 import { ApplePanelsProcessor } from './processors/applePanelsProcessor';
 import { AstericsGridProcessor } from './processors/astericsGridProcessor';
+export { configureSqlJs } from './utils/sqlite';
 
 /**
  * Factory function to get the appropriate processor for a file extension
@@ -58,6 +67,11 @@ export function getProcessor(filePathOrExtension: string): BaseProcessor {
       return new ObfProcessor();
     case '.gridset':
       return new GridsetProcessor();
+    case '.spb':
+    case '.sps':
+      return new SnapProcessor();
+    case '.ce':
+      return new TouchChatProcessor();
     case '.plist':
       return new ApplePanelsProcessor();
     case '.grd':
@@ -72,7 +86,7 @@ export function getProcessor(filePathOrExtension: string): BaseProcessor {
  * @returns Array of supported file extensions
  */
 export function getSupportedExtensions(): string[] {
-  return ['.dot', '.opml', '.obf', '.obz', '.gridset', '.plist', '.grd'];
+  return ['.dot', '.opml', '.obf', '.obz', '.gridset', '.spb', '.sps', '.ce', '.plist', '.grd'];
 }
 
 /**

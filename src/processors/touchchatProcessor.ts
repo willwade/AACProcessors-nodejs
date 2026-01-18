@@ -17,20 +17,51 @@ import {
 } from '../core/treeStructure';
 import { generateCloneId } from '../utilities/analytics/utils/idGenerator';
 import { detectCasing, isNumericOrEmpty } from '../core/stringCasing';
-import AdmZip from 'adm-zip';
-import Database from 'better-sqlite3';
-import path from 'path';
-import fs from 'fs';
-import os from 'os';
 import { TouchChatValidator } from '../validation/touchChatValidator';
 import { ValidationResult } from '../validation/validationTypes';
-import { ProcessorInput, readBinaryFromInput } from '../utils/io';
+import {
+  ProcessorInput,
+  getFs,
+  getOs,
+  getPath,
+  isNodeRuntime,
+  readBinaryFromInput,
+} from '../utils/io';
 import {
   extractAllButtonsForTranslation,
   validateTranslationResults,
   type ButtonForTranslation,
   type LLMLTranslationResult,
 } from '../utilities/translation/translationProcessor';
+import {
+  openSqliteDatabase,
+  requireBetterSqlite3,
+  type SqliteDatabaseAdapter,
+} from '../utils/sqlite';
+import type JSZip from 'jszip';
+
+type JSZipStatic = typeof JSZip;
+let JSZipModuleTouchChat: JSZipStatic | undefined;
+async function getJSZipTouchChat(): Promise<JSZipStatic> {
+  if (!JSZipModuleTouchChat) {
+    try {
+      const module = await import('jszip');
+      JSZipModuleTouchChat = module.default || module;
+    } catch (error) {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const module = require('jszip');
+        JSZipModuleTouchChat = module.default || module;
+      } catch {
+        throw new Error('Zip handling requires JSZip in this environment.');
+      }
+    }
+  }
+  if (!JSZipModuleTouchChat) {
+    throw new Error('Zip handling requires JSZip in this environment.');
+  }
+  return JSZipModuleTouchChat;
+}
 
 interface TouchChatButton {
   id: number;
@@ -135,29 +166,29 @@ class TouchChatProcessor extends BaseProcessor {
   async loadIntoTree(filePathOrBuffer: ProcessorInput): Promise<AACTree> {
     await Promise.resolve();
     // Unzip .ce file, extract the .c4v SQLite DB, and parse pages/buttons
-    let tmpDir: string | null = null;
-    let db: Database.Database | null = null;
+    let db: SqliteDatabaseAdapter | null = null;
+    let cleanup: (() => void) | undefined;
 
     try {
       // Store source file path or buffer
       this.sourceFile = filePathOrBuffer;
 
       // Step 1: Unzip
-      tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'touchchat-'));
       const zipInput = readBinaryFromInput(filePathOrBuffer);
-      const zipBuffer = Buffer.isBuffer(zipInput) ? zipInput : Buffer.from(zipInput);
-      const zip = new AdmZip(zipBuffer);
-      zip.extractAllTo(tmpDir, true);
-
-      // Step 2: Find and open SQLite DB
-      const files = fs.readdirSync(tmpDir);
-      const vocabFile = files.find((f) => f.endsWith('.c4v'));
-      if (!vocabFile) {
+      const JSZip = await getJSZipTouchChat();
+      const zip = await JSZip.loadAsync(zipInput);
+      const vocabEntry = Object.keys(zip.files).find((name) => name.endsWith('.c4v'));
+      if (!vocabEntry) {
         throw new Error('No .c4v vocab DB found in TouchChat export');
       }
-
-      const dbPath = path.join(tmpDir, vocabFile);
-      db = new Database(dbPath, { readonly: true });
+      const vocabFile = zip.file(vocabEntry);
+      if (!vocabFile) {
+        throw new Error('Failed to read .c4v vocab DB from TouchChat export');
+      }
+      const dbBuffer = await vocabFile.async('uint8array');
+      const dbResult = await openSqliteDatabase(dbBuffer, { readonly: true });
+      db = dbResult.db;
+      cleanup = dbResult.cleanup;
 
       // Step 3: Create tree and load pages
       const tree = new AACTree();
@@ -631,15 +662,10 @@ class TouchChatProcessor extends BaseProcessor {
       return tree;
     } finally {
       // Clean up
-      if (db) {
+      if (cleanup) {
+        cleanup();
+      } else if (db) {
         db.close();
-      }
-      if (tmpDir && fs.existsSync(tmpDir)) {
-        try {
-          fs.rmSync(tmpDir, { recursive: true, force: true });
-        } catch (e) {
-          console.warn('Failed to clean up temp directory:', e);
-        }
       }
     }
   }
@@ -649,6 +675,11 @@ class TouchChatProcessor extends BaseProcessor {
     translations: Map<string, string>,
     outputPath: string
   ): Promise<Uint8Array> {
+    if (!isNodeRuntime()) {
+      throw new Error(
+        'processTexts is only supported in Node.js environments for TouchChat files.'
+      );
+    }
     // Load the tree, apply translations, and save to new file
     const tree = await this.loadIntoTree(filePathOrBuffer);
 
@@ -681,16 +712,26 @@ class TouchChatProcessor extends BaseProcessor {
 
     // Save the translated tree and return its content
     await this.saveFromTree(tree, outputPath);
+    const fs = getFs();
     return fs.readFileSync(outputPath);
   }
 
   async saveFromTree(tree: AACTree, outputPath: string): Promise<void> {
     await Promise.resolve();
+    if (!isNodeRuntime()) {
+      throw new Error(
+        'saveFromTree is only supported in Node.js environments for TouchChat files.'
+      );
+    }
+    const fs = getFs();
+    const path = getPath();
+    const os = getOs();
     // Create a TouchChat database that matches the expected schema for loading
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'touchchat-export-'));
     const dbPath = path.join(tmpDir, 'vocab.c4v');
 
     try {
+      const Database = requireBetterSqlite3();
       const db = new Database(dbPath);
 
       // Create schema that matches what loadIntoTree expects
@@ -1082,9 +1123,11 @@ class TouchChatProcessor extends BaseProcessor {
       db.close();
 
       // Create zip file with the database
-      const zip = new AdmZip();
-      zip.addLocalFile(dbPath, '', 'vocab.c4v');
-      zip.writeZip(outputPath);
+      const JSZip = await getJSZipTouchChat();
+      const zip = new JSZip();
+      zip.file('vocab.c4v', fs.readFileSync(dbPath));
+      const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
+      fs.writeFileSync(outputPath, zipBuffer);
     } finally {
       // Clean up
       if (fs.existsSync(tmpDir)) {
@@ -1258,6 +1301,11 @@ class TouchChatProcessor extends BaseProcessor {
     outputPath: string,
     options?: { allowPartial?: boolean }
   ): Promise<Uint8Array> {
+    if (!isNodeRuntime()) {
+      throw new Error(
+        'processLLMTranslations is only supported in Node.js environments for TouchChat files.'
+      );
+    }
     const tree = await this.loadIntoTree(filePathOrBuffer);
 
     // Validate translations using shared utility
@@ -1303,6 +1351,7 @@ class TouchChatProcessor extends BaseProcessor {
 
     // Save and return
     await this.saveFromTree(tree, outputPath);
+    const fs = getFs();
     return fs.readFileSync(outputPath);
   }
 }

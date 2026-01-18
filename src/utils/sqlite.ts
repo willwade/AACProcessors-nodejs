@@ -1,0 +1,147 @@
+import type { SqlJsConfig, SqlJsStatic } from 'sql.js';
+import { getFs, getNodeRequire, getOs, getPath, isNodeRuntime, readBinaryFromInput } from './io';
+
+export interface SqliteStatementAdapter {
+  all(...params: unknown[]): any[];
+  get(...params: unknown[]): any;
+  run(...params: unknown[]): any;
+}
+
+export interface SqliteDatabaseAdapter {
+  prepare(sql: string): SqliteStatementAdapter;
+  exec(sql: string): void;
+  close(): void;
+}
+
+export interface SqliteOpenOptions {
+  readonly?: boolean;
+}
+
+export interface SqliteOpenResult {
+  db: SqliteDatabaseAdapter;
+  cleanup?: () => void;
+}
+
+let sqlJsConfig: SqlJsConfig | null = null;
+let sqlJsPromise: Promise<SqlJsStatic> | null = null;
+
+export function configureSqlJs(config: SqlJsConfig): void {
+  sqlJsConfig = { ...(sqlJsConfig ?? {}), ...config };
+}
+
+async function getSqlJs(): Promise<SqlJsStatic> {
+  if (!sqlJsPromise) {
+    sqlJsPromise = import('sql.js').then((module) => {
+      const initSqlJs = module.default || module;
+      return initSqlJs(sqlJsConfig ?? {});
+    });
+  }
+  return sqlJsPromise;
+}
+
+function createSqlJsAdapter(db: {
+  prepare: (sql: string) => any;
+  exec: (sql: string) => void;
+  close: () => void;
+}): SqliteDatabaseAdapter {
+  return {
+    prepare(sql: string): SqliteStatementAdapter {
+      return {
+        all(...params: unknown[]): any[] {
+          const stmt = db.prepare(sql);
+          if (params.length > 0) {
+            stmt.bind(params);
+          }
+          const rows: any[] = [];
+          while (stmt.step()) {
+            rows.push(stmt.getAsObject() as Record<string, unknown>);
+          }
+          stmt.free();
+          return rows;
+        },
+        get(...params: unknown[]): any {
+          const stmt = db.prepare(sql);
+          if (params.length > 0) {
+            stmt.bind(params);
+          }
+          const row = stmt.step() ? stmt.getAsObject() : undefined;
+          stmt.free();
+          return row;
+        },
+        run(...params: unknown[]): any {
+          const stmt = db.prepare(sql);
+          if (params.length > 0) {
+            stmt.bind(params);
+          }
+          stmt.step();
+          stmt.free();
+          return undefined;
+        },
+      };
+    },
+    exec(sql: string): void {
+      db.exec(sql);
+    },
+    close(): void {
+      db.close();
+    },
+  };
+}
+
+function getBetterSqlite3(): typeof import('better-sqlite3') {
+  try {
+    const nodeRequire = getNodeRequire();
+    return nodeRequire('better-sqlite3') as typeof import('better-sqlite3');
+  } catch {
+    throw new Error('better-sqlite3 is not available in this environment.');
+  }
+}
+
+export function requireBetterSqlite3(): typeof import('better-sqlite3') {
+  return getBetterSqlite3();
+}
+
+export async function openSqliteDatabase(
+  input: string | Uint8Array | ArrayBuffer | Buffer,
+  options: SqliteOpenOptions = {}
+): Promise<SqliteOpenResult> {
+  if (typeof input === 'string') {
+    if (!isNodeRuntime()) {
+      throw new Error('SQLite file paths are not supported in browser environments.');
+    }
+    const Database = getBetterSqlite3();
+    const db = new Database(input, { readonly: options.readonly ?? true }) as SqliteDatabaseAdapter;
+    return { db };
+  }
+
+  const data = readBinaryFromInput(input);
+
+  if (!isNodeRuntime()) {
+    const SQL = await getSqlJs();
+    const db = new SQL.Database(data);
+    return { db: createSqlJsAdapter(db) };
+  }
+
+  const fs = getFs();
+  const path = getPath();
+  const os = getOs();
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aac-sqlite-'));
+  const dbPath = path.join(tempDir, 'input.sqlite');
+  fs.writeFileSync(dbPath, data);
+
+  const Database = getBetterSqlite3();
+  const db = new Database(dbPath, { readonly: options.readonly ?? true }) as SqliteDatabaseAdapter;
+  const cleanup = (): void => {
+    try {
+      db.close();
+    } finally {
+      try {
+        fs.rmSync(tempDir, { recursive: true, force: true });
+      } catch (error) {
+        console.warn('Failed to clean up temporary SQLite files:', error);
+      }
+    }
+  };
+
+  return { db, cleanup };
+}

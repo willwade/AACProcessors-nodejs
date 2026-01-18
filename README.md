@@ -30,6 +30,20 @@ const texts = await snap.extractTexts('board.sps');
 Browser-safe entry that avoids Node-only dependencies. It expects `Buffer`,
 `Uint8Array`, or `ArrayBuffer` inputs rather than file paths.
 
+SQLite-backed formats (Snap `.sps/.spb` and TouchChat `.ce`) require a WASM
+SQLite engine. Configure `sql.js` in your bundler before loading those formats:
+
+```ts
+import { configureSqlJs, SnapProcessor } from '@willwade/aac-processors/browser';
+
+configureSqlJs({
+  locateFile: (file) => new URL(`./${file}`, import.meta.url).toString(),
+});
+
+const snap = new SnapProcessor();
+const tree = await snap.loadIntoTree(snapUint8Array);
+```
+
 ```ts
 import { GridsetProcessor } from '@willwade/aac-processors/browser';
 
