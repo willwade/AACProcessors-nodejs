@@ -28,34 +28,11 @@ import {
   readTextFromInput,
   writeTextToPath,
   encodeBase64,
+  decodeText,
+  getNodeRequire,
+  isNodeRuntime,
 } from '../utils/io';
-import type JSZip from 'jszip';
-
-// Use dynamic import for JSZip to support both browser and Node environments
-type JSZipStatic = typeof JSZip;
-let JSZipModuleObf: JSZipStatic | undefined;
-async function getJSZipObf(): Promise<JSZipStatic> {
-  if (!JSZipModuleObf) {
-    try {
-      // Try ES module import first (browser/Vite)
-      const module = await import('jszip');
-      JSZipModuleObf = module.default || module;
-    } catch (error) {
-      // Fall back to CommonJS require (Node.js)
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const module = require('jszip');
-        JSZipModuleObf = module.default || module;
-      } catch (err2) {
-        throw new Error('Zip handling requires JSZip in this environment.');
-      }
-    }
-  }
-  if (!JSZipModuleObf) {
-    throw new Error('Zip handling requires JSZip in this environment.');
-  }
-  return JSZipModuleObf;
-}
+import { openZipFromInput, type ZipAdapter } from '../utils/zip';
 
 const OBF_FORMAT_VERSION = 'open-board-0.1';
 
@@ -106,7 +83,7 @@ interface ObfBoard {
 }
 
 class ObfProcessor extends BaseProcessor {
-  private zipFile?: JSZip; // JSZip instance
+  private zipFile?: ZipAdapter;
   private imageCache: Map<string, string> = new Map(); // Cache for data URLs
 
   constructor(options?: ProcessorOptions) {
@@ -136,10 +113,12 @@ class ObfProcessor extends BaseProcessor {
 
     for (const imagePath of possiblePaths) {
       try {
-        const file = this.zipFile.file(imagePath as string);
-        if (file) {
-          const buffer = await file.async('nodebuffer');
-          return buffer;
+        const buffer = await this.zipFile.readFile(imagePath as string);
+        if (buffer) {
+          if (typeof Buffer !== 'undefined') {
+            return Buffer.from(buffer);
+          }
+          return null;
         }
       } catch (err) {
         continue;
@@ -178,9 +157,8 @@ class ObfProcessor extends BaseProcessor {
 
     for (const imagePath of possiblePaths) {
       try {
-        const file = this.zipFile.file(imagePath as string);
-        if (file) {
-          const buffer = await file.async('uint8array');
+        const buffer = await this.zipFile.readFile(imagePath as string);
+        if (buffer) {
           const contentType =
             (imageData as { content_type?: string }).content_type ||
             this.getMimeTypeFromFilename(imagePath as string);
@@ -518,38 +496,29 @@ class ObfProcessor extends BaseProcessor {
       throw new Error('Invalid OBF content: not JSON and not ZIP');
     }
 
-    const JSZip = await getJSZipObf();
-    let zip: JSZip;
     try {
-      const zipInput = readBinaryFromInput(filePathOrBuffer);
-      zip = await JSZip.loadAsync(zipInput);
+      const zipResult = await openZipFromInput(filePathOrBuffer);
+      this.zipFile = zipResult.zip;
     } catch (err) {
-      console.error('[OBF] Error loading ZIP with JSZip:', err);
+      console.error('[OBF] Error loading ZIP:', err);
       throw err;
     }
 
     // Store the ZIP file reference for image extraction
-    this.zipFile = zip;
     this.imageCache.clear(); // Clear cache for new file
 
     console.log('[OBF] Detected zip archive, extracting .obf files');
 
     // Collect all .obf entries
-    const obfEntries: Array<{ name: string; file: JSZip.JSZipObject }> = [];
-    zip.forEach((relativePath: string, file: JSZip.JSZipObject) => {
-      if (file.dir) return;
-      if (relativePath.toLowerCase().endsWith('.obf')) {
-        obfEntries.push({ name: relativePath, file });
-      }
-    });
+    const obfEntries = this.zipFile.listFiles().filter((name) => name.toLowerCase().endsWith('.obf'));
 
     // Process each .obf entry
-    for (const entry of obfEntries) {
+    for (const entryName of obfEntries) {
       try {
-        const content = await entry.file.async('string');
-        const boardData = tryParseObfJson(content);
+        const content = await this.zipFile.readFile(entryName);
+        const boardData = tryParseObfJson(decodeText(content));
         if (boardData) {
-          const page = await this.processBoard(boardData, entry.name);
+          const page = await this.processBoard(boardData, entryName);
           tree.addPage(page);
 
           // Set metadata if not already set (use first board as reference)
@@ -564,10 +533,10 @@ class ObfProcessor extends BaseProcessor {
             tree.rootId = page.id;
           }
         } else {
-          console.warn('[OBF] Skipped entry (not valid OBF JSON):', entry.name);
+          console.warn('[OBF] Skipped entry (not valid OBF JSON):', entryName);
         }
       } catch (err) {
-        console.warn('[OBF] Error processing entry:', entry.name, err);
+        console.warn('[OBF] Error processing entry:', entryName, err);
       }
     }
 
@@ -722,18 +691,34 @@ class ObfProcessor extends BaseProcessor {
       writeTextToPath(outputPath, JSON.stringify(obfBoard, null, 2));
     } else {
       // Save as OBZ (zip with multiple OBF files)
-      const JSZip = await getJSZipObf();
-      const zip = new JSZip();
+      if (isNodeRuntime()) {
+        const AdmZip = getNodeRequire()('adm-zip') as typeof import('adm-zip');
+        const zip = new AdmZip();
 
-      Object.values(tree.pages).forEach((page) => {
-        const obfBoard = this.createObfBoardFromPage(page, 'Board', tree.metadata);
-        const obfContent = JSON.stringify(obfBoard, null, 2);
-        zip.file(`${page.id}.obf`, obfContent);
-      });
+        Object.values(tree.pages).forEach((page) => {
+          const obfBoard = this.createObfBoardFromPage(page, 'Board', tree.metadata);
+          const obfContent = JSON.stringify(obfBoard, null, 2);
+          zip.addFile(`${page.id}.obf`, Buffer.from(obfContent, 'utf8'));
+        });
 
-      const zipBuffer = await zip.generateAsync({ type: 'uint8array' });
-      const { writeBinaryToPath } = await import('../utils/io');
-      writeBinaryToPath(outputPath, zipBuffer);
+        const zipBuffer = zip.toBuffer();
+        const { writeBinaryToPath } = await import('../utils/io');
+        writeBinaryToPath(outputPath, zipBuffer);
+      } else {
+        const module = await import('jszip');
+        const JSZip = module.default || module;
+        const zip = new JSZip();
+
+        Object.values(tree.pages).forEach((page) => {
+          const obfBoard = this.createObfBoardFromPage(page, 'Board', tree.metadata);
+          const obfContent = JSON.stringify(obfBoard, null, 2);
+          zip.file(`${page.id}.obf`, obfContent);
+        });
+
+        const zipBuffer = await zip.generateAsync({ type: 'uint8array' });
+        const { writeBinaryToPath } = await import('../utils/io');
+        writeBinaryToPath(outputPath, zipBuffer);
+      }
     }
   }
 
