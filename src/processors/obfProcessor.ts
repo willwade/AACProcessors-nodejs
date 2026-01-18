@@ -510,7 +510,9 @@ class ObfProcessor extends BaseProcessor {
     console.log('[OBF] Detected zip archive, extracting .obf files');
 
     // Collect all .obf entries
-    const obfEntries = this.zipFile.listFiles().filter((name) => name.toLowerCase().endsWith('.obf'));
+    const obfEntries = this.zipFile
+      .listFiles()
+      .filter((name) => name.toLowerCase().endsWith('.obf'));
 
     // Process each .obf entry
     for (const entryName of obfEntries) {
