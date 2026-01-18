@@ -35,8 +35,7 @@ The demo will open automatically at: http://localhost:3000
 This demo is intended for `npm run dev` only. The production build currently fails because the
 demo source includes strict TypeScript issues, so it will not work "out of the box."
 
-If you need a no-build browser check, use the browser test page served by:
-`node examples/browser-test-server.js`
+This demo is the recommended browser test environment.
 
 ## How to Use
 

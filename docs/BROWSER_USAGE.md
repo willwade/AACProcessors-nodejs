@@ -565,14 +565,7 @@ async function safeLoadFile(file) {
 
 ## Testing
 
-See [Browser Test Page](../examples/browser-test.html) for interactive testing.
-
-To run the test server:
-```bash
-node examples/browser-test-server.js
-```
-
-Then open: http://localhost:8080/examples/browser-test.html
+Use the Vite demo in `examples/vitedemo` for interactive browser testing.
 
 ## Troubleshooting
 
@@ -614,5 +607,4 @@ await processor.loadIntoTree(uint8Array);
 
 - [API Documentation](./API.md)
 - [Examples](../examples/)
-- [Browser Test Page](../examples/browser-test.html)
-- [Test Server](../examples/browser-test-server.js)
+- [Vite Browser Demo](../examples/vitedemo)
