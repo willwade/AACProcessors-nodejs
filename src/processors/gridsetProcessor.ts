@@ -53,6 +53,19 @@ class GridsetProcessor extends BaseProcessor {
     super(options);
   }
 
+  private isGridsetDebugEnabled(): boolean {
+    if (typeof this.options.gridsetDebug === 'boolean') {
+      return this.options.gridsetDebug;
+    }
+    return typeof process !== 'undefined' && process.env?.AAC_PROCESSORS_GRIDSET_DEBUG === '1';
+  }
+
+  private logGridsetDebug(...args: unknown[]): void {
+    if (this.isGridsetDebugEnabled()) {
+      console.log(...args);
+    }
+  }
+
   // Determine password to use when opening encrypted gridset archives (.gridsetx)
   private getGridsetPassword(source?: ProcessorInput): string | undefined {
     return resolveGridsetPassword(this.options, source);
@@ -539,7 +552,7 @@ class GridsetProcessor extends BaseProcessor {
     }
 
     // Debug: log all entry names
-    console.log('[Gridset] Total zip entries:', entries.length);
+    this.logGridsetDebug('[Gridset] Total zip entries:', entries.length);
     const normalizeEntryName = (entryName: string): string =>
       entryName.replace(/\\/g, '/').toLowerCase();
     const isGridXmlEntry = (entryName: string): boolean => {
@@ -548,9 +561,9 @@ class GridsetProcessor extends BaseProcessor {
       return normalized.startsWith('grids/') || normalized.includes('/grids/');
     };
     const gridEntries = entries.filter((e) => isGridXmlEntry(e.entryName));
-    console.log('[Gridset] Grid XML entries found:', gridEntries.length);
+    this.logGridsetDebug('[Gridset] Grid XML entries found:', gridEntries.length);
     if (gridEntries.length > 0) {
-      console.log(
+      this.logGridsetDebug(
         '[Gridset] First few grid entries:',
         gridEntries.slice(0, 3).map((e) => e.entryName)
       );
@@ -602,7 +615,7 @@ class GridsetProcessor extends BaseProcessor {
         try {
           const buffer = await readEntryBuffer(entry);
           xmlContent = decodeText(buffer);
-          console.log(
+          this.logGridsetDebug(
             `[Gridset] Raw XML content (first 200 chars) for ${entry.entryName}:`,
             xmlContent.substring(0, 200)
           );
@@ -613,7 +626,10 @@ class GridsetProcessor extends BaseProcessor {
         let data: Record<string, unknown>;
         try {
           data = parser.parse(xmlContent) as Record<string, unknown>;
-          console.log(`[Gridset] Parsed ${entry.entryName}, root keys:`, Object.keys(data));
+          this.logGridsetDebug(
+            `[Gridset] Parsed ${entry.entryName}, root keys:`,
+            Object.keys(data)
+          );
         } catch (error: any) {
           // Skip malformed XML but log the specific error
           console.warn(`Malformed XML in ${entry.entryName}: ${error.message}`);

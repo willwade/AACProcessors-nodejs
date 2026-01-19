@@ -72,6 +72,7 @@ General-purpose utility scripts.
 
 - **image-map.js** - Image mapping and analysis tools
 - **bench.js** - Run simple performance benchmarks for load/extract/process paths
+- **bench-zip.js** - Benchmark ZIP backends directly (admzip/jszip/yauzl)
 
 ## 🚀 Usage
 
@@ -94,6 +95,11 @@ node scripts/bench.js --file examples/example.obz --mode extract --iterations 10
 
 # Benchmark translation processing
 node scripts/bench.js --file examples/example.sps --mode process --iterations 3
+
+# Benchmark ZIP backends directly
+node scripts/bench-zip.js --file examples/example.obz --backend admzip --iterations 5
+node scripts/bench-zip.js --file examples/example.obz --backend yauzl --iterations 5
+node scripts/bench-zip.js --file examples/example.obz --backend jszip --iterations 5
 ```
 
 ## 🔑 Environment Variables

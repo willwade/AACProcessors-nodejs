@@ -71,6 +71,9 @@ export interface ProcessorOptions {
   // Locale for symbol libraries (e.g., 'en-GB', 'en-US')
   // Defaults to 'en-GB' if not specified
   grid3Locale?: string;
+
+  // Enable verbose Gridset parsing logs
+  gridsetDebug?: boolean;
 }
 
 // Types for aac-tools-platform compatibility
