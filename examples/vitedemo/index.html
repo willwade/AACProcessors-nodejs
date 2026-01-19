@@ -191,6 +191,48 @@
             font-size: 13px;
         }
 
+        .validation-panel {
+            margin-top: 15px;
+        }
+
+        .validation-summary {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .validation-summary.success {
+            border-left: 4px solid #2ecc71;
+            color: #2d7a4f;
+        }
+
+        .validation-summary.error {
+            border-left: 4px solid #e74c3c;
+            color: #b03a2e;
+        }
+
+        .validation-list {
+            max-height: 180px;
+            overflow-y: auto;
+            font-size: 12px;
+        }
+
+        .validation-item {
+            padding: 6px 0;
+            border-bottom: 1px solid #ececec;
+        }
+
+        .validation-item.warn {
+            color: #c18401;
+        }
+
+        .validation-item.error {
+            color: #b03a2e;
+        }
+
         .processor-name {
             font-weight: 600;
             color: #333;
@@ -437,6 +479,7 @@
                 </div>
 
                 <button class="btn" id="processBtn" disabled>🚀 Process File</button>
+                <button class="btn btn-secondary" id="validateBtn" disabled>✅ Validate File</button>
                 <button class="btn btn-secondary" id="runTestsBtn">🧪 Run Compatibility Tests</button>
                 <button class="btn btn-secondary" id="clearBtn">🗑️ Clear Results</button>
 
@@ -466,6 +509,12 @@
                 <div class="test-results" id="testResults" style="display: none;">
                     <div class="panel-title">Test Results</div>
                     <div id="testList"></div>
+                </div>
+
+                <div class="validation-panel" id="validationPanel" style="display: none;">
+                    <div class="panel-title">Validation</div>
+                    <div class="validation-summary" id="validationSummary"></div>
+                    <div class="validation-list" id="validationList"></div>
                 </div>
             </div>
 

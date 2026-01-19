@@ -81,6 +81,7 @@ import {
   AACPage,
   AACButton
 } from 'aac-processors';
+import { validateFileOrBuffer, type ValidationResult } from 'aac-processors/validation';
 
 import sqlWasmUrl from 'sql.js/dist/sql-wasm.wasm?url';
 
@@ -92,6 +93,7 @@ configureSqlJs({
 const dropArea = document.getElementById('dropArea') as HTMLElement;
 const fileInput = document.getElementById('fileInput') as HTMLInputElement;
 const processBtn = document.getElementById('processBtn') as HTMLButtonElement;
+const validateBtn = document.getElementById('validateBtn') as HTMLButtonElement;
 const runTestsBtn = document.getElementById('runTestsBtn') as HTMLButtonElement;
 const clearBtn = document.getElementById('clearBtn') as HTMLButtonElement;
 const fileInfo = document.getElementById('fileInfo') as HTMLElement;
@@ -102,6 +104,9 @@ const results = document.getElementById('results') as HTMLElement;
 const logPanel = document.getElementById('logPanel') as HTMLElement;
 const testResults = document.getElementById('testResults') as HTMLElement;
 const testList = document.getElementById('testList') as HTMLElement;
+const validationPanel = document.getElementById('validationPanel') as HTMLElement;
+const validationSummary = document.getElementById('validationSummary') as HTMLElement;
+const validationList = document.getElementById('validationList') as HTMLElement;
 const tabButtons = document.querySelectorAll('.tab-btn') as NodeListOf<HTMLButtonElement>;
 const inspectTab = document.getElementById('inspectTab') as HTMLElement;
 const pagesetTab = document.getElementById('pagesetTab') as HTMLElement;
@@ -218,6 +223,7 @@ function handleFile(file: File) {
     fileDetails.textContent = extension;
     fileInfo.style.display = 'block';
     processBtn.disabled = true;
+    validateBtn.disabled = true;
     return;
   }
 
@@ -228,12 +234,14 @@ function handleFile(file: File) {
     fileDetails.textContent = `${file.name} • ${formatFileSize(file.size)}`;
     fileInfo.style.display = 'block';
     processBtn.disabled = false;
+    validateBtn.disabled = false;
     currentSourceLabel = file.name;
 
     log(`Using processor: ${currentProcessor.constructor.name}`, 'success');
   } catch (error) {
     log(`Error getting processor: ${(error as Error).message}`, 'error');
     processBtn.disabled = true;
+    validateBtn.disabled = true;
   }
 }
 
@@ -311,6 +319,79 @@ processBtn.addEventListener('click', async () => {
     </p>`;
   } finally {
     processBtn.disabled = false;
+  }
+});
+
+function collectValidationMessages(
+  result: ValidationResult,
+  prefix = ''
+): Array<{ type: 'error' | 'warn'; message: string }> {
+  const messages: Array<{ type: 'error' | 'warn'; message: string }> = [];
+  const label = prefix ? `${prefix}: ` : '';
+  result.results.forEach((check) => {
+    if (!check.valid && check.error) {
+      messages.push({ type: 'error', message: `${label}${check.description}: ${check.error}` });
+    }
+    if (check.warnings?.length) {
+      check.warnings.forEach((warning) => {
+        messages.push({ type: 'warn', message: `${label}${check.description}: ${warning}` });
+      });
+    }
+  });
+  result.sub_results?.forEach((sub) => {
+    const nextPrefix = `${label}${sub.filename || sub.format}`;
+    messages.push(...collectValidationMessages(sub, nextPrefix));
+  });
+  return messages;
+}
+
+function renderValidationResult(result: ValidationResult) {
+  validationPanel.style.display = 'block';
+  validationSummary.classList.remove('success', 'error');
+  validationSummary.classList.add(result.valid ? 'success' : 'error');
+  validationSummary.textContent = `${result.valid ? '✅ Valid' : '❌ Invalid'} • ${result.format.toUpperCase()} • ${result.errors} errors, ${result.warnings} warnings`;
+
+  validationList.innerHTML = '';
+  const messages = collectValidationMessages(result).slice(0, 30);
+  if (messages.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'validation-item';
+    empty.textContent = 'No issues reported.';
+    validationList.appendChild(empty);
+    return;
+  }
+
+  messages.forEach((entry) => {
+    const item = document.createElement('div');
+    item.className = `validation-item ${entry.type}`;
+    item.textContent = entry.message;
+    validationList.appendChild(item);
+  });
+}
+
+validateBtn.addEventListener('click', async () => {
+  if (!currentFile) return;
+  log('Validating file...', 'info');
+
+  try {
+    validateBtn.disabled = true;
+    const arrayBuffer = await currentFile.arrayBuffer();
+    const result = await validateFileOrBuffer(new Uint8Array(arrayBuffer), currentFile.name);
+    renderValidationResult(result);
+    log(
+      `${result.valid ? '✅' : '❌'} Validation complete: ${result.errors} errors, ${result.warnings} warnings`,
+      result.valid ? 'success' : 'warn'
+    );
+  } catch (error) {
+    const errorMsg = (error as Error).message;
+    validationPanel.style.display = 'block';
+    validationSummary.classList.remove('success');
+    validationSummary.classList.add('error');
+    validationSummary.textContent = `❌ Validation failed: ${errorMsg}`;
+    validationList.innerHTML = '';
+    log(`❌ Validation failed: ${errorMsg}`, 'error');
+  } finally {
+    validateBtn.disabled = !currentFile;
   }
 });
 
@@ -423,6 +504,9 @@ clearBtn.addEventListener('click', () => {
   stats.style.display = 'none';
   results.innerHTML = '<p style="color: #999; text-align: center; padding: 40px;">Load a file to see its contents here</p>';
   testResults.style.display = 'none';
+  validationPanel.style.display = 'none';
+  validationSummary.textContent = '';
+  validationList.innerHTML = '';
   logPanel.innerHTML = '<div class="log-entry log-info">Cleared. Ready to process files...</div>';
   pagesetOutput.textContent = 'Generate or convert a pageset to preview the output JSON.';
   updateConvertButtons();

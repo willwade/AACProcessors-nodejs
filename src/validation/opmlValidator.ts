@@ -2,7 +2,7 @@
 import { XMLParser, XMLValidator } from 'fast-xml-parser';
 import { BaseValidator } from './baseValidator';
 import { ValidationResult } from './validationTypes';
-import { getBasename, getFs, readBinaryFromInput } from '../utils/io';
+import { decodeText, getBasename, getFs, readBinaryFromInput, toUint8Array } from '../utils/io';
 
 /**
  * Validator for OPML files
@@ -22,7 +22,14 @@ export class OpmlValidator extends BaseValidator {
     }
 
     try {
-      const str = Buffer.isBuffer(content) ? content.toString('utf-8') : String(content);
+      if (
+        typeof content !== 'string' &&
+        !(content instanceof ArrayBuffer) &&
+        !(content instanceof Uint8Array)
+      ) {
+        return false;
+      }
+      const str = typeof content === 'string' ? content : decodeText(toUint8Array(content));
       const validation = XMLValidator.validate(str);
       if (validation !== true) {
         return false;
@@ -51,7 +58,7 @@ export class OpmlValidator extends BaseValidator {
 
     let text = '';
     await this.add_check('content', 'non-empty content', async () => {
-      text = Buffer.isBuffer(content) ? content.toString('utf-8') : String(content);
+      text = decodeText(content);
       if (!text.trim()) {
         this.err('OPML file is empty', true);
       }

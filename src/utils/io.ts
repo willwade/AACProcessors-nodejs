@@ -79,8 +79,24 @@ export function isNodeRuntime(): boolean {
 }
 
 export function getBasename(filePath: string): string {
-  const parts = filePath.split(/[/\\]/);
-  return parts[parts.length - 1] || filePath;
+  const trimmed = filePath.replace(/[/\\]+$/, '') || filePath;
+  const parts = trimmed.split(/[/\\]/);
+  return parts[parts.length - 1] || trimmed;
+}
+
+export function toUint8Array(input: Uint8Array | ArrayBuffer | Buffer): Uint8Array {
+  if (input instanceof Uint8Array) {
+    return input;
+  }
+  return new Uint8Array(input);
+}
+
+export function toArrayBuffer(input: Uint8Array | ArrayBuffer | Buffer): ArrayBuffer {
+  if (input instanceof ArrayBuffer) {
+    return input;
+  }
+  const view = input instanceof Uint8Array ? input : new Uint8Array(input);
+  return view.buffer.slice(view.byteOffset, view.byteOffset + view.byteLength);
 }
 
 export function decodeText(input: Uint8Array): string {

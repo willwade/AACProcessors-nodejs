@@ -2,7 +2,7 @@
 import * as ExcelJS from 'exceljs';
 import { BaseValidator } from './baseValidator';
 import { ValidationResult } from './validationTypes';
-import { getBasename, getFs, readBinaryFromInput } from '../utils/io';
+import { getBasename, getFs, readBinaryFromInput, toArrayBuffer } from '../utils/io';
 
 /**
  * Validator for Excel imports (.xlsx/.xls)
@@ -43,7 +43,8 @@ export class ExcelValidator extends BaseValidator {
       return this.buildResult(filename, filesize, 'excel');
     }
 
-    const buffer = Buffer.isBuffer(content) ? content : Buffer.from(content);
+    const buffer =
+      typeof Buffer !== 'undefined' && Buffer.isBuffer(content) ? content : toArrayBuffer(content);
     const workbook = new ExcelJS.Workbook();
 
     await this.add_check('open', 'open workbook', async () => {

@@ -4,7 +4,7 @@ import * as xml2js from 'xml2js';
 import JSZip from 'jszip';
 import { BaseValidator } from './baseValidator';
 import { ValidationResult } from './validationTypes';
-import { getBasename, getFs, readBinaryFromInput } from '../utils/io';
+import { getBasename, getFs, readBinaryFromInput, toUint8Array } from '../utils/io';
 
 /**
  * Validator for Snap files (.spb, .sps)
@@ -37,8 +37,7 @@ export class SnapValidator extends BaseValidator {
 
     // Try to parse as ZIP and check for Snap structure
     try {
-      const buffer = Buffer.isBuffer(content) ? content : Buffer.from(content);
-      const zip = await JSZip.loadAsync(buffer);
+      const zip = await JSZip.loadAsync(toUint8Array(content));
       const entries = Object.values(zip.files).filter((entry) => !entry.dir);
       return entries.some(
         (entry) => entry.name.includes('settings') || entry.name.includes('.xml')
@@ -69,8 +68,7 @@ export class SnapValidator extends BaseValidator {
 
     await this.add_check('zip', 'valid zip package', async () => {
       try {
-        const buffer = Buffer.isBuffer(content) ? content : Buffer.from(content);
-        zip = await JSZip.loadAsync(buffer);
+        zip = await JSZip.loadAsync(toUint8Array(content));
         const entries = Object.values(zip.files);
         validZip = entries.length > 0;
       } catch (e: any) {

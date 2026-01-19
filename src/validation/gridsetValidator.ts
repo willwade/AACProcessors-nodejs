@@ -2,26 +2,10 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 import JSZip from 'jszip';
+import * as xml2js from 'xml2js';
 import { BaseValidator } from './baseValidator';
 import { ValidationResult } from './validationTypes';
-import { getFs, getNodeRequire, getPath } from '../utils/io';
-
-let cachedXml2js: typeof import('xml2js') | null = null;
-function getXml2js(): typeof import('xml2js') {
-  if (cachedXml2js) return cachedXml2js;
-  try {
-    const nodeRequire = getNodeRequire();
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const module = nodeRequire('xml2js') as typeof import('xml2js') & {
-      default?: typeof import('xml2js');
-    };
-    const resolved = module.default || module;
-    cachedXml2js = resolved;
-    return resolved;
-  } catch {
-    throw new Error('Validator requires Xml2js in this environment.');
-  }
-}
+import { decodeText, getBasename, getFs, toUint8Array } from '../utils/io';
 
 /**
  * Validator for Grid3/Smartbox Gridset files (.gridset, .gridsetx)
@@ -37,10 +21,9 @@ export class GridsetValidator extends BaseValidator {
   static async validateFile(filePath: string): Promise<ValidationResult> {
     const validator = new GridsetValidator();
     const fs = getFs();
-    const path = getPath();
     const content = fs.readFileSync(filePath);
     const stats = fs.statSync(filePath);
-    return validator.validate(content, path.basename(filePath), stats.size);
+    return validator.validate(content, getBasename(filePath), stats.size);
   }
 
   /**
@@ -54,10 +37,9 @@ export class GridsetValidator extends BaseValidator {
 
     // Try to parse as XML and check for gridset structure
     try {
-      const contentStr = Buffer.isBuffer(content) ? content.toString('utf-8') : content;
-      const xml2js = getXml2js();
+      const contentStr = typeof content === 'string' ? content : decodeText(toUint8Array(content));
       const parser = new xml2js.Parser();
-      const result = await parser.parseStringPromise(contentStr as string);
+      const result = await parser.parseStringPromise(contentStr);
       return result && (result.gridset || result.Gridset);
     } catch {
       return false;
@@ -122,9 +104,8 @@ export class GridsetValidator extends BaseValidator {
     let xmlObj: any = null;
     await this.add_check('xml_parse', 'valid XML', async () => {
       try {
-        const xml2js = getXml2js();
         const parser = new xml2js.Parser();
-        const contentStr = content.toString('utf-8');
+        const contentStr = decodeText(content);
         xmlObj = await parser.parseStringPromise(contentStr);
       } catch (e: any) {
         this.err(`Failed to parse XML: ${e.message}`, true);
@@ -155,7 +136,7 @@ export class GridsetValidator extends BaseValidator {
   ): Promise<void> {
     let zip: JSZip;
     try {
-      zip = await JSZip.loadAsync(Buffer.from(content));
+      zip = await JSZip.loadAsync(toUint8Array(content));
     } catch (e: any) {
       this.err(`Failed to open ZIP archive: ${e.message}`, true);
       return;
@@ -171,14 +152,13 @@ export class GridsetValidator extends BaseValidator {
       } else {
         try {
           const gridsetXml = await gridsetEntry.async('string');
-          const xml2js = getXml2js();
           const parser = new xml2js.Parser();
           const xmlObj = await parser.parseStringPromise(gridsetXml);
           const gridset = xmlObj.gridset || xmlObj.Gridset;
           if (!gridset) {
             this.err('Invalid gridset.xml structure', true);
           } else {
-            await this.validateGridsetStructure(gridset, filename, Buffer.from(gridsetXml));
+            await this.validateGridsetStructure(gridset, filename, new Uint8Array());
           }
         } catch (e: any) {
           this.err(`Failed to parse gridset.xml: ${e.message}`, true);
@@ -194,7 +174,6 @@ export class GridsetValidator extends BaseValidator {
       } else {
         try {
           const settingsXml = await settingsEntry.async('string');
-          const xml2js = getXml2js();
           const parser = new xml2js.Parser();
           const xmlObj = await parser.parseStringPromise(settingsXml);
           const settings =

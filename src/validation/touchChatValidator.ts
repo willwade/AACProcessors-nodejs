@@ -4,7 +4,7 @@
 import * as xml2js from 'xml2js';
 import { BaseValidator } from './baseValidator';
 import { ValidationResult } from './validationTypes';
-import { getBasename, getFs, readBinaryFromInput } from '../utils/io';
+import { decodeText, getBasename, getFs, readBinaryFromInput, toUint8Array } from '../utils/io';
 
 /**
  * Validator for TouchChat files (.ce)
@@ -36,7 +36,7 @@ export class TouchChatValidator extends BaseValidator {
 
     // Try to parse as XML and check for TouchChat structure
     try {
-      const contentStr = Buffer.isBuffer(content) ? content.toString('utf-8') : content;
+      const contentStr = typeof content === 'string' ? content : decodeText(toUint8Array(content));
       const parser = new xml2js.Parser();
       const result = await parser.parseStringPromise(contentStr);
       // TouchChat files typically have specific structure
@@ -66,7 +66,7 @@ export class TouchChatValidator extends BaseValidator {
     await this.add_check('xml_parse', 'valid XML', async () => {
       try {
         const parser = new xml2js.Parser();
-        const contentStr = content.toString('utf-8');
+        const contentStr = decodeText(content);
         xmlObj = await parser.parseStringPromise(contentStr);
       } catch (e: any) {
         this.err(`Failed to parse XML: ${e.message}`, true);

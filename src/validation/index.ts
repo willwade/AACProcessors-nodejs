@@ -43,7 +43,14 @@ import { OpmlValidator } from './opmlValidator';
 import { DotValidator } from './dotValidator';
 import { ApplePanelsValidator } from './applePanelsValidator';
 import { ObfsetValidator } from './obfsetValidator';
-import { getBasename, getFs, readBinaryFromInput } from '../utils/io';
+import {
+  getBasename,
+  getFs,
+  isNodeRuntime,
+  readBinaryFromInput,
+  toUint8Array,
+  type ProcessorInput,
+} from '../utils/io';
 
 export function getValidatorForFormat(format: string): BaseValidator | null {
   switch (format.toLowerCase()) {
@@ -123,7 +130,7 @@ export function getValidatorForFile(filename: string): BaseValidator | null {
  * will be used if available to access nested resources.
  */
 export async function validateFileOrBuffer(
-  filePathOrBuffer: string | Buffer,
+  filePathOrBuffer: ProcessorInput,
   filenameHint?: string
 ): Promise<ValidationResult> {
   const isPath = typeof filePathOrBuffer === 'string';
@@ -135,6 +142,9 @@ export async function validateFileOrBuffer(
   }
 
   if (isPath) {
+    if (!isNodeRuntime()) {
+      throw new Error('File path validation is only supported in Node.js environments.');
+    }
     const ctor = validator.constructor as typeof BaseValidator & {
       validateFile?: (filePath: string) => Promise<ValidationResult>;
     };
@@ -148,8 +158,6 @@ export async function validateFileOrBuffer(
     return validator.validate(buf, getBasename(filePathOrBuffer), stats.size);
   }
 
-  const buffer = Buffer.isBuffer(filePathOrBuffer)
-    ? filePathOrBuffer
-    : Buffer.from(filePathOrBuffer);
+  const buffer = toUint8Array(filePathOrBuffer);
   return validator.validate(buffer, name, buffer.byteLength);
 }

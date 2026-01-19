@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/require-await */
 import { BaseValidator } from './baseValidator';
 import { ValidationResult } from './validationTypes';
-import { getBasename, getFs, readBinaryFromInput } from '../utils/io';
+import { decodeText, getBasename, getFs, readBinaryFromInput, toUint8Array } from '../utils/io';
 
 /**
  * Validator for Graphviz DOT files
@@ -19,7 +19,14 @@ export class DotValidator extends BaseValidator {
     if (name.endsWith('.dot')) return true;
 
     try {
-      const str = Buffer.isBuffer(content) ? content.toString('utf-8') : String(content);
+      if (
+        typeof content !== 'string' &&
+        !(content instanceof ArrayBuffer) &&
+        !(content instanceof Uint8Array)
+      ) {
+        return false;
+      }
+      const str = typeof content === 'string' ? content : decodeText(toUint8Array(content));
       return str.includes('digraph') || str.includes('->');
     } catch {
       return false;
@@ -41,7 +48,7 @@ export class DotValidator extends BaseValidator {
 
     let text = '';
     await this.add_check('text', 'text content', async () => {
-      text = Buffer.isBuffer(content) ? content.toString('utf-8') : String(content);
+      text = decodeText(content);
       if (!text.trim()) {
         this.err('DOT file is empty', true);
       }

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/require-await */
 import { BaseValidator } from './baseValidator';
 import { ValidationResult } from './validationTypes';
-import { getBasename, getFs, readBinaryFromInput } from '../utils/io';
+import { decodeText, getBasename, getFs, readBinaryFromInput, toUint8Array } from '../utils/io';
 
 /**
  * Validator for OBF set bundles (.obfset) - JSON arrays of boards
@@ -19,7 +19,14 @@ export class ObfsetValidator extends BaseValidator {
     if (name.endsWith('.obfset')) return true;
 
     try {
-      const str = Buffer.isBuffer(content) ? content.toString('utf-8') : String(content);
+      if (
+        typeof content !== 'string' &&
+        !(content instanceof ArrayBuffer) &&
+        !(content instanceof Uint8Array)
+      ) {
+        return false;
+      }
+      const str = typeof content === 'string' ? content : decodeText(toUint8Array(content));
       const parsed = JSON.parse(str);
       return Array.isArray(parsed);
     } catch {
@@ -43,7 +50,7 @@ export class ObfsetValidator extends BaseValidator {
     let boards: any[] | null = null;
     await this.add_check('json_parse', 'valid JSON array', async () => {
       try {
-        const str = Buffer.isBuffer(content) ? content.toString('utf-8') : String(content);
+        const str = decodeText(content);
         const parsed = JSON.parse(str);
         if (!Array.isArray(parsed)) {
           this.err('root must be a JSON array of boards', true);
