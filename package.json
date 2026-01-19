@@ -67,6 +67,14 @@
     "./validation": {
       "types": "./dist/validation.d.ts",
       "default": "./dist/validation.js"
+    },
+    "./metrics": {
+      "types": "./dist/metrics.d.ts",
+      "default": "./dist/metrics.js"
+    },
+    "./analytics": {
+      "types": "./dist/analytics.d.ts",
+      "default": "./dist/analytics.js"
     }
   },
   "files": [

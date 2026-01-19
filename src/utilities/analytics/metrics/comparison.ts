@@ -8,19 +8,19 @@
 import { MetricsResult, ButtonMetrics, ComparisonResult } from './types';
 import { SentenceAnalyzer } from './sentence';
 import { VocabularyAnalyzer } from './vocabulary';
-import { ReferenceLoader } from '../reference/index';
+import { ReferenceLoader, type ReferenceDataProvider } from '../reference/index';
 import { spellingEffort, predictionEffort } from './effort';
 import { MetricsOptions } from './types';
 
 export class ComparisonAnalyzer {
   private vocabAnalyzer: VocabularyAnalyzer;
   private sentenceAnalyzer: SentenceAnalyzer;
-  private referenceLoader: ReferenceLoader;
+  private referenceLoader: ReferenceDataProvider;
 
-  constructor() {
-    this.vocabAnalyzer = new VocabularyAnalyzer();
+  constructor(referenceLoader?: ReferenceDataProvider) {
+    this.vocabAnalyzer = new VocabularyAnalyzer(referenceLoader);
     this.sentenceAnalyzer = new SentenceAnalyzer();
-    this.referenceLoader = new ReferenceLoader();
+    this.referenceLoader = referenceLoader || new ReferenceLoader();
   }
 
   private normalize(word: string): string {
