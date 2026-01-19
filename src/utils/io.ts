@@ -4,6 +4,7 @@ export type BinaryOutput = Buffer | Uint8Array;
 
 let cachedFs: typeof import('fs') | null = null;
 let cachedPath: typeof import('path') | null = null;
+let cachedOs: typeof import('os') | null = null;
 let cachedRequire: NodeRequire | null | undefined = undefined;
 
 type NodeRequire = (id: string) => any;
@@ -55,6 +56,26 @@ export function getPath(): typeof import('path') {
     throw new Error('Path utilities are not available in this environment.');
   }
   return cachedPath;
+}
+
+export function getOs(): typeof import('os') {
+  if (!cachedOs) {
+    try {
+      const nodeRequire = getNodeRequire();
+      const osModule = 'os';
+      cachedOs = nodeRequire(osModule);
+    } catch {
+      throw new Error('OS utilities are not available in this environment.');
+    }
+  }
+  if (!cachedOs) {
+    throw new Error('OS utilities are not available in this environment.');
+  }
+  return cachedOs;
+}
+
+export function isNodeRuntime(): boolean {
+  return typeof process !== 'undefined' && !!process.versions?.node;
 }
 
 export function getBasename(filePath: string): string {

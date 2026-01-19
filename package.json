@@ -151,6 +151,7 @@
     "@types/jest": "^29.5.12",
     "@types/node": "^20.11.24",
     "@types/plist": "^3.0.5",
+    "@types/sql.js": "^1.4.9",
     "@typescript-eslint/eslint-plugin": "^7.1.0",
     "@typescript-eslint/parser": "^7.1.0",
     "eslint": "^8.56.0",
@@ -174,6 +175,7 @@
     "fast-xml-parser": "^5.2.0",
     "jszip": "^3.10.1",
     "plist": "^3.1.0",
+    "sql.js": "^1.13.0",
     "xml2js": "^0.6.2",
     "yauzl": "^3.2.0"
   },

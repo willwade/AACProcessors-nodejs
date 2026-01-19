@@ -16,6 +16,7 @@
     "@willwade/aac-processors": "file:../..",
     "events": "^3.3.0",
     "jszip": "^3.10.1",
+    "sql.js": "^1.13.0",
     "stream-browserify": "^3.0.0",
     "timers-browserify": "^2.0.12",
     "util": "^0.12.5"

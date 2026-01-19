@@ -11,7 +11,8 @@ import * as path from 'path';
 import { execSync } from 'child_process';
 import Database from 'better-sqlite3';
 import { dotNetTicksToDate } from '../../utils/dotnetTicks';
-import { getZipEntriesWithPassword, resolveGridsetPasswordFromEnv } from './password';
+import { getZipEntriesFromAdapter, resolveGridsetPasswordFromEnv } from './password';
+import { openZipFromInput } from '../../utils/zip';
 
 function normalizeZipPath(p: string): string {
   const unified = p.replace(/\\/g, '/');
@@ -64,10 +65,8 @@ export async function openImage(
   password = resolveGridsetPasswordFromEnv()
 ): Promise<Uint8Array | null> {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const JSZip = require('jszip') as typeof import('jszip');
-    const zip = await JSZip.loadAsync(gridsetBuffer);
-    const entries = getZipEntriesWithPassword(zip, password);
+    const { zip } = await openZipFromInput(gridsetBuffer);
+    const entries = getZipEntriesFromAdapter(zip, password);
     const want = normalizeZipPath(entryPath);
     const entry = entries.find((e) => normalizeZipPath(e.entryName) === want);
     if (!entry) return null;

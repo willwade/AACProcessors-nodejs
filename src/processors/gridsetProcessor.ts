@@ -23,7 +23,11 @@ import {
   type ButtonForTranslation,
   type LLMLTranslationResult,
 } from '../utilities/translation/translationProcessor';
-import { getZipEntriesWithPassword, resolveGridsetPassword } from './gridset/password';
+import {
+  getZipEntriesFromAdapter,
+  resolveGridsetPassword,
+  type ZipEntry,
+} from './gridset/password';
 import { decryptGridsetEntry } from './gridset/crypto';
 import { GridsetValidator } from '../validation/gridsetValidator';
 import { ValidationResult } from '../validation/validationTypes';
@@ -34,33 +38,15 @@ import { type SymbolReference, parseSymbolReference } from './gridset/symbols';
 import { isSymbolLibraryReference } from './gridset/resolver';
 import { generateCloneId } from '../utilities/analytics/utils/idGenerator';
 import { translateWithSymbols, extractSymbolsFromButton } from './gridset/symbolAlignment';
-import { ProcessorInput, readBinaryFromInput, decodeText, writeBinaryToPath } from '../utils/io';
-import type JSZip from 'jszip';
-// Use dynamic import for JSZip to support both browser and Node environments
-type JSZipStatic = typeof JSZip;
-let JSZipModule: JSZipStatic | undefined;
-async function getJSZip(): Promise<JSZipStatic> {
-  if (!JSZipModule) {
-    try {
-      // Try ES module import first (browser/Vite)
-      const module = await import('jszip');
-      JSZipModule = module.default || module;
-    } catch (error) {
-      // Fall back to CommonJS require (Node.js)
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const module = require('jszip');
-        JSZipModule = module.default || module;
-      } catch (err2) {
-        throw new Error('Zip handling requires JSZip in this environment.');
-      }
-    }
-  }
-  if (!JSZipModule) {
-    throw new Error('Zip handling requires JSZip in this environment.');
-  }
-  return JSZipModule;
-}
+import {
+  ProcessorInput,
+  readBinaryFromInput,
+  decodeText,
+  writeBinaryToPath,
+  getNodeRequire,
+  isNodeRuntime,
+} from '../utils/io';
+import { openZipFromInput } from '../utils/zip';
 
 class GridsetProcessor extends BaseProcessor {
   constructor(options?: ProcessorOptions) {
@@ -454,16 +440,14 @@ class GridsetProcessor extends BaseProcessor {
   async loadIntoTree(filePathOrBuffer: ProcessorInput): Promise<AACTree> {
     const tree = new AACTree();
 
-    let zip: JSZip;
+    let zipResult: Awaited<ReturnType<typeof openZipFromInput>>;
     try {
-      const JSZip = await getJSZip();
-      const zipInput = readBinaryFromInput(filePathOrBuffer);
-      zip = await JSZip.loadAsync(zipInput);
+      zipResult = await openZipFromInput(readBinaryFromInput(filePathOrBuffer));
     } catch (error: any) {
       throw new Error(`Invalid ZIP file format: ${error.message}`);
     }
     const password = this.getGridsetPassword(filePathOrBuffer);
-    const entries = getZipEntriesWithPassword(zip, password);
+    const entries = getZipEntriesFromAdapter(zipResult.zip, password);
     const parser = new XMLParser({ ignoreAttributes: false });
     const isEncryptedArchive =
       typeof filePathOrBuffer === 'string' && filePathOrBuffer.toLowerCase().endsWith('.gridsetx');
@@ -476,15 +460,12 @@ class GridsetProcessor extends BaseProcessor {
       passwordProtected: !!password,
     };
 
-    const readEntryBuffer = async (entry: any): Promise<Uint8Array> => {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-argument
+    const readEntryBuffer = async (entry: ZipEntry): Promise<Uint8Array> => {
       const raw = await entry.getData();
       if (!isEncryptedArchive) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
         return raw;
       }
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-return
-      return decryptGridsetEntry(raw, encryptedContentPassword);
+      return decryptGridsetEntry(Buffer.from(raw), encryptedContentPassword);
     };
 
     // Parse FileMap.xml if present to index dynamic files per grid
@@ -855,7 +836,7 @@ class GridsetProcessor extends BaseProcessor {
             const dynamicFiles = fileMapIndex.get(gridEntryPath) || [];
             const resolvedImageEntry =
               resolveGrid3CellImage(
-                zip,
+                null,
                 {
                   baseDir,
                   imageName: declaredImageName,
@@ -1788,12 +1769,37 @@ class GridsetProcessor extends BaseProcessor {
   }
 
   async saveFromTree(tree: AACTree, outputPath: string): Promise<void> {
-    const JSZip = await getJSZip();
-    const zip = new JSZip();
+    const useNodeZip = isNodeRuntime();
+    let addText: (entryPath: string, content: string) => void;
+    let addBinary: (entryPath: string, content: Uint8Array) => void;
+    let finalizeZip: () => Promise<Uint8Array>;
+
+    if (useNodeZip) {
+      const AdmZip = getNodeRequire()('adm-zip') as typeof import('adm-zip');
+      const zip = new AdmZip();
+      addText = (entryPath: string, content: string) => {
+        zip.addFile(entryPath, Buffer.from(content, 'utf8'));
+      };
+      addBinary = (entryPath: string, content: Uint8Array) => {
+        zip.addFile(entryPath, Buffer.from(content));
+      };
+      finalizeZip = () => Promise.resolve(zip.toBuffer());
+    } else {
+      const module = await import('jszip');
+      const JSZip = module.default || module;
+      const zip = new JSZip();
+      addText = (entryPath: string, content: string) => {
+        zip.file(entryPath, content, { binary: false });
+      };
+      addBinary = (entryPath: string, content: Uint8Array) => {
+        zip.file(entryPath, content);
+      };
+      finalizeZip = async () => zip.generateAsync({ type: 'uint8array' });
+    }
 
     if (Object.keys(tree.pages).length === 0) {
       // Create empty zip for empty tree
-      const zipBuffer = await zip.generateAsync({ type: 'uint8array' });
+      const zipBuffer = await finalizeZip();
       writeBinaryToPath(outputPath, zipBuffer);
       return;
     }
@@ -1877,7 +1883,7 @@ class GridsetProcessor extends BaseProcessor {
       suppressEmptyNode: true,
     });
     const settingsXmlContent = settingsBuilder.build(settingsData);
-    zip.file('Settings0/settings.xml', settingsXmlContent, { binary: false });
+    addText('Settings0/settings.xml', settingsXmlContent);
 
     // Create Settings0/Styles/style.xml if there are styles
     if (uniqueStyles.size > 0) {
@@ -1915,7 +1921,7 @@ class GridsetProcessor extends BaseProcessor {
         indentBy: '  ',
       });
       const styleXmlContent = styleBuilder.build(styleData);
-      zip.file('Settings0/Styles/styles.xml', styleXmlContent, { binary: false });
+      addText('Settings0/Styles/styles.xml', styleXmlContent);
     }
 
     // Collect grid file paths for FileMap.xml
@@ -2084,7 +2090,7 @@ class GridsetProcessor extends BaseProcessor {
       // Add to zip in Grids folder with proper Grid3 naming
       const gridPath = `Grids/${page.name || page.id}/grid.xml`;
       gridFilePaths.push(gridPath);
-      zip.file(gridPath, xmlContent, { binary: false });
+      addText(gridPath, xmlContent);
     });
 
     // Write image files to ZIP
@@ -2092,7 +2098,7 @@ class GridsetProcessor extends BaseProcessor {
       if (imgData.imageData && imgData.imageData.length > 0) {
         // Create image path in the grid's directory
         const imagePath = `Grids/${imgData.pageName}/${imgData.x}-${imgData.y}-0-text-0.${imgData.ext}`;
-        zip.file(imagePath, imgData.imageData);
+        addBinary(imagePath, imgData.imageData);
       }
     });
 
@@ -2136,10 +2142,10 @@ class GridsetProcessor extends BaseProcessor {
       indentBy: '  ',
     });
     const fileMapXmlContent = fileMapBuilder.build(fileMapData);
-    zip.file('FileMap.xml', fileMapXmlContent, { binary: false });
+    addText('FileMap.xml', fileMapXmlContent);
 
     // Write the zip file
-    const zipBuffer = await zip.generateAsync({ type: 'uint8array' });
+    const zipBuffer = await finalizeZip();
     writeBinaryToPath(outputPath, zipBuffer);
   }
 

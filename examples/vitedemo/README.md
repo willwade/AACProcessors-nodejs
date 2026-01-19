@@ -5,7 +5,7 @@ A real browser demo that uses Vite to bundle AACProcessors for browser use.
 ## Features
 
 - ✅ **Real file processing** - Upload and process actual AAC files
-- ✅ **All browser-compatible processors** - Tests Dot, OPML, OBF/OBZ, Gridset, ApplePanels, AstericsGrid
+- ✅ **All browser-compatible processors** - Tests Dot, OPML, OBF/OBZ, Gridset, Snap, TouchChat, ApplePanels, AstericsGrid
 - ✅ **Interactive UI** - Drag & drop files, view pages and buttons
 - ✅ **Text-to-speech** - Click SPEAK buttons to hear messages (browser speech API)
 - ✅ **Navigation** - Click NAVIGATE buttons to jump between pages
@@ -35,15 +35,14 @@ The demo will open automatically at: http://localhost:3000
 This demo is intended for `npm run dev` only. The production build currently fails because the
 demo source includes strict TypeScript issues, so it will not work "out of the box."
 
-If you need a no-build browser check, use the browser test page served by:
-`node examples/browser-test-server.js`
+This demo is the recommended browser test environment.
 
 ## How to Use
 
 1. **Upload a file**
    - Drag & drop an AAC file onto the upload area
    - Or click to open file picker
-   - Supported formats: .dot, .opml, .obf, .obz, .gridset, .plist, .grd
+   - Supported formats: .dot, .opml, .obf, .obz, .gridset, .sps, .spb, .ce, .plist, .grd
 
 2. **Process the file**
    - Click "Process File" button
@@ -57,7 +56,7 @@ If you need a no-build browser check, use the browser test page served by:
 4. **Run compatibility tests**
    - Click "Run Compatibility Tests"
    - See test results in the left panel
-   - Tests all 6 browser-compatible processors
+   - Tests all browser-compatible processors
 
 ## Supported File Types
 
@@ -67,6 +66,8 @@ If you need a no-build browser check, use the browser test page served by:
 | OPML     | .opml           | OpmlProcessor           |
 | OBF/OBZ  | .obf, .obz      | ObfProcessor            |
 | Gridset  | .gridset        | GridsetProcessor        |
+| Snap     | .sps, .spb      | SnapProcessor           |
+| TouchChat| .ce             | TouchChatProcessor      |
 | Apple    | .plist          | ApplePanelsProcessor    |
 | Asterics | .grd            | AstericsGridProcessor   |
 
@@ -102,10 +103,15 @@ export default defineConfig({
 
 This allows direct TypeScript import without pre-building.
 
-### Import Example
+### Import Example (with SQLite WASM)
 
 ```typescript
-import { getProcessor } from 'aac-processors';
+import { configureSqlJs, getProcessor } from 'aac-processors';
+import sqlWasmUrl from 'sql.js/dist/sql-wasm.wasm?url';
+
+configureSqlJs({
+  locateFile: () => sqlWasmUrl
+});
 
 // Get processor for file type
 const processor = getProcessor('.obf');

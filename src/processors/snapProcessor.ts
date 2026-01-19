@@ -15,14 +15,10 @@ import {
   SnapMetadata,
 } from '../core/treeStructure';
 import { generateCloneId } from '../utilities/analytics/utils/idGenerator';
-import Database from 'better-sqlite3';
-import path from 'path';
-import fs from 'fs';
-import crypto from 'crypto';
-import os from 'os';
 import { SnapValidator } from '../validation/snapValidator';
 import { ValidationResult } from '../validation/validationTypes';
-import { ProcessorInput } from '../utils/io';
+import { ProcessorInput, getFs, getNodeRequire, getPath, isNodeRuntime } from '../utils/io';
+import { openSqliteDatabase, requireBetterSqlite3 } from '../utils/sqlite';
 
 interface SnapButton {
   Id: number;
@@ -105,25 +101,10 @@ class SnapProcessor extends BaseProcessor {
   async loadIntoTree(filePathOrBuffer: ProcessorInput): Promise<AACTree> {
     await Promise.resolve();
     const tree = new AACTree();
-    let tempDir: string | null = null;
-    const filePath =
-      typeof filePathOrBuffer !== 'string'
-        ? (() => {
-            tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'snap-'));
-            return path.join(tempDir, 'input.spb');
-          })()
-        : filePathOrBuffer;
-
-    if (typeof filePathOrBuffer !== 'string') {
-      const buffer = Buffer.isBuffer(filePathOrBuffer)
-        ? filePathOrBuffer
-        : Buffer.from(filePathOrBuffer);
-      fs.writeFileSync(filePath, buffer);
-    }
-
-    let db: any = null;
+    let dbResult: Awaited<ReturnType<typeof openSqliteDatabase>> | null = null;
     try {
-      db = new Database(filePath, { readonly: true });
+      dbResult = await openSqliteDatabase(filePathOrBuffer, { readonly: true });
+      const db = dbResult.db;
 
       const getTableColumns = (tableName: string): Set<string> => {
         try {
@@ -137,7 +118,7 @@ class SnapProcessor extends BaseProcessor {
       };
 
       // Load pages first, using UniqueId as canonical id
-      const pages = db.prepare('SELECT * FROM Page').all() as any[];
+      const pages = db.prepare('SELECT * FROM Page').all();
 
       // Load PageSetProperties to find default Keyboard and Home pages
       let defaultKeyboardPageId: string | undefined;
@@ -430,10 +411,11 @@ class SnapProcessor extends BaseProcessor {
              ${hasCommandSequence ? 'LEFT JOIN CommandSequence cs ON b.Id = cs.ButtonId' : ''}
              WHERE er.PageId = ? ${selectedPageLayoutId ? 'AND ep.PageLayoutId = ?' : ''}
            `;
-          const queryParams = selectedPageLayoutId
-            ? [pageRow.Id, selectedPageLayoutId]
-            : [pageRow.Id];
-          buttons = db.prepare(buttonQuery).all(...queryParams);
+          if (selectedPageLayoutId) {
+            buttons = db.prepare(buttonQuery).all(pageRow.Id, selectedPageLayoutId);
+          } else {
+            buttons = db.prepare(buttonQuery).all(pageRow.Id);
+          }
         } catch (err) {
           const errorMessage = err instanceof Error ? err.message : String(err);
           const errorCode =
@@ -724,18 +706,10 @@ class SnapProcessor extends BaseProcessor {
         throw new Error(`Failed to load Snap file: ${error.message}`);
       }
     } finally {
-      // Ensure database is closed
-      if (db) {
-        db.close();
-      }
-
-      // Clean up temporary file if created from buffer
-      if (tempDir && fs.existsSync(tempDir)) {
-        try {
-          fs.rmSync(tempDir, { recursive: true, force: true });
-        } catch (e) {
-          console.warn('Failed to clean up temporary files:', e);
-        }
+      if (dbResult?.cleanup) {
+        dbResult.cleanup();
+      } else if (dbResult?.db) {
+        dbResult.db.close();
       }
     }
   }
@@ -745,6 +719,9 @@ class SnapProcessor extends BaseProcessor {
     translations: Map<string, string>,
     outputPath: string
   ): Promise<Uint8Array> {
+    if (!isNodeRuntime()) {
+      throw new Error('processTexts is only supported in Node.js environments for Snap files.');
+    }
     // Load the tree, apply translations, and save to new file
     const tree = await this.loadIntoTree(filePathOrBuffer);
 
@@ -777,11 +754,17 @@ class SnapProcessor extends BaseProcessor {
 
     // Save the translated tree and return its content
     await this.saveFromTree(tree, outputPath);
+    const fs = getFs();
     return fs.readFileSync(outputPath);
   }
 
   async saveFromTree(tree: AACTree, outputPath: string): Promise<void> {
+    if (!isNodeRuntime()) {
+      throw new Error('saveFromTree is only supported in Node.js environments for Snap files.');
+    }
     await Promise.resolve();
+    const fs = getFs();
+    const path = getPath();
     const outputDir = path.dirname(outputPath);
     if (!fs.existsSync(outputDir)) {
       fs.mkdirSync(outputDir, { recursive: true });
@@ -790,6 +773,7 @@ class SnapProcessor extends BaseProcessor {
       fs.unlinkSync(outputPath);
     }
     // Create a new SQLite database for Snap format
+    const Database = requireBetterSqlite3();
     const db = new Database(outputPath, { readonly: false });
 
     try {
@@ -1048,6 +1032,11 @@ class SnapProcessor extends BaseProcessor {
     metadata?: string
   ): Promise<number> {
     await Promise.resolve();
+    if (!isNodeRuntime()) {
+      throw new Error('addAudioToButton is only supported in Node.js environments.');
+    }
+    const Database = requireBetterSqlite3();
+    const crypto = getNodeRequire()('crypto') as typeof import('crypto');
     const db = new Database(dbPath, { fileMustExist: true });
 
     try {
@@ -1101,6 +1090,10 @@ class SnapProcessor extends BaseProcessor {
     targetDbPath: string,
     audioMappings: Map<number, { audioData: Uint8Array; metadata?: string }>
   ): Promise<void> {
+    if (!isNodeRuntime()) {
+      throw new Error('createAudioEnhancedPageset is only supported in Node.js environments.');
+    }
+    const fs = getFs();
     // Copy the source database to target
     fs.copyFileSync(sourceDbPath, targetDbPath);
 
@@ -1122,6 +1115,10 @@ class SnapProcessor extends BaseProcessor {
     message: string;
     hasAudio: boolean;
   }> {
+    if (!isNodeRuntime()) {
+      throw new Error('extractButtonsForAudio is only supported in Node.js environments.');
+    }
+    const Database = requireBetterSqlite3();
     const db = new Database(dbPath, { readonly: true });
 
     try {
@@ -1199,6 +1196,11 @@ class SnapProcessor extends BaseProcessor {
    * @returns Array of available PageLayouts with their dimensions
    */
   getAvailablePageLayouts(filePath: string): PageLayoutInfo[] {
+    if (!isNodeRuntime()) {
+      throw new Error('getAvailablePageLayouts is only supported in Node.js environments.');
+    }
+    const fs = getFs();
+    const path = getPath();
     const dbPath = typeof filePath === 'string' ? filePath : path.join(process.cwd(), 'temp.spb');
 
     if (Buffer.isBuffer(filePath)) {
@@ -1207,6 +1209,7 @@ class SnapProcessor extends BaseProcessor {
 
     let db: any = null;
     try {
+      const Database = requireBetterSqlite3();
       db = new Database(dbPath, { readonly: true });
 
       // Get unique PageLayouts based on PageLayoutSetting (dimensions)

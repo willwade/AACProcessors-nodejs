@@ -64,6 +64,7 @@ export { ensureAlphaChannel, darkenColor, lightenColor, hexToRgba, rgbaToHex } f
 export {
   resolveGridsetPassword,
   getZipEntriesWithPassword,
+  getZipEntriesFromAdapter,
   resolveGridsetPasswordFromEnv,
 } from './password';
 

@@ -66,18 +66,27 @@ if (typeof (window as any).Buffer === 'undefined') {
 }
 
 import {
+  configureSqlJs,
   getProcessor,
   getSupportedExtensions,
   DotProcessor,
   OpmlProcessor,
   ObfProcessor,
   GridsetProcessor,
+  SnapProcessor,
+  TouchChatProcessor,
   ApplePanelsProcessor,
   AstericsGridProcessor,
   AACTree,
   AACPage,
   AACButton
 } from 'aac-processors';
+
+import sqlWasmUrl from 'sql.js/dist/sql-wasm.wasm?url';
+
+configureSqlJs({
+  locateFile: () => sqlWasmUrl
+});
 
 // UI Elements
 const dropArea = document.getElementById('dropArea') as HTMLElement;
@@ -717,11 +726,15 @@ runTestsBtn.addEventListener('click', async () => {
         const opmlProc = getProcessor('.opml');
         const obfProc = getProcessor('.obf');
         const gridsetProc = getProcessor('.gridset');
+        const snapProc = getProcessor('.sps');
+        const touchChatProc = getProcessor('.ce');
         return (
           dotProc instanceof DotProcessor &&
           opmlProc instanceof OpmlProcessor &&
           obfProc instanceof ObfProcessor &&
-          gridsetProc instanceof GridsetProcessor
+          gridsetProc instanceof GridsetProcessor &&
+          snapProc instanceof SnapProcessor &&
+          touchChatProc instanceof TouchChatProcessor
         );
       }
     },
@@ -729,7 +742,18 @@ runTestsBtn.addEventListener('click', async () => {
       name: 'getSupportedExtensions() returns all extensions',
       fn: async () => {
         const extensions = getSupportedExtensions();
-        const expected = ['.dot', '.opml', '.obf', '.obz', '.gridset', '.plist', '.grd'];
+        const expected = [
+          '.dot',
+          '.opml',
+          '.obf',
+          '.obz',
+          '.gridset',
+          '.spb',
+          '.sps',
+          '.ce',
+          '.plist',
+          '.grd'
+        ];
         return expected.every((ext) => extensions.includes(ext));
       }
     },
@@ -771,6 +795,28 @@ runTestsBtn.addEventListener('click', async () => {
       fn: async () => {
         try {
           new GridsetProcessor();
+          return true;
+        } catch {
+          return false;
+        }
+      }
+    },
+    {
+      name: 'SnapProcessor instantiation',
+      fn: async () => {
+        try {
+          new SnapProcessor();
+          return true;
+        } catch {
+          return false;
+        }
+      }
+    },
+    {
+      name: 'TouchChatProcessor instantiation',
+      fn: async () => {
+        try {
+          new TouchChatProcessor();
           return true;
         } catch {
           return false;
