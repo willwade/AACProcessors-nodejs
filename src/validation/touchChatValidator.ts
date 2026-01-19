@@ -1,11 +1,10 @@
 /* eslint-disable @typescript-eslint/require-await */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
-import * as fs from 'fs';
-import * as path from 'path';
 import * as xml2js from 'xml2js';
 import { BaseValidator } from './baseValidator';
 import { ValidationResult } from './validationTypes';
+import { decodeText, getBasename, getFs, readBinaryFromInput, toUint8Array } from '../utils/io';
 
 /**
  * Validator for TouchChat files (.ce)
@@ -21,9 +20,9 @@ export class TouchChatValidator extends BaseValidator {
    */
   static async validateFile(filePath: string): Promise<ValidationResult> {
     const validator = new TouchChatValidator();
-    const content = fs.readFileSync(filePath);
-    const stats = fs.statSync(filePath);
-    return validator.validate(content, path.basename(filePath), stats.size);
+    const content = readBinaryFromInput(filePath);
+    const stats = getFs().statSync(filePath);
+    return validator.validate(content, getBasename(filePath), stats.size);
   }
 
   /**
@@ -37,7 +36,7 @@ export class TouchChatValidator extends BaseValidator {
 
     // Try to parse as XML and check for TouchChat structure
     try {
-      const contentStr = Buffer.isBuffer(content) ? content.toString('utf-8') : content;
+      const contentStr = typeof content === 'string' ? content : decodeText(toUint8Array(content));
       const parser = new xml2js.Parser();
       const result = await parser.parseStringPromise(contentStr);
       // TouchChat files typically have specific structure
@@ -67,7 +66,7 @@ export class TouchChatValidator extends BaseValidator {
     await this.add_check('xml_parse', 'valid XML', async () => {
       try {
         const parser = new xml2js.Parser();
-        const contentStr = content.toString('utf-8');
+        const contentStr = decodeText(content);
         xmlObj = await parser.parseStringPromise(contentStr);
       } catch (e: any) {
         this.err(`Failed to parse XML: ${e.message}`, true);

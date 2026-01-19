@@ -3,13 +3,32 @@ import path from 'path';
 
 export default defineConfig({
   resolve: {
-    alias: {
-      'aac-processors': path.resolve(__dirname, '../../src/index.browser.ts'),
-      stream: path.resolve(__dirname, 'node_modules/stream-browserify'),
-      events: path.resolve(__dirname, 'node_modules/events'),
-      timers: path.resolve(__dirname, 'node_modules/timers-browserify'),
-      util: path.resolve(__dirname, 'node_modules/util')
-    }
+    alias: [
+      {
+        find: /^aac-processors\/validation$/,
+        replacement: path.resolve(__dirname, '../../src/validation.ts'),
+      },
+      {
+        find: /^aac-processors$/,
+        replacement: path.resolve(__dirname, '../../src/index.browser.ts'),
+      },
+      {
+        find: /^stream$/,
+        replacement: path.resolve(__dirname, 'node_modules/stream-browserify'),
+      },
+      {
+        find: /^events$/,
+        replacement: path.resolve(__dirname, 'node_modules/events'),
+      },
+      {
+        find: /^timers$/,
+        replacement: path.resolve(__dirname, 'node_modules/timers-browserify'),
+      },
+      {
+        find: /^util$/,
+        replacement: path.resolve(__dirname, 'node_modules/util'),
+      },
+    ],
   },
   optimizeDeps: {
     exclude: ['aac-processors'],

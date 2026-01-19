@@ -1,8 +1,7 @@
 /* eslint-disable @typescript-eslint/require-await */
-import * as fs from 'fs';
-import * as path from 'path';
 import { BaseValidator } from './baseValidator';
 import { ValidationResult } from './validationTypes';
+import { decodeText, getBasename, getFs, readBinaryFromInput, toUint8Array } from '../utils/io';
 
 /**
  * Validator for OBF set bundles (.obfset) - JSON arrays of boards
@@ -10,9 +9,9 @@ import { ValidationResult } from './validationTypes';
 export class ObfsetValidator extends BaseValidator {
   static async validateFile(filePath: string): Promise<ValidationResult> {
     const validator = new ObfsetValidator();
-    const content = fs.readFileSync(filePath);
-    const stats = fs.statSync(filePath);
-    return validator.validate(content, path.basename(filePath), stats.size);
+    const content = readBinaryFromInput(filePath);
+    const stats = getFs().statSync(filePath);
+    return validator.validate(content, getBasename(filePath), stats.size);
   }
 
   static async identifyFormat(content: any, filename: string): Promise<boolean> {
@@ -20,7 +19,14 @@ export class ObfsetValidator extends BaseValidator {
     if (name.endsWith('.obfset')) return true;
 
     try {
-      const str = Buffer.isBuffer(content) ? content.toString('utf-8') : String(content);
+      if (
+        typeof content !== 'string' &&
+        !(content instanceof ArrayBuffer) &&
+        !(content instanceof Uint8Array)
+      ) {
+        return false;
+      }
+      const str = typeof content === 'string' ? content : decodeText(toUint8Array(content));
       const parsed = JSON.parse(str);
       return Array.isArray(parsed);
     } catch {
@@ -44,7 +50,7 @@ export class ObfsetValidator extends BaseValidator {
     let boards: any[] | null = null;
     await this.add_check('json_parse', 'valid JSON array', async () => {
       try {
-        const str = Buffer.isBuffer(content) ? content.toString('utf-8') : String(content);
+        const str = decodeText(content);
         const parsed = JSON.parse(str);
         if (!Array.isArray(parsed)) {
           this.err('root must be a JSON array of boards', true);

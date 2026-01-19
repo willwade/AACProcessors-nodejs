@@ -6,7 +6,7 @@
 import JSZip from 'jszip';
 import { BaseValidator } from './baseValidator';
 import { ValidationResult } from './validationTypes';
-import { getFs, getPath, readBinaryFromInput } from '../utils/io';
+import { decodeText, getBasename, getFs, readBinaryFromInput, toUint8Array } from '../utils/io';
 
 const OBF_FORMAT = 'open-board-0.1';
 const OBF_FORMAT_CURRENT_VERSION = 0.1;
@@ -26,7 +26,7 @@ export class ObfValidator extends BaseValidator {
     const validator = new ObfValidator();
     const content = readBinaryFromInput(filePath);
     const stats = getFs().statSync(filePath);
-    return validator.validate(content, getPath().basename(filePath), stats.size);
+    return validator.validate(content, getBasename(filePath), stats.size);
   }
 
   /**
@@ -40,7 +40,14 @@ export class ObfValidator extends BaseValidator {
 
     // Try to parse as JSON and check format
     try {
-      const contentStr = Buffer.isBuffer(content) ? content.toString() : content;
+      if (
+        typeof content !== 'string' &&
+        !(content instanceof ArrayBuffer) &&
+        !(content instanceof Uint8Array)
+      ) {
+        return false;
+      }
+      const contentStr = typeof content === 'string' ? content : decodeText(toUint8Array(content));
       const json = JSON.parse(contentStr);
       return json && json.format && json.format.startsWith('open-board-');
     } catch {
@@ -85,7 +92,7 @@ export class ObfValidator extends BaseValidator {
     let json: any = null;
     await this.add_check('valid_json', 'JSON file', async () => {
       try {
-        json = JSON.parse(content.toString());
+        json = JSON.parse(decodeText(content));
       } catch {
         this.err("Couldn't parse as JSON", true);
       }

@@ -1,9 +1,8 @@
 /* eslint-disable @typescript-eslint/require-await */
-import * as fs from 'fs';
-import * as path from 'path';
 import plist from 'plist';
 import { BaseValidator } from './baseValidator';
 import { ValidationResult } from './validationTypes';
+import { decodeText, getBasename, getFs, getPath, toUint8Array } from '../utils/io';
 
 type PanelsContainer = { panels?: any; Panels?: Record<string, any> };
 
@@ -13,8 +12,10 @@ type PanelsContainer = { panels?: any; Panels?: Record<string, any> };
 export class ApplePanelsValidator extends BaseValidator {
   static async validateFile(filePath: string): Promise<ValidationResult> {
     const validator = new ApplePanelsValidator();
+    const fs = getFs();
+    const path = getPath();
     let content: Buffer;
-    const filename = path.basename(filePath);
+    const filename = getBasename(filePath);
     let size = 0;
 
     const stats = fs.existsSync(filePath) ? fs.statSync(filePath) : null;
@@ -40,7 +41,14 @@ export class ApplePanelsValidator extends BaseValidator {
     }
 
     try {
-      const str = Buffer.isBuffer(content) ? content.toString('utf-8') : String(content);
+      if (
+        typeof content !== 'string' &&
+        !(content instanceof ArrayBuffer) &&
+        !(content instanceof Uint8Array)
+      ) {
+        return false;
+      }
+      const str = typeof content === 'string' ? content : decodeText(toUint8Array(content));
       const parsed = plist.parse(str) as PanelsContainer;
       return Boolean(parsed.panels || parsed.Panels);
     } catch {
@@ -64,7 +72,7 @@ export class ApplePanelsValidator extends BaseValidator {
     let parsed: PanelsContainer | null = null;
     await this.add_check('plist_parse', 'valid plist/XML', async () => {
       try {
-        const str = Buffer.isBuffer(content) ? content.toString('utf-8') : String(content);
+        const str = decodeText(content);
         parsed = plist.parse(str) as PanelsContainer;
       } catch (e: any) {
         this.err(`Failed to parse plist: ${e.message}`, true);

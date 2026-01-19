@@ -1,9 +1,8 @@
 /* eslint-disable @typescript-eslint/require-await */
-import * as fs from 'fs';
-import * as path from 'path';
 import { XMLParser, XMLValidator } from 'fast-xml-parser';
 import { BaseValidator } from './baseValidator';
 import { ValidationResult } from './validationTypes';
+import { decodeText, getBasename, getFs, readBinaryFromInput, toUint8Array } from '../utils/io';
 
 /**
  * Validator for OPML files
@@ -11,9 +10,9 @@ import { ValidationResult } from './validationTypes';
 export class OpmlValidator extends BaseValidator {
   static async validateFile(filePath: string): Promise<ValidationResult> {
     const validator = new OpmlValidator();
-    const content = fs.readFileSync(filePath);
-    const stats = fs.statSync(filePath);
-    return validator.validate(content, path.basename(filePath), stats.size);
+    const content = readBinaryFromInput(filePath);
+    const stats = getFs().statSync(filePath);
+    return validator.validate(content, getBasename(filePath), stats.size);
   }
 
   static async identifyFormat(content: any, filename: string): Promise<boolean> {
@@ -23,7 +22,14 @@ export class OpmlValidator extends BaseValidator {
     }
 
     try {
-      const str = Buffer.isBuffer(content) ? content.toString('utf-8') : String(content);
+      if (
+        typeof content !== 'string' &&
+        !(content instanceof ArrayBuffer) &&
+        !(content instanceof Uint8Array)
+      ) {
+        return false;
+      }
+      const str = typeof content === 'string' ? content : decodeText(toUint8Array(content));
       const validation = XMLValidator.validate(str);
       if (validation !== true) {
         return false;
@@ -52,7 +58,7 @@ export class OpmlValidator extends BaseValidator {
 
     let text = '';
     await this.add_check('content', 'non-empty content', async () => {
-      text = Buffer.isBuffer(content) ? content.toString('utf-8') : String(content);
+      text = decodeText(content);
       if (!text.trim()) {
         this.err('OPML file is empty', true);
       }

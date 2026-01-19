@@ -1,8 +1,7 @@
 /* eslint-disable @typescript-eslint/require-await */
-import * as fs from 'fs';
-import * as path from 'path';
 import { BaseValidator } from './baseValidator';
 import { ValidationResult } from './validationTypes';
+import { decodeText, getBasename, getFs, readBinaryFromInput, toUint8Array } from '../utils/io';
 
 /**
  * Validator for Asterics Grid (.grd) JSON files
@@ -13,9 +12,9 @@ export class AstericsGridValidator extends BaseValidator {
    */
   static async validateFile(filePath: string): Promise<ValidationResult> {
     const validator = new AstericsGridValidator();
-    const content = fs.readFileSync(filePath);
-    const stats = fs.statSync(filePath);
-    return validator.validate(content, path.basename(filePath), stats.size);
+    const content = readBinaryFromInput(filePath);
+    const stats = getFs().statSync(filePath);
+    return validator.validate(content, getBasename(filePath), stats.size);
   }
 
   /**
@@ -28,7 +27,14 @@ export class AstericsGridValidator extends BaseValidator {
     }
 
     try {
-      const str = Buffer.isBuffer(content) ? content.toString('utf-8') : String(content);
+      if (
+        typeof content !== 'string' &&
+        !(content instanceof ArrayBuffer) &&
+        !(content instanceof Uint8Array)
+      ) {
+        return false;
+      }
+      const str = typeof content === 'string' ? content : decodeText(toUint8Array(content));
       const json = JSON.parse(str);
       return Array.isArray(json?.grids);
     } catch {
@@ -52,7 +58,7 @@ export class AstericsGridValidator extends BaseValidator {
     let json: any = null;
     await this.add_check('json_parse', 'valid JSON', async () => {
       try {
-        let str = Buffer.isBuffer(content) ? content.toString('utf-8') : String(content);
+        let str = decodeText(content);
         if (str.charCodeAt(0) === 0xfeff) {
           str = str.slice(1);
         }

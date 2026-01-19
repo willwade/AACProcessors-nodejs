@@ -1,11 +1,10 @@
 /* eslint-disable @typescript-eslint/require-await */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
-import * as fs from 'fs';
-import * as path from 'path';
 import * as xml2js from 'xml2js';
 import JSZip from 'jszip';
 import { BaseValidator } from './baseValidator';
 import { ValidationResult } from './validationTypes';
+import { getBasename, getFs, readBinaryFromInput, toUint8Array } from '../utils/io';
 
 /**
  * Validator for Snap files (.spb, .sps)
@@ -21,9 +20,9 @@ export class SnapValidator extends BaseValidator {
    */
   static async validateFile(filePath: string): Promise<ValidationResult> {
     const validator = new SnapValidator();
-    const content = fs.readFileSync(filePath);
-    const stats = fs.statSync(filePath);
-    return validator.validate(content, path.basename(filePath), stats.size);
+    const content = readBinaryFromInput(filePath);
+    const stats = getFs().statSync(filePath);
+    return validator.validate(content, getBasename(filePath), stats.size);
   }
 
   /**
@@ -38,8 +37,7 @@ export class SnapValidator extends BaseValidator {
 
     // Try to parse as ZIP and check for Snap structure
     try {
-      const buffer = Buffer.isBuffer(content) ? content : Buffer.from(content);
-      const zip = await JSZip.loadAsync(buffer);
+      const zip = await JSZip.loadAsync(toUint8Array(content));
       const entries = Object.values(zip.files).filter((entry) => !entry.dir);
       return entries.some(
         (entry) => entry.name.includes('settings') || entry.name.includes('.xml')
@@ -70,8 +68,7 @@ export class SnapValidator extends BaseValidator {
 
     await this.add_check('zip', 'valid zip package', async () => {
       try {
-        const buffer = Buffer.isBuffer(content) ? content : Buffer.from(content);
-        zip = await JSZip.loadAsync(buffer);
+        zip = await JSZip.loadAsync(toUint8Array(content));
         const entries = Object.values(zip.files);
         validZip = entries.length > 0;
       } catch (e: any) {
