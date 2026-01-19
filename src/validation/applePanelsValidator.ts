@@ -1,9 +1,8 @@
 /* eslint-disable @typescript-eslint/require-await */
-import * as fs from 'fs';
-import * as path from 'path';
 import plist from 'plist';
 import { BaseValidator } from './baseValidator';
 import { ValidationResult } from './validationTypes';
+import { getBasename, getFs, getPath } from '../utils/io';
 
 type PanelsContainer = { panels?: any; Panels?: Record<string, any> };
 
@@ -13,8 +12,10 @@ type PanelsContainer = { panels?: any; Panels?: Record<string, any> };
 export class ApplePanelsValidator extends BaseValidator {
   static async validateFile(filePath: string): Promise<ValidationResult> {
     const validator = new ApplePanelsValidator();
+    const fs = getFs();
+    const path = getPath();
     let content: Buffer;
-    const filename = path.basename(filePath);
+    const filename = getBasename(filePath);
     let size = 0;
 
     const stats = fs.existsSync(filePath) ? fs.statSync(filePath) : null;

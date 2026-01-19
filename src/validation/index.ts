@@ -43,8 +43,7 @@ import { OpmlValidator } from './opmlValidator';
 import { DotValidator } from './dotValidator';
 import { ApplePanelsValidator } from './applePanelsValidator';
 import { ObfsetValidator } from './obfsetValidator';
-import * as fs from 'fs';
-import * as path from 'path';
+import { getBasename, getFs, readBinaryFromInput } from '../utils/io';
 
 export function getValidatorForFormat(format: string): BaseValidator | null {
   switch (format.toLowerCase()) {
@@ -128,7 +127,7 @@ export async function validateFileOrBuffer(
   filenameHint?: string
 ): Promise<ValidationResult> {
   const isPath = typeof filePathOrBuffer === 'string';
-  const name = filenameHint || (isPath ? path.basename(filePathOrBuffer) : 'upload');
+  const name = filenameHint || (isPath ? getBasename(filePathOrBuffer) : 'upload');
   const validator = getValidatorForFile(name) || getValidatorForFormat(name);
 
   if (!validator) {
@@ -144,9 +143,9 @@ export async function validateFileOrBuffer(
       return ctor.validateFile(filePathOrBuffer);
     }
 
-    const buf = fs.readFileSync(filePathOrBuffer);
-    const stats = fs.statSync(filePathOrBuffer);
-    return validator.validate(buf, path.basename(filePathOrBuffer), stats.size);
+    const buf = readBinaryFromInput(filePathOrBuffer);
+    const stats = getFs().statSync(filePathOrBuffer);
+    return validator.validate(buf, getBasename(filePathOrBuffer), stats.size);
   }
 
   const buffer = Buffer.isBuffer(filePathOrBuffer)

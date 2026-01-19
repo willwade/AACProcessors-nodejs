@@ -1,9 +1,8 @@
 /* eslint-disable @typescript-eslint/require-await */
-import * as fs from 'fs';
-import * as path from 'path';
 import * as ExcelJS from 'exceljs';
 import { BaseValidator } from './baseValidator';
 import { ValidationResult } from './validationTypes';
+import { getBasename, getFs, readBinaryFromInput } from '../utils/io';
 
 /**
  * Validator for Excel imports (.xlsx/.xls)
@@ -11,9 +10,9 @@ import { ValidationResult } from './validationTypes';
 export class ExcelValidator extends BaseValidator {
   static async validateFile(filePath: string): Promise<ValidationResult> {
     const validator = new ExcelValidator();
-    const content = fs.readFileSync(filePath);
-    const stats = fs.statSync(filePath);
-    return validator.validate(content, path.basename(filePath), stats.size);
+    const content = readBinaryFromInput(filePath);
+    const stats = getFs().statSync(filePath);
+    return validator.validate(content, getBasename(filePath), stats.size);
   }
 
   static async identifyFormat(_content: any, filename: string): Promise<boolean> {

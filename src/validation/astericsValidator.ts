@@ -1,8 +1,7 @@
 /* eslint-disable @typescript-eslint/require-await */
-import * as fs from 'fs';
-import * as path from 'path';
 import { BaseValidator } from './baseValidator';
 import { ValidationResult } from './validationTypes';
+import { getBasename, getFs, readBinaryFromInput } from '../utils/io';
 
 /**
  * Validator for Asterics Grid (.grd) JSON files
@@ -13,9 +12,9 @@ export class AstericsGridValidator extends BaseValidator {
    */
   static async validateFile(filePath: string): Promise<ValidationResult> {
     const validator = new AstericsGridValidator();
-    const content = fs.readFileSync(filePath);
-    const stats = fs.statSync(filePath);
-    return validator.validate(content, path.basename(filePath), stats.size);
+    const content = readBinaryFromInput(filePath);
+    const stats = getFs().statSync(filePath);
+    return validator.validate(content, getBasename(filePath), stats.size);
   }
 
   /**

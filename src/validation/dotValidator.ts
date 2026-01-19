@@ -1,8 +1,7 @@
 /* eslint-disable @typescript-eslint/require-await */
-import * as fs from 'fs';
-import * as path from 'path';
 import { BaseValidator } from './baseValidator';
 import { ValidationResult } from './validationTypes';
+import { getBasename, getFs, readBinaryFromInput } from '../utils/io';
 
 /**
  * Validator for Graphviz DOT files
@@ -10,9 +9,9 @@ import { ValidationResult } from './validationTypes';
 export class DotValidator extends BaseValidator {
   static async validateFile(filePath: string): Promise<ValidationResult> {
     const validator = new DotValidator();
-    const content = fs.readFileSync(filePath);
-    const stats = fs.statSync(filePath);
-    return validator.validate(content, path.basename(filePath), stats.size);
+    const content = readBinaryFromInput(filePath);
+    const stats = getFs().statSync(filePath);
+    return validator.validate(content, getBasename(filePath), stats.size);
   }
 
   static async identifyFormat(content: any, filename: string): Promise<boolean> {
