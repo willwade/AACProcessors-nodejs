@@ -22,13 +22,14 @@ export * from './processors';
 // NAMESPACES
 // ===================================================================
 
-// Analytics namespace
-export * as Analytics from './utilities/analytics';
-// Also export analytics classes directly for convenience
-export * from './utilities/analytics';
+// Analytics namespace (usage/history)
+export * as Analytics from './analytics';
 
 // Validation namespace
 export * as Validation from './validation';
+
+// Metrics namespace (pageset analytics)
+export * as Metrics from './metrics';
 
 // Processor namespaces (platform-specific utilities)
 export * as Gridset from './gridset';

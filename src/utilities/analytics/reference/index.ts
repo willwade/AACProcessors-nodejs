@@ -5,9 +5,26 @@
  * for AAC metrics analysis.
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
 import { CoreList, CommonWordsData, SynonymsData } from '../metrics/types';
+import { getFs, getPath } from '../../../utils/io';
+
+export interface ReferenceDataProvider {
+  loadCoreLists(): CoreList[];
+  loadCommonWords(): CommonWordsData;
+  loadSynonyms(): SynonymsData;
+  loadSentences(): string[][];
+  loadFringe(): string[];
+  loadBaseWords(): { [word: string]: boolean };
+  loadCommonFringe(): string[];
+  loadAll(): {
+    coreLists: CoreList[];
+    commonWords: CommonWordsData;
+    synonyms: SynonymsData;
+    sentences: string[][];
+    fringe: string[];
+    baseWords: { [word: string]: boolean };
+  };
+}
 
 export class ReferenceLoader {
   private dataDir: string;
@@ -21,7 +38,7 @@ export class ReferenceLoader {
     } else {
       // Resolve the data directory relative to this file's location
       // Use __dirname which works correctly after compilation
-      this.dataDir = path.join(__dirname, 'data');
+      this.dataDir = getPath().join(__dirname, 'data');
     }
   }
 
@@ -29,45 +46,45 @@ export class ReferenceLoader {
    * Load core vocabulary lists
    */
   loadCoreLists(): CoreList[] {
-    const filePath = path.join(this.dataDir, `core_lists.${this.locale}.json`);
-    const content = fs.readFileSync(filePath, 'utf-8');
-    return JSON.parse(content) as CoreList[];
+    const filePath = getPath().join(this.dataDir, `core_lists.${this.locale}.json`);
+    const content = getFs().readFileSync(filePath, 'utf-8');
+    return JSON.parse(String(content)) as CoreList[];
   }
 
   /**
    * Load common words with baseline effort scores
    */
   loadCommonWords(): CommonWordsData {
-    const filePath = path.join(this.dataDir, `common_words.${this.locale}.json`);
-    const content = fs.readFileSync(filePath, 'utf-8');
-    return JSON.parse(content) as CommonWordsData;
+    const filePath = getPath().join(this.dataDir, `common_words.${this.locale}.json`);
+    const content = getFs().readFileSync(filePath, 'utf-8');
+    return JSON.parse(String(content)) as CommonWordsData;
   }
 
   /**
    * Load synonym mappings
    */
   loadSynonyms(): SynonymsData {
-    const filePath = path.join(this.dataDir, `synonyms.${this.locale}.json`);
-    const content = fs.readFileSync(filePath, 'utf-8');
-    return JSON.parse(content) as SynonymsData;
+    const filePath = getPath().join(this.dataDir, `synonyms.${this.locale}.json`);
+    const content = getFs().readFileSync(filePath, 'utf-8');
+    return JSON.parse(String(content)) as SynonymsData;
   }
 
   /**
    * Load test sentences
    */
   loadSentences(): string[][] {
-    const filePath = path.join(this.dataDir, `sentences.${this.locale}.json`);
-    const content = fs.readFileSync(filePath, 'utf-8');
-    return JSON.parse(content) as string[][];
+    const filePath = getPath().join(this.dataDir, `sentences.${this.locale}.json`);
+    const content = getFs().readFileSync(filePath, 'utf-8');
+    return JSON.parse(String(content)) as string[][];
   }
 
   /**
    * Load fringe vocabulary
    */
   loadFringe(): string[] {
-    const filePath = path.join(this.dataDir, `fringe.${this.locale}.json`);
-    const content = fs.readFileSync(filePath, 'utf-8');
-    const data = JSON.parse(content);
+    const filePath = getPath().join(this.dataDir, `fringe.${this.locale}.json`);
+    const content = getFs().readFileSync(filePath, 'utf-8');
+    const data = JSON.parse(String(content));
 
     // Flatten nested category words if needed
     if (Array.isArray(data) && data.length > 0 && data[0].categories) {
@@ -87,9 +104,9 @@ export class ReferenceLoader {
    * Load base words hash map
    */
   loadBaseWords(): { [word: string]: boolean } {
-    const filePath = path.join(this.dataDir, `base_words.${this.locale}.json`);
-    const content = fs.readFileSync(filePath, 'utf-8');
-    return JSON.parse(content) as { [word: string]: boolean };
+    const filePath = getPath().join(this.dataDir, `base_words.${this.locale}.json`);
+    const content = getFs().readFileSync(filePath, 'utf-8');
+    return JSON.parse(String(content)) as { [word: string]: boolean };
   }
 
   /**
@@ -138,7 +155,7 @@ export class ReferenceLoader {
  * Get the default reference data path
  */
 export function getReferenceDataPath(): string {
-  return path.join(__dirname, 'data');
+  return String(getPath().join(__dirname, 'data'));
 }
 
 /**
@@ -153,5 +170,5 @@ export function hasReferenceData(): boolean {
     'synonyms.en.json',
     'fringe.en.json',
   ];
-  return requiredFiles.every((file) => fs.existsSync(path.join(dataPath, file)));
+  return requiredFiles.every((file) => getFs().existsSync(getPath().join(dataPath, file)));
 }

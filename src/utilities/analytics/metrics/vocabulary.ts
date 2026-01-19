@@ -6,7 +6,7 @@
  */
 
 import { MetricsResult, CoreList } from './types';
-import { ReferenceLoader } from '../reference/index';
+import { ReferenceLoader, type ReferenceDataProvider } from '../reference/index';
 import { spellingEffort } from './effort';
 
 export interface VocabularyAnalysis {
@@ -37,9 +37,9 @@ export interface VocabularyAnalysis {
 }
 
 export class VocabularyAnalyzer {
-  private referenceLoader: ReferenceLoader;
+  private referenceLoader: ReferenceDataProvider;
 
-  constructor(referenceLoader?: ReferenceLoader) {
+  constructor(referenceLoader?: ReferenceDataProvider) {
     this.referenceLoader = referenceLoader || new ReferenceLoader();
   }
 

@@ -35,6 +35,9 @@ export { AstericsGridProcessor } from './processors/astericsGridProcessor';
 // UTILITY FUNCTIONS
 // ===================================================================
 
+// Metrics namespace (pageset analytics)
+export * as Metrics from './metrics';
+
 import { BaseProcessor } from './core/baseProcessor';
 import { DotProcessor } from './processors/dotProcessor';
 import { OpmlProcessor } from './processors/opmlProcessor';
