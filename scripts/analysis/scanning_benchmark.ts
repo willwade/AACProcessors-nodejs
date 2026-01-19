@@ -15,7 +15,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { getProcessor, Analytics, AACTree, isExtensionSupported } from '../../src/index';
+import { getProcessor, Metrics, AACTree, isExtensionSupported } from '../../src/index';
 
 async function runBenchmark() {
   const targetDir = process.argv[2] || './tmp';
@@ -66,8 +66,8 @@ async function runBenchmark() {
     }
   }
 
-  const calculator = new Analytics.MetricsCalculator();
-  const vocabAnalyzer = new Analytics.VocabularyAnalyzer();
+  const calculator = new Metrics.MetricsCalculator();
+  const vocabAnalyzer = new Metrics.VocabularyAnalyzer();
 
   for (const file of files) {
     const filePath = path.join(targetDir, file);

@@ -1,6 +1,5 @@
 
-import * as Analytics from '../../src/utilities/analytics/metrics/index';
-import { ComparisonAnalyzer } from '../../src/utilities/analytics/metrics/comparison';
+import { MetricsCalculator, ComparisonAnalyzer } from '../../src/metrics';
 import { getProcessor } from '../../src/index';
 import * as path from 'path';
 
@@ -31,7 +30,7 @@ async function main() {
     if (args[i] === '--prediction-selections') predictionSelections = parseFloat(args[i + 1]);
   }
 
-  const calculator = new Analytics.MetricsCalculator();
+  const calculator = new MetricsCalculator();
   const comparer = new ComparisonAnalyzer();
 
   console.log(`\n📚 AAC Pageset Comparison`);
