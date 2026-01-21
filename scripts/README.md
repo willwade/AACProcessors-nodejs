@@ -13,6 +13,7 @@ scripts/
 ├── audio/             # Audio enhancement and integration
 ├── conversion/        # File format conversion utilities
 ├── translation/       # Translation workflows and tools
+├── keyboard/          # Keyboard layout utilities
 └── utilities/         # General utility scripts
 ```
 
@@ -66,6 +67,11 @@ Translation and localization tools.
 - **translate.js** - General translation utility
 - **punjabi/** - Punjabi language translation scripts
   - `translate_to_punjabi.js` - Translate pagesets to Punjabi
+
+### ⌨️ keyboard/
+Keyboard layout utilities.
+
+- **replace-keyboard-layout.js** - Replace single-key buttons using a target keyboard layout
 
 ### 🛠️ utilities/
 General-purpose utility scripts.
