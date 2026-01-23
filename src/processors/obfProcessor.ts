@@ -622,20 +622,30 @@ class ObfProcessor extends BaseProcessor {
         columns,
         order,
       },
-      buttons: page.buttons.map((button) => ({
-        id: button.id,
-        label: button.label,
-        vocalization: button.message || button.label,
-        load_board:
-          button.semanticAction?.intent === AACSemanticIntent.NAVIGATE_TO && button.targetPageId
-            ? {
-                path: button.targetPageId,
-              }
-            : undefined,
-        background_color: button.style?.backgroundColor,
-        border_color: button.style?.borderColor,
-        box_id: buttonPositions.get(String(button.id ?? '')),
-      })),
+      buttons: page.buttons.map((button) => {
+        const extraButtonInfo = button as AACButton & { image_id?: string; imageId?: string };
+        const imageId =
+          button.parameters?.image_id ||
+          button.parameters?.imageId ||
+          extraButtonInfo.image_id ||
+          extraButtonInfo.imageId;
+
+        return {
+          id: button.id,
+          label: button.label,
+          vocalization: button.message || button.label,
+          load_board:
+            button.semanticAction?.intent === AACSemanticIntent.NAVIGATE_TO && button.targetPageId
+              ? {
+                  path: button.targetPageId,
+                }
+              : undefined,
+          background_color: button.style?.backgroundColor,
+          border_color: button.style?.borderColor,
+          box_id: buttonPositions.get(String(button.id ?? '')),
+          image_id: imageId,
+        };
+      }),
       images: Array.isArray(page.images) ? page.images : [],
       sounds: Array.isArray(page.sounds) ? page.sounds : [],
     };
