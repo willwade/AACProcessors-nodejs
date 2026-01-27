@@ -132,10 +132,13 @@ abstract class BaseProcessor {
   abstract loadIntoTree(filePathOrBuffer: ProcessorInput): Promise<AACTree>;
 
   // Process texts (e.g., apply translations) and return new file/buffer
+  // If targetLocale is provided, it attempts to add the language to the file (multilingual support)
+  // Otherwise, it replaces the existing text (translation/localization)
   abstract processTexts(
     filePathOrBuffer: ProcessorInput,
     translations: Map<string, string>,
-    outputPath: string
+    outputPath: string,
+    targetLocale?: string
   ): Promise<BinaryOutput>;
 
   // Save tree structure back to file/buffer

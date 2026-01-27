@@ -1,0 +1,43 @@
+{
+  "format": "open-board-0.1",
+  "id": "multilingual",
+  "locale": "en",
+  "name": "Multilingual Board",
+  "description_html": "Test board with string lists",
+  "strings": {
+    "en": {
+      "happy": "happy",
+      ":time": "time"
+    },
+    "es": {
+      "happy": "contento",
+      ":time": "hora"
+    },
+    "fr": {
+      ":time": "temps"
+    }
+  },
+  "buttons": [
+    {
+      "id": "1",
+      "label": "happy"
+    },
+    {
+      "id": "2",
+      "label": ":time"
+    },
+    {
+      "id": "3",
+      "label": "Brian"
+    }
+  ],
+  "grid": {
+    "rows": 1,
+    "columns": 3,
+    "order": [
+      ["1", "2", "3"]
+    ]
+  },
+  "images": [],
+  "sounds": []
+}

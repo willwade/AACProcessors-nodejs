@@ -33,6 +33,9 @@ import {
   isNodeRuntime,
 } from '../utils/io';
 import { openZipFromInput, type ZipAdapter } from '../utils/zip';
+import {
+  writeBinaryToPath,
+} from '../utils/io';
 
 const OBF_FORMAT_VERSION = 'open-board-0.1';
 
@@ -80,6 +83,7 @@ interface ObfBoard {
   grid?: ObfGrid;
   images?: any[];
   sounds?: any[];
+  strings?: { [locale: string]: { [key: string]: string } };
 }
 
 class ObfProcessor extends BaseProcessor {
@@ -203,6 +207,8 @@ class ObfProcessor extends BaseProcessor {
 
   private async processBoard(boardData: ObfBoard, _boardPath: string): Promise<AACPage> {
     const sourceButtons = boardData.buttons || [];
+    const strings = boardData.strings;
+    const locale = boardData.locale;
 
     // Calculate page ID first (used to make button IDs unique)
     const isZipEntry =
@@ -218,6 +224,24 @@ class ObfProcessor extends BaseProcessor {
 
     const buttons: AACButton[] = await Promise.all(
       sourceButtons.map(async (btn: ObfButton): Promise<AACButton> => {
+        // Resolve strings based on locale if strings dictionary is present
+        let label = btn.label || '';
+        let vocalization = btn.vocalization || btn.label || '';
+
+        if (strings && locale && strings[locale]) {
+          const localeStrings = strings[locale];
+          if (btn.label && localeStrings[btn.label]) {
+            label = localeStrings[btn.label];
+          }
+          if (btn.vocalization && localeStrings[btn.vocalization]) {
+            vocalization = localeStrings[btn.vocalization];
+          } else if (!btn.vocalization && btn.label && localeStrings[btn.label]) {
+            // If no vocalization but label was translated, use translated label as vocalization
+            // (matching default behavior where vocalization falls back to label)
+            vocalization = localeStrings[btn.label];
+          }
+        }
+
         const semanticAction: AACSemanticAction = btn.load_board
           ? {
               category: AACSemanticCategory.NAVIGATION,
@@ -231,10 +255,10 @@ class ObfProcessor extends BaseProcessor {
           : {
               category: AACSemanticCategory.COMMUNICATION,
               intent: AACSemanticIntent.SPEAK_TEXT,
-              text: String(btn?.vocalization || btn?.label || ''),
+              text: String(vocalization),
               fallback: {
                 type: 'SPEAK',
-                message: String(btn?.vocalization || btn?.label || ''),
+                message: String(vocalization),
               },
             };
 
@@ -261,8 +285,8 @@ class ObfProcessor extends BaseProcessor {
         return new AACButton({
           // Make button ID unique by combining page ID and button ID
           id: `${pageId}::${btn?.id || ''}`,
-          label: String(btn?.label || ''),
-          message: String(btn?.vocalization || btn?.label || ''),
+          label: String(label),
+          message: String(vocalization),
           visibility: mapObfVisibility(btn.hidden),
           style: {
             backgroundColor: btn.background_color,
@@ -448,6 +472,17 @@ class ObfProcessor extends BaseProcessor {
           tree.metadata.id = boardData.id;
           if (boardData.url) tree.metadata.url = boardData.url;
           if (boardData.locale) tree.metadata.languages = [boardData.locale];
+          if (boardData.strings) {
+            tree.metadata.obfStrings = boardData.strings;
+            if (!tree.metadata.languages) tree.metadata.languages = [];
+            // Add all available languages from strings
+            const stringLocales = Object.keys(boardData.strings);
+            stringLocales.forEach((l) => {
+              if (!tree.metadata.languages?.includes(l)) {
+                tree.metadata.languages?.push(l);
+              }
+            });
+          }
           tree.rootId = page.id;
 
           return tree;
@@ -476,6 +511,16 @@ class ObfProcessor extends BaseProcessor {
       if (asJson.url) tree.metadata.url = asJson.url;
       if (asJson.locale) {
         tree.metadata.languages = [asJson.locale];
+      }
+      if (asJson.strings) {
+        tree.metadata.obfStrings = asJson.strings;
+        if (!tree.metadata.languages) tree.metadata.languages = [];
+        const stringLocales = Object.keys(asJson.strings);
+        stringLocales.forEach((l) => {
+          if (!tree.metadata.languages?.includes(l)) {
+            tree.metadata.languages?.push(l);
+          }
+        });
       }
       tree.rootId = page.id;
 
@@ -532,6 +577,16 @@ class ObfProcessor extends BaseProcessor {
             tree.metadata.id = boardData.id;
             if (boardData.url) tree.metadata.url = boardData.url;
             if (boardData.locale) tree.metadata.languages = [boardData.locale];
+            if (boardData.strings) {
+              tree.metadata.obfStrings = boardData.strings;
+              if (!tree.metadata.languages) tree.metadata.languages = [];
+              const stringLocales = Object.keys(boardData.strings);
+              stringLocales.forEach((l) => {
+                if (!tree.metadata.languages?.includes(l)) {
+                  tree.metadata.languages?.push(l);
+                }
+              });
+            }
             tree.rootId = page.id;
           }
         } else {
@@ -617,6 +672,7 @@ class ObfProcessor extends BaseProcessor {
         metadata?.description && page.id === metadata?.defaultHomePageId
           ? metadata.description
           : page.descriptionHtml || boardName,
+      strings: metadata?.obfStrings,
       grid: {
         rows,
         columns,
@@ -654,8 +710,15 @@ class ObfProcessor extends BaseProcessor {
   async processTexts(
     filePathOrBuffer: ProcessorInput,
     translations: Map<string, string>,
-    outputPath: string
+    outputPath: string,
+    targetLocale?: string
   ): Promise<Uint8Array> {
+    if (targetLocale) {
+      // Multilingual mode: operate on raw JSON/ZIP structure to preserve/update string lists
+      return this.processTextsRaw(filePathOrBuffer, translations, outputPath, targetLocale);
+    }
+
+    // Legacy mode: translation replacement via Tree
     // Load the tree, apply translations, and save to new file
     const tree = await this.loadIntoTree(filePathOrBuffer);
 
@@ -689,6 +752,131 @@ class ObfProcessor extends BaseProcessor {
     // Save the translated tree and return its content
     await this.saveFromTree(tree, outputPath);
     return readBinaryFromInput(outputPath);
+  }
+
+  private async processTextsRaw(
+    filePathOrBuffer: ProcessorInput,
+    translations: Map<string, string>,
+    outputPath: string,
+    targetLocale: string
+  ): Promise<Uint8Array> {
+    // Helper to process a single board object
+    const processBoardObject = (board: ObfBoard) => {
+      if (!board.strings) {
+        board.strings = {};
+      }
+      const sourceLocale = board.locale || 'en';
+      if (!board.strings[sourceLocale]) {
+        board.strings[sourceLocale] = {};
+      }
+      if (!board.strings[targetLocale]) {
+        board.strings[targetLocale] = {};
+      }
+
+      const sourceStrings = board.strings[sourceLocale];
+      const targetStrings = board.strings[targetLocale];
+
+      // Build reverse map of value -> keys for source locale
+      const valueToKeys = new Map<string, string[]>();
+      Object.entries(sourceStrings).forEach(([key, value]) => {
+        if (!valueToKeys.has(value)) {
+          valueToKeys.set(value, []);
+        }
+        valueToKeys.get(value)?.push(key);
+      });
+
+      // Apply translations
+      translations.forEach((translation, sourceText) => {
+        // 1. Check if sourceText matches any existing value in source locale strings
+        if (valueToKeys.has(sourceText)) {
+          const keys = valueToKeys.get(sourceText);
+          keys?.forEach((key) => {
+            targetStrings[key] = translation;
+          });
+        } else {
+          // 2. If not found in strings, assume it might be a direct attribute value (key = value)
+          // We add it to both source (to normalize) and target
+          // This covers the case where a button has label="Hello" (no string list entry)
+          // We effectively promote "Hello" to be a key.
+          if (!sourceStrings[sourceText]) {
+            sourceStrings[sourceText] = sourceText;
+          }
+          targetStrings[sourceText] = translation;
+        }
+      });
+    };
+
+    // Detect format (JSON or ZIP)
+    const isZip =
+      (typeof filePathOrBuffer === 'string' &&
+        (filePathOrBuffer.endsWith('.obz') || filePathOrBuffer.endsWith('.zip'))) ||
+      (typeof filePathOrBuffer !== 'string' &&
+        (() => {
+          const bytes = readBinaryFromInput(filePathOrBuffer);
+          return bytes.length >= 2 && bytes[0] === 0x50 && bytes[1] === 0x4b;
+        })());
+
+    if (!isZip) {
+      // Single OBF file
+      const content = readTextFromInput(filePathOrBuffer);
+      const board = JSON.parse(content) as ObfBoard;
+      processBoardObject(board);
+      writeTextToPath(outputPath, JSON.stringify(board, null, 2));
+      return readBinaryFromInput(outputPath);
+    } else {
+      // OBZ Archive
+      const zipResult = await openZipFromInput(filePathOrBuffer);
+      const entries = zipResult.zip.listFiles();
+
+      if (isNodeRuntime()) {
+        const AdmZip = getNodeRequire()('adm-zip') as typeof import('adm-zip');
+        const outZip = new AdmZip();
+
+        // Copy all files, modifying .obf files
+        for (const entryName of entries) {
+          const content = await zipResult.zip.readFile(entryName);
+          if (entryName.toLowerCase().endsWith('.obf')) {
+            try {
+              const board = JSON.parse(decodeText(content)) as ObfBoard;
+              processBoardObject(board);
+              outZip.addFile(entryName, Buffer.from(JSON.stringify(board, null, 2), 'utf8'));
+            } catch (e) {
+              // Failed to parse, copy as is
+              outZip.addFile(entryName, Buffer.from(content));
+            }
+          } else {
+            outZip.addFile(entryName, Buffer.from(content));
+          }
+        }
+
+        const buffer = outZip.toBuffer();
+        writeBinaryToPath(outputPath, buffer);
+        return buffer;
+      } else {
+        const module = await import('jszip');
+        const JSZip = module.default || module;
+        const outZip = new JSZip();
+
+        for (const entryName of entries) {
+          const content = await zipResult.zip.readFile(entryName);
+          if (entryName.toLowerCase().endsWith('.obf')) {
+            try {
+              const board = JSON.parse(decodeText(content)) as ObfBoard;
+              processBoardObject(board);
+              outZip.file(entryName, JSON.stringify(board, null, 2));
+            } catch (e) {
+              outZip.file(entryName, content);
+            }
+          } else {
+            outZip.file(entryName, content);
+          }
+        }
+
+        const buffer = await outZip.generateAsync({ type: 'uint8array' });
+        writeBinaryToPath(outputPath, buffer);
+        return buffer;
+      }
+    }
   }
 
   async saveFromTree(tree: AACTree, outputPath: string): Promise<void> {
