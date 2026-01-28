@@ -33,9 +33,7 @@ import {
   isNodeRuntime,
 } from '../utils/io';
 import { openZipFromInput, type ZipAdapter } from '../utils/zip';
-import {
-  writeBinaryToPath,
-} from '../utils/io';
+import { writeBinaryToPath } from '../utils/io';
 
 const OBF_FORMAT_VERSION = 'open-board-0.1';
 
@@ -761,7 +759,7 @@ class ObfProcessor extends BaseProcessor {
     targetLocale: string
   ): Promise<Uint8Array> {
     // Helper to process a single board object
-    const processBoardObject = (board: ObfBoard) => {
+    const processBoardObject = (board: ObfBoard): void => {
       if (!board.strings) {
         board.strings = {};
       }

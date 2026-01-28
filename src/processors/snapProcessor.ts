@@ -718,7 +718,7 @@ class SnapProcessor extends BaseProcessor {
     filePathOrBuffer: ProcessorInput,
     translations: Map<string, string>,
     outputPath: string,
-    targetLocale?: string
+    _targetLocale?: string
   ): Promise<Uint8Array> {
     if (!isNodeRuntime()) {
       throw new Error('processTexts is only supported in Node.js environments for Snap files.');

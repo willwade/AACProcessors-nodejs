@@ -1604,7 +1604,7 @@ class GridsetProcessor extends BaseProcessor {
     filePathOrBuffer: ProcessorInput,
     translations: Map<string, string>,
     outputPath: string,
-    targetLocale?: string
+    _targetLocale?: string
   ): Promise<Uint8Array> {
     // Load the tree, apply translations, and save to new file
     const tree = await this.loadIntoTree(filePathOrBuffer);

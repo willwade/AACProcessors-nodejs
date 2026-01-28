@@ -1,5 +1,5 @@
 import { ObfProcessor } from '../src/processors/obfProcessor';
-import { AACButton } from '../src/core/treeStructure';
+// import { AACButton } from '../src/core/treeStructure';
 import path from 'path';
 import fs from 'fs';
 
@@ -13,9 +13,9 @@ describe('ObfProcessor Multilingual Support', () => {
     const page = Object.values(tree.pages)[0];
 
     // Check buttons
-    const btnHappy = page.buttons.find(b => b.id.endsWith('::1'));
-    const btnTime = page.buttons.find(b => b.id.endsWith('::2'));
-    const btnBrian = page.buttons.find(b => b.id.endsWith('::3'));
+    const btnHappy = page.buttons.find((b) => b.id.endsWith('::1'));
+    const btnTime = page.buttons.find((b) => b.id.endsWith('::2'));
+    const btnBrian = page.buttons.find((b) => b.id.endsWith('::3'));
 
     // "happy" -> "happy" (in strings.en)
     expect(btnHappy?.label).toBe('happy');
@@ -38,9 +38,9 @@ describe('ObfProcessor Multilingual Support', () => {
     const tree = await processor.loadIntoTree(JSON.stringify(obfData));
     const page = Object.values(tree.pages)[0];
 
-    const btnHappy = page.buttons.find(b => b.id.endsWith('::1'));
-    const btnTime = page.buttons.find(b => b.id.endsWith('::2'));
-    const btnBrian = page.buttons.find(b => b.id.endsWith('::3'));
+    const btnHappy = page.buttons.find((b) => b.id.endsWith('::1'));
+    const btnTime = page.buttons.find((b) => b.id.endsWith('::2'));
+    const btnBrian = page.buttons.find((b) => b.id.endsWith('::3'));
 
     // "happy" -> "contento" (in strings.es)
     expect(btnHappy?.label).toBe('contento');
@@ -62,8 +62,8 @@ describe('ObfProcessor Multilingual Support', () => {
     const tree = await processor.loadIntoTree(JSON.stringify(obfData));
     const page = Object.values(tree.pages)[0];
 
-    const btnHappy = page.buttons.find(b => b.id.endsWith('::1'));
-    const btnTime = page.buttons.find(b => b.id.endsWith('::2'));
+    const btnHappy = page.buttons.find((b) => b.id.endsWith('::1'));
+    const btnTime = page.buttons.find((b) => b.id.endsWith('::2'));
 
     // "happy" -> "happy" (fallback to attribute, as not in strings.fr)
     expect(btnHappy?.label).toBe('happy');
