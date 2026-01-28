@@ -3,6 +3,13 @@ import { AstericsGridProcessor } from '../src/processors/astericsGridProcessor';
 import path from 'path';
 import fs from 'fs';
 
+type AstericsGridJson = {
+  grids: Array<{
+    label?: Record<string, string>;
+    gridElements: Array<{ label?: Record<string, string> }>;
+  }>;
+};
+
 describe('Multilingual Support via processTexts', () => {
   const tempDir = path.join(__dirname, 'temp_multilingual');
 
@@ -20,37 +27,43 @@ describe('Multilingual Support via processTexts', () => {
 
   describe('AstericsGridProcessor', () => {
     const assetsDir = path.join(__dirname, 'assets/asterics');
-    const exampleGrd = path.join(assetsDir, 'example.grd'); // Use example.grd as it is simple
+    const exampleGrd = path.join(assetsDir, 'example2.grd');
 
-    it('should add a new language to the grid file', async () => {
+    it('adds the new locale alongside existing languages', async () => {
       const processor = new AstericsGridProcessor();
       const output = path.join(tempDir, 'asterics_multi.grd');
 
-      // Original has "SubTV", "On/Off"
-      const translations = new Map<string, string>();
-      translations.set('SubTV', 'SubTV_ES');
-      translations.set('On/Off', 'Encendido/Apagado');
+      const translations = new Map<string, string>([
+        ['Change in element', 'Cambio elemento'],
+        ['I', 'Io'],
+        ['You', 'Tu'],
+      ]);
 
-      await processor.processTexts(exampleGrd, translations, output, 'es');
+      await processor.processTexts(exampleGrd, translations, output, 'it');
 
-      // Verify
-      // const content = fs.readFileSync(output, 'utf8');
-      // const json = JSON.parse(content);
+      const content = fs.readFileSync(output, 'utf8');
+      const json = JSON.parse(content) as AstericsGridJson;
 
-      // Check grid label
-      // const grid = json.grids[0];
-      // Asterics processor might not have normalized string labels to object labels if input was string.
-      // Wait, AstericsGridProcessor interface says label is { [lang: string]: string }.
-      // But example.grd has string labels.
-      // My implementation of processTexts iterates keys of label.
-      // if label is string, Object.keys(string) = ["0", "1", ...].
-      // This might be an issue if the input file has string labels.
+      const grid = json.grids.find((g) => g.label?.en === 'Change in element');
+      expect(grid).toBeDefined();
+      if (!grid) return;
 
-      // Let's check how AstericsGridProcessor handles string labels in applyTranslationsToGridFile.
-      // It assumes object.
-      // If the file has string labels, my code will fail or do weird things.
-      // Ideally AstericsGridProcessor should normalize labels.
-      // But let's see if the test fails first.
+      expect(grid.label?.it).toBe('Cambio elemento');
+      expect(grid.label?.en).toBe('Change in element');
+
+      const elementI = grid.gridElements.find((el) => el.label?.en === 'I');
+      expect(elementI).toBeDefined();
+      if (!elementI) return;
+
+      expect(elementI.label?.it).toBe('Io');
+      expect(elementI.label?.en).toBe('I');
+
+      const elementYou = grid.gridElements.find((el) => el.label?.en === 'You');
+      expect(elementYou).toBeDefined();
+      if (!elementYou) return;
+
+      expect(elementYou.label?.it).toBe('Tu');
+      expect(elementYou.label?.en).toBe('You');
     });
   });
 
