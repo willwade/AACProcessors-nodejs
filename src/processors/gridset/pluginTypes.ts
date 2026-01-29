@@ -84,6 +84,7 @@ export const AUTOCONTENT_TYPES = {
   PREDICTION: 'Prediction',
   GRAMMAR: 'Grammar',
   CONTEXTUAL: 'Contextual',
+  WORDLIST: 'WordList',
 } as const;
 
 /**

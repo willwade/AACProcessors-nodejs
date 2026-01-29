@@ -703,6 +703,44 @@ class GridsetProcessor extends BaseProcessor {
             });
           }
 
+          // Extract page-level WordList (for WordList AutoContent cells)
+          // Page-level WordList is separate from AutoContentCommands and provides
+          // content for cells with ContentType="AutoContent" and ContentSubType="WordList"
+          interface PageWordListItem {
+            text: string;
+            image?: string;
+            partOfSpeech?: string;
+          }
+          const pageWordListItems: PageWordListItem[] = [];
+          if (grid.WordList && grid.WordList.Items) {
+            const items =
+              grid.WordList.Items.WordListItem || grid.WordList.Items.wordlistitem || [];
+            const itemArr = Array.isArray(items) ? items : items ? [items] : [];
+
+            for (const item of itemArr) {
+              const text = item.Text || item.text;
+              if (text) {
+                const val = this.textOf(text);
+                if (val) {
+                  pageWordListItems.push({
+                    text: val,
+                    image: item.Image || item.image || undefined,
+                    partOfSpeech: item.PartOfSpeech || item.partOfSpeech || undefined,
+                  });
+                }
+              }
+            }
+          }
+
+          // Track WordList AutoContent cells and their positions for "more" button placement
+          const wordListAutoContentCells: Array<{
+            cell: any;
+            idx: number;
+            x: number;
+            y: number;
+          }> = [];
+          let wordListCellIndex = 0;
+
           cellArr.forEach((cell: any, idx: number) => {
             if (!cell || !cell.Content) return;
 
@@ -787,7 +825,7 @@ class GridsetProcessor extends BaseProcessor {
               }
             }
 
-            const message = label; // Use caption as message
+            let message = label; // Use caption as message
 
             // Detect plugin cell type (Workspace, LiveCell, AutoContent)
             const pluginMetadata = detectPluginCellType(content);
@@ -810,6 +848,48 @@ class GridsetProcessor extends BaseProcessor {
               predictionCellCounter += 1;
               // Always surface a friendly label for predictions even if a placeholder exists
               label = `Prediction ${predictionCellCounter}`;
+            }
+
+            // Handle WordList AutoContent cells - populate from page-level WordList
+            let isMoreButton = false;
+            if (
+              pluginMetadata.cellType === Grid3CellType.AutoContent &&
+              pluginMetadata.autoContentType === 'WordList' &&
+              pageWordListItems.length > 0
+            ) {
+              // Track this cell for potential "more" button
+              wordListAutoContentCells.push({
+                cell,
+                idx,
+                x: cellX,
+                y: cellY,
+              });
+
+              // Check if we have more WordList items than available cells
+              // The "more" button replaces the last WordList cell
+              const cellsNeededForWordList = pageWordListItems.length;
+              const availableWordListCells = wordListAutoContentCells.length;
+              const isLastWordListCell = availableWordListCells === cellsNeededForWordList + 1; // +1 for "more" button
+
+              if (isLastWordListCell) {
+                // This cell becomes the "more" button
+                label = 'more...';
+                message = 'more...';
+                isMoreButton = true;
+              } else if (wordListCellIndex < pageWordListItems.length) {
+                // Populate this cell with the next WordList item
+                const wordListItem = pageWordListItems[wordListCellIndex];
+                label = wordListItem.text;
+                message = wordListItem.text;
+                // Use the WordList item's image if available
+                if (wordListItem.image && !label) {
+                  label = wordListItem.image; // Fallback to image path if no text
+                }
+                wordListCellIndex++;
+              } else {
+                // No more WordList items - skip this cell
+                return;
+              }
             }
 
             // Parse all command types from Grid3 and create semantic actions
@@ -1417,6 +1497,14 @@ class GridsetProcessor extends BaseProcessor {
                     : undefined,
                 // Store page name for Grid3 image lookup
                 gridPageName: gridName,
+                // Store WordList "more" button flag
+                isMoreButton: isMoreButton || undefined,
+                wordListItemIndex:
+                  pluginMetadata.cellType === Grid3CellType.AutoContent &&
+                  pluginMetadata.autoContentType === 'WordList' &&
+                  !isMoreButton
+                    ? wordListCellIndex - 1
+                    : undefined,
               },
             });
 

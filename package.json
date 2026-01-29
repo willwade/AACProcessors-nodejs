@@ -1,6 +1,6 @@
 {
   "name": "@willwade/aac-processors",
-  "version": "0.0.0-development",
+  "version": "0.0.0",
   "description": "A comprehensive TypeScript library for processing AAC (Augmentative and Alternative Communication) file formats with translation support",
   "main": "dist/index.js",
   "browser": "dist/browser/index.browser.js",
