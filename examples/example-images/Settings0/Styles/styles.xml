@@ -1,0 +1,39 @@
+<StyleData xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Styles>
+    <Style Key="Default" />
+    <Style Key="Workspace">
+      <BackColour>#FFFFFFFF</BackColour>
+      <FontColour>#000000FF</FontColour>
+    </Style>
+    <Style Key="WebBrowser category style">
+      <BackColour>#75706BFF</BackColour>
+      <BorderColour>#75706BFF</BorderColour>
+      <FontColour>#FFFFFFFF</FontColour>
+    </Style>
+    <Style Key="Navigation category style">
+      <BackColour>#2C82C9FF</BackColour>
+      <BorderColour>#2C82C9FF</BorderColour>
+      <FontColour>#FFFFFFFF</FontColour>
+    </Style>
+    <Style Key="Vocab cell">
+      <BackColour>#D3D3D3FF</BackColour>
+      <BorderColour>#646464FF</BorderColour>
+      <FontColour>#000000FF</FontColour>
+    </Style>
+    <Style Key="Actions category style">
+      <BackColour>#D14841FF</BackColour>
+      <BorderColour>#D14841FF</BorderColour>
+      <FontColour>#FFFFFFFF</FontColour>
+    </Style>
+    <Style Key="Grid3 category style">
+      <BackColour>#475577FF</BackColour>
+      <BorderColour>#475577FF</BorderColour>
+      <FontColour>#FFFFFFFF</FontColour>
+    </Style>
+    <Style Key="ComputerControl category style">
+      <BackColour>#54ACD2FF</BackColour>
+      <BorderColour>#54ACD2FF</BorderColour>
+      <FontColour>#FFFFFFFF</FontColour>
+    </Style>
+  </Styles>
+</StyleData>

@@ -1,0 +1,1325 @@
+<Grid xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <GridGuid>d1d77653-8048-41ab-8a8e-4e705b0ed80a</GridGuid>
+  <ColumnDefinitions>
+    <ColumnDefinition />
+    <ColumnDefinition />
+    <ColumnDefinition />
+    <ColumnDefinition />
+    <ColumnDefinition />
+    <ColumnDefinition />
+    <ColumnDefinition />
+    <ColumnDefinition />
+    <ColumnDefinition />
+    <ColumnDefinition />
+    <ColumnDefinition />
+    <ColumnDefinition />
+  </ColumnDefinitions>
+  <RowDefinitions>
+    <RowDefinition />
+    <RowDefinition />
+    <RowDefinition />
+    <RowDefinition />
+    <RowDefinition />
+    <RowDefinition />
+  </RowDefinitions>
+  <AutoContentCommands />
+  <Cells>
+    <Cell X="3" ColumnSpan="5">
+      <Content>
+        <ContentType>Workspace</ContentType>
+        <ContentSubType>WebBrowser</ContentSubType>
+        <Style>
+          <BasedOnStyle>Workspace</BasedOnStyle>
+          <BorderColour>#75706BFF</BorderColour>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell X="1">
+      <Content>
+        <Commands>
+          <Command ID="WebBrowser.NavigateUrl">
+            <Parameter Key="url">https://ipachat-pr-40-2f9xn.ondigitalocean.app/</Parameter>
+          </Command>
+        </Commands>
+        <CaptionAndImage>
+          <Caption>Load</Caption>
+          <Image>[grid3x]loading_dots.wmf</Image>
+        </CaptionAndImage>
+        <Style>
+          <BasedOnStyle>WebBrowser category style</BasedOnStyle>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell Y="1">
+      <Content>
+        <Commands>
+          <Command ID="Action.InsertText">
+            <Parameter Key="indicatorenabled">1</Parameter>
+            <Parameter Key="text">
+              <s Image="0.png">
+                <r>/æ/</r>
+              </s>
+            </Parameter>
+            <Parameter Key="showincelllabel">Yes</Parameter>
+          </Command>
+        </Commands>
+        <CaptionAndImage>
+          <Caption>/æ/</Caption>
+          <Image>-0-text-0.png</Image>
+        </CaptionAndImage>
+        <Style>
+          <BasedOnStyle>Vocab cell</BasedOnStyle>
+          <BorderColour>#030200FF</BorderColour>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell X="10" ColumnSpan="2">
+      <Content>
+        <Commands>
+          <Command ID="Action.Enter" />
+        </Commands>
+        <CaptionAndImage>
+          <Caption>Enter</Caption>
+          <Image>[grid3x]speak_all.wmf</Image>
+        </CaptionAndImage>
+        <Style>
+          <BasedOnStyle>Actions category style</BasedOnStyle>
+          <BackColour>#41A85FFF</BackColour>
+          <BorderColour>#41A85FFF</BorderColour>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell X="1" Y="1">
+      <Content>
+        <Commands>
+          <Command ID="Action.InsertText">
+            <Parameter Key="indicatorenabled">1</Parameter>
+            <Parameter Key="text">
+              <s Image="0.jpeg">
+                <r>e</r>
+              </s>
+            </Parameter>
+            <Parameter Key="showincelllabel">Yes</Parameter>
+          </Command>
+        </Commands>
+        <CaptionAndImage>
+          <Caption>e</Caption>
+          <Image>-0-text-0.jpeg</Image>
+        </CaptionAndImage>
+        <Style>
+          <BasedOnStyle>Vocab cell</BasedOnStyle>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell X="2" Y="1">
+      <Content>
+        <Commands>
+          <Command ID="Action.InsertText">
+            <Parameter Key="indicatorenabled">1</Parameter>
+            <Parameter Key="text">
+              <s Image="0.jpeg">
+                <r>ɪ</r>
+              </s>
+            </Parameter>
+            <Parameter Key="showincelllabel">Yes</Parameter>
+          </Command>
+        </Commands>
+        <CaptionAndImage>
+          <Caption>ɪ</Caption>
+          <Image>-0-text-0.jpeg</Image>
+        </CaptionAndImage>
+        <Style>
+          <BasedOnStyle>Vocab cell</BasedOnStyle>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell X="3" Y="1">
+      <Content>
+        <Commands>
+          <Command ID="Action.InsertText">
+            <Parameter Key="indicatorenabled">1</Parameter>
+            <Parameter Key="text">
+              <s Image="0.jpeg">
+                <r>ɒ</r>
+              </s>
+            </Parameter>
+            <Parameter Key="showincelllabel">Yes</Parameter>
+          </Command>
+        </Commands>
+        <CaptionAndImage>
+          <Caption>ɒ</Caption>
+          <Image>-0-text-0.jpeg</Image>
+        </CaptionAndImage>
+        <Style>
+          <BasedOnStyle>Vocab cell</BasedOnStyle>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell X="4" Y="1">
+      <Content>
+        <Commands>
+          <Command ID="Action.InsertText">
+            <Parameter Key="indicatorenabled">1</Parameter>
+            <Parameter Key="text">
+              <s Image="0.jpeg">
+                <r>ʊ</r>
+              </s>
+            </Parameter>
+            <Parameter Key="showincelllabel">Yes</Parameter>
+          </Command>
+        </Commands>
+        <CaptionAndImage>
+          <Caption>ʊ</Caption>
+          <Image>-0-text-0.jpeg</Image>
+        </CaptionAndImage>
+        <Style>
+          <BasedOnStyle>Vocab cell</BasedOnStyle>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell X="7" Y="1">
+      <Content>
+        <Commands>
+          <Command ID="Action.InsertText">
+            <Parameter Key="indicatorenabled">1</Parameter>
+            <Parameter Key="text">
+              <s Image="0.jpeg">
+                <r>ʌ</r>
+              </s>
+            </Parameter>
+            <Parameter Key="showincelllabel">Yes</Parameter>
+          </Command>
+        </Commands>
+        <CaptionAndImage>
+          <Caption>ʌ</Caption>
+          <Image>-0-text-0.jpeg</Image>
+        </CaptionAndImage>
+        <Style>
+          <BasedOnStyle>Vocab cell</BasedOnStyle>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell X="5" Y="1">
+      <Content>
+        <Commands>
+          <Command ID="Action.InsertText">
+            <Parameter Key="indicatorenabled">1</Parameter>
+            <Parameter Key="text">
+              <r>i</r>
+            </Parameter>
+            <Parameter Key="showincelllabel">Yes</Parameter>
+          </Command>
+        </Commands>
+        <CaptionAndImage>
+          <Caption>i</Caption>
+        </CaptionAndImage>
+        <Style>
+          <BasedOnStyle>Vocab cell</BasedOnStyle>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell X="6" Y="1">
+      <Content>
+        <Commands>
+          <Command ID="Action.InsertText">
+            <Parameter Key="indicatorenabled">1</Parameter>
+            <Parameter Key="text">
+              <r>ɐ</r>
+            </Parameter>
+            <Parameter Key="showincelllabel">Yes</Parameter>
+          </Command>
+        </Commands>
+        <CaptionAndImage>
+          <Caption>ɐ</Caption>
+        </CaptionAndImage>
+        <Style>
+          <BasedOnStyle>Vocab cell</BasedOnStyle>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell Y="2">
+      <Content>
+        <Commands>
+          <Command ID="Action.InsertText">
+            <Parameter Key="indicatorenabled">1</Parameter>
+            <Parameter Key="text">
+              <s Image="0.jpeg">
+                <r>/ɜː/</r>
+              </s>
+            </Parameter>
+            <Parameter Key="showincelllabel">Yes</Parameter>
+          </Command>
+        </Commands>
+        <CaptionAndImage>
+          <Caption>/ɜː/</Caption>
+          <Image>-0-text-0.jpeg</Image>
+        </CaptionAndImage>
+        <Style>
+          <BasedOnStyle>Vocab cell</BasedOnStyle>
+          <BorderColour>#1C5D90FF</BorderColour>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell X="1" Y="2">
+      <Content>
+        <Commands>
+          <Command ID="Action.InsertText">
+            <Parameter Key="indicatorenabled">1</Parameter>
+            <Parameter Key="text">
+              <s Image="0.jpeg">
+                <r>/iː/</r>
+              </s>
+            </Parameter>
+            <Parameter Key="showincelllabel">Yes</Parameter>
+          </Command>
+        </Commands>
+        <CaptionAndImage>
+          <Caption>/iː/</Caption>
+          <Image>-0-text-0.jpeg</Image>
+        </CaptionAndImage>
+        <Style>
+          <BasedOnStyle>Vocab cell</BasedOnStyle>
+          <BorderColour>#1E537EFF</BorderColour>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell X="2" Y="2">
+      <Content>
+        <Commands>
+          <Command ID="Action.InsertText">
+            <Parameter Key="indicatorenabled">1</Parameter>
+            <Parameter Key="text">
+              <s Image="0.jpeg">
+                <r>/ɔː/</r>
+              </s>
+            </Parameter>
+            <Parameter Key="showincelllabel">Yes</Parameter>
+          </Command>
+        </Commands>
+        <CaptionAndImage>
+          <Caption>/ɔː/</Caption>
+          <Image>-0-text-0.jpeg</Image>
+        </CaptionAndImage>
+        <Style>
+          <BasedOnStyle>Vocab cell</BasedOnStyle>
+          <BorderColour>#194D78FF</BorderColour>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell Y="4">
+      <Content>
+        <Commands>
+          <Command ID="Action.InsertText">
+            <Parameter Key="indicatorenabled">1</Parameter>
+            <Parameter Key="text">
+              <s Image="0.jpeg">
+                <r>/ð/</r>
+              </s>
+            </Parameter>
+            <Parameter Key="showincelllabel">Yes</Parameter>
+          </Command>
+        </Commands>
+        <CaptionAndImage>
+          <Caption>/ð/</Caption>
+          <Image>-0-text-0.jpeg</Image>
+        </CaptionAndImage>
+        <Style>
+          <BasedOnStyle>Vocab cell</BasedOnStyle>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell X="1" Y="4">
+      <Content>
+        <Commands>
+          <Command ID="Action.InsertText">
+            <Parameter Key="indicatorenabled">1</Parameter>
+            <Parameter Key="text">
+              <s Image="0.jpeg">
+                <r>s</r>
+              </s>
+            </Parameter>
+            <Parameter Key="showincelllabel">Yes</Parameter>
+          </Command>
+        </Commands>
+        <CaptionAndImage>
+          <Caption>s</Caption>
+          <Image>-0-text-0.jpeg</Image>
+        </CaptionAndImage>
+        <Style>
+          <BasedOnStyle>Vocab cell</BasedOnStyle>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell X="2" Y="4">
+      <Content>
+        <Commands>
+          <Command ID="Action.InsertText">
+            <Parameter Key="indicatorenabled">1</Parameter>
+            <Parameter Key="text">
+              <s Image="0.jpeg">
+                <r>z</r>
+              </s>
+            </Parameter>
+            <Parameter Key="showincelllabel">Yes</Parameter>
+          </Command>
+        </Commands>
+        <CaptionAndImage>
+          <Caption>z</Caption>
+          <Image>-0-text-0.jpeg</Image>
+        </CaptionAndImage>
+        <Style>
+          <BasedOnStyle>Vocab cell</BasedOnStyle>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell X="3" Y="4">
+      <Content>
+        <Commands>
+          <Command ID="Action.InsertText">
+            <Parameter Key="indicatorenabled">1</Parameter>
+            <Parameter Key="text">
+              <s Image="0.jpeg">
+                <r>f</r>
+              </s>
+            </Parameter>
+            <Parameter Key="showincelllabel">Yes</Parameter>
+          </Command>
+        </Commands>
+        <CaptionAndImage>
+          <Caption>f</Caption>
+          <Image>-0-text-0.jpeg</Image>
+        </CaptionAndImage>
+        <Style>
+          <BasedOnStyle>Vocab cell</BasedOnStyle>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell Y="5">
+      <Content>
+        <Commands>
+          <Command ID="Action.InsertText">
+            <Parameter Key="indicatorenabled">1</Parameter>
+            <Parameter Key="text">
+              <s Image="0.jpeg">
+                <r>k</r>
+              </s>
+            </Parameter>
+            <Parameter Key="showincelllabel">Yes</Parameter>
+          </Command>
+        </Commands>
+        <CaptionAndImage>
+          <Caption>k</Caption>
+          <Image>-0-text-0.jpeg</Image>
+        </CaptionAndImage>
+        <Style>
+          <BasedOnStyle>Vocab cell</BasedOnStyle>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell X="1" Y="5">
+      <Content>
+        <Commands>
+          <Command ID="Action.InsertText">
+            <Parameter Key="indicatorenabled">1</Parameter>
+            <Parameter Key="text">
+              <s Image="0.jpeg">
+                <r>g</r>
+              </s>
+            </Parameter>
+            <Parameter Key="showincelllabel">Yes</Parameter>
+          </Command>
+        </Commands>
+        <CaptionAndImage>
+          <Caption>g</Caption>
+          <Image>-0-text-0.jpeg</Image>
+        </CaptionAndImage>
+        <Style>
+          <BasedOnStyle>Vocab cell</BasedOnStyle>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell X="2" Y="5">
+      <Content>
+        <Commands>
+          <Command ID="Action.InsertText">
+            <Parameter Key="indicatorenabled">1</Parameter>
+            <Parameter Key="text">
+              <s Image="0.jpeg">
+                <r>ɹ</r>
+              </s>
+            </Parameter>
+            <Parameter Key="showincelllabel">Yes</Parameter>
+          </Command>
+        </Commands>
+        <CaptionAndImage>
+          <Caption>ɹ</Caption>
+          <Image>-0-text-0.jpeg</Image>
+        </CaptionAndImage>
+        <Style>
+          <BasedOnStyle>Vocab cell</BasedOnStyle>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell X="11" Y="4">
+      <Content>
+        <Commands>
+          <Command ID="Action.InsertText">
+            <Parameter Key="indicatorenabled">1</Parameter>
+            <Parameter Key="text">
+              <s Image="0.jpeg">
+                <r>d</r>
+              </s>
+            </Parameter>
+            <Parameter Key="showincelllabel">Yes</Parameter>
+          </Command>
+        </Commands>
+        <CaptionAndImage>
+          <Caption>d</Caption>
+          <Image>-0-text-0.jpeg</Image>
+        </CaptionAndImage>
+        <Style>
+          <BasedOnStyle>Vocab cell</BasedOnStyle>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell X="10" Y="4">
+      <Content>
+        <Commands>
+          <Command ID="Action.InsertText">
+            <Parameter Key="indicatorenabled">1</Parameter>
+            <Parameter Key="text">
+              <s Image="0.jpeg">
+                <r>t</r>
+              </s>
+            </Parameter>
+            <Parameter Key="showincelllabel">Yes</Parameter>
+          </Command>
+        </Commands>
+        <CaptionAndImage>
+          <Caption>t</Caption>
+          <Image>-0-text-0.jpeg</Image>
+        </CaptionAndImage>
+        <Style>
+          <BasedOnStyle>Vocab cell</BasedOnStyle>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell>
+      <Content>
+        <Commands>
+          <Command ID="Settings.GridExplorer" />
+        </Commands>
+        <CaptionAndImage>
+          <Caption>Grid explorer</Caption>
+          <Image>[GRID3X]explorer.wmf</Image>
+        </CaptionAndImage>
+        <Style>
+          <BasedOnStyle>Grid3 category style</BasedOnStyle>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell X="8" Y="4">
+      <Content>
+        <Commands>
+          <Command ID="Action.InsertText">
+            <Parameter Key="indicatorenabled">1</Parameter>
+            <Parameter Key="text">
+              <s Image="0.jpeg">
+                <r>p</r>
+              </s>
+            </Parameter>
+            <Parameter Key="showincelllabel">Yes</Parameter>
+          </Command>
+        </Commands>
+        <CaptionAndImage>
+          <Caption>p</Caption>
+          <Image>-0-text-0.jpeg</Image>
+        </CaptionAndImage>
+        <Style>
+          <BasedOnStyle>Vocab cell</BasedOnStyle>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell X="9" Y="4">
+      <Content>
+        <Commands>
+          <Command ID="Action.InsertText">
+            <Parameter Key="indicatorenabled">1</Parameter>
+            <Parameter Key="text">
+              <s Image="0.jpeg">
+                <r>b</r>
+              </s>
+            </Parameter>
+            <Parameter Key="showincelllabel">Yes</Parameter>
+          </Command>
+        </Commands>
+        <CaptionAndImage>
+          <Caption>b</Caption>
+          <Image>-0-text-0.jpeg</Image>
+        </CaptionAndImage>
+        <Style>
+          <BasedOnStyle>Vocab cell</BasedOnStyle>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell X="7" Y="3">
+      <Content>
+        <Commands>
+          <Command ID="Action.InsertText">
+            <Parameter Key="indicatorenabled">1</Parameter>
+            <Parameter Key="text">
+              <s Image="0.jpeg">
+                <r>n</r>
+              </s>
+            </Parameter>
+            <Parameter Key="showincelllabel">Yes</Parameter>
+          </Command>
+        </Commands>
+        <CaptionAndImage>
+          <Caption>n</Caption>
+          <Image>-0-text-0.jpeg</Image>
+        </CaptionAndImage>
+        <Style>
+          <BasedOnStyle>Vocab cell</BasedOnStyle>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell X="6" Y="3">
+      <Content>
+        <Commands>
+          <Command ID="Action.InsertText">
+            <Parameter Key="indicatorenabled">1</Parameter>
+            <Parameter Key="text">
+              <s Image="0.jpeg">
+                <r>m</r>
+              </s>
+            </Parameter>
+            <Parameter Key="showincelllabel">Yes</Parameter>
+          </Command>
+        </Commands>
+        <CaptionAndImage>
+          <Caption>m</Caption>
+          <Image>-0-text-0.jpeg</Image>
+        </CaptionAndImage>
+        <Style>
+          <BasedOnStyle>Vocab cell</BasedOnStyle>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell X="1" Y="3">
+      <Content>
+        <Commands>
+          <Command ID="Action.InsertText">
+            <Parameter Key="indicatorenabled">1</Parameter>
+            <Parameter Key="text">
+              <s Image="0.jpeg">
+                <r>/əʊ/</r>
+              </s>
+            </Parameter>
+            <Parameter Key="showincelllabel">Yes</Parameter>
+          </Command>
+        </Commands>
+        <CaptionAndImage>
+          <Caption>/əʊ/</Caption>
+          <Image>-0-text-0.jpeg</Image>
+        </CaptionAndImage>
+        <Style>
+          <BasedOnStyle>Vocab cell</BasedOnStyle>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell X="2" Y="3">
+      <Content>
+        <Commands>
+          <Command ID="Action.InsertText">
+            <Parameter Key="indicatorenabled">1</Parameter>
+            <Parameter Key="text">
+              <s Image="0.jpeg">
+                <r>/aʊ/</r>
+              </s>
+            </Parameter>
+            <Parameter Key="showincelllabel">Yes</Parameter>
+          </Command>
+        </Commands>
+        <CaptionAndImage>
+          <Caption>/aʊ/</Caption>
+          <Image>-0-text-0.jpeg</Image>
+        </CaptionAndImage>
+        <Style>
+          <BasedOnStyle>Vocab cell</BasedOnStyle>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell X="3" Y="3">
+      <Content>
+        <Commands>
+          <Command ID="Action.InsertText">
+            <Parameter Key="indicatorenabled">1</Parameter>
+            <Parameter Key="text">
+              <s Image="0.jpeg">
+                <r>/ɪə/</r>
+              </s>
+            </Parameter>
+            <Parameter Key="showincelllabel">Yes</Parameter>
+          </Command>
+        </Commands>
+        <CaptionAndImage>
+          <Caption>/ɪə/</Caption>
+          <Image>-0-text-0.jpeg</Image>
+        </CaptionAndImage>
+        <Style>
+          <BasedOnStyle>Vocab cell</BasedOnStyle>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell X="4" Y="3">
+      <Content>
+        <Commands>
+          <Command ID="Action.InsertText">
+            <Parameter Key="indicatorenabled">1</Parameter>
+            <Parameter Key="text">
+              <s Image="0.jpeg">
+                <r>/eə/</r>
+              </s>
+            </Parameter>
+            <Parameter Key="showincelllabel">Yes</Parameter>
+          </Command>
+        </Commands>
+        <CaptionAndImage>
+          <Caption>/eə/</Caption>
+          <Image>-0-text-0.jpeg</Image>
+        </CaptionAndImage>
+        <Style>
+          <BasedOnStyle>Vocab cell</BasedOnStyle>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell X="5" Y="3">
+      <Content>
+        <Commands>
+          <Command ID="Action.InsertText">
+            <Parameter Key="indicatorenabled">1</Parameter>
+            <Parameter Key="text">
+              <r>/ʊə/</r>
+            </Parameter>
+            <Parameter Key="showincelllabel">Yes</Parameter>
+          </Command>
+        </Commands>
+        <CaptionAndImage>
+          <Caption>/ʊə/</Caption>
+        </CaptionAndImage>
+        <Style>
+          <BasedOnStyle>Vocab cell</BasedOnStyle>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell X="6" Y="2">
+      <Content>
+        <Commands>
+          <Command ID="Action.InsertText">
+            <Parameter Key="indicatorenabled">1</Parameter>
+            <Parameter Key="text">
+              <r></r>
+            </Parameter>
+            <Parameter Key="showincelllabel">Yes</Parameter>
+          </Command>
+        </Commands>
+        <Style>
+          <BasedOnStyle>Vocab cell</BasedOnStyle>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell X="9" Y="3">
+      <Content>
+        <Commands>
+          <Command ID="Action.InsertText">
+            <Parameter Key="indicatorenabled">1</Parameter>
+            <Parameter Key="text">
+              <s Image="0.jpeg">
+                <r>ʃ</r>
+              </s>
+            </Parameter>
+            <Parameter Key="showincelllabel">Yes</Parameter>
+          </Command>
+        </Commands>
+        <CaptionAndImage>
+          <Caption>ʃ</Caption>
+          <Image>-0-text-0.jpeg</Image>
+        </CaptionAndImage>
+        <Style>
+          <BasedOnStyle>Vocab cell</BasedOnStyle>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell X="8" Y="3">
+      <Content>
+        <Commands>
+          <Command ID="Action.InsertText">
+            <Parameter Key="indicatorenabled">1</Parameter>
+            <Parameter Key="text">
+              <s Image="0.jpeg">
+                <r>ŋ</r>
+              </s>
+            </Parameter>
+            <Parameter Key="showincelllabel">Yes</Parameter>
+          </Command>
+        </Commands>
+        <CaptionAndImage>
+          <Caption>ŋ</Caption>
+          <Image>-0-text-0.jpeg</Image>
+        </CaptionAndImage>
+        <Style>
+          <BasedOnStyle>Vocab cell</BasedOnStyle>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell X="10" Y="3">
+      <Content>
+        <Commands>
+          <Command ID="Action.InsertText">
+            <Parameter Key="indicatorenabled">1</Parameter>
+            <Parameter Key="text">
+              <s Image="0.jpeg">
+                <r>ʒ</r>
+              </s>
+            </Parameter>
+            <Parameter Key="showincelllabel">Yes</Parameter>
+          </Command>
+        </Commands>
+        <CaptionAndImage>
+          <Caption>ʒ</Caption>
+          <Image>-0-text-0.jpeg</Image>
+        </CaptionAndImage>
+        <Style>
+          <BasedOnStyle>Vocab cell</BasedOnStyle>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell X="11" Y="3">
+      <Content>
+        <Commands>
+          <Command ID="Action.InsertText">
+            <Parameter Key="indicatorenabled">1</Parameter>
+            <Parameter Key="text">
+              <s Image="0.jpeg">
+                <r>θ</r>
+              </s>
+            </Parameter>
+            <Parameter Key="showincelllabel">Yes</Parameter>
+          </Command>
+        </Commands>
+        <CaptionAndImage>
+          <Caption>θ</Caption>
+          <Image>-0-text-0.jpeg</Image>
+        </CaptionAndImage>
+        <Style>
+          <BasedOnStyle>Vocab cell</BasedOnStyle>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell X="11" Y="5">
+      <Content>
+        <Commands>
+          <Command ID="Action.InsertText">
+            <Parameter Key="indicatorenabled">1</Parameter>
+            <Parameter Key="text">
+              <r></r>
+            </Parameter>
+            <Parameter Key="showincelllabel">Yes</Parameter>
+          </Command>
+        </Commands>
+        <Style>
+          <BasedOnStyle>Vocab cell</BasedOnStyle>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell X="10" Y="5">
+      <Content>
+        <Commands>
+          <Command ID="Action.InsertText">
+            <Parameter Key="indicatorenabled">1</Parameter>
+            <Parameter Key="text">
+              <r></r>
+            </Parameter>
+            <Parameter Key="showincelllabel">Yes</Parameter>
+          </Command>
+        </Commands>
+        <Style>
+          <BasedOnStyle>Vocab cell</BasedOnStyle>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell X="9" Y="5">
+      <Content>
+        <Commands>
+          <Command ID="Action.InsertText">
+            <Parameter Key="indicatorenabled">1</Parameter>
+            <Parameter Key="text">
+              <r></r>
+            </Parameter>
+            <Parameter Key="showincelllabel">Yes</Parameter>
+          </Command>
+        </Commands>
+        <Style>
+          <BasedOnStyle>Vocab cell</BasedOnStyle>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell X="8" Y="5">
+      <Content>
+        <Commands>
+          <Command ID="Action.InsertText">
+            <Parameter Key="indicatorenabled">1</Parameter>
+            <Parameter Key="text">
+              <r></r>
+            </Parameter>
+            <Parameter Key="showincelllabel">Yes</Parameter>
+          </Command>
+        </Commands>
+        <Style>
+          <BasedOnStyle>Vocab cell</BasedOnStyle>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell X="7" Y="5">
+      <Content>
+        <Commands>
+          <Command ID="Action.InsertText">
+            <Parameter Key="indicatorenabled">1</Parameter>
+            <Parameter Key="text">
+              <r></r>
+            </Parameter>
+            <Parameter Key="showincelllabel">Yes</Parameter>
+          </Command>
+        </Commands>
+        <Style>
+          <BasedOnStyle>Vocab cell</BasedOnStyle>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell X="5" Y="5">
+      <Content>
+        <Commands>
+          <Command ID="Action.InsertText">
+            <Parameter Key="indicatorenabled">1</Parameter>
+            <Parameter Key="text">
+              <s Image="0.jpeg">
+                <r>l</r>
+              </s>
+            </Parameter>
+            <Parameter Key="showincelllabel">Yes</Parameter>
+          </Command>
+        </Commands>
+        <CaptionAndImage>
+          <Caption>l</Caption>
+          <Image>-0-text-0.jpeg</Image>
+        </CaptionAndImage>
+        <Style>
+          <BasedOnStyle>Vocab cell</BasedOnStyle>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell X="4" Y="5">
+      <Content>
+        <Commands>
+          <Command ID="Action.InsertText">
+            <Parameter Key="indicatorenabled">1</Parameter>
+            <Parameter Key="text">
+              <s Image="0.jpeg">
+                <r>w</r>
+              </s>
+            </Parameter>
+            <Parameter Key="showincelllabel">Yes</Parameter>
+          </Command>
+        </Commands>
+        <CaptionAndImage>
+          <Caption>w</Caption>
+          <Image>-0-text-0.jpeg</Image>
+        </CaptionAndImage>
+        <Style>
+          <BasedOnStyle>Vocab cell</BasedOnStyle>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell X="3" Y="5">
+      <Content>
+        <Commands>
+          <Command ID="Action.InsertText">
+            <Parameter Key="indicatorenabled">1</Parameter>
+            <Parameter Key="text">
+              <s Image="0.jpeg">
+                <r>j</r>
+              </s>
+            </Parameter>
+            <Parameter Key="showincelllabel">Yes</Parameter>
+          </Command>
+        </Commands>
+        <CaptionAndImage>
+          <Caption>j</Caption>
+          <Image>-0-text-0.jpeg</Image>
+        </CaptionAndImage>
+        <Style>
+          <BasedOnStyle>Vocab cell</BasedOnStyle>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell X="4" Y="4">
+      <Content>
+        <Commands>
+          <Command ID="Action.InsertText">
+            <Parameter Key="indicatorenabled">1</Parameter>
+            <Parameter Key="text">
+              <s Image="0.jpeg">
+                <r>v</r>
+              </s>
+            </Parameter>
+            <Parameter Key="showincelllabel">Yes</Parameter>
+          </Command>
+        </Commands>
+        <CaptionAndImage>
+          <Caption>v</Caption>
+          <Image>-0-text-0.jpeg</Image>
+        </CaptionAndImage>
+        <Style>
+          <BasedOnStyle>Vocab cell</BasedOnStyle>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell X="5" Y="4">
+      <Content>
+        <Commands>
+          <Command ID="Action.InsertText">
+            <Parameter Key="indicatorenabled">1</Parameter>
+            <Parameter Key="text">
+              <s Image="0.jpeg">
+                <r>h</r>
+              </s>
+            </Parameter>
+            <Parameter Key="showincelllabel">Yes</Parameter>
+          </Command>
+        </Commands>
+        <CaptionAndImage>
+          <Caption>h</Caption>
+          <Image>-0-text-0.jpeg</Image>
+        </CaptionAndImage>
+        <Style>
+          <BasedOnStyle>Vocab cell</BasedOnStyle>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell X="6" Y="4">
+      <Content>
+        <Commands>
+          <Command ID="Action.InsertText">
+            <Parameter Key="indicatorenabled">1</Parameter>
+            <Parameter Key="text">
+              <s Image="0.jpeg">
+                <r>/tʃ/</r>
+              </s>
+            </Parameter>
+            <Parameter Key="showincelllabel">Yes</Parameter>
+          </Command>
+        </Commands>
+        <CaptionAndImage>
+          <Caption>/tʃ/</Caption>
+          <Image>-0-text-0.jpeg</Image>
+        </CaptionAndImage>
+        <Style>
+          <BasedOnStyle>Vocab cell</BasedOnStyle>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell X="6" Y="5">
+      <Content>
+        <Commands>
+          <Command ID="Action.InsertText">
+            <Parameter Key="indicatorenabled">1</Parameter>
+            <Parameter Key="text">
+              <r></r>
+            </Parameter>
+            <Parameter Key="showincelllabel">Yes</Parameter>
+          </Command>
+        </Commands>
+        <Style>
+          <BasedOnStyle>Vocab cell</BasedOnStyle>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell X="7" Y="4">
+      <Content>
+        <Commands>
+          <Command ID="Action.InsertText">
+            <Parameter Key="indicatorenabled">1</Parameter>
+            <Parameter Key="text">
+              <s Image="0.jpeg">
+                <r>/dʒ/</r>
+              </s>
+            </Parameter>
+            <Parameter Key="showincelllabel">Yes</Parameter>
+          </Command>
+        </Commands>
+        <CaptionAndImage>
+          <Caption>/dʒ/</Caption>
+          <Image>-0-text-0.jpeg</Image>
+        </CaptionAndImage>
+        <Style>
+          <BasedOnStyle>Vocab cell</BasedOnStyle>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell X="7" Y="2">
+      <Content>
+        <Commands>
+          <Command ID="Action.InsertText">
+            <Parameter Key="indicatorenabled">1</Parameter>
+            <Parameter Key="text">
+              <s Image="0.jpeg">
+                <r>/eɪ/</r>
+              </s>
+            </Parameter>
+            <Parameter Key="showincelllabel">Yes</Parameter>
+          </Command>
+        </Commands>
+        <CaptionAndImage>
+          <Caption>/eɪ/</Caption>
+          <Image>-0-text-0.jpeg</Image>
+        </CaptionAndImage>
+        <Style>
+          <BasedOnStyle>Vocab cell</BasedOnStyle>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell X="8" Y="2">
+      <Content>
+        <Commands>
+          <Command ID="Action.InsertText">
+            <Parameter Key="indicatorenabled">1</Parameter>
+            <Parameter Key="text">
+              <s Image="0.jpeg">
+                <r>/aɪ/</r>
+              </s>
+            </Parameter>
+            <Parameter Key="showincelllabel">Yes</Parameter>
+          </Command>
+        </Commands>
+        <CaptionAndImage>
+          <Caption>/aɪ/</Caption>
+          <Image>-0-text-0.jpeg</Image>
+        </CaptionAndImage>
+        <Style>
+          <BasedOnStyle>Vocab cell</BasedOnStyle>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell X="8">
+      <Content>
+        <Commands>
+          <Command ID="Action.DeleteLetter" />
+        </Commands>
+        <CaptionAndImage>
+          <Caption>Backspace</Caption>
+          <Image>[GRID3X]delete_letter.wmf</Image>
+        </CaptionAndImage>
+        <Style>
+          <BasedOnStyle>Actions category style</BasedOnStyle>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell X="8" Y="1">
+      <Content>
+        <Commands>
+          <Command ID="Action.InsertText">
+            <Parameter Key="indicatorenabled">1</Parameter>
+            <Parameter Key="text">
+              <s Image="0.jpeg">
+                <r>/ɑː/</r>
+              </s>
+            </Parameter>
+            <Parameter Key="showincelllabel">Yes</Parameter>
+          </Command>
+        </Commands>
+        <CaptionAndImage>
+          <Caption>/ɑː/</Caption>
+          <Image>-0-text-0.jpeg</Image>
+        </CaptionAndImage>
+        <Style>
+          <BasedOnStyle>Vocab cell</BasedOnStyle>
+          <BorderColour>#1B629BFF</BorderColour>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell Y="3">
+      <Content>
+        <Commands>
+          <Command ID="Action.InsertText">
+            <Parameter Key="indicatorenabled">1</Parameter>
+            <Parameter Key="text">
+              <s Image="0.jpeg">
+                <r>/ɔɪ/</r>
+              </s>
+            </Parameter>
+            <Parameter Key="showincelllabel">Yes</Parameter>
+          </Command>
+        </Commands>
+        <CaptionAndImage>
+          <Caption>/ɔɪ/</Caption>
+          <Image>-0-text-0.jpeg</Image>
+        </CaptionAndImage>
+        <Style>
+          <BasedOnStyle>Vocab cell</BasedOnStyle>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell X="2">
+      <Content>
+        <Commands>
+          <Command ID="ComputerControl.Keyboard">
+            <Parameter Key="keystring">{LEFTCONTROL}{BACKSPACE}</Parameter>
+          </Command>
+        </Commands>
+        <CaptionAndImage>
+          <Caption>Clear</Caption>
+          <Image>[GRID3X]clear.wmf</Image>
+        </CaptionAndImage>
+        <Style>
+          <BasedOnStyle>Actions category style</BasedOnStyle>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell X="9" Y="2" ColumnSpan="2">
+      <Content>
+        <Commands>
+          <Command ID="ComputerControl.Keyboard">
+            <Parameter Key="keystring">{LEFTCONTROL}2</Parameter>
+          </Command>
+        </Commands>
+        <CaptionAndImage>
+          <Caption>speak partial word</Caption>
+          <Image>.png</Image>
+        </CaptionAndImage>
+        <Style>
+          <BasedOnStyle>Vocab cell</BasedOnStyle>
+          <TileColour>#E2EDF8FF</TileColour>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell X="9">
+      <Content>
+        <Commands>
+          <Command ID="ComputerControl.Keyboard">
+            <Parameter Key="keystring">{LEFTCONTROL}z</Parameter>
+          </Command>
+        </Commands>
+        <CaptionAndImage>
+          <Caption>undo</Caption>
+          <Image>[grid3x]undo.wmf</Image>
+        </CaptionAndImage>
+        <Style>
+          <BasedOnStyle>Vocab cell</BasedOnStyle>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell X="9" Y="1" ColumnSpan="2">
+      <Content>
+        <Commands>
+          <Command ID="ComputerControl.Keyboard">
+            <Parameter Key="keystring">{LEFTCONTROL}1</Parameter>
+          </Command>
+        </Commands>
+        <CaptionAndImage>
+          <Caption>speak sounds</Caption>
+          <Image>.png</Image>
+        </CaptionAndImage>
+        <Style>
+          <BasedOnStyle>Vocab cell</BasedOnStyle>
+          <TileColour>#E2EDF8FF</TileColour>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell X="11" Y="2">
+      <Content>
+        <Commands>
+          <Command ID="ComputerControl.Keyboard">
+            <Parameter Key="keystring">{LEFTCONTROL}3</Parameter>
+          </Command>
+        </Commands>
+        <CaptionAndImage>
+          <Caption>clear on speak</Caption>
+        </CaptionAndImage>
+        <Style>
+          <BasedOnStyle>Vocab cell</BasedOnStyle>
+          <TileColour>#E2EDF8FF</TileColour>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell X="11" Y="1">
+      <Content>
+        <Commands>
+          <Command ID="ComputerControl.Keyboard">
+            <Parameter Key="keystring">{LEFTCONTROL}b</Parameter>
+          </Command>
+        </Commands>
+        <CaptionAndImage>
+          <Caption>Babble mode</Caption>
+          <Image>[sstix#]119121.emf</Image>
+        </CaptionAndImage>
+        <Style>
+          <BasedOnStyle>ComputerControl category style</BasedOnStyle>
+          <TileColour>#E2EDF8FF</TileColour>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell X="3" Y="2">
+      <Content>
+        <Commands>
+          <Command ID="Action.InsertText">
+            <Parameter Key="indicatorenabled">1</Parameter>
+            <Parameter Key="text">
+              <r></r>
+            </Parameter>
+            <Parameter Key="showincelllabel">Yes</Parameter>
+          </Command>
+        </Commands>
+        <Style>
+          <BasedOnStyle>Vocab cell</BasedOnStyle>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell X="4" Y="2">
+      <Content>
+        <Commands>
+          <Command ID="Action.InsertText">
+            <Parameter Key="indicatorenabled">1</Parameter>
+            <Parameter Key="text">
+              <r></r>
+            </Parameter>
+            <Parameter Key="showincelllabel">Yes</Parameter>
+          </Command>
+        </Commands>
+        <Style>
+          <BasedOnStyle>Vocab cell</BasedOnStyle>
+        </Style>
+      </Content>
+    </Cell>
+    <Cell X="5" Y="2">
+      <Content>
+        <Commands>
+          <Command ID="Action.InsertText">
+            <Parameter Key="indicatorenabled">1</Parameter>
+            <Parameter Key="text">
+              <r></r>
+            </Parameter>
+            <Parameter Key="showincelllabel">Yes</Parameter>
+          </Command>
+        </Commands>
+        <Style>
+          <BasedOnStyle>Vocab cell</BasedOnStyle>
+        </Style>
+      </Content>
+    </Cell>
+  </Cells>
+  <ScanBlockAudioDescriptions />
+  <WordList>
+    <Items />
+  </WordList>
+</Grid>

@@ -1,0 +1,16 @@
+<GridSetSettings xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <PictureSearch>
+    <PictureSearchKeys>
+      <PictureSearchKey>widgit</PictureSearchKey>
+      <PictureSearchKey>sstix#</PictureSearchKey>
+      <PictureSearchKey>mjpcs#</PictureSearchKey>
+      <PictureSearchKey>ssnaps</PictureSearchKey>
+    </PictureSearchKeys>
+  </PictureSearch>
+  <Appearance>
+    <Theme>Kids</Theme>
+  </Appearance>
+  <StartGrid>Start</StartGrid>
+  <Thumbnail>[GRID3X]apps.wmf</Thumbnail>
+  <GridSetFileFormatVersion>1</GridSetFileFormatVersion>
+</GridSetSettings>

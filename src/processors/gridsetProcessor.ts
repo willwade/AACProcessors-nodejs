@@ -920,8 +920,8 @@ class GridsetProcessor extends BaseProcessor {
                 {
                   baseDir,
                   imageName: declaredImageName,
-                  x: cellX + 1,
-                  y: cellY + 1,
+                  x: cellX,
+                  y: cellY,
                   dynamicFiles,
                 },
                 entries
