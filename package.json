@@ -80,13 +80,11 @@
   "files": [
     "dist/**/*",
     "docs/**/*",
-    "examples/**/*",
     "README.md",
     "LICENSE"
   ],
   "directories": {
     "doc": "docs",
-    "example": "examples",
     "test": "test"
   },
   "scripts": {
