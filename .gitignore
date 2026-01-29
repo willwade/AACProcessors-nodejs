@@ -185,3 +185,4 @@ examples/gemini_response.txt
 # AAC Metrics benchmarking data
 aac-metrics/
 compare-effort-scores.ts
+.DS_Store

@@ -378,7 +378,8 @@ class GridsetProcessor extends BaseProcessor {
     if (typeof val === 'number') return String(val);
 
     if (typeof val === 'object') {
-      if ('#text' in val) return String(val['#text']);
+      // Don't immediately return #text - it might be whitespace alongside structured content
+      // Process structured format first: <p><s><r>text</r></s></p>
 
       // Handle Grid3 structured format <p><s><r>text</r></s></p>
       // Can start at p, s, or r level
@@ -394,8 +395,15 @@ class GridsetProcessor extends BaseProcessor {
               }
               continue;
             }
-            if (typeof r === 'object' && r !== null && '#text' in r) {
-              parts.push(String(r['#text']));
+            if (typeof r === 'object' && r !== null) {
+              // Check for #text (regular text) or #cdata (CDATA sections)
+              if ('#text' in r) {
+                parts.push(String(r['#text']));
+              } else if ('#cdata' in r) {
+                parts.push(String(r['#cdata']));
+              } else {
+                parts.push(String(r));
+              }
             } else {
               parts.push(String(r));
             }
@@ -448,7 +456,15 @@ class GridsetProcessor extends BaseProcessor {
     }
     const password = this.getGridsetPassword(filePathOrBuffer);
     const entries = getZipEntriesFromAdapter(zipResult.zip, password);
-    const parser = new XMLParser({ ignoreAttributes: false });
+    const options = {
+      ignoreAttributes: false,
+      ignoreDeclaration: true,
+      parseTagValue: false,
+      trimValues: false,
+      textNodeName: '#text',
+      cdataProp: '#cdata',
+    };
+    const parser = new XMLParser(options);
     const isEncryptedArchive =
       typeof filePathOrBuffer === 'string' && filePathOrBuffer.toLowerCase().endsWith('.gridsetx');
     const encryptedContentPassword = this.getGridsetPassword(filePathOrBuffer);
@@ -722,6 +738,18 @@ class GridsetProcessor extends BaseProcessor {
               if (text) {
                 const val = this.textOf(text);
                 if (val) {
+                  // Debug: log WordList items with spaces to check extraction
+                  if (pageWordListItems.length < 3) {
+                    console.log(
+                      `[WordList] Extracted text: "${val}" (length: ${val.length}, has spaces: ${val.includes(' ')})`
+                    );
+                    console.log(
+                      `[WordList] Chars:`,
+                      Array.from(val)
+                        .map((c) => `"${c}" (${c.charCodeAt(0)})`)
+                        .join(', ')
+                    );
+                  }
                   pageWordListItems.push({
                     text: val,
                     image: item.Image || item.image || undefined,
