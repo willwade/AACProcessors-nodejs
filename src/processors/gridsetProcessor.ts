@@ -1058,9 +1058,13 @@ class GridsetProcessor extends BaseProcessor {
 
             // Debug: log resolution for cells with images
             if (declaredImageName && resolvedImageEntry) {
-              console.log(`[GridsetProcessor] Cell (${cellX + 1},${cellY + 1}) [XML coords]: ${declaredImageName} -> ${resolvedImageEntry}`);
+              console.log(
+                `[GridsetProcessor] Cell (${cellX + 1},${cellY + 1}) [XML coords]: ${declaredImageName} -> ${resolvedImageEntry}`
+              );
             } else if (declaredImageName && !resolvedImageEntry) {
-              console.log(`[GridsetProcessor] Cell (${cellX + 1},${cellY + 1}) [XML coords]: ${declaredImageName} -> NOT FOUND`);
+              console.log(
+                `[GridsetProcessor] Cell (${cellX + 1},${cellY + 1}) [XML coords]: ${declaredImageName} -> NOT FOUND`
+              );
             }
 
             // Check if image is a symbol library reference

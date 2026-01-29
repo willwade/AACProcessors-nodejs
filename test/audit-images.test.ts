@@ -6,7 +6,6 @@
  */
 
 import { GridsetProcessor } from '../src/processors/gridsetProcessor';
-import { resolveGrid3CellImage } from '../src/processors/gridset/resolver';
 import path from 'node:path';
 
 interface AuditResult {
@@ -44,7 +43,6 @@ async function auditGridsetImages(gridsetPath: string): Promise<AuditResult> {
 
   // Get all entries from the ZIP for manual inspection
   // We need to access the internal ZIP entries
-  const fs = await import('node:fs');
   const AdmZip = (await import('adm-zip')).default;
   const zip = new AdmZip(gridsetPath);
   const allEntries = zip.getEntries().map((e: any) => e.entryName);

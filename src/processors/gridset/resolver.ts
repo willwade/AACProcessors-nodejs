@@ -59,7 +59,7 @@ export function resolveGrid3CellImage(
 
   // Debug logging for cells that fail to resolve
   const shouldDebug = imageName?.startsWith('-') && x !== undefined && y !== undefined;
-  const debugLog = (msg: string) => {
+  const debugLog = (msg: string): void => {
     if (shouldDebug) {
       console.log(`[Resolver] ${baseDir} (${x},${y}) "${imageName}": ${msg}`);
     }
