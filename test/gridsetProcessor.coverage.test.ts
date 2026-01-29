@@ -212,8 +212,8 @@ describe('GridsetProcessor Coverage Tests', () => {
       const button = page.buttons[0];
       expect(button).toBeDefined();
       expect(button.label).toBe('Test Button');
-      expect(button.x).toBe(0); // 1-based to 0-based
-      expect(button.y).toBe(0);
+      expect(button.x).toBe(1); // Grid 3 XML coordinates are already 0-based
+      expect(button.y).toBe(1);
       expect(button.columnSpan).toBe(2);
       expect(button.rowSpan).toBe(2);
       expect(button.scanBlock).toBe(3);

@@ -57,6 +57,14 @@ export function resolveGrid3CellImage(
   const entries = new Set(listZipEntries(zip, zipEntries));
   const has = (p: string): boolean => entries.has(normalizeZipPathLocal(p));
 
+  // Debug logging for cells that fail to resolve
+  const shouldDebug = imageName?.startsWith('-') && x !== undefined && y !== undefined;
+  const debugLog = (msg: string) => {
+    if (shouldDebug) {
+      console.log(`[Resolver] ${baseDir} (${x},${y}) "${imageName}": ${msg}`);
+    }
+  };
+
   // Built-in resource like [grid3x]... (old format, not symbol library)
   // Check this BEFORE general symbol references to avoid misclassification
   if (imageName && imageName.startsWith('[')) {
@@ -87,6 +95,7 @@ export function resolveGrid3CellImage(
     // to be prefixed with the cell coordinates
     if (imageName.startsWith('-') && x != null && y != null) {
       const coordPrefixed = joinBaseDir(baseDir, `${x}-${y}${imageName}`);
+      debugLog(`trying coord-prefixed: ${coordPrefixed}, found: ${has(coordPrefixed)}`);
       if (has(coordPrefixed)) return coordPrefixed;
     }
 
@@ -125,12 +134,14 @@ export function resolveGrid3CellImage(
         `${x}-${y}.jpg`,
         `${x}-${y}.png`,
       ].map((n) => joinBaseDir(baseDir, n));
+      debugLog(`trying candidates: ${candidates.filter(has).join(', ') || 'none found'}`);
       for (const c of candidates) {
         if (has(c)) return c;
       }
     }
   }
 
+  debugLog(`NOT FOUND - returning null`);
   return null;
 }
 

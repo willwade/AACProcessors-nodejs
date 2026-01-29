@@ -741,15 +741,144 @@ class GridsetProcessor extends BaseProcessor {
           }> = [];
           let wordListCellIndex = 0;
 
+          // Helper function to find next available position in grid (auto-flow)
+          // Returns {x, y} for next available slot that can accommodate the given span
+          const findNextAvailablePosition = (
+            width: number,
+            height: number,
+            gridLayout: (AACButton | null)[][]
+          ): { x: number; y: number } => {
+            for (let y = 0; y < maxRows; y++) {
+              for (let x = 0; x <= maxCols - width; x++) {
+                // Check if this position and the required span area are all free
+                let fits = true;
+                for (let dy = 0; dy < height && y + dy < maxRows; dy++) {
+                  for (let dx = 0; dx < width && x + dx < maxCols; dx++) {
+                    if (gridLayout[y + dy][x + dx] !== null) {
+                      fits = false;
+                      break;
+                    }
+                  }
+                  if (!fits) break;
+                }
+                if (fits) {
+                  return { x, y };
+                }
+              }
+            }
+            // If no position found, return 0,0 (will be placed at first available)
+            return { x: 0, y: 0 };
+          };
+
+          // Helper function to find next available X position in a specific row
+          const findNextAvailableXInRow = (
+            rowY: number,
+            width: number,
+            gridLayout: (AACButton | null)[][]
+          ): number => {
+            for (let x = 0; x <= maxCols - width; x++) {
+              let fits = true;
+              for (let dx = 0; dx < width; dx++) {
+                if (gridLayout[rowY][x + dx] !== null) {
+                  fits = false;
+                  break;
+                }
+              }
+              if (fits) return x;
+            }
+            return 0;
+          };
+
+          // First pass: categorize cells by their positioning
+          interface CellWithIndex {
+            cell: any;
+            idx: number;
+          }
+          const cellsWithExplicitPosition: CellWithIndex[] = [];
+          const cellsWithYOnly: CellWithIndex[] = [];
+          const cellsWithXOnly: CellWithIndex[] = [];
+          const cellsWithAutoFlow: CellWithIndex[] = [];
+
           cellArr.forEach((cell: any, idx: number) => {
             if (!cell || !cell.Content) return;
 
-            // Extract position information from cell attributes
-            // Grid3 uses 1-based coordinates, convert to 0-based for internal use
-            const cellX = Math.max(0, parseInt(String(cell['@_X'] || '1'), 10) - 1);
-            const cellY = Math.max(0, parseInt(String(cell['@_Y'] || '1'), 10) - 1);
+            const hasX = cell['@_X'] !== undefined;
+            const hasY = cell['@_Y'] !== undefined;
+
+            if (hasX && hasY) {
+              cellsWithExplicitPosition.push({ cell, idx });
+            } else if (hasY && !hasX) {
+              cellsWithYOnly.push({ cell, idx });
+            } else if (!hasY && hasX) {
+              cellsWithXOnly.push({ cell, idx });
+            } else {
+              cellsWithAutoFlow.push({ cell, idx });
+            }
+          });
+
+          // Process cells in order: explicit -> Y-only -> X-only -> auto-flow
+          const allCellsToProcess = [
+            ...cellsWithExplicitPosition,
+            ...cellsWithYOnly,
+            ...cellsWithXOnly,
+            ...cellsWithAutoFlow,
+          ];
+
+          allCellsToProcess.forEach(({ cell, idx }) => {
+            // Extract span information first
             const colSpan = parseInt(String(cell['@_ColumnSpan'] || '1'), 10);
             const rowSpan = parseInt(String(cell['@_RowSpan'] || '1'), 10);
+
+            // Determine position based on what attributes are present
+            const hasX = cell['@_X'] !== undefined;
+            const hasY = cell['@_Y'] !== undefined;
+
+            let cellX: number;
+            let cellY: number;
+
+            if (hasX && hasY) {
+              // Explicit position: both X and Y provided
+              // Grid 3 XML coordinates are already 0-based, use them directly
+              cellX = Math.max(0, parseInt(String(cell['@_X']), 10));
+              cellY = Math.max(0, parseInt(String(cell['@_Y']), 10));
+            } else if (hasY && !hasX) {
+              // Y-only: auto-flow X in the specified row
+              // Grid 3 XML coordinates are already 0-based, use them directly
+              cellY = Math.max(0, parseInt(String(cell['@_Y']), 10));
+              cellX = findNextAvailableXInRow(cellY, colSpan, gridLayout);
+            } else if (!hasY && hasX) {
+              // X-only: place at specified X in next available row
+              // Grid 3 XML coordinates are already 0-based, use them directly
+              cellX = Math.max(0, parseInt(String(cell['@_X']), 10));
+              // Find first row where this X position is available
+              cellY = 0;
+              let found = false;
+              for (let y = 0; y < maxRows; y++) {
+                let fits = true;
+                for (let dx = 0; dx < colSpan && cellX + dx < maxCols; dx++) {
+                  if (gridLayout[y][cellX + dx] !== null) {
+                    fits = false;
+                    break;
+                  }
+                }
+                if (fits) {
+                  cellY = y;
+                  found = true;
+                  break;
+                }
+              }
+              if (!found) {
+                // No available row found, use auto-flow
+                const pos = findNextAvailablePosition(colSpan, rowSpan, gridLayout);
+                cellX = pos.x;
+                cellY = pos.y;
+              }
+            } else {
+              // No position: auto-flow both X and Y
+              const pos = findNextAvailablePosition(colSpan, rowSpan, gridLayout);
+              cellX = pos.x;
+              cellY = pos.y;
+            }
 
             // Extract scan block number (1-8) for block scanning support
             const scanBlock = parseInt(String(cell['@_ScanBlock'] || '1'), 10);
@@ -926,6 +1055,13 @@ class GridsetProcessor extends BaseProcessor {
                 },
                 entries
               ) || undefined;
+
+            // Debug: log resolution for cells with images
+            if (declaredImageName && resolvedImageEntry) {
+              console.log(`[GridsetProcessor] Cell (${cellX + 1},${cellY + 1}) [XML coords]: ${declaredImageName} -> ${resolvedImageEntry}`);
+            } else if (declaredImageName && !resolvedImageEntry) {
+              console.log(`[GridsetProcessor] Cell (${cellX + 1},${cellY + 1}) [XML coords]: ${declaredImageName} -> NOT FOUND`);
+            }
 
             // Check if image is a symbol library reference
             let symbolLibraryRef: SymbolReference | null = null;
