@@ -62,4 +62,49 @@ describe('resolveGrid3CellImage', () => {
     });
     expect(p2).toBe('builtin://home');
   });
+
+  it('resolves coordinate-prefixed image names starting with "-"', async () => {
+    const zip = mkZip({
+      'Grids/Home/1-4-0-text-0.jpeg': 'IMG',
+      'Grids/Home/2-3-0-text-0.png': 'PNG',
+    });
+    const p1 = resolveGrid3CellImage(zip, {
+      baseDir: 'Grids/Home/',
+      imageName: '-0-text-0.jpeg',
+      x: 1,
+      y: 4,
+    });
+    expect(p1).toBe('Grids/Home/1-4-0-text-0.jpeg');
+
+    const p2 = resolveGrid3CellImage(zip, {
+      baseDir: 'Grids/Home/',
+      imageName: '-0-text-0.png',
+      x: 2,
+      y: 3,
+    });
+    expect(p2).toBe('Grids/Home/2-3-0-text-0.png');
+  });
+
+  it('returns null for coordinate-prefixed names when file does not exist', async () => {
+    const zip = mkZip({});
+    const p = resolveGrid3CellImage(zip, {
+      baseDir: 'Grids/Home/',
+      imageName: '-0-text-0.png',
+      x: 1,
+      y: 4,
+    });
+    expect(p).toBeNull();
+  });
+
+  it('returns null for coordinate-prefixed names when coordinates are missing', async () => {
+    const zip = mkZip({
+      'Grids/Home/1-4-0-text-0.jpeg': 'IMG',
+    });
+    const p = resolveGrid3CellImage(zip, {
+      baseDir: 'Grids/Home/',
+      imageName: '-0-text-0.jpeg',
+      // No x, y provided
+    });
+    expect(p).toBeNull();
+  });
 });
