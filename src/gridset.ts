@@ -153,3 +153,11 @@ export {
   resolveGridsetPassword,
   resolveGridsetPasswordFromEnv,
 } from './processors/gridset/password';
+
+// === Image Debugging ===
+export {
+  auditGridsetImages,
+  formatImageAuditSummary,
+  type ImageAuditResult,
+  type ImageIssue,
+} from './processors/gridset/imageDebug';

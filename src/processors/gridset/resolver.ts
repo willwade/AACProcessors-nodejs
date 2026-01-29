@@ -82,6 +82,14 @@ export function resolveGrid3CellImage(
 
   // Direct declared file
   if (imageName) {
+    // Check for partial image names that start with '-' (common in Grid3)
+    // These are coordinate-based suffixes like "-0-text-0.png" that need
+    // to be prefixed with the cell coordinates
+    if (imageName.startsWith('-') && x != null && y != null) {
+      const coordPrefixed = joinBaseDir(baseDir, `${x}-${y}${imageName}`);
+      if (has(coordPrefixed)) return coordPrefixed;
+    }
+
     const p1 = joinBaseDir(baseDir, imageName);
     if (has(p1)) return p1;
     const p2 = joinBaseDir(baseDir, `Images/${imageName}`);
