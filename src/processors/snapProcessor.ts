@@ -60,6 +60,49 @@ interface SnapPage {
   BackgroundColor?: number;
 }
 
+/**
+ * Detect image MIME type from binary data using magic bytes
+ * @param buffer Image data buffer
+ * @returns MIME type string (defaults to 'image/png' if unknown)
+ */
+function detectImageMimeType(buffer: Buffer): string {
+  if (!buffer || buffer.length < 8) {
+    return 'image/png';
+  }
+
+  // Check for PNG: 89 50 4E 47 0D 0A 1A 0A
+  if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47) {
+    return 'image/png';
+  }
+
+  // Check for JPEG: FF D8 FF
+  if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) {
+    return 'image/jpeg';
+  }
+
+  // Check for GIF: 47 49 46 38 (GIF8)
+  if (buffer[0] === 0x47 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x38) {
+    return 'image/gif';
+  }
+
+  // Check for WebP: 52 49 46 46 ... 57 45 42 50 (RIFF...WEBP)
+  if (
+    buffer[0] === 0x52 &&
+    buffer[1] === 0x49 &&
+    buffer[2] === 0x46 &&
+    buffer[3] === 0x46 &&
+    buffer[8] === 0x57 &&
+    buffer[9] === 0x45 &&
+    buffer[10] === 0x42 &&
+    buffer[11] === 0x50
+  ) {
+    return 'image/webp';
+  }
+
+  // Default to PNG
+  return 'image/png';
+}
+
 class SnapProcessor extends BaseProcessor {
   private symbolResolver: unknown | null = null;
   private loadAudio: boolean = false;
@@ -519,6 +562,38 @@ class SnapProcessor extends BaseProcessor {
             }
           }
 
+          // Load symbol image if available
+          // Note: PageSetImageId references embedded images in PageSetData table
+          // LibrarySymbolId references external symbol libraries (SymbolStix, etc.)
+          let buttonImage: string | undefined;
+          const buttonParameters: { image_id?: string; imageData?: Buffer } = {};
+          if (btnRow.PageSetImageId && btnRow.PageSetImageId > 0) {
+            try {
+              const imageData = db
+                .prepare(
+                  `
+                  SELECT Id, Identifier, Data FROM PageSetData WHERE Id = ?
+                `
+                )
+                .get(btnRow.PageSetImageId) as
+                | { Id: number; Identifier: string; Data: Buffer }
+                | undefined;
+
+              if (imageData && imageData.Data && imageData.Data.length > 0) {
+                const mimeType = detectImageMimeType(imageData.Data);
+                const base64 = imageData.Data.toString('base64');
+                buttonImage = `data:${mimeType};base64,${base64}`;
+                buttonParameters.image_id = imageData.Identifier;
+                buttonParameters.imageData = imageData.Data;
+              }
+            } catch (e) {
+              console.warn(
+                `[SnapProcessor] Failed to load image for button ${btnRow.Id} (PageSetImageId: ${btnRow.PageSetImageId}):`,
+                e
+              );
+            }
+          }
+
           // Create semantic action for Snap button
           let semanticAction: AACSemanticAction | undefined;
 
@@ -569,6 +644,9 @@ class SnapProcessor extends BaseProcessor {
             semantic_id: btnRow.LibrarySymbolId
               ? `snap_symbol_${btnRow.LibrarySymbolId}`
               : undefined, // Extract semantic_id from LibrarySymbolId
+            image: buttonImage,
+            resolvedImageEntry: buttonImage,
+            parameters: Object.keys(buttonParameters).length > 0 ? buttonParameters : undefined,
             style: {
               backgroundColor: btnRow.BackgroundColor
                 ? `#${btnRow.BackgroundColor.toString(16)}`

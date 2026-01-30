@@ -1,8 +1,14 @@
-import { AACTree, AACSemanticCategory, AACSemanticIntent } from '../../core/treeStructure';
+import {
+  AACTree,
+  AACSemanticCategory,
+  AACSemanticIntent,
+  AACButton,
+} from '../../core/treeStructure';
 import * as fs from 'fs';
 import * as path from 'path';
 import Database from 'better-sqlite3';
 import { dotNetTicksToDate } from '../../utils/dotnetTicks';
+import { ProcessorInput } from '../../utils/io';
 
 // Minimal Snap helpers (stubs) to align with processors/<engine>/helpers pattern
 // NOTE: Snap buttons currently do not populate resolvedImageEntry; these helpers
@@ -57,18 +63,84 @@ export function getPageTokenImageMap(tree: AACTree, pageId: string): Map<string,
 
 /**
  * Collect all image entry paths referenced in a Snap tree.
- * Currently empty until resolvedImageEntry is populated by the processor.
+ * Returns the set of symbol identifiers (e.g., "SYM:12345") that are referenced by buttons.
  */
-export function getAllowedImageEntries(_tree: AACTree): Set<string> {
-  return new Set<string>();
+export function getAllowedImageEntries(tree: AACTree): Set<string> {
+  const out = new Set<string>();
+  Object.values(tree.pages).forEach((page) => {
+    page.buttons.forEach((btn: AACButton) => {
+      // Extract image_id from parameters if it exists
+      if (btn.parameters?.image_id && typeof btn.parameters.image_id === 'string') {
+        out.add(btn.parameters.image_id);
+      }
+      // Also add resolvedImageEntry if it's a symbol identifier
+      if (btn.resolvedImageEntry && typeof btn.resolvedImageEntry === 'string') {
+        const entry = btn.resolvedImageEntry;
+        if (entry.startsWith('SYM:')) {
+          out.add(entry);
+        }
+      }
+    });
+  });
+  return out;
 }
 
 /**
  * Read a binary asset from a Snap pageset.
- * Not implemented yet; provided for API symmetry with other processors.
+ * @param dbOrFile Path to Snap .sps/.spb file or Buffer containing the file data
+ * @param entryPath Symbol identifier (e.g., "SYM:12345")
+ * @returns Image data buffer or null if not found
  */
-export function openImage(_dbOrFile: string | Buffer, _entryPath: string): Buffer | null {
-  return null;
+export function openImage(dbOrFile: ProcessorInput, entryPath: string): Buffer | null {
+  let dbPath: string;
+  let cleanupNeeded = false;
+
+  // Handle Buffer input by writing to temp file
+  if (Buffer.isBuffer(dbOrFile)) {
+    if (typeof fs.mkdtempSync !== 'function') {
+      return null; // Not in Node environment
+    }
+    const tempDir = fs.mkdtempSync(path.join(process.cwd(), 'snap-'));
+    dbPath = path.join(tempDir, 'temp.sps');
+    fs.writeFileSync(dbPath, dbOrFile);
+    cleanupNeeded = true;
+  } else if (typeof dbOrFile === 'string') {
+    dbPath = dbOrFile;
+  } else {
+    return null;
+  }
+
+  let db: Database.Database | null = null;
+  try {
+    db = new Database(dbPath, { readonly: true });
+
+    // Query PageSetData for the symbol
+    const row = db
+      .prepare('SELECT Id, Identifier, Data FROM PageSetData WHERE Identifier = ?')
+      .get(entryPath) as { Id: number; Identifier: string; Data: Buffer } | undefined;
+
+    if (row && row.Data && row.Data.length > 0) {
+      return row.Data;
+    }
+
+    return null;
+  } catch (error) {
+    console.warn(`[Snap helpers] Failed to open image ${entryPath}:`, error);
+    return null;
+  } finally {
+    if (db) {
+      db.close();
+    }
+    if (cleanupNeeded && dbPath) {
+      try {
+        fs.unlinkSync(dbPath);
+        const dir = path.dirname(dbPath);
+        fs.rmdirSync(dir);
+      } catch (e) {
+        // Ignore cleanup errors
+      }
+    }
+  }
 }
 
 /**
