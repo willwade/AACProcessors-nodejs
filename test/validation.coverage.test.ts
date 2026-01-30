@@ -5,6 +5,28 @@ import {
   TouchChatValidator,
 } from '../src/validation';
 import JSZip from 'jszip';
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
+import AdmZip from 'adm-zip';
+import Database from 'better-sqlite3';
+
+function createSqliteDbBuffer(schemaSql: string, insertSql?: string): Buffer {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'aac-test-sqlite-'));
+  const dbPath = path.join(dir, 'db.sqlite');
+  const db = new Database(dbPath);
+  try {
+    db.exec(schemaSql);
+    if (insertSql) {
+      db.exec(insertSql);
+    }
+  } finally {
+    db.close();
+  }
+  const buffer = fs.readFileSync(dbPath);
+  fs.rmSync(dir, { recursive: true, force: true });
+  return buffer;
+}
 
 describe('Validation Coverage Tests', () => {
   describe('ObfValidator - Extended Coverage', () => {
@@ -591,9 +613,59 @@ describe('Validation Coverage Tests', () => {
       expect(result.valid).toBe(false);
       expect(result.format).toBe('snap');
     });
+
+    it('should validate sqlite-based Snap files', async () => {
+      const sqliteBuffer = createSqliteDbBuffer(`
+        CREATE TABLE Page (Id INTEGER PRIMARY KEY, UniqueId TEXT, Name TEXT, Title TEXT);
+        CREATE TABLE Button (Id INTEGER PRIMARY KEY, Label TEXT, Message TEXT);
+        CREATE TABLE ElementReference (Id INTEGER PRIMARY KEY, PageId INTEGER);
+        CREATE TABLE ElementPlacement (Id INTEGER PRIMARY KEY, ElementReferenceId INTEGER);
+        CREATE TABLE PageSetProperties (Id INTEGER PRIMARY KEY, Name TEXT);
+      `);
+
+      const result = await new SnapValidator().validate(
+        sqliteBuffer,
+        'test.sps',
+        sqliteBuffer.length
+      );
+
+      expect(result.valid).toBe(true);
+      expect(result.format).toBe('snap');
+    });
   });
 
   describe('TouchChatValidator - Extended Coverage', () => {
+    it('should validate TouchChat zip with sqlite db', async () => {
+      const sqliteBuffer = createSqliteDbBuffer(
+        `
+        CREATE TABLE resources (id INTEGER PRIMARY KEY, name TEXT);
+        CREATE TABLE pages (id INTEGER PRIMARY KEY, resource_id INTEGER);
+        CREATE TABLE buttons (id INTEGER PRIMARY KEY, resource_id INTEGER);
+        CREATE TABLE button_boxes (id INTEGER PRIMARY KEY);
+        CREATE TABLE button_box_cells (id INTEGER PRIMARY KEY, resource_id INTEGER, button_box_id INTEGER);
+        CREATE TABLE button_box_instances (id INTEGER PRIMARY KEY, page_id INTEGER, button_box_id INTEGER);
+      `,
+        `
+        INSERT INTO resources (id, name) VALUES (1, 'Page 1');
+        INSERT INTO pages (id, resource_id) VALUES (1, 1);
+        INSERT INTO buttons (id, resource_id) VALUES (1, 1);
+        INSERT INTO button_boxes (id) VALUES (1);
+        INSERT INTO button_box_cells (id, resource_id, button_box_id) VALUES (1, 1, 1);
+        INSERT INTO button_box_instances (id, page_id, button_box_id) VALUES (1, 1, 1);
+      `
+      );
+
+      const zip = new AdmZip();
+      zip.addFile('vocab.c4v', sqliteBuffer);
+      const content = zip.toBuffer();
+
+      const result = await new TouchChatValidator().validate(content, 'test.ce', content.length);
+
+      expect(result).toBeDefined();
+      expect(result.format).toBe('touchchat');
+      expect(result.valid).toBe(true);
+    });
+
     it('should validate complete TouchChat structure', async () => {
       const completeTouchChat = `<?xml version="1.0" encoding="utf-8"?>
       <PageSet id="test" name="Test Pageset">
