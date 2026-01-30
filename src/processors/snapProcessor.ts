@@ -20,6 +20,27 @@ import { ValidationResult } from '../validation/validationTypes';
 import { ProcessorInput, getFs, getNodeRequire, getPath, isNodeRuntime } from '../utils/io';
 import { openSqliteDatabase, requireBetterSqlite3 } from '../utils/sqlite';
 
+/**
+ * Convert a Buffer or Uint8Array to base64 string (browser and Node compatible)
+ * Node.js Buffers support toString('base64'), but Uint8Arrays in browser do not.
+ * This function works in both environments.
+ */
+function arrayBufferToBase64(data: Buffer | Uint8Array): string {
+  // Node.js environment - Buffer has built-in base64 encoding
+  if (typeof Buffer !== 'undefined' && data instanceof Buffer) {
+    return data.toString('base64');
+  }
+
+  // Browser environment - use btoa with binary string conversion
+  const bytes = new Uint8Array(data);
+  let binary = '';
+  const len = bytes.byteLength;
+  for (let i = 0; i < len; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+
 interface SnapButton {
   Id: number;
   Label: string;
@@ -556,7 +577,7 @@ class SnapProcessor extends BaseProcessor {
                 if (isPng || isJpeg) {
                   // Actual PNG/JPEG image - can be displayed
                   const mimeType = isPng ? 'image/png' : 'image/jpeg';
-                  const base64 = data.toString('base64');
+                  const base64 = arrayBufferToBase64(data);
                   buttonImage = `data:${mimeType};base64,${base64}`;
                   buttonParameters.image_id = imageData.Identifier;
                 } else {
