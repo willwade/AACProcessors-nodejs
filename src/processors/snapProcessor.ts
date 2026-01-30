@@ -566,7 +566,7 @@ class SnapProcessor extends BaseProcessor {
           // Note: PageSetImageId references embedded images in PageSetData table
           // LibrarySymbolId references external symbol libraries (SymbolStix, etc.)
           let buttonImage: string | undefined;
-          const buttonParameters: { image_id?: string; imageData?: Buffer } = {};
+          const buttonParameters: { image_id?: string } = {};
           if (btnRow.PageSetImageId && btnRow.PageSetImageId > 0) {
             try {
               const imageData = db
@@ -584,7 +584,10 @@ class SnapProcessor extends BaseProcessor {
                 const base64 = imageData.Data.toString('base64');
                 buttonImage = `data:${mimeType};base64,${base64}`;
                 buttonParameters.image_id = imageData.Identifier;
-                buttonParameters.imageData = imageData.Data;
+                // NOTE: We don't include imageData in parameters because Buffers don't serialize
+                // correctly across server/client boundaries (Next.js SSR, JSON, etc.)
+                // The data URL in buttonImage is sufficient for display purposes.
+                // For conversions, images can be reloaded from the source file/database.
               }
             } catch (e) {
               console.warn(
