@@ -572,6 +572,32 @@ class GridsetProcessor extends BaseProcessor {
       );
     }
 
+    // Pre-load all image data for conversion to other formats (e.g., Snap)
+    const imageDataCache = new Map<string, Buffer>();
+    const imageEntries = entries.filter((e) => {
+      const name = e.entryName.toLowerCase();
+      return (
+        name.endsWith('.png') ||
+        name.endsWith('.jpg') ||
+        name.endsWith('.jpeg') ||
+        name.endsWith('.gif') ||
+        name.endsWith('.svg')
+      );
+    });
+
+    for (const imageEntry of imageEntries) {
+      try {
+        const raw = await imageEntry.getData();
+        const data = isEncryptedArchive
+          ? decryptGridsetEntry(Buffer.from(raw), encryptedContentPassword)
+          : Buffer.from(raw);
+        const normalizedEntry = imageEntry.entryName.replace(/\\/g, '/');
+        imageDataCache.set(normalizedEntry, data);
+      } catch (err) {
+        // Silently fail - individual image loading failures shouldn't break the entire load
+      }
+    }
+
     // First pass: collect all grid names and IDs for navigation resolution
     const gridNameToIdMap = new Map<string, string>();
     const gridIdToNameMap = new Map<string, string>();
@@ -1094,6 +1120,11 @@ class GridsetProcessor extends BaseProcessor {
                 `[GridsetProcessor] Cell (${cellX + 1},${cellY + 1}) [XML coords]: ${declaredImageName} -> NOT FOUND`
               );
             }
+
+            // Load binary image data from cache for conversion to other formats (e.g., Snap)
+            const imageData = resolvedImageEntry
+              ? imageDataCache.get(resolvedImageEntry)
+              : undefined;
 
             // Check if image is a symbol library reference
             let symbolLibraryRef: SymbolReference | null = null;
@@ -1673,6 +1704,8 @@ class GridsetProcessor extends BaseProcessor {
                   !isMoreButton
                     ? wordListCellIndex - 1
                     : undefined,
+                // Store binary image data for conversion to other formats
+                ...(imageData ? { imageData, image_id: resolvedImageEntry } : {}),
               },
             });
 

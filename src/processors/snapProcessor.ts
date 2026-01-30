@@ -1106,6 +1106,51 @@ class SnapProcessor extends BaseProcessor {
             useMessageRecording = 1;
           }
 
+          // Handle image data from button.parameters.imageData or button.image (data URL)
+          let pageSetImageId: number | null = null;
+          if (button.parameters?.imageData && Buffer.isBuffer(button.parameters.imageData)) {
+            // Use existing image data buffer
+            const imageIdentifier: string =
+              (button.parameters.image_id as string) || `IMG_${buttonIdCounter}`;
+            let imageId = pageSetDataIdentifierMap.get(imageIdentifier);
+            if (!imageId) {
+              imageId = pageSetDataIdCounter++;
+              insertPageSetData.run(imageId, imageIdentifier, button.parameters.imageData, 1);
+              pageSetDataIdentifierMap.set(imageIdentifier, imageId);
+            } else {
+              incrementRefCount.run(imageId);
+            }
+            pageSetImageId = imageId;
+          } else if (
+            button.image &&
+            typeof button.image === 'string' &&
+            button.image.startsWith('data:image')
+          ) {
+            // Convert data URL to buffer
+            try {
+              const matches = button.image.match(/^data:image\/(\w+);base64,(.+)$/);
+              if (matches && matches[2]) {
+                const imageData = Buffer.from(matches[2], 'base64');
+                const imageIdentifier: string =
+                  (button.parameters?.image_id as string) || `IMG_${buttonIdCounter}`;
+                let imageId = pageSetDataIdentifierMap.get(imageIdentifier);
+                if (!imageId) {
+                  imageId = pageSetDataIdCounter++;
+                  insertPageSetData.run(imageId, imageIdentifier, imageData, 1);
+                  pageSetDataIdentifierMap.set(imageIdentifier, imageId);
+                } else {
+                  incrementRefCount.run(imageId);
+                }
+                pageSetImageId = imageId;
+              }
+            } catch (err) {
+              console.warn(
+                `[SnapProcessor] Failed to convert data URL to Buffer for button ${button.id}:`,
+                err
+              );
+            }
+          }
+
           // Retry logic for SQLite operations
           let retries = 3;
           while (retries > 0) {
@@ -1116,8 +1161,8 @@ class SnapProcessor extends BaseProcessor {
                 button.message || button.label || '',
                 navigatePageId,
                 elementRefId,
-                null,
-                null,
+                null, // LibrarySymbolId - not used for embedded images
+                pageSetImageId, // PageSetImageId - references embedded image in PageSetData
                 messageRecordingId,
                 serializedMetadata,
                 useMessageRecording,
