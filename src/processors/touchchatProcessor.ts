@@ -653,12 +653,124 @@ class TouchChatProcessor extends BaseProcessor {
         'processTexts is only supported in Node.js environments for TouchChat files.'
       );
     }
-    // Load the tree, apply translations, and save to new file
+    /**
+     * TouchChat .ce files are ZIP archives containing a SQLite .c4v database.
+     * Rebuilding the database can drop tables/metadata/resources that we don't
+     * currently model in the tree, which can corrupt the file.
+     *
+     * For file paths, we preserve the original archive and update text in-place
+     * within the embedded SQLite database, ensuring assets and metadata remain intact.
+     */
+    if (typeof filePathOrBuffer === 'string') {
+      const fs = getFs();
+      const path = getPath();
+      const os = getOs();
+      const AdmZip = getNodeRequire()('adm-zip') as typeof import('adm-zip');
+
+      const inputPath = filePathOrBuffer;
+      const outputDir = path.dirname(outputPath);
+      if (!fs.existsSync(outputDir)) {
+        fs.mkdirSync(outputDir, { recursive: true });
+      }
+      if (fs.existsSync(outputPath)) {
+        fs.unlinkSync(outputPath);
+      }
+
+      const zip = new AdmZip(inputPath);
+      const entries = zip.getEntries();
+      const vocabEntry = entries.find((entry) => entry.entryName.endsWith('.c4v'));
+      if (!vocabEntry) {
+        throw new Error('No .c4v vocab DB found in TouchChat export');
+      }
+
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'touchchat-translate-'));
+      const dbPath = path.join(tempDir, 'vocab.c4v');
+      try {
+        fs.writeFileSync(dbPath, vocabEntry.getData());
+
+        const Database = requireBetterSqlite3();
+        const db = new Database(dbPath, { readonly: false });
+        try {
+          const getColumns = (tableName: string): Set<string> => {
+            try {
+              const rows = db.prepare(`PRAGMA table_info(${tableName})`).all() as Array<{
+                name: string;
+              }>;
+              return new Set(rows.map((row) => row.name));
+            } catch {
+              return new Set();
+            }
+          };
+
+          const resourceColumns = getColumns('resources');
+          const pageColumns = getColumns('pages');
+          const buttonColumns = getColumns('buttons');
+
+          const updatePageResourceName = resourceColumns.has('name')
+            ? db.prepare(
+                'UPDATE resources SET name = ? WHERE name = ? AND id IN (SELECT resource_id FROM pages)'
+              )
+            : null;
+          const updatePageName = pageColumns.has('name')
+            ? db.prepare('UPDATE pages SET name = ? WHERE name = ?')
+            : null;
+          const updateButtonLabel = buttonColumns.has('label')
+            ? db.prepare('UPDATE buttons SET label = ? WHERE label = ?')
+            : null;
+          const updateButtonMessage = buttonColumns.has('message')
+            ? db.prepare('UPDATE buttons SET message = ? WHERE message = ?')
+            : null;
+
+          const entriesToUpdate = Array.from(translations.entries());
+          const applyUpdates = db.transaction(() => {
+            entriesToUpdate.forEach(([original, translated]) => {
+              if (!translated || translated === original) {
+                return;
+              }
+              if (updatePageResourceName) {
+                updatePageResourceName.run(translated, original);
+              }
+              if (updatePageName) {
+                updatePageName.run(translated, original);
+              }
+              if (updateButtonLabel) {
+                updateButtonLabel.run(translated, original);
+              }
+              if (updateButtonMessage) {
+                updateButtonMessage.run(translated, original);
+              }
+            });
+          });
+          applyUpdates();
+        } finally {
+          db.close();
+        }
+
+        const outputZip = new AdmZip();
+        entries.forEach((entry) => {
+          if (entry.entryName === vocabEntry.entryName) {
+            return;
+          }
+          const data = entry.isDirectory ? Buffer.alloc(0) : entry.getData();
+          outputZip.addFile(entry.entryName, data, entry.comment || '');
+        });
+        outputZip.addFile(vocabEntry.entryName, fs.readFileSync(dbPath));
+        outputZip.writeZip(outputPath);
+      } finally {
+        try {
+          fs.rmSync(tempDir, { recursive: true, force: true });
+        } catch {
+          // Best-effort cleanup
+        }
+      }
+
+      return fs.readFileSync(outputPath);
+    }
+
+    // Fallback for buffer inputs: rebuild from tree (may drop TouchChat metadata)
     const tree = await this.loadIntoTree(filePathOrBuffer);
 
-    // Apply translations to all text content
     Object.values(tree.pages).forEach((page) => {
-      // Translate page names
       if (page.name && translations.has(page.name)) {
         const translatedName = translations.get(page.name);
         if (translatedName !== undefined) {
@@ -666,7 +778,6 @@ class TouchChatProcessor extends BaseProcessor {
         }
       }
 
-      // Translate button labels and messages
       page.buttons.forEach((button) => {
         if (button.label && translations.has(button.label)) {
           const translatedLabel = translations.get(button.label);
@@ -683,7 +794,6 @@ class TouchChatProcessor extends BaseProcessor {
       });
     });
 
-    // Save the translated tree and return its content
     await this.saveFromTree(tree, outputPath);
     const fs = getFs();
     return fs.readFileSync(outputPath);

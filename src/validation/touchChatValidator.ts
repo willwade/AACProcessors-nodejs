@@ -5,10 +5,13 @@ import * as xml2js from 'xml2js';
 import { BaseValidator } from './baseValidator';
 import { ValidationResult } from './validationTypes';
 import { decodeText, getBasename, getFs, readBinaryFromInput, toUint8Array } from '../utils/io';
+import { openZipFromInput } from '../utils/zip';
+import { openSqliteDatabase } from '../utils/sqlite';
 
 /**
  * Validator for TouchChat files (.ce)
- * TouchChat files are XML-based
+ * TouchChat files are ZIP archives that contain a .c4v SQLite database.
+ * Some legacy exports may be XML, so we support both formats.
  */
 export class TouchChatValidator extends BaseValidator {
   constructor() {
@@ -32,6 +35,17 @@ export class TouchChatValidator extends BaseValidator {
     const name = filename.toLowerCase();
     if (name.endsWith('.ce')) {
       return true;
+    }
+
+    // Try to parse as ZIP and check for .c4v database
+    try {
+      const { zip } = await openZipFromInput(content);
+      const entries = zip.listFiles();
+      if (entries.some((entry) => entry.toLowerCase().endsWith('.c4v'))) {
+        return true;
+      }
+    } catch {
+      // Fall back to XML detection
     }
 
     // Try to parse as XML and check for TouchChat structure
@@ -62,45 +76,48 @@ export class TouchChatValidator extends BaseValidator {
       }
     });
 
-    let xmlObj: any = null;
-    await this.add_check('xml_parse', 'valid XML', async () => {
-      try {
-        const parser = new xml2js.Parser();
-        const contentStr = decodeText(content);
-        xmlObj = await parser.parseStringPromise(contentStr);
-      } catch (e: any) {
-        this.err(`Failed to parse XML: ${e.message}`, true);
+    const zipped = await this.tryValidateZipSqlite(content);
+    if (!zipped) {
+      let xmlObj: any = null;
+      await this.add_check('xml_parse', 'valid XML', async () => {
+        try {
+          const parser = new xml2js.Parser();
+          const contentStr = decodeText(content);
+          xmlObj = await parser.parseStringPromise(contentStr);
+        } catch (e: any) {
+          this.err(`Failed to parse XML: ${e.message}`, true);
+        }
+      });
+
+      if (!xmlObj) {
+        return this.buildResult(filename, filesize, 'touchchat');
       }
-    });
 
-    if (!xmlObj) {
-      return this.buildResult(filename, filesize, 'touchchat');
-    }
+      await this.add_check('xml_structure', 'TouchChat root element', async () => {
+        // TouchChat can have different root elements
+        const hasValidRoot =
+          xmlObj.PageSet ||
+          xmlObj.Pageset ||
+          xmlObj.page ||
+          xmlObj.Page ||
+          xmlObj.pages ||
+          xmlObj.Pages;
 
-    await this.add_check('xml_structure', 'TouchChat root element', async () => {
-      // TouchChat can have different root elements
-      const hasValidRoot =
+        if (!hasValidRoot) {
+          this.err('file does not contain a recognized TouchChat structure');
+        }
+      });
+
+      const root =
         xmlObj.PageSet ||
         xmlObj.Pageset ||
         xmlObj.page ||
         xmlObj.Page ||
         xmlObj.pages ||
         xmlObj.Pages;
-
-      if (!hasValidRoot) {
-        this.err('file does not contain a recognized TouchChat structure');
+      if (root) {
+        await this.validateTouchChatStructure(root);
       }
-    });
-
-    const root =
-      xmlObj.PageSet ||
-      xmlObj.Pageset ||
-      xmlObj.page ||
-      xmlObj.Page ||
-      xmlObj.pages ||
-      xmlObj.Pages;
-    if (root) {
-      await this.validateTouchChatStructure(root);
     }
 
     return this.buildResult(filename, filesize, 'touchchat');
@@ -242,5 +259,114 @@ export class TouchChatValidator extends BaseValidator {
         }
       }
     );
+  }
+
+  private isSQLiteBuffer(content: Buffer | Uint8Array): boolean {
+    const header = 'SQLite format 3\u0000';
+    const bytes = content instanceof Uint8Array ? content : new Uint8Array(content);
+    if (bytes.length < header.length) {
+      return false;
+    }
+    for (let i = 0; i < header.length; i++) {
+      if (bytes[i] !== header.charCodeAt(i)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private async tryValidateZipSqlite(content: Buffer | Uint8Array): Promise<boolean> {
+    let usedZip = false;
+    await this.add_check('zip', 'TouchChat ZIP package', async () => {
+      try {
+        const { zip } = await openZipFromInput(content);
+        const entries = zip.listFiles();
+        const vocabEntry = entries.find((name) => name.toLowerCase().endsWith('.c4v'));
+        if (!vocabEntry) {
+          this.err('TouchChat package missing .c4v database', true);
+          return;
+        }
+        const dbBuffer = await zip.readFile(vocabEntry);
+        if (!this.isSQLiteBuffer(dbBuffer)) {
+          this.err('TouchChat .c4v is not a valid SQLite database', true);
+          return;
+        }
+        usedZip = true;
+        await this.validateSqliteStructure(dbBuffer);
+      } catch (e: any) {
+        this.err(`file is not a valid TouchChat ZIP package: ${e.message}`, true);
+      }
+    });
+    return usedZip;
+  }
+
+  private async validateSqliteStructure(content: Buffer | Uint8Array): Promise<void> {
+    await this.add_check('sqlite', 'valid TouchChat SQLite database', async () => {
+      let cleanup: (() => void) | undefined;
+      try {
+        const result = await openSqliteDatabase(content, { readonly: true });
+        const db = result.db;
+        cleanup = result.cleanup;
+
+        const tableRows = db
+          .prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
+          .all() as Array<{ name: string }>;
+        const tables = new Set(tableRows.map((row) => row.name));
+
+        const requiredTables = [
+          'resources',
+          'pages',
+          'buttons',
+          'button_boxes',
+          'button_box_cells',
+          'button_box_instances',
+        ];
+        const missingTables = requiredTables.filter((t) => !tables.has(t));
+        if (missingTables.length > 0) {
+          this.err(`Missing required TouchChat tables: ${missingTables.join(', ')}`);
+        }
+
+        const resourcesCols = new Set(
+          db
+            .prepare('PRAGMA table_info(resources)')
+            .all()
+            .map((row: any) => row.name)
+        );
+        if (!resourcesCols.has('id') || !resourcesCols.has('name')) {
+          this.err('resources table missing id/name columns');
+        }
+
+        const pagesCols = new Set(
+          db
+            .prepare('PRAGMA table_info(pages)')
+            .all()
+            .map((row: any) => row.name)
+        );
+        if (!pagesCols.has('id') || !pagesCols.has('resource_id')) {
+          this.err('pages table missing id/resource_id columns');
+        }
+
+        const buttonsCols = new Set(
+          db
+            .prepare('PRAGMA table_info(buttons)')
+            .all()
+            .map((row: any) => row.name)
+        );
+        if (!buttonsCols.has('id') || !buttonsCols.has('resource_id')) {
+          this.err('buttons table missing id/resource_id columns');
+        }
+
+        const pageCount = db.prepare('SELECT COUNT(*) as c FROM pages').get() as { c: number };
+        if (!pageCount || pageCount.c === 0) {
+          this.warn('TouchChat database has no pages');
+        }
+      } catch (e: any) {
+        this.err(`TouchChat database validation failed: ${e.message}`, true);
+      } finally {
+        if (cleanup) {
+          cleanup();
+        }
+      }
+    });
   }
 }
