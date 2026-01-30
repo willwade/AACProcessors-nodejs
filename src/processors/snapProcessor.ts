@@ -722,12 +722,98 @@ class SnapProcessor extends BaseProcessor {
     if (!isNodeRuntime()) {
       throw new Error('processTexts is only supported in Node.js environments for Snap files.');
     }
-    // Load the tree, apply translations, and save to new file
+    const fs = getFs();
+    const path = getPath();
+
+    if (typeof filePathOrBuffer === 'string') {
+      const inputPath = filePathOrBuffer;
+      const outputDir = path.dirname(outputPath);
+      if (!fs.existsSync(outputDir)) {
+        fs.mkdirSync(outputDir, { recursive: true });
+      }
+      if (fs.existsSync(outputPath)) {
+        fs.unlinkSync(outputPath);
+      }
+      fs.copyFileSync(inputPath, outputPath);
+
+      const Database = requireBetterSqlite3();
+      const db = new Database(outputPath, { readonly: false });
+      try {
+        const getColumns = (tableName: string): Set<string> => {
+          try {
+            const rows = db.prepare(`PRAGMA table_info(${tableName})`).all() as Array<{
+              name: string;
+            }>;
+            return new Set(rows.map((row) => row.name));
+          } catch {
+            return new Set();
+          }
+        };
+
+        const pageColumns = getColumns('Page');
+        const buttonColumns = getColumns('Button');
+
+        const pageUpdates: string[] = [];
+        const pageWhere: string[] = [];
+        const pageColumnsToUse: Array<'Name' | 'Title'> = [];
+
+        if (pageColumns.has('Name')) {
+          pageUpdates.push('Name = ?');
+          pageWhere.push('Name = ?');
+          pageColumnsToUse.push('Name');
+        }
+        if (pageColumns.has('Title')) {
+          pageUpdates.push('Title = ?');
+          pageWhere.push('Title = ?');
+          pageColumnsToUse.push('Title');
+        }
+
+        const updatePage =
+          pageUpdates.length > 0
+            ? db.prepare(
+                `UPDATE Page SET ${pageUpdates.join(', ')} WHERE ${pageWhere.join(' OR ')}`
+              )
+            : null;
+
+        const updateLabel = buttonColumns.has('Label')
+          ? db.prepare('UPDATE Button SET Label = ? WHERE Label = ?')
+          : null;
+        const updateMessage = buttonColumns.has('Message')
+          ? db.prepare('UPDATE Button SET Message = ? WHERE Message = ?')
+          : null;
+
+        const entries = Array.from(translations.entries());
+        const applyUpdates = db.transaction(() => {
+          entries.forEach(([original, translated]) => {
+            if (!translated || translated === original) {
+              return;
+            }
+            if (updatePage) {
+              const updateValues: string[] = [];
+              pageColumnsToUse.forEach(() => updateValues.push(translated));
+              pageColumnsToUse.forEach(() => updateValues.push(original));
+              updatePage.run(...updateValues);
+            }
+            if (updateLabel) {
+              updateLabel.run(translated, original);
+            }
+            if (updateMessage) {
+              updateMessage.run(translated, original);
+            }
+          });
+        });
+        applyUpdates();
+      } finally {
+        db.close();
+      }
+
+      return fs.readFileSync(outputPath);
+    }
+
+    // Fallback for buffer inputs: rebuild from tree (may drop Snap assets)
     const tree = await this.loadIntoTree(filePathOrBuffer);
 
-    // Apply translations to all text content
     Object.values(tree.pages).forEach((page) => {
-      // Translate page names
       if (page.name && translations.has(page.name)) {
         const translatedName = translations.get(page.name);
         if (translatedName !== undefined) {
@@ -735,7 +821,6 @@ class SnapProcessor extends BaseProcessor {
         }
       }
 
-      // Translate button labels and messages
       page.buttons.forEach((button) => {
         if (button.label && translations.has(button.label)) {
           const translatedLabel = translations.get(button.label);
@@ -752,9 +837,7 @@ class SnapProcessor extends BaseProcessor {
       });
     });
 
-    // Save the translated tree and return its content
     await this.saveFromTree(tree, outputPath);
-    const fs = getFs();
     return fs.readFileSync(outputPath);
   }
 

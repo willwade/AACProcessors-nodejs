@@ -5,6 +5,7 @@ import JSZip from 'jszip';
 import { BaseValidator } from './baseValidator';
 import { ValidationResult } from './validationTypes';
 import { getBasename, getFs, readBinaryFromInput, toUint8Array } from '../utils/io';
+import { openSqliteDatabase } from '../utils/sqlite';
 
 /**
  * Validator for Snap files (.spb, .sps)
@@ -62,6 +63,11 @@ export class SnapValidator extends BaseValidator {
         this.warn('filename should end with .spb or .sps');
       }
     });
+
+    if (this.isSQLiteBuffer(content)) {
+      await this.validateSqliteStructure(content, filename);
+      return this.buildResult(filename, filesize, 'snap');
+    }
 
     let zip: JSZip | null = null;
     let validZip = false;
@@ -172,6 +178,88 @@ export class SnapValidator extends BaseValidator {
       if (unexpectedFiles.length > 0) {
         const unexpectedNames = unexpectedFiles.map((f) => f.name).slice(0, 5);
         this.warn(`Package contains unexpected file types: ${unexpectedNames.join(', ')}`);
+      }
+    });
+  }
+
+  private isSQLiteBuffer(content: Buffer | Uint8Array): boolean {
+    const header = 'SQLite format 3\u0000';
+    const bytes = content instanceof Uint8Array ? content : new Uint8Array(content);
+    if (bytes.length < header.length) {
+      return false;
+    }
+    for (let i = 0; i < header.length; i++) {
+      if (bytes[i] !== header.charCodeAt(i)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private async validateSqliteStructure(
+    content: Buffer | Uint8Array,
+    _filename: string
+  ): Promise<void> {
+    await this.add_check('sqlite', 'valid SQLite database', async () => {
+      let cleanup: (() => void) | undefined;
+      try {
+        const result = await openSqliteDatabase(content, { readonly: true });
+        const db = result.db;
+        cleanup = result.cleanup;
+
+        const tableRows = db
+          .prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
+          .all() as Array<{ name: string }>;
+        const tables = new Set(tableRows.map((row) => row.name));
+
+        const requiredTables = [
+          'Page',
+          'Button',
+          'ElementReference',
+          'ElementPlacement',
+          'PageSetProperties',
+        ];
+        const missingTables = requiredTables.filter((t) => !tables.has(t));
+        if (missingTables.length > 0) {
+          this.err(`Missing required Snap tables: ${missingTables.join(', ')}`);
+        }
+
+        const pageColumns = db.prepare('PRAGMA table_info(Page)').all() as Array<{ name: string }>;
+        const pageColumnNames = new Set(pageColumns.map((c) => c.name));
+        if (!pageColumnNames.has('UniqueId')) {
+          this.err('Page table missing UniqueId column');
+        }
+        if (!pageColumnNames.has('Name') && !pageColumnNames.has('Title')) {
+          this.err('Page table missing Name/Title columns');
+        }
+
+        const buttonColumns = db.prepare('PRAGMA table_info(Button)').all() as Array<{
+          name: string;
+        }>;
+        const buttonColumnNames = new Set(buttonColumns.map((c) => c.name));
+        if (!buttonColumnNames.has('Label') && !buttonColumnNames.has('Message')) {
+          this.err('Button table missing Label/Message columns');
+        }
+
+        const pageCount = db.prepare('SELECT COUNT(*) as c FROM Page').get() as { c: number };
+        if (!pageCount || pageCount.c === 0) {
+          this.warn('Snap database has no pages');
+        }
+
+        if (tables.has('PageSetData')) {
+          const dataCount = db.prepare('SELECT COUNT(*) as c FROM PageSetData').get() as {
+            c: number;
+          };
+          if (!dataCount || dataCount.c === 0) {
+            this.warn('Snap database has no PageSetData assets (images/audio may be missing)');
+          }
+        }
+      } catch (e: any) {
+        this.err(`file is not a valid SQLite database: ${e.message}`, true);
+      } finally {
+        if (cleanup) {
+          cleanup();
+        }
       }
     });
   }
