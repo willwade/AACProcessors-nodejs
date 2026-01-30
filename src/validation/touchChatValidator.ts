@@ -76,7 +76,8 @@ export class TouchChatValidator extends BaseValidator {
       }
     });
 
-    const zipped = await this.tryValidateZipSqlite(content);
+    const looksLikeXml = this.isXmlBuffer(content);
+    const zipped = looksLikeXml ? false : await this.tryValidateZipSqlite(content);
     if (!zipped) {
       let xmlObj: any = null;
       await this.add_check('xml_parse', 'valid XML', async () => {
@@ -273,6 +274,24 @@ export class TouchChatValidator extends BaseValidator {
       }
     }
     return true;
+  }
+
+  private isXmlBuffer(content: Buffer | Uint8Array): boolean {
+    const bytes = content instanceof Uint8Array ? content : new Uint8Array(content);
+    const max = Math.min(bytes.length, 256);
+    let start = 0;
+    while (start < max) {
+      const ch = bytes[start];
+      if (ch === 0x20 || ch === 0x0a || ch === 0x0d || ch === 0x09) {
+        start += 1;
+        continue;
+      }
+      break;
+    }
+    if (start >= max) {
+      return false;
+    }
+    return bytes[start] === 0x3c; // '<'
   }
 
   private async tryValidateZipSqlite(content: Buffer | Uint8Array): Promise<boolean> {
