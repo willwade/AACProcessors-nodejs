@@ -60,49 +60,6 @@ interface SnapPage {
   BackgroundColor?: number;
 }
 
-/**
- * Detect image MIME type from binary data using magic bytes
- * @param buffer Image data buffer
- * @returns MIME type string (defaults to 'image/png' if unknown)
- */
-function detectImageMimeType(buffer: Buffer): string {
-  if (!buffer || buffer.length < 8) {
-    return 'image/png';
-  }
-
-  // Check for PNG: 89 50 4E 47 0D 0A 1A 0A
-  if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47) {
-    return 'image/png';
-  }
-
-  // Check for JPEG: FF D8 FF
-  if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) {
-    return 'image/jpeg';
-  }
-
-  // Check for GIF: 47 49 46 38 (GIF8)
-  if (buffer[0] === 0x47 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x38) {
-    return 'image/gif';
-  }
-
-  // Check for WebP: 52 49 46 46 ... 57 45 42 50 (RIFF...WEBP)
-  if (
-    buffer[0] === 0x52 &&
-    buffer[1] === 0x49 &&
-    buffer[2] === 0x46 &&
-    buffer[3] === 0x46 &&
-    buffer[8] === 0x57 &&
-    buffer[9] === 0x45 &&
-    buffer[10] === 0x42 &&
-    buffer[11] === 0x50
-  ) {
-    return 'image/webp';
-  }
-
-  // Default to PNG
-  return 'image/png';
-}
-
 class SnapProcessor extends BaseProcessor {
   private symbolResolver: unknown | null = null;
   private loadAudio: boolean = false;
@@ -580,14 +537,33 @@ class SnapProcessor extends BaseProcessor {
                 | undefined;
 
               if (imageData && imageData.Data && imageData.Data.length > 0) {
-                const mimeType = detectImageMimeType(imageData.Data);
-                const base64 = imageData.Data.toString('base64');
-                buttonImage = `data:${mimeType};base64,${base64}`;
-                buttonParameters.image_id = imageData.Identifier;
-                // NOTE: We don't include imageData in parameters because Buffers don't serialize
-                // correctly across server/client boundaries (Next.js SSR, JSON, etc.)
-                // The data URL in buttonImage is sufficient for display purposes.
-                // For conversions, images can be reloaded from the source file/database.
+                // Snap files can store different types of image data:
+                // 1. PNG/JPEG binaries (actual images) - extract and display
+                // 2. Vector graphics (custom format d7 cd c6 9a) - skip (requires renderer)
+                const data = imageData.Data;
+
+                // Check for PNG: 89 50 4E 47
+                const isPng =
+                  data.length > 4 &&
+                  data[0] === 0x89 &&
+                  data[1] === 0x50 &&
+                  data[2] === 0x4e &&
+                  data[3] === 0x47;
+                // Check for JPEG: FF D8 FF
+                const isJpeg =
+                  data.length > 3 && data[0] === 0xff && data[1] === 0xd8 && data[2] === 0xff;
+
+                if (isPng || isJpeg) {
+                  // Actual PNG/JPEG image - can be displayed
+                  const mimeType = isPng ? 'image/png' : 'image/jpeg';
+                  const base64 = data.toString('base64');
+                  buttonImage = `data:${mimeType};base64,${base64}`;
+                  buttonParameters.image_id = imageData.Identifier;
+                } else {
+                  // Vector graphics or other format - skip rendering
+                  // Store identifier but don't create image URL
+                  buttonParameters.image_id = imageData.Identifier;
+                }
               }
             } catch (e) {
               console.warn(

@@ -11,6 +11,11 @@ import { dotNetTicksToDate } from '../../utils/dotnetTicks';
 import { ProcessorInput } from '../../utils/io';
 
 // Minimal Snap helpers (stubs) to align with processors/<engine>/helpers pattern
+// NOTE: Snap files can store different types of image data in PageSetData:
+// - PNG/JPEG binaries: Actual images that can be displayed
+// - Vector graphics: Custom format (d7 cd c6 9a) requiring rendering engine
+//
+// We extract PNG/JPEG images but skip vector graphics (requires renderer).
 // NOTE: Snap buttons currently do not populate resolvedImageEntry; these helpers
 // therefore return empty collections until image resolution is implemented.
 
@@ -120,6 +125,9 @@ export function openImage(dbOrFile: ProcessorInput, entryPath: string): Buffer |
       .get(entryPath) as { Id: number; Identifier: string; Data: Buffer } | undefined;
 
     if (row && row.Data && row.Data.length > 0) {
+      // Snap files can store different types of image data:
+      // 1. PNG/JPEG binaries (actual images) - return as-is
+      // 2. Vector graphics (custom format d7 cd c6 9a) - return but may not be displayable
       return row.Data;
     }
 
