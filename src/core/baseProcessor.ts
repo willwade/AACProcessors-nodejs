@@ -44,6 +44,7 @@ import { AACTree, AACButton, AACSemanticCategory } from './treeStructure';
 import { StringCasing, detectCasing, isNumericOrEmpty } from './stringCasing';
 import { ValidationResult } from '../validation/validationTypes';
 import { BinaryOutput, ProcessorInput } from '../utils/io';
+import type { ZipAdapter } from '../utils/zip';
 
 // Configuration options for processors
 export interface ProcessorOptions {
@@ -71,6 +72,8 @@ export interface ProcessorOptions {
   // Locale for symbol libraries (e.g., 'en-GB', 'en-US')
   // Defaults to 'en-GB' if not specified
   grid3Locale?: string;
+
+  zipAdapter?: (input: ProcessorInput) => Promise<{ zip: ZipAdapter }>
 }
 
 // Types for aac-tools-platform compatibility
@@ -129,7 +132,9 @@ abstract class BaseProcessor {
   abstract extractTexts(filePathOrBuffer: ProcessorInput): Promise<string[]>;
 
   // Load file into common tree structure
-  abstract loadIntoTree(filePathOrBuffer: ProcessorInput): Promise<AACTree>;
+  abstract loadIntoTree(filePathOrBuffer: ProcessorInput, options?: {
+    openZip?: (input: ProcessorInput) => Promise<{ zip: ZipAdapter }>
+  }): Promise<AACTree>
 
   // Process texts (e.g., apply translations) and return new file/buffer
   abstract processTexts(
