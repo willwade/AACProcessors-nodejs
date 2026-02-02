@@ -133,12 +133,7 @@ abstract class BaseProcessor {
   abstract extractTexts(filePathOrBuffer: ProcessorInput): Promise<string[]>;
 
   // Load file into common tree structure
-  abstract loadIntoTree(
-    filePathOrBuffer: ProcessorInput,
-    options?: {
-      openZip?: (input: ProcessorInput) => Promise<{ zip: ZipAdapter }>;
-    }
-  ): Promise<AACTree>;
+  abstract loadIntoTree(filePathOrBuffer: ProcessorInput): Promise<AACTree>;
 
   // Process texts (e.g., apply translations) and return new file/buffer
   abstract processTexts(
