@@ -38,7 +38,7 @@ export { AstericsGridProcessor } from './processors/astericsGridProcessor';
 // Metrics namespace (pageset analytics)
 export * as Metrics from './metrics';
 
-import { BaseProcessor } from './core/baseProcessor';
+import { BaseProcessor, ProcessorOptions } from './core/baseProcessor';
 import { DotProcessor } from './processors/dotProcessor';
 import { OpmlProcessor } from './processors/opmlProcessor';
 import { ObfProcessor } from './processors/obfProcessor';
@@ -55,30 +55,33 @@ export { configureSqlJs } from './utils/sqlite';
  * @returns The appropriate processor instance
  * @throws Error if the file extension is not supported
  */
-export function getProcessor(filePathOrExtension: string): BaseProcessor {
+export function getProcessor(
+  filePathOrExtension: string,
+  options?: ProcessorOptions
+): BaseProcessor {
   const extension = filePathOrExtension.includes('.')
     ? filePathOrExtension.substring(filePathOrExtension.lastIndexOf('.'))
     : filePathOrExtension;
 
   switch (extension.toLowerCase()) {
     case '.dot':
-      return new DotProcessor();
+      return new DotProcessor(options);
     case '.opml':
-      return new OpmlProcessor();
+      return new OpmlProcessor(options);
     case '.obf':
     case '.obz':
-      return new ObfProcessor();
+      return new ObfProcessor(options);
     case '.gridset':
-      return new GridsetProcessor();
+      return new GridsetProcessor(options);
     case '.spb':
     case '.sps':
-      return new SnapProcessor();
+      return new SnapProcessor(options);
     case '.ce':
-      return new TouchChatProcessor();
+      return new TouchChatProcessor(options);
     case '.plist':
-      return new ApplePanelsProcessor();
+      return new ApplePanelsProcessor(options);
     case '.grd':
-      return new AstericsGridProcessor();
+      return new AstericsGridProcessor(options);
     default:
       throw new Error(`Unsupported file extension: ${extension}`);
   }

@@ -497,7 +497,9 @@ class ObfProcessor extends BaseProcessor {
     }
 
     try {
-      const zipResult = await openZipFromInput(filePathOrBuffer);
+      const zipResult = this.options.zipAdapter
+        ? await this.options.zipAdapter(filePathOrBuffer)
+        : await openZipFromInput(filePathOrBuffer);
       this.zipFile = zipResult.zip;
     } catch (err) {
       console.error('[OBF] Error loading ZIP:', err);

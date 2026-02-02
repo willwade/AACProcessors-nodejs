@@ -4,8 +4,15 @@
 import * as xml2js from 'xml2js';
 import { BaseValidator } from './baseValidator';
 import { ValidationResult } from './validationTypes';
-import { decodeText, getBasename, getFs, readBinaryFromInput, toUint8Array } from '../utils/io';
-import { openZipFromInput } from '../utils/zip';
+import {
+  decodeText,
+  getBasename,
+  getFs,
+  type ProcessorInput,
+  readBinaryFromInput,
+  toUint8Array,
+} from '../utils/io';
+import { openZipFromInput, type ZipAdapter } from '../utils/zip';
 import { openSqliteDatabase } from '../utils/sqlite';
 
 /**
@@ -31,7 +38,11 @@ export class TouchChatValidator extends BaseValidator {
   /**
    * Check if content is TouchChat format
    */
-  static async identifyFormat(content: any, filename: string): Promise<boolean> {
+  static async identifyFormat(
+    content: any,
+    filename: string,
+    zipAdapter?: (input: ProcessorInput) => Promise<{ zip: ZipAdapter }>
+  ): Promise<boolean> {
     const name = filename.toLowerCase();
     if (name.endsWith('.ce')) {
       return true;
@@ -39,7 +50,7 @@ export class TouchChatValidator extends BaseValidator {
 
     // Try to parse as ZIP and check for .c4v database
     try {
-      const { zip } = await openZipFromInput(content);
+      const { zip } = zipAdapter ? await zipAdapter(content) : await openZipFromInput(content);
       const entries = zip.listFiles();
       if (entries.some((entry) => entry.toLowerCase().endsWith('.c4v'))) {
         return true;

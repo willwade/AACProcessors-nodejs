@@ -44,6 +44,7 @@ import { AACTree, AACButton, AACSemanticCategory } from './treeStructure';
 import { StringCasing, detectCasing, isNumericOrEmpty } from './stringCasing';
 import { ValidationResult } from '../validation/validationTypes';
 import { BinaryOutput, ProcessorInput } from '../utils/io';
+import type { ZipAdapter } from '../utils/zip';
 
 // Configuration options for processors
 export interface ProcessorOptions {
@@ -71,6 +72,9 @@ export interface ProcessorOptions {
   // Locale for symbol libraries (e.g., 'en-GB', 'en-US')
   // Defaults to 'en-GB' if not specified
   grid3Locale?: string;
+
+  // Optionally provide your own adapter for unzipping the input
+  zipAdapter?: (input: ProcessorInput) => Promise<{ zip: ZipAdapter }>;
 }
 
 // Types for aac-tools-platform compatibility

@@ -48,7 +48,7 @@ export * as Translation from './translation';
 // UTILITY FUNCTIONS
 // ===================================================================
 
-import { BaseProcessor } from './core/baseProcessor';
+import { BaseProcessor, ProcessorOptions } from './core/baseProcessor';
 import { DotProcessor } from './processors/dotProcessor';
 import { ExcelProcessor } from './processors/excelProcessor';
 import { OpmlProcessor } from './processors/opmlProcessor';
@@ -70,7 +70,10 @@ import { ObfsetProcessor } from './processors/obfsetProcessor';
  * const processor = getProcessor('/path/to/file.gridset');
  * const tree = processor.loadIntoTree('/path/to/file.gridset');
  */
-export function getProcessor(filePathOrExtension: string): BaseProcessor {
+export function getProcessor(
+  filePathOrExtension: string,
+  options?: ProcessorOptions
+): BaseProcessor {
   // Extract extension from file path
   const extension = filePathOrExtension.includes('.')
     ? filePathOrExtension.substring(filePathOrExtension.lastIndexOf('.'))
@@ -78,28 +81,28 @@ export function getProcessor(filePathOrExtension: string): BaseProcessor {
 
   switch (extension.toLowerCase()) {
     case '.dot':
-      return new DotProcessor();
+      return new DotProcessor(options);
     case '.xlsx':
-      return new ExcelProcessor();
+      return new ExcelProcessor(options);
     case '.opml':
-      return new OpmlProcessor();
+      return new OpmlProcessor(options);
     case '.obf':
     case '.obz':
-      return new ObfProcessor();
+      return new ObfProcessor(options);
     case '.obfset':
-      return new ObfsetProcessor();
+      return new ObfsetProcessor(options);
     case '.gridset':
     case '.gridsetx':
-      return new GridsetProcessor();
+      return new GridsetProcessor(options);
     case '.spb':
     case '.sps':
-      return new SnapProcessor();
+      return new SnapProcessor(options);
     case '.ce':
-      return new TouchChatProcessor();
+      return new TouchChatProcessor(options);
     case '.plist':
-      return new ApplePanelsProcessor();
+      return new ApplePanelsProcessor(options);
     case '.grd':
-      return new AstericsGridProcessor();
+      return new AstericsGridProcessor(options);
     default:
       throw new Error(`Unsupported file extension: ${extension}`);
   }
