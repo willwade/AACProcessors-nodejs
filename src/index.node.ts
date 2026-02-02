@@ -70,7 +70,10 @@ import { ObfsetProcessor } from './processors/obfsetProcessor';
  * const processor = getProcessor('/path/to/file.gridset');
  * const tree = processor.loadIntoTree('/path/to/file.gridset');
  */
-export function getProcessor(filePathOrExtension: string, options?: ProcessorOptions): BaseProcessor {
+export function getProcessor(
+  filePathOrExtension: string,
+  options?: ProcessorOptions
+): BaseProcessor {
   // Extract extension from file path
   const extension = filePathOrExtension.includes('.')
     ? filePathOrExtension.substring(filePathOrExtension.lastIndexOf('.'))

@@ -450,7 +450,7 @@ class GridsetProcessor extends BaseProcessor {
 
     let zipResult: Awaited<ReturnType<typeof openZipFromInput>>;
     try {
-      const zipInput = readBinaryFromInput(filePathOrBuffer)
+      const zipInput = readBinaryFromInput(filePathOrBuffer);
       zipResult = this.options.zipAdapter
         ? await this.options.zipAdapter(zipInput)
         : await openZipFromInput(zipInput);

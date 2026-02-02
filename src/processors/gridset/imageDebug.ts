@@ -59,7 +59,7 @@ export async function auditGridsetImages(
     const { zip } = zipAdapter
       ? await zipAdapter(gridsetBuffer)
       : await openZipFromInput(gridsetBuffer);
-    
+
     const entries = getZipEntriesFromAdapter(zip, password);
     const parser = new XMLParser();
 

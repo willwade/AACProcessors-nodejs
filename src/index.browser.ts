@@ -55,7 +55,10 @@ export { configureSqlJs } from './utils/sqlite';
  * @returns The appropriate processor instance
  * @throws Error if the file extension is not supported
  */
-export function getProcessor(filePathOrExtension: string, options?: ProcessorOptions): BaseProcessor {
+export function getProcessor(
+  filePathOrExtension: string,
+  options?: ProcessorOptions
+): BaseProcessor {
   const extension = filePathOrExtension.includes('.')
     ? filePathOrExtension.substring(filePathOrExtension.lastIndexOf('.'))
     : filePathOrExtension;
