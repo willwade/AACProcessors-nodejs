@@ -73,6 +73,7 @@ export interface ProcessorOptions {
   // Defaults to 'en-GB' if not specified
   grid3Locale?: string;
 
+  // Optionally provide your own adapter for unzipping the input
   zipAdapter?: (input: ProcessorInput) => Promise<{ zip: ZipAdapter }>
 }
 

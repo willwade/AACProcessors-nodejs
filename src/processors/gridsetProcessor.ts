@@ -450,7 +450,10 @@ class GridsetProcessor extends BaseProcessor {
 
     let zipResult: Awaited<ReturnType<typeof openZipFromInput>>;
     try {
-      zipResult = await openZipFromInput(readBinaryFromInput(filePathOrBuffer));
+      const zipInput = readBinaryFromInput(filePathOrBuffer)
+      zipResult = this.options.zipAdapter
+        ? await this.options.zipAdapter(zipInput)
+        : await openZipFromInput(zipInput);
     } catch (error: any) {
       throw new Error(`Invalid ZIP file format: ${error.message}`);
     }

@@ -153,7 +153,9 @@ class TouchChatProcessor extends BaseProcessor {
 
       // Step 1: Unzip
       const zipInput = readBinaryFromInput(filePathOrBuffer);
-      const { zip } = await openZipFromInput(zipInput);
+      const { zip } = this.options.zipAdapter
+        ? await this.options.zipAdapter(zipInput)
+        : await openZipFromInput(zipInput);
       const vocabEntry = zip.listFiles().find((name) => name.endsWith('.c4v'));
       if (!vocabEntry) {
         throw new Error('No .c4v vocab DB found in TouchChat export');
