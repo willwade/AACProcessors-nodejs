@@ -460,9 +460,20 @@ class ObfProcessor extends BaseProcessor {
       }
     }
 
-    // If input is a buffer or string that parses as OBF JSON
-    const asJson = tryParseObfJson(filePathOrBuffer);
-    if (asJson) {
+    // Detect likely zip signature first
+    function isLikelyZip(input: ProcessorInput): boolean {
+      if (typeof input === 'string') {
+        const lowered = input.toLowerCase();
+        return lowered.endsWith('.zip') || lowered.endsWith('.obz');
+      }
+      const bytes = readBinaryFromInput(input);
+      return bytes.length >= 2 && bytes[0] === 0x50 && bytes[1] === 0x4b;
+    }
+
+    // Check if input is a buffer or string that parses as OBF JSON; throw if neither JSON nor ZIP
+    if (!isLikelyZip(filePathOrBuffer)) {
+      const asJson = tryParseObfJson(filePathOrBuffer);
+      if (!asJson) throw new Error('Invalid OBF content: not JSON and not ZIP');
       console.log('[OBF] Detected buffer/string as OBF JSON');
       const page = await this.processBoard(asJson, '[bufferOrString]');
       tree.addPage(page);
@@ -480,20 +491,6 @@ class ObfProcessor extends BaseProcessor {
       tree.rootId = page.id;
 
       return tree;
-    }
-
-    // Otherwise, try as ZIP (.obz). Detect likely zip signature first; throw if neither JSON nor ZIP
-    function isLikelyZip(input: ProcessorInput): boolean {
-      if (typeof input === 'string') {
-        const lowered = input.toLowerCase();
-        return lowered.endsWith('.zip') || lowered.endsWith('.obz');
-      }
-      const bytes = readBinaryFromInput(input);
-      return bytes.length >= 2 && bytes[0] === 0x50 && bytes[1] === 0x4b;
-    }
-
-    if (!isLikelyZip(filePathOrBuffer)) {
-      throw new Error('Invalid OBF content: not JSON and not ZIP');
     }
 
     try {
