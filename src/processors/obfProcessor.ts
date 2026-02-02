@@ -469,7 +469,7 @@ class ObfProcessor extends BaseProcessor {
       const bytes = readBinaryFromInput(input);
       return bytes.length >= 2 && bytes[0] === 0x50 && bytes[1] === 0x4b;
     }
-    
+
     // Check if input is a buffer or string that parses as OBF JSON; throw if neither JSON nor ZIP
     if (!isLikelyZip(filePathOrBuffer)) {
       const asJson = tryParseObfJson(filePathOrBuffer);
