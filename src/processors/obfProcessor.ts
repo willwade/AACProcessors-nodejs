@@ -52,20 +52,13 @@ interface ObfButton {
 }
 
 interface ObfManifest {
+  format?: string;
   root?: string;
   paths?: {
     boards?: { [key: string]: string };
-    images?: { [key: string]: string | ObfImage };
+    images?: { [key: string]: string };
     sounds?: { [key: string]: string };
   };
-}
-
-interface ObfImage {
-  id: number;
-  path: string;
-  width: number;
-  height: number;
-  content_type: string;
 }
 
 /**
