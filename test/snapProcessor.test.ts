@@ -1,10 +1,12 @@
 import { SnapProcessor } from '../src/processors/snapProcessor';
 import { AACTree } from '../src/core/treeStructure';
 import path from 'path';
+import fs from 'fs';
 
 describe('SnapProcessor', () => {
   const exampleFile: string = path.join(__dirname, 'assets/snap/example.spb');
   const exampleSPSFile: string = path.join(__dirname, 'assets/snap/example.sps');
+  const exampleSubZipFile: string = path.join(__dirname, 'assets/snap/example.sub.zip');
 
   it('should extract all texts from a .spb file', async () => {
     const processor = new SnapProcessor();
@@ -56,6 +58,19 @@ describe('SnapProcessor', () => {
         }
       }
     }
+  });
+
+  it('should handle .sub.zip files by extracting and processing the embedded .sps file', async () => {
+    const processor = new SnapProcessor();
+    // Skip test if example .sub.zip file doesn't exist
+    if (!fs.existsSync(exampleSubZipFile)) {
+      console.warn(`Skipping .sub.zip test - file not found: ${exampleSubZipFile}`);
+      return;
+    }
+    const tree: AACTree = await processor.loadIntoTree(exampleSubZipFile);
+    expect(tree).toBeTruthy();
+    const pageIds: string[] = Object.keys(tree.pages);
+    expect(pageIds.length).toBeGreaterThan(0);
   });
 
   describe('Error Handling', () => {
