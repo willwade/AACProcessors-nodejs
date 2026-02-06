@@ -22,7 +22,6 @@ import { ValidationResult } from '../validation/validationTypes';
 import {
   ProcessorInput,
   getFs,
-  getNodeRequire,
   getOs,
   getPath,
   isNodeRuntime,
@@ -39,6 +38,8 @@ import {
   requireBetterSqlite3,
   type SqliteDatabaseAdapter,
 } from '../utils/sqlite';
+import { getZipEntriesFromAdapter } from './gridset';
+import { ZipFile } from '../utils/zip';
 
 interface TouchChatButton {
   id: number;
@@ -664,7 +665,6 @@ class TouchChatProcessor extends BaseProcessor {
       const fs = getFs();
       const path = getPath();
       const os = getOs();
-      const AdmZip = getNodeRequire()('adm-zip') as typeof import('adm-zip');
 
       const inputPath = filePathOrBuffer;
       const outputDir = path.dirname(outputPath);
@@ -675,8 +675,8 @@ class TouchChatProcessor extends BaseProcessor {
         fs.unlinkSync(outputPath);
       }
 
-      const zip = new AdmZip(inputPath);
-      const entries = zip.getEntries();
+      const zip = await this.options.zipAdapter(inputPath);
+      const entries = getZipEntriesFromAdapter(zip);
       const vocabEntry = entries.find((entry) => entry.entryName.endsWith('.c4v'));
       if (!vocabEntry) {
         throw new Error('No .c4v vocab DB found in TouchChat export');
@@ -685,7 +685,7 @@ class TouchChatProcessor extends BaseProcessor {
       const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'touchchat-translate-'));
       const dbPath = path.join(tempDir, 'vocab.c4v');
       try {
-        fs.writeFileSync(dbPath, vocabEntry.getData());
+        fs.writeFileSync(dbPath, await vocabEntry.getData());
 
         const Database = requireBetterSqlite3();
         const db = new Database(dbPath, { readonly: false });
@@ -745,16 +745,23 @@ class TouchChatProcessor extends BaseProcessor {
           db.close();
         }
 
-        const outputZip = new AdmZip();
-        entries.forEach((entry) => {
+        const outputZip = await this.options.zipAdapter();
+        const files: ZipFile[] = [];
+        for (let entry of entries) {
           if (entry.entryName === vocabEntry.entryName) {
-            return;
+            continue;
           }
-          const data = entry.isDirectory ? Buffer.alloc(0) : entry.getData();
-          outputZip.addFile(entry.entryName, data, entry.comment || '');
-        });
-        outputZip.addFile(vocabEntry.entryName, fs.readFileSync(dbPath));
-        outputZip.writeZip(outputPath);
+          const data = await entry.getData();
+          files.push({
+            name: entry.entryName,
+            data
+          });
+        };
+        files.push({
+          name: vocabEntry.entryName,
+          data: fs.readFileSync(dbPath)
+        })
+        await outputZip.writeFiles(files);
       } finally {
         try {
           fs.rmSync(tempDir, { recursive: true, force: true });
@@ -1205,10 +1212,12 @@ class TouchChatProcessor extends BaseProcessor {
       db.close();
 
       // Create zip file with the database
-      const AdmZip = getNodeRequire()('adm-zip') as typeof import('adm-zip');
-      const zip = new AdmZip();
-      zip.addLocalFile(dbPath, '', 'vocab.c4v');
-      zip.writeZip(outputPath);
+      const zip = await this.options.zipAdapter();
+      const data = fs.readFileSync(dbPath);
+      zip.writeFiles([{
+        name: 'vocab.c4v',
+        data
+      }]);
     } finally {
       // Clean up
       if (fs.existsSync(tmpDir)) {
