@@ -13,7 +13,7 @@ import { XMLParser, XMLBuilder } from 'fast-xml-parser';
 import { getZipEntriesFromAdapter, resolveGridsetPasswordFromEnv } from './password';
 import { getNodeRequire, isNodeRuntime, type ProcessorInput } from '../../utils/io';
 import { decodeText } from '../../utils/io';
-import { getZipReader, ZipReader } from '../../utils/zip';
+import { getZipAdapter, ZipAdapter, ZipFile } from '../../utils/zip';
 
 /**
  * Represents a single item in a wordlist
@@ -131,13 +131,13 @@ export function wordlistToXml(wordlist: WordList): string {
 export async function extractWordlists(
   gridsetBuffer: Uint8Array,
   password = resolveGridsetPasswordFromEnv(),
-  zipReader?: (input: ProcessorInput) => Promise<ZipReader>
+  zipAdapter?: (input: ProcessorInput) => Promise<ZipAdapter>
 ): Promise<Map<string, WordList>> {
   const wordlists = new Map<string, WordList>();
   const parser = new XMLParser();
 
   try {
-    const zip = zipReader ? await zipReader(gridsetBuffer) : await getZipReader(gridsetBuffer);
+    const zip = zipAdapter ? await zipAdapter(gridsetBuffer) : await getZipAdapter(gridsetBuffer);
     const entries = getZipEntriesFromAdapter(zip, password);
 
     // Process each grid file
@@ -210,7 +210,8 @@ export async function updateWordlist(
   gridsetBuffer: Uint8Array,
   gridName: string,
   wordlist: WordList,
-  password = resolveGridsetPasswordFromEnv()
+  password = resolveGridsetPasswordFromEnv(),
+  zipAdapter?: (input: ProcessorInput) => Promise<ZipAdapter>,
 ): Promise<Uint8Array> {
   const parser = new XMLParser();
   const builder = new XMLBuilder({
@@ -220,50 +221,15 @@ export async function updateWordlist(
     suppressEmptyNode: false,
   });
 
-  let entries: Array<{
-    entryName: string;
-    getData: () => Promise<Uint8Array>;
-  }>;
   let saveZip: (() => Promise<Uint8Array>) | null = null;
   let updateEntry: ((entryName: string, xml: string) => void) | null = null;
+  const updatedEntries: ZipFile[] = [];
 
-  try {
-    if (isNodeRuntime()) {
-      const AdmZip = getNodeRequire()('adm-zip') as typeof import('adm-zip');
-      const zip = new AdmZip(Buffer.from(gridsetBuffer));
-      entries = zip.getEntries().map((entry) => ({
-        entryName: entry.entryName,
-        getData: () => Promise.resolve(entry.getData()),
-      }));
-      updateEntry = (entryName: string, xml: string) => {
-        zip.addFile(entryName, Buffer.from(xml, 'utf8'));
-      };
-      saveZip = () => Promise.resolve(zip.toBuffer());
-    } else {
-      const module = await import('jszip');
-      const JSZip = module.default || module;
-      const zip = await JSZip.loadAsync(gridsetBuffer);
-      entries = getZipEntriesFromAdapter(
-        {
-          listFiles: () => Object.keys(zip.files),
-          readFile: async (name: string) => {
-            const file = zip.file(name);
-            if (!file) {
-              throw new Error(`Zip entry not found: ${name}`);
-            }
-            return file.async('uint8array');
-          },
-        },
-        password
-      );
-      updateEntry = (entryName: string, xml: string) => {
-        zip.file(entryName, xml, { binary: false });
-      };
-      saveZip = async () => zip.generateAsync({ type: 'uint8array' });
-    }
-  } catch (error: any) {
-    throw new Error(`Invalid gridset buffer: ${error.message}`);
-  }
+  const zip = zipAdapter ? await zipAdapter(gridsetBuffer) : await getZipAdapter(gridsetBuffer);
+  const entries = zip.listFiles().map((name) => ({
+    entryName: name,
+    getData: () => zip.readFile(name),
+  }));
 
   let found = false;
 
@@ -307,7 +273,10 @@ export async function updateWordlist(
           // Rebuild the XML
           const updatedXml = builder.build(data);
           if (updateEntry) {
-            updateEntry(entry.entryName, updatedXml);
+            updatedEntries.push({
+              name: entry.entryName,
+              data: updatedXml
+            })
           }
           found = true;
         } catch (error) {
@@ -325,5 +294,5 @@ export async function updateWordlist(
   if (!saveZip) {
     throw new Error('Failed to serialize updated gridset.');
   }
-  return await saveZip();
+  return await zip.writeFiles(updatedEntries);
 }

@@ -9,7 +9,7 @@ import { getZipEntriesFromAdapter } from './password';
 import { resolveGridsetPasswordFromEnv } from './password';
 import { XMLParser } from 'fast-xml-parser';
 import { decodeText, type ProcessorInput } from '../../utils/io';
-import { getZipReader, ZipReader } from '../../utils/zip';
+import { getZipAdapter, ZipAdapter } from '../../utils/zip';
 
 export interface ImageIssue {
   gridName: string;
@@ -46,7 +46,7 @@ export interface ImageAuditResult {
 export async function auditGridsetImages(
   gridsetBuffer: Uint8Array,
   password = resolveGridsetPasswordFromEnv(),
-  zipReader?: (input: ProcessorInput) => Promise<ZipReader>
+  zipAdapter?: (input: ProcessorInput) => Promise<ZipAdapter>
 ): Promise<ImageAuditResult> {
   const issues: ImageIssue[] = [];
   const availableImages = new Set<string>();
@@ -56,7 +56,7 @@ export async function auditGridsetImages(
   let unresolvedImages = 0;
 
   try {
-    const zip = zipReader ? await zipReader(gridsetBuffer) : await getZipReader(gridsetBuffer);
+    const zip = zipAdapter ? await zipAdapter(gridsetBuffer) : await getZipAdapter(gridsetBuffer);
 
     const entries = getZipEntriesFromAdapter(zip, password);
     const parser = new XMLParser();

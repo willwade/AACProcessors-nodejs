@@ -30,7 +30,7 @@ import {
   encodeBase64,
   decodeText,
 } from '../utils/io';
-import { getZipWriter, ZipReader } from '../utils/zip';
+import { getZipAdapter, ZipAdapter } from '../utils/zip';
 
 const OBF_FORMAT_VERSION = 'open-board-0.1';
 
@@ -91,7 +91,7 @@ interface ObfBoard {
 }
 
 class ObfProcessor extends BaseProcessor {
-  private zipFile?: ZipReader;
+  private zipFile?: ZipAdapter;
   private imageCache: Map<string, string> = new Map(); // Cache for data URLs
 
   constructor(options?: ProcessorOptions) {
@@ -501,7 +501,7 @@ class ObfProcessor extends BaseProcessor {
     }
 
     try {
-      this.zipFile = await this.options.zipReader(filePathOrBuffer);
+      this.zipFile = await this.options.zipAdapter(filePathOrBuffer);
     } catch (err) {
       console.error('[OBF] Error loading ZIP:', err);
       throw err;
@@ -738,7 +738,7 @@ class ObfProcessor extends BaseProcessor {
           data: Buffer.from(obfContent, 'utf8'),
         };
       });
-      const zip = await getZipWriter();
+      const zip = await getZipAdapter();
       const zipData = await zip.writeFiles(files);
       const { writeBinaryToPath } = await import('../utils/io');
       writeBinaryToPath(outputPath, zipData);

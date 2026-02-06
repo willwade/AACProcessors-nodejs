@@ -441,10 +441,10 @@ class GridsetProcessor extends BaseProcessor {
   async loadIntoTree(filePathOrBuffer: ProcessorInput): Promise<AACTree> {
     const tree = new AACTree();
 
-    let zipResult: Awaited<ReturnType<typeof this.options.zipReader>>;
+    let zipResult: Awaited<ReturnType<typeof this.options.zipAdapter>>;
     try {
       const zipInput = readBinaryFromInput(filePathOrBuffer);
-      zipResult = await this.options.zipReader(zipInput);
+      zipResult = await this.options.zipAdapter(zipInput);
     } catch (error: any) {
       throw new Error(`Invalid ZIP file format: ${error.message}`);
     }
@@ -2053,7 +2053,7 @@ class GridsetProcessor extends BaseProcessor {
 
   async saveFromTree(tree: AACTree, outputPath: string): Promise<void> {
     const files: ZipFile[] = [];
-    const adapter = await this.options.zipWriter();
+    const adapter = await this.options.zipAdapter();
 
     if (Object.keys(tree.pages).length === 0) {
       // Create empty zip for empty tree

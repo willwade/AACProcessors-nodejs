@@ -12,8 +12,8 @@ import { execSync } from 'child_process';
 import Database from 'better-sqlite3';
 import { dotNetTicksToDate } from '../../utils/dotnetTicks';
 import { getZipEntriesFromAdapter, resolveGridsetPasswordFromEnv } from './password';
-import { getZipReader, ZipReader } from '../../utils/zip';
 import { ProcessorInput } from '../../utils/io';
+import { getZipAdapter, ZipAdapter } from '../../utils/zip';
 
 function normalizeZipPath(p: string): string {
   const unified = p.replace(/\\/g, '/');
@@ -64,10 +64,10 @@ export async function openImage(
   gridsetBuffer: Uint8Array,
   entryPath: string,
   password = resolveGridsetPasswordFromEnv(),
-  zipReader?: (input: ProcessorInput) => Promise<ZipReader>
+  zipAdapter?: (input?: ProcessorInput) => Promise<ZipAdapter>
 ): Promise<Uint8Array | null> {
   try {
-    const zip = zipReader ? await zipReader(gridsetBuffer) : await getZipReader(gridsetBuffer);
+    const zip = zipAdapter ? await zipAdapter(gridsetBuffer) : await getZipAdapter(gridsetBuffer);
     const entries = getZipEntriesFromAdapter(zip, password);
     const want = normalizeZipPath(entryPath);
     const entry = entries.find((e) => normalizeZipPath(e.entryName) === want);

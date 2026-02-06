@@ -138,7 +138,7 @@ class SnapProcessor extends BaseProcessor {
 
           // Extract .sub.zip to find the embedded .sps file
           const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'snap-sub-'));
-          const zip = await this.options.zipReader(filePathOrBuffer);
+          const zip = await this.options.zipAdapter(filePathOrBuffer);
 
           // Find the .sps file in the archive
           const files = zip.listFiles();
