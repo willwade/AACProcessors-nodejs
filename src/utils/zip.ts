@@ -19,7 +19,11 @@ export async function getZipAdapter(input?: ProcessorInput): Promise<ZipAdapter>
       typeof input === 'string' ? new AdmZip(input) :
       new AdmZip(Buffer.from(readBinaryFromInput(input)));
     return {
-      listFiles: (): string[] => zip.getEntries().map((entry) => entry.entryName),
+      listFiles: (): string[] => {
+        return zip.getEntries()
+          .filter((entry) => !entry.isDirectory)
+          .map((entry) => entry.entryName)
+      },
       readFile: (name: string): Promise<Uint8Array> => {
         const entry = zip.getEntry(name);
         if (!entry) throw new Error(`Zip entry not found: ${name}`);
@@ -41,7 +45,11 @@ export async function getZipAdapter(input?: ProcessorInput): Promise<ZipAdapter>
 
   const zip = input ? await JSZip.loadAsync(readBinaryFromInput(input)) : new JSZip();
   return {
-    listFiles: (): string[] => Object.keys(zip.files),
+    listFiles: (): string[] => {
+      return Object.entries(zip.files)
+        .filter(([name, entry]) => !entry.dir)
+        .map(([name, entry]) => name)
+    },
     readFile: async (name: string): Promise<Uint8Array> => {
       const file = zip.file(name);
       if (!file) throw new Error(`Zip entry not found: ${name}`);
