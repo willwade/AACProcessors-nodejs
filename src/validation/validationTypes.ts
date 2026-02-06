@@ -1,3 +1,6 @@
+import { ProcessorInput } from '../utils/io';
+import { ZipAdapter } from '../utils/zip';
+
 /**
  * Custom error class for validation errors
  * Can be marked as a blocker to stop validation immediately
@@ -53,14 +56,17 @@ export interface ValidationResult {
 /**
  * Options for validation behavior
  */
-export interface ValidationOptions {
+export interface ValidationConfig {
   /** Whether to include warnings in validation (default: true) */
   includeWarnings?: boolean;
   /** Whether to stop on first blocker error (default: true) */
   stopOnBlocker?: boolean;
   /** Custom validation rules to apply */
   customRules?: ValidationRule[];
+  /** Adapter for handling ZIP files (optional) */
+  zipAdapter: (input: ProcessorInput) => Promise<ZipAdapter>;
 }
+export type ValidationOptions = Partial<ValidationConfig>;
 
 /**
  * Custom validation rule that can be added

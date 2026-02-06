@@ -1,8 +1,10 @@
+import { getZipAdapter } from '../utils/zip';
 import {
   ValidationError,
   ValidationResult,
   ValidationCheck,
   ValidationOptions,
+  ValidationConfig,
 } from './validationTypes';
 
 /**
@@ -15,13 +17,15 @@ export abstract class BaseValidator {
   protected _checks: ValidationCheck[] = [];
   protected _sub_checks: ValidationResult[] = [];
   protected _blocked: boolean = false;
-  protected _options: ValidationOptions;
+  protected _options: ValidationConfig;
 
   constructor(options: ValidationOptions = {}) {
     this._options = {
       includeWarnings: options.includeWarnings ?? true,
       stopOnBlocker: options.stopOnBlocker ?? true,
       customRules: options.customRules || [],
+      zipAdapter: getZipAdapter,
+      ...options,
     };
     this.reset();
   }
