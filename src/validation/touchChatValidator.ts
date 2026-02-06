@@ -12,7 +12,7 @@ import {
   readBinaryFromInput,
   toUint8Array,
 } from '../utils/io';
-import { openZipFromInput, type ZipAdapter } from '../utils/zip';
+import { getZipAdapter, type ZipAdapter } from '../utils/zip';
 import { openSqliteDatabase } from '../utils/sqlite';
 
 /**
@@ -50,7 +50,7 @@ export class TouchChatValidator extends BaseValidator {
 
     // Try to parse as ZIP and check for .c4v database
     try {
-      const { zip } = zipAdapter ? await zipAdapter(content) : await openZipFromInput(content);
+      const { zip } = zipAdapter ? await zipAdapter(content) : await getZipAdapter(content);
       const entries = zip.listFiles();
       if (entries.some((entry) => entry.toLowerCase().endsWith('.c4v'))) {
         return true;
@@ -309,7 +309,7 @@ export class TouchChatValidator extends BaseValidator {
     let usedZip = false;
     await this.add_check('zip', 'TouchChat ZIP package', async () => {
       try {
-        const { zip } = await openZipFromInput(content);
+        const { zip } = await getZipAdapter(content);
         const entries = zip.listFiles();
         const vocabEntry = entries.find((name) => name.toLowerCase().endsWith('.c4v'));
         if (!vocabEntry) {

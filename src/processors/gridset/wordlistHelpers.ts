@@ -11,7 +11,7 @@
 
 import { XMLParser, XMLBuilder } from 'fast-xml-parser';
 import { getZipEntriesFromAdapter, resolveGridsetPasswordFromEnv } from './password';
-import { openZipFromInput, type ZipAdapter } from '../../utils/zip';
+import { getZipAdapter, type ZipAdapter } from '../../utils/zip';
 import { getNodeRequire, isNodeRuntime, type ProcessorInput } from '../../utils/io';
 import { decodeText } from '../../utils/io';
 
@@ -139,7 +139,7 @@ export async function extractWordlists(
   try {
     const { zip } = zipAdapter
       ? await zipAdapter(gridsetBuffer)
-      : await openZipFromInput(gridsetBuffer);
+      : await getZipAdapter(gridsetBuffer);
     const entries = getZipEntriesFromAdapter(zip, password);
 
     // Process each grid file

@@ -19,7 +19,6 @@ import { SnapValidator } from '../validation/snapValidator';
 import { ValidationResult } from '../validation/validationTypes';
 import { ProcessorInput, getFs, getNodeRequire, getPath, isNodeRuntime, getOs } from '../utils/io';
 import { openSqliteDatabase, requireBetterSqlite3 } from '../utils/sqlite';
-import { openZipFromInput } from '../utils/zip';
 
 /**
  * Convert a Buffer or Uint8Array to base64 string (browser and Node compatible)
@@ -89,16 +88,16 @@ class SnapProcessor extends BaseProcessor {
 
   constructor(
     symbolResolver: unknown | null = null,
-    options: ProcessorOptions & {
+    options?: ProcessorOptions & {
       loadAudio?: boolean;
       pageLayoutPreference?: 'largest' | 'smallest' | 'scanning' | number;
-    } = {}
+    }
   ) {
     super(options);
     this.symbolResolver = symbolResolver;
-    this.loadAudio = options.loadAudio !== undefined ? options.loadAudio : true;
+    this.loadAudio = options?.loadAudio !== undefined ? options.loadAudio : true;
     this.pageLayoutPreference =
-      options.pageLayoutPreference !== undefined ? options.pageLayoutPreference : 'scanning'; // Default to scanning
+      options?.pageLayoutPreference !== undefined ? options.pageLayoutPreference : 'scanning'; // Default to scanning
   }
 
   async extractTexts(filePathOrBuffer: ProcessorInput): Promise<string[]> {
@@ -139,7 +138,7 @@ class SnapProcessor extends BaseProcessor {
 
           // Extract .sub.zip to find the embedded .sps file
           const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'snap-sub-'));
-          const { zip } = await openZipFromInput(filePathOrBuffer);
+          const { zip } = await this.options.zipAdapter(filePathOrBuffer);
 
           // Find the .sps file in the archive
           const files = zip.listFiles();

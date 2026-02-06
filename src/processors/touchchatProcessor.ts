@@ -39,7 +39,6 @@ import {
   requireBetterSqlite3,
   type SqliteDatabaseAdapter,
 } from '../utils/sqlite';
-import { openZipFromInput } from '../utils/zip';
 
 interface TouchChatButton {
   id: number;
@@ -153,9 +152,7 @@ class TouchChatProcessor extends BaseProcessor {
 
       // Step 1: Unzip
       const zipInput = readBinaryFromInput(filePathOrBuffer);
-      const { zip } = this.options.zipAdapter
-        ? await this.options.zipAdapter(zipInput)
-        : await openZipFromInput(zipInput);
+      const { zip } = await this.options.zipAdapter(zipInput);
       const vocabEntry = zip.listFiles().find((name) => name.endsWith('.c4v'));
       if (!vocabEntry) {
         throw new Error('No .c4v vocab DB found in TouchChat export');

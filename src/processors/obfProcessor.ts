@@ -32,7 +32,7 @@ import {
   getNodeRequire,
   isNodeRuntime,
 } from '../utils/io';
-import { openZipFromInput, type ZipAdapter } from '../utils/zip';
+import { type ZipAdapter } from '../utils/zip';
 
 const OBF_FORMAT_VERSION = 'open-board-0.1';
 
@@ -503,9 +503,7 @@ class ObfProcessor extends BaseProcessor {
     }
 
     try {
-      const zipResult = this.options.zipAdapter
-        ? await this.options.zipAdapter(filePathOrBuffer)
-        : await openZipFromInput(filePathOrBuffer);
+      const zipResult = await this.options.zipAdapter(filePathOrBuffer);
       this.zipFile = zipResult.zip;
     } catch (err) {
       console.error('[OBF] Error loading ZIP:', err);

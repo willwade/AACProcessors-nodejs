@@ -5,7 +5,7 @@ export interface ZipAdapter {
   readFile(name: string): Promise<Uint8Array>;
 }
 
-export async function openZipFromInput(
+export async function getZipAdapter(
   input: string | Uint8Array | ArrayBuffer | Buffer
 ): Promise<{ zip: ZipAdapter }> {
   if (typeof input === 'string') {

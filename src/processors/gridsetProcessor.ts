@@ -46,7 +46,6 @@ import {
   getNodeRequire,
   isNodeRuntime,
 } from '../utils/io';
-import { openZipFromInput } from '../utils/zip';
 
 class GridsetProcessor extends BaseProcessor {
   constructor(options?: ProcessorOptions) {
@@ -448,12 +447,10 @@ class GridsetProcessor extends BaseProcessor {
   async loadIntoTree(filePathOrBuffer: ProcessorInput): Promise<AACTree> {
     const tree = new AACTree();
 
-    let zipResult: Awaited<ReturnType<typeof openZipFromInput>>;
+    let zipResult: Awaited<ReturnType<typeof this.options.zipAdapter>>;
     try {
       const zipInput = readBinaryFromInput(filePathOrBuffer);
-      zipResult = this.options.zipAdapter
-        ? await this.options.zipAdapter(zipInput)
-        : await openZipFromInput(zipInput);
+      zipResult = await this.options.zipAdapter(zipInput);
     } catch (error: any) {
       throw new Error(`Invalid ZIP file format: ${error.message}`);
     }

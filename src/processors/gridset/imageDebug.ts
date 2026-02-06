@@ -5,7 +5,7 @@
  * correctly in Grid3 gridsets.
  */
 
-import { openZipFromInput, type ZipAdapter } from '../../utils/zip';
+import { getZipAdapter, type ZipAdapter } from '../../utils/zip';
 import { getZipEntriesFromAdapter } from './password';
 import { resolveGridsetPasswordFromEnv } from './password';
 import { XMLParser } from 'fast-xml-parser';
@@ -58,7 +58,7 @@ export async function auditGridsetImages(
   try {
     const { zip } = zipAdapter
       ? await zipAdapter(gridsetBuffer)
-      : await openZipFromInput(gridsetBuffer);
+      : await getZipAdapter(gridsetBuffer);
 
     const entries = getZipEntriesFromAdapter(zip, password);
     const parser = new XMLParser();

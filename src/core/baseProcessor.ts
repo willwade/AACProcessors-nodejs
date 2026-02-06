@@ -44,7 +44,7 @@ import { AACTree, AACButton, AACSemanticCategory } from './treeStructure';
 import { StringCasing, detectCasing, isNumericOrEmpty } from './stringCasing';
 import { ValidationResult } from '../validation/validationTypes';
 import { BinaryOutput, ProcessorInput } from '../utils/io';
-import type { ZipAdapter } from '../utils/zip';
+import { getZipAdapter, type ZipAdapter } from '../utils/zip';
 
 // Configuration options for processors
 export interface ProcessorOptions {
@@ -73,8 +73,8 @@ export interface ProcessorOptions {
   // Defaults to 'en-GB' if not specified
   grid3Locale?: string;
 
-  // Optionally provide your own adapter for unzipping the input
-  zipAdapter?: (input: ProcessorInput) => Promise<{ zip: ZipAdapter }>;
+  // Adapter for handling encoding/decode zip files
+  zipAdapter: (input: ProcessorInput) => Promise<{ zip: ZipAdapter }>;
 }
 
 // Types for aac-tools-platform compatibility
@@ -119,12 +119,13 @@ export interface SourceString {
 abstract class BaseProcessor {
   protected options: ProcessorOptions;
 
-  constructor(options: ProcessorOptions = {}) {
+  constructor(options: Partial<ProcessorOptions> = {}) {
     // Default configuration: exclude navigation/system buttons
     this.options = {
       excludeNavigationButtons: true,
       excludeSystemButtons: true,
       preserveAllButtons: false,
+      zipAdapter: getZipAdapter,
       ...options,
     };
   }
