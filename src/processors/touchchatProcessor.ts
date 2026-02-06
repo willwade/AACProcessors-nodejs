@@ -26,6 +26,7 @@ import {
   getPath,
   isNodeRuntime,
   readBinaryFromInput,
+  writeBinaryToPath,
 } from '../utils/io';
 import {
   extractAllButtonsForTranslation,
@@ -747,20 +748,20 @@ class TouchChatProcessor extends BaseProcessor {
 
         const outputZip = await this.options.zipAdapter();
         const files: ZipFile[] = [];
-        for (let entry of entries) {
+        for (const entry of entries) {
           if (entry.entryName === vocabEntry.entryName) {
             continue;
           }
           const data = await entry.getData();
           files.push({
             name: entry.entryName,
-            data
+            data,
           });
-        };
+        }
         files.push({
           name: vocabEntry.entryName,
-          data: fs.readFileSync(dbPath)
-        })
+          data: fs.readFileSync(dbPath),
+        });
         await outputZip.writeFiles(files);
       } finally {
         try {
@@ -1214,10 +1215,13 @@ class TouchChatProcessor extends BaseProcessor {
       // Create zip file with the database
       const zip = await this.options.zipAdapter();
       const data = fs.readFileSync(dbPath);
-      zip.writeFiles([{
-        name: 'vocab.c4v',
-        data
-      }]);
+      const zipData = await zip.writeFiles([
+        {
+          name: 'vocab.c4v',
+          data,
+        },
+      ]);
+      writeBinaryToPath(outputPath, zipData);
     } finally {
       // Clean up
       if (fs.existsSync(tmpDir)) {
