@@ -503,8 +503,7 @@ class ObfProcessor extends BaseProcessor {
     }
 
     try {
-      const zipResult = await this.options.zipAdapter(filePathOrBuffer);
-      this.zipFile = zipResult.zip;
+      this.zipFile = await this.options.zipAdapter(filePathOrBuffer);
     } catch (err) {
       console.error('[OBF] Error loading ZIP:', err);
       throw err;
@@ -516,7 +515,7 @@ class ObfProcessor extends BaseProcessor {
     console.log('[OBF] Detected zip archive, extracting .obf files');
 
     // List manifest and OBF files
-    const filesInZip = this.zipFile.listFiles();
+    const filesInZip = this.zipFile!.listFiles();
     const manifestFile = filesInZip.filter((name) => name.toLowerCase() === 'manifest.json');
     let obfEntries = filesInZip.filter((name) => name.toLowerCase().endsWith('.obf'));
 

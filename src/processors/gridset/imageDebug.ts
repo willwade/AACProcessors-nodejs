@@ -46,7 +46,7 @@ export interface ImageAuditResult {
 export async function auditGridsetImages(
   gridsetBuffer: Uint8Array,
   password = resolveGridsetPasswordFromEnv(),
-  zipAdapter?: (input: ProcessorInput) => Promise<{ zip: ZipAdapter }>
+  zipAdapter?: (input: ProcessorInput) => Promise<ZipAdapter>
 ): Promise<ImageAuditResult> {
   const issues: ImageIssue[] = [];
   const availableImages = new Set<string>();
@@ -56,9 +56,7 @@ export async function auditGridsetImages(
   let unresolvedImages = 0;
 
   try {
-    const { zip } = zipAdapter
-      ? await zipAdapter(gridsetBuffer)
-      : await getZipAdapter(gridsetBuffer);
+    const zip = zipAdapter ? await zipAdapter(gridsetBuffer) : await getZipAdapter(gridsetBuffer);
 
     const entries = getZipEntriesFromAdapter(zip, password);
     const parser = new XMLParser();

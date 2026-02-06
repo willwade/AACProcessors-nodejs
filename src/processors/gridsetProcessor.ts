@@ -455,7 +455,7 @@ class GridsetProcessor extends BaseProcessor {
       throw new Error(`Invalid ZIP file format: ${error.message}`);
     }
     const password = this.getGridsetPassword(filePathOrBuffer);
-    const entries = getZipEntriesFromAdapter(zipResult.zip, password);
+    const entries = getZipEntriesFromAdapter(zipResult, password);
     const options = {
       ignoreAttributes: false,
       ignoreDeclaration: true,

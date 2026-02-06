@@ -131,15 +131,13 @@ export function wordlistToXml(wordlist: WordList): string {
 export async function extractWordlists(
   gridsetBuffer: Uint8Array,
   password = resolveGridsetPasswordFromEnv(),
-  zipAdapter?: (input: ProcessorInput) => Promise<{ zip: ZipAdapter }>
+  zipAdapter?: (input: ProcessorInput) => Promise<ZipAdapter>
 ): Promise<Map<string, WordList>> {
   const wordlists = new Map<string, WordList>();
   const parser = new XMLParser();
 
   try {
-    const { zip } = zipAdapter
-      ? await zipAdapter(gridsetBuffer)
-      : await getZipAdapter(gridsetBuffer);
+    const zip = zipAdapter ? await zipAdapter(gridsetBuffer) : await getZipAdapter(gridsetBuffer);
     const entries = getZipEntriesFromAdapter(zip, password);
 
     // Process each grid file

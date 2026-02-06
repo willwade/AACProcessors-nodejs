@@ -64,12 +64,10 @@ export async function openImage(
   gridsetBuffer: Uint8Array,
   entryPath: string,
   password = resolveGridsetPasswordFromEnv(),
-  zipAdapter?: (input: ProcessorInput) => Promise<{ zip: ZipAdapter }>
+  zipAdapter?: (input: ProcessorInput) => Promise<ZipAdapter>
 ): Promise<Uint8Array | null> {
   try {
-    const { zip } = zipAdapter
-      ? await zipAdapter(gridsetBuffer)
-      : await getZipAdapter(gridsetBuffer);
+    const zip = zipAdapter ? await zipAdapter(gridsetBuffer) : await getZipAdapter(gridsetBuffer);
     const entries = getZipEntriesFromAdapter(zip, password);
     const want = normalizeZipPath(entryPath);
     const entry = entries.find((e) => normalizeZipPath(e.entryName) === want);
