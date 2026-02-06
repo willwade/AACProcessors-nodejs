@@ -13,7 +13,7 @@
  * This module provides symbol resolution and metadata extraction.
  */
 
-import { getFs, getNodeRequire, getPath, ProcessorInput } from '../../utils/io';
+import { getFs, getPath, ProcessorInput } from '../../utils/io';
 import { getZipAdapter, ZipAdapter } from '../../utils/zip';
 
 /**
