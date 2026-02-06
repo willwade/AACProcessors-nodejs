@@ -1,7 +1,7 @@
 import type JSZip from 'jszip';
 import { ProcessorOptions } from '../../core/baseProcessor';
 import { ProcessorInput } from '../../utils/io';
-import { type ZipAdapter } from '../../utils/zip';
+import { ZipReader } from '../../utils/zip';
 
 function getExtension(source: string): string {
   const index = source.lastIndexOf('.');
@@ -83,7 +83,7 @@ export function getZipEntriesWithPassword(zip: JSZip, password?: string): ZipEnt
   return entries;
 }
 
-export function getZipEntriesFromAdapter(zip: ZipAdapter, password?: string): ZipEntry[] {
+export function getZipEntriesFromAdapter(zip: ZipReader, password?: string): ZipEntry[] {
   if (password) {
     console.warn('Zip password support is handled at the archive level for .gridsetx files.');
   }

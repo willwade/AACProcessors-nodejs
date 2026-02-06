@@ -5,11 +5,11 @@
  * correctly in Grid3 gridsets.
  */
 
-import { getZipAdapter, type ZipAdapter } from '../../utils/zip';
 import { getZipEntriesFromAdapter } from './password';
 import { resolveGridsetPasswordFromEnv } from './password';
 import { XMLParser } from 'fast-xml-parser';
 import { decodeText, type ProcessorInput } from '../../utils/io';
+import { getZipReader, ZipReader } from '../../utils/zip';
 
 export interface ImageIssue {
   gridName: string;
@@ -46,7 +46,7 @@ export interface ImageAuditResult {
 export async function auditGridsetImages(
   gridsetBuffer: Uint8Array,
   password = resolveGridsetPasswordFromEnv(),
-  zipAdapter?: (input: ProcessorInput) => Promise<ZipAdapter>
+  zipReader?: (input: ProcessorInput) => Promise<ZipReader>
 ): Promise<ImageAuditResult> {
   const issues: ImageIssue[] = [];
   const availableImages = new Set<string>();
@@ -56,7 +56,7 @@ export async function auditGridsetImages(
   let unresolvedImages = 0;
 
   try {
-    const zip = zipAdapter ? await zipAdapter(gridsetBuffer) : await getZipAdapter(gridsetBuffer);
+    const zip = zipReader ? await zipReader(gridsetBuffer) : await getZipReader(gridsetBuffer);
 
     const entries = getZipEntriesFromAdapter(zip, password);
     const parser = new XMLParser();

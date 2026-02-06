@@ -11,9 +11,9 @@
 
 import { XMLParser, XMLBuilder } from 'fast-xml-parser';
 import { getZipEntriesFromAdapter, resolveGridsetPasswordFromEnv } from './password';
-import { getZipAdapter, type ZipAdapter } from '../../utils/zip';
 import { getNodeRequire, isNodeRuntime, type ProcessorInput } from '../../utils/io';
 import { decodeText } from '../../utils/io';
+import { getZipReader, ZipReader } from '../../utils/zip';
 
 /**
  * Represents a single item in a wordlist
@@ -131,13 +131,13 @@ export function wordlistToXml(wordlist: WordList): string {
 export async function extractWordlists(
   gridsetBuffer: Uint8Array,
   password = resolveGridsetPasswordFromEnv(),
-  zipAdapter?: (input: ProcessorInput) => Promise<ZipAdapter>
+  zipReader?: (input: ProcessorInput) => Promise<ZipReader>
 ): Promise<Map<string, WordList>> {
   const wordlists = new Map<string, WordList>();
   const parser = new XMLParser();
 
   try {
-    const zip = zipAdapter ? await zipAdapter(gridsetBuffer) : await getZipAdapter(gridsetBuffer);
+    const zip = zipReader ? await zipReader(gridsetBuffer) : await getZipReader(gridsetBuffer);
     const entries = getZipEntriesFromAdapter(zip, password);
 
     // Process each grid file
