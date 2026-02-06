@@ -11,7 +11,7 @@ export interface ZipWriter {
 
 export interface ZipFile {
   name: string;
-  data: Uint8Array;
+  data: string | Uint8Array;
 }
 
 export async function getZipReader(input: ProcessorInput): Promise<ZipReader> {
