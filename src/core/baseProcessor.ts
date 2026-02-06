@@ -47,7 +47,7 @@ import { BinaryOutput, ProcessorInput } from '../utils/io';
 import { getZipAdapter, type ZipAdapter } from '../utils/zip';
 
 // Configuration options for processors
-export interface ProcessorOptions {
+export interface ProcessorConfig {
   // Filter out navigation/system buttons (enabled by default)
   excludeNavigationButtons?: boolean;
   excludeSystemButtons?: boolean;
@@ -74,8 +74,9 @@ export interface ProcessorOptions {
   grid3Locale?: string;
 
   // Adapter for handling encoding/decode zip files
-  zipAdapter: (input: ProcessorInput) => Promise<{ zip: ZipAdapter }>;
+  zipAdapter: (input: ProcessorInput) => Promise<ZipAdapter>;
 }
+export type ProcessorOptions = Partial<ProcessorConfig>
 
 // Types for aac-tools-platform compatibility
 export interface ExtractedString {
@@ -117,9 +118,9 @@ export interface SourceString {
 }
 
 abstract class BaseProcessor {
-  protected options: ProcessorOptions;
+  protected options: ProcessorConfig;
 
-  constructor(options: Partial<ProcessorOptions> = {}) {
+  constructor(options: ProcessorOptions = {}) {
     // Default configuration: exclude navigation/system buttons
     this.options = {
       excludeNavigationButtons: true,
