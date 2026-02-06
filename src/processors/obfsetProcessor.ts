@@ -208,7 +208,8 @@ export class ObfsetProcessor extends BaseProcessor {
   async processTexts(
     _filePathOrBuffer: ProcessorInput,
     _translations: Map<string, string>,
-    _outputPath: string
+    _outputPath: string,
+    _targetLocale?: string
   ): Promise<Uint8Array> {
     await Promise.resolve();
     throw new Error('processTexts is not supported for .obfset currently');

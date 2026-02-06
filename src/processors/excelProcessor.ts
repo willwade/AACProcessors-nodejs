@@ -53,7 +53,8 @@ export class ExcelProcessor extends BaseProcessor {
   async processTexts(
     _filePathOrBuffer: ProcessorInput,
     _translations: Map<string, string>,
-    outputPath: string
+    outputPath: string,
+    _targetLocale?: string
   ): Promise<Uint8Array> {
     await Promise.resolve();
     console.warn('ExcelProcessor.processTexts is not implemented yet.');

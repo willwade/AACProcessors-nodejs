@@ -648,7 +648,8 @@ class TouchChatProcessor extends BaseProcessor {
   async processTexts(
     filePathOrBuffer: ProcessorInput,
     translations: Map<string, string>,
-    outputPath: string
+    outputPath: string,
+    _targetLocale?: string
   ): Promise<Uint8Array> {
     if (!isNodeRuntime()) {
       throw new Error(

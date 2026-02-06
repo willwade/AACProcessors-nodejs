@@ -1310,7 +1310,8 @@ class AstericsGridProcessor extends BaseProcessor {
   async processTexts(
     filePathOrBuffer: ProcessorInput,
     translations: Map<string, string>,
-    outputPath: string
+    outputPath: string,
+    targetLocale?: string
   ): Promise<Uint8Array> {
     await Promise.resolve();
     let content = readTextFromInput(filePathOrBuffer);
@@ -1323,7 +1324,7 @@ class AstericsGridProcessor extends BaseProcessor {
     const grdFile: AstericsGridFile = JSON.parse(content);
 
     // Apply translations directly to the JSON structure for comprehensive coverage
-    this.applyTranslationsToGridFile(grdFile, translations);
+    this.applyTranslationsToGridFile(grdFile, translations, targetLocale);
 
     // Write the translated file
     writeTextToPath(outputPath, JSON.stringify(grdFile, null, 2));
@@ -1332,39 +1333,86 @@ class AstericsGridProcessor extends BaseProcessor {
 
   private applyTranslationsToGridFile(
     grdFile: AstericsGridFile,
-    translations: Map<string, string>
+    translations: Map<string, string>,
+    targetLocale?: string
   ): void {
     grdFile.grids.forEach((grid: GridData) => {
       // Translate grid labels
       if (grid.label) {
-        Object.keys(grid.label).forEach((lang) => {
-          const originalText = grid.label[lang];
-          if (originalText && translations.has(originalText)) {
+        if (typeof grid.label === 'string') {
+          const originalText = grid.label as string;
+          if (translations.has(originalText)) {
             const translation = translations.get(originalText);
             if (translation !== undefined) {
-              grid.label[lang] = translation;
+              if (targetLocale) {
+                // Upgrade to object format
+                grid.label = {
+                  en: originalText, // Assume 'en' for legacy string labels
+                  [targetLocale]: translation,
+                };
+              } else {
+                grid.label = translation as any;
+              }
             }
           }
-        });
+        } else {
+          Object.keys(grid.label).forEach((lang) => {
+            const originalText = grid.label[lang];
+            if (originalText && translations.has(originalText)) {
+              const translation = translations.get(originalText);
+              if (translation !== undefined) {
+                if (targetLocale) {
+                  grid.label[targetLocale] = translation;
+                } else {
+                  grid.label[lang] = translation;
+                }
+              }
+            }
+          });
+        }
       }
 
       // Translate grid elements
       grid.gridElements.forEach((element: GridElement) => {
         // Translate element labels
         if (element.label) {
-          Object.keys(element.label).forEach((lang) => {
-            const originalText = element.label[lang];
-            if (originalText && translations.has(originalText)) {
+          if (typeof element.label === 'string') {
+            const originalText = element.label as string;
+            if (translations.has(originalText)) {
               const translation = translations.get(originalText);
               if (translation !== undefined) {
-                element.label[lang] = translation;
+                if (targetLocale) {
+                  // Upgrade to object format
+                  element.label = {
+                    en: originalText, // Assume 'en' for legacy string labels
+                    [targetLocale]: translation,
+                  };
+                } else {
+                  element.label = translation as any;
+                }
               }
             }
-          });
+          } else {
+            Object.keys(element.label).forEach((lang) => {
+              const originalText = element.label[lang];
+              if (originalText && translations.has(originalText)) {
+                const translation = translations.get(originalText);
+                if (translation !== undefined) {
+                  if (targetLocale) {
+                    element.label[targetLocale] = translation;
+                  } else {
+                    element.label[lang] = translation;
+                  }
+                }
+              }
+            });
+          }
         }
 
         // Translate word forms
-        if (element.wordForms) {
+        // Word forms are typically specific to a language, so adding a target locale might require structure change
+        // For now, we only translate in place if no targetLocale, or skip if targetLocale is set (as word forms are language specific)
+        if (element.wordForms && !targetLocale) {
           element.wordForms.forEach((wordForm: WordForm) => {
             if (wordForm.value && translations.has(wordForm.value)) {
               const translation = translations.get(wordForm.value);
@@ -1377,13 +1425,17 @@ class AstericsGridProcessor extends BaseProcessor {
 
         // Translate action-specific texts
         element.actions.forEach((action: GridAction) => {
-          this.applyTranslationsToAction(action, translations);
+          this.applyTranslationsToAction(action, translations, targetLocale);
         });
       });
     });
   }
 
-  private applyTranslationsToAction(action: GridAction, translations: Map<string, string>): void {
+  private applyTranslationsToAction(
+    action: GridAction,
+    translations: Map<string, string>,
+    targetLocale?: string
+  ): void {
     switch (action.modelName) {
       case 'GridActionSpeakCustom':
         if (action.speakText && typeof action.speakText === 'object') {
@@ -1393,7 +1445,11 @@ class AstericsGridProcessor extends BaseProcessor {
             if (typeof originalText === 'string' && translations.has(originalText)) {
               const translation = translations.get(originalText);
               if (translation !== undefined) {
-                speakTextMap[lang] = translation;
+                if (targetLocale) {
+                  speakTextMap[targetLocale] = translation;
+                } else {
+                  speakTextMap[lang] = translation;
+                }
               }
             }
           });
