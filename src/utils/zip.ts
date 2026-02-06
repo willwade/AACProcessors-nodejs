@@ -15,14 +15,17 @@ export async function getZipAdapter(input?: ProcessorInput): Promise<ZipAdapter>
   if (isNodeRuntime()) {
     const AdmZip = getNodeRequire()('adm-zip') as typeof import('adm-zip');
     const zip =
-      input === undefined ? new AdmZip(input) :
-      typeof input === 'string' ? new AdmZip(input) :
-      new AdmZip(Buffer.from(readBinaryFromInput(input)));
+      input === undefined
+        ? new AdmZip(input)
+        : typeof input === 'string'
+          ? new AdmZip(input)
+          : new AdmZip(Buffer.from(readBinaryFromInput(input)));
     return {
       listFiles: (): string[] => {
-        return zip.getEntries()
+        return zip
+          .getEntries()
           .filter((entry) => !entry.isDirectory)
-          .map((entry) => entry.entryName)
+          .map((entry) => entry.entryName);
       },
       readFile: (name: string): Promise<Uint8Array> => {
         const entry = zip.getEntry(name);
@@ -47,8 +50,8 @@ export async function getZipAdapter(input?: ProcessorInput): Promise<ZipAdapter>
   return {
     listFiles: (): string[] => {
       return Object.entries(zip.files)
-        .filter(([name, entry]) => !entry.dir)
-        .map(([name, entry]) => name)
+        .filter(([_, entry]) => !entry.dir)
+        .map(([name, _]) => name);
     },
     readFile: async (name: string): Promise<Uint8Array> => {
       const file = zip.file(name);
