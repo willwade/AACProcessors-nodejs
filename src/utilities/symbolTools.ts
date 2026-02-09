@@ -47,7 +47,6 @@ export class SnapSymbolExtractor extends SymbolExtractor {
 }
 
 export class SnapSymbolResolver extends SymbolResolver {
-
   resolveSymbol(symbolRef: string): string | null {
     const { join, writeBinaryToPath } = this.fileAdapter;
     if (!Database) throw new Error('better-sqlite3 not installed');

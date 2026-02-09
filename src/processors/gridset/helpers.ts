@@ -10,7 +10,13 @@ import { execSync } from 'child_process';
 import Database from 'better-sqlite3';
 import { dotNetTicksToDate } from '../../utils/dotnetTicks';
 import { getZipEntriesFromAdapter, resolveGridsetPasswordFromEnv } from './password';
-import { defaultFileAdapter, extname, FileAdapter, joinWin32, ProcessorInput } from '../../utils/io';
+import {
+  defaultFileAdapter,
+  extname,
+  FileAdapter,
+  joinWin32,
+  ProcessorInput,
+} from '../../utils/io';
 import { getZipAdapter, ZipAdapter } from '../../utils/zip';
 
 function normalizeZipPath(p: string): string {
@@ -312,7 +318,10 @@ export function findGrid3Users(): Grid3UserPath[] {
  * @param userName Optional user filter; matches case-insensitively
  * @returns Array of user/gridset path pairs
  */
-export function findGrid3Vocabularies(userName?: string, fileAdapter: FileAdapter = defaultFileAdapter): Grid3VocabularyPath[] {
+export function findGrid3Vocabularies(
+  userName?: string,
+  fileAdapter: FileAdapter = defaultFileAdapter
+): Grid3VocabularyPath[] {
   const { pathExists, listDir, isDirectory } = fileAdapter;
   const results: Grid3VocabularyPath[] = [];
 
@@ -405,7 +414,10 @@ function parseGrid3ContentXml(xmlContent: string): string {
  * @param historyDbPath Absolute path to the history database
  * @returns Parsed history entries grouped by phrase
  */
-export function readGrid3History(historyDbPath: string, fileAdapter: FileAdapter = defaultFileAdapter): Grid3HistoryEntry[] {
+export function readGrid3History(
+  historyDbPath: string,
+  fileAdapter: FileAdapter = defaultFileAdapter
+): Grid3HistoryEntry[] {
   const { pathExists } = fileAdapter;
   if (!pathExists(historyDbPath)) return [];
 

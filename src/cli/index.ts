@@ -12,16 +12,13 @@ import { ComparisonAnalyzer, MetricsCalculator } from '../utilities/analytics';
 import { CellScanningOrder, ScanningSelectionMethod } from '../types/aac';
 import { defaultFileAdapter, extname } from '../utils/io';
 
-const { pathExists, isDirectory, join, readTextFromInput, basename, writeTextToPath } = defaultFileAdapter;
+const { pathExists, isDirectory, join, readTextFromInput, basename, writeTextToPath } =
+  defaultFileAdapter;
 
 // Helper function to detect format from file/folder path
 function detectFormat(filePath: string): string {
   // Check if it's a folder ending with .ascconfig
-  if (
-    pathExists(filePath) &&
-    isDirectory(filePath) &&
-    filePath.endsWith('.ascconfig')
-  ) {
+  if (pathExists(filePath) && isDirectory(filePath) && filePath.endsWith('.ascconfig')) {
     return 'ascconfig';
   }
 
@@ -87,9 +84,9 @@ function parseFilteringOptions(options: {
 }
 
 // Set version from package.json
-const packageJson = JSON.parse(
-  readTextFromInput(join(__dirname, '../../package.json'))
-) as { version: string };
+const packageJson = JSON.parse(readTextFromInput(join(__dirname, '../../package.json'))) as {
+  version: string;
+};
 program.version(packageJson.version);
 
 program
@@ -410,8 +407,7 @@ program
 
         const normalizedSource = (options.source || 'auto').toLowerCase();
         const ext = extname(input).toLowerCase();
-        const isGrid3Db =
-          ext === '.sqlite' || basename(input).toLowerCase() === 'history.sqlite';
+        const isGrid3Db = ext === '.sqlite' || basename(input).toLowerCase() === 'history.sqlite';
         const isSnap = ext === '.sps' || ext === '.spb';
 
         let entries;

@@ -145,11 +145,11 @@ export function encodeText(text: string): BinaryOutput {
 }
 
 // extname algorithm from node:path
-const splitDeviceRe = /^([a-zA-Z]:|[\\\/]{2}[^\\\/]+[\\\/]+[^\\\/]+)?([\\\/])?([\s\S]*?)$/;
-const splitTailRe = /^([\s\S]*?)((?:\.{1,2}|[^\\\/]+?|)(\.[^.\/\\]*|))(?:[\\\/]*)$/;
+const splitDeviceRe = /^([a-zA-Z]:|[\\\/]{2}[^\\\/]+[\\\/]+[^\\\/]+)?([\\\/])?([\s\S]*?)$/; //eslint-disable-line
+const splitTailRe = /^([\s\S]*?)((?:\.{1,2}|[^\\\/]+?|)(\.[^.\/\\]*|))(?:[\\\/]*)$/;        //eslint-disable-line
 export function extname(path: string): string {
-  const tail = splitDeviceRe.exec(path)?.at(3) ?? ''
-  return splitTailRe.exec(tail)?.at(3) ?? ''
+  const tail = splitDeviceRe.exec(path)?.at(3) ?? '';
+  return splitTailRe.exec(tail)?.at(3) ?? '';
 }
 
 function readBinaryFromInput(input: ProcessorInput): Uint8Array {

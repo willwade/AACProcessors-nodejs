@@ -9,7 +9,7 @@
  * active family=active family.png=active family
  */
 
-import { defaultFileAdapter, FileAdapter } from "../../utils/io";
+import { defaultFileAdapter, FileAdapter } from '../../utils/io';
 
 /**
  * Symbol search result
@@ -47,7 +47,10 @@ export interface LibrarySearchIndex {
  * @param pixFilePath - Path to .pix file
  * @returns Search index
  */
-export function parsePixFile(pixFilePath: string, fileAdapter: FileAdapter = defaultFileAdapter): LibrarySearchIndex {
+export function parsePixFile(
+  pixFilePath: string,
+  fileAdapter: FileAdapter = defaultFileAdapter
+): LibrarySearchIndex {
   const { readTextFromInput, basename } = fileAdapter;
   const content = readTextFromInput(pixFilePath);
   const library = basename(pixFilePath, '.pix');

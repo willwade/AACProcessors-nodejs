@@ -334,11 +334,7 @@ export function findSnapUserHistory(
   const user = findSnapUsers(packageNamePattern).find((u) => u.userId === userId);
   if (!user) return [];
 
-  return collectFiles(
-    user.userPath,
-    (full) => basename(full).toLowerCase().includes('history'),
-    2
-  );
+  return collectFiles(user.userPath, (full) => basename(full).toLowerCase().includes('history'), 2);
 }
 
 /**
