@@ -12,7 +12,6 @@
  *    c. For Tawasol: provide alternative sources
  */
 
-import * as fs from 'fs';
 import { resolveSymbolReference, parseSymbolReference, type SymbolReference } from './symbols';
 import { defaultFileAdapter, FileAdapter, ProcessorInput } from '../../utils/io';
 import { getZipAdapter, ZipAdapter } from '../../utils/zip';
@@ -385,7 +384,8 @@ function parseSymbolReferenceSafe(reference: string): SymbolReference | null {
 /**
  * Export symbol references to CSV for manual extraction
  */
-export function exportSymbolReferencesToCsv(report: SymbolReport, outputPath: string): void {
+export function exportSymbolReferencesToCsv(report: SymbolReport, outputPath: string, fileAdapter: FileAdapter = defaultFileAdapter): void {
+  const { writeTextToPath } = fileAdapter;
   const lines = ['Reference,Library,Path,Attribution,License'];
 
   for (const symbol of report.missingSymbols) {
@@ -394,7 +394,7 @@ export function exportSymbolReferencesToCsv(report: SymbolReport, outputPath: st
     );
   }
 
-  fs.writeFileSync(outputPath, lines.join('\n'));
+  writeTextToPath(outputPath, lines.join('\n'));
 }
 
 /**

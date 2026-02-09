@@ -10,15 +10,16 @@ import {
 } from '../utilities/analytics/history';
 import { ComparisonAnalyzer, MetricsCalculator } from '../utilities/analytics';
 import { CellScanningOrder, ScanningSelectionMethod } from '../types/aac';
-import path from 'path';
-import fs from 'fs';
+import { defaultFileAdapter, extname } from '../utils/io';
+
+const { pathExists, isDirectory, join, readTextFromInput, basename, writeTextToPath } = defaultFileAdapter;
 
 // Helper function to detect format from file/folder path
 function detectFormat(filePath: string): string {
   // Check if it's a folder ending with .ascconfig
   if (
-    fs.existsSync(filePath) &&
-    fs.statSync(filePath).isDirectory() &&
+    pathExists(filePath) &&
+    isDirectory(filePath) &&
     filePath.endsWith('.ascconfig')
   ) {
     return 'ascconfig';
@@ -33,7 +34,7 @@ function detectFormat(filePath: string): string {
   }
 
   // Otherwise use file extension
-  return path.extname(filePath).slice(1);
+  return extname(filePath).slice(1);
 }
 
 // Helper function to parse filtering options from CLI arguments
@@ -87,7 +88,7 @@ function parseFilteringOptions(options: {
 
 // Set version from package.json
 const packageJson = JSON.parse(
-  fs.readFileSync(path.join(__dirname, '../../package.json'), 'utf8')
+  readTextFromInput(join(__dirname, '../../package.json'))
 ) as { version: string };
 program.version(packageJson.version);
 
@@ -403,14 +404,14 @@ program
       }
     ) => {
       try {
-        if (!fs.existsSync(input)) {
+        if (!pathExists(input)) {
           throw new Error(`File not found: ${input}`);
         }
 
         const normalizedSource = (options.source || 'auto').toLowerCase();
-        const ext = path.extname(input).toLowerCase();
+        const ext = extname(input).toLowerCase();
         const isGrid3Db =
-          ext === '.sqlite' || path.basename(input).toLowerCase() === 'history.sqlite';
+          ext === '.sqlite' || basename(input).toLowerCase() === 'history.sqlite';
         const isSnap = ext === '.sps' || ext === '.spb';
 
         let entries;
@@ -438,7 +439,7 @@ program
 
         const output = JSON.stringify(payload, null, 2);
         if (options.out) {
-          fs.writeFileSync(options.out, output);
+          writeTextToPath(options.out, output);
         } else {
           console.log(output);
         }
@@ -578,7 +579,7 @@ program
 
         const output = options.pretty ? JSON.stringify(result, null, 2) : JSON.stringify(result);
         if (options.out) {
-          fs.writeFileSync(options.out, output);
+          writeTextToPath(options.out, output);
         } else {
           console.log(output);
         }

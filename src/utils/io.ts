@@ -144,6 +144,14 @@ export function encodeText(text: string): BinaryOutput {
   return new TextEncoder().encode(text);
 }
 
+// extname algorithm from node:path
+const splitDeviceRe = /^([a-zA-Z]:|[\\\/]{2}[^\\\/]+[\\\/]+[^\\\/]+)?([\\\/])?([\s\S]*?)$/;
+const splitTailRe = /^([\s\S]*?)((?:\.{1,2}|[^\\\/]+?|)(\.[^.\/\\]*|))(?:[\\\/]*)$/;
+export function extname(path: string): string {
+  const tail = splitDeviceRe.exec(path)?.at(3) ?? ''
+  return splitTailRe.exec(tail)?.at(3) ?? ''
+}
+
 function readBinaryFromInput(input: ProcessorInput): Uint8Array {
   if (typeof input === 'string') {
     return getFs().readFileSync(input);
@@ -209,6 +217,10 @@ function mkTempDir(prefix: string): string {
 
 function join(...pathParts: string[]): string {
   return getPath().join(...pathParts);
+}
+
+export function joinWin32(...pathParts: string[]): string {
+  return getPath().win32.join(...pathParts);
 }
 
 function dirname(path: string): string {

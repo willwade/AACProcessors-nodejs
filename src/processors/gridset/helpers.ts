@@ -6,13 +6,11 @@ import {
   AACSemanticCategory,
   AACSemanticIntent,
 } from '../../core/treeStructure';
-import * as fs from 'fs';
-import * as path from 'path';
 import { execSync } from 'child_process';
 import Database from 'better-sqlite3';
 import { dotNetTicksToDate } from '../../utils/dotnetTicks';
 import { getZipEntriesFromAdapter, resolveGridsetPasswordFromEnv } from './password';
-import { defaultFileAdapter, FileAdapter, ProcessorInput } from '../../utils/io';
+import { defaultFileAdapter, extname, FileAdapter, joinWin32, ProcessorInput } from '../../utils/io';
 import { getZipAdapter, ZipAdapter } from '../../utils/zip';
 
 function normalizeZipPath(p: string): string {
@@ -237,7 +235,8 @@ export function getCommonDocumentsPath(): string {
  * C:\Users\Public\Documents\Smartbox\Grid 3\Users\{UserName}\Grid Sets\
  * @returns Array of Grid3 user path information
  */
-export function findGrid3UserPaths(): Grid3UserPath[] {
+export function findGrid3UserPaths(fileAdapter: FileAdapter = defaultFileAdapter): Grid3UserPath[] {
+  const { pathExists, listDir, isDirectory } = fileAdapter;
   const results: Grid3UserPath[] = [];
 
   // Only works on Windows
@@ -248,34 +247,34 @@ export function findGrid3UserPaths(): Grid3UserPath[] {
   try {
     const commonDocs = getCommonDocumentsPath();
     // Use Windows path joining so tests that mock a Windows platform stay consistent even on POSIX runners
-    const grid3BasePath = path.win32.join(commonDocs, 'Smartbox', 'Grid 3', 'Users');
+    const grid3BasePath = joinWin32(commonDocs, 'Smartbox', 'Grid 3', 'Users');
 
     // Check if Grid3 Users directory exists
-    if (!fs.existsSync(grid3BasePath)) {
+    if (!pathExists(grid3BasePath)) {
       return results;
     }
 
     // Enumerate users
-    const users = fs.readdirSync(grid3BasePath, { withFileTypes: true });
+    const users = listDir(grid3BasePath);
 
     for (const userDir of users) {
-      if (!userDir.isDirectory()) continue;
+      if (!isDirectory(userDir)) continue;
 
-      const userName = userDir.name;
-      const userPath = path.win32.join(grid3BasePath, userName);
+      const userName = userDir;
+      const userPath = joinWin32(grid3BasePath, userName);
 
       // Enumerate language codes
-      const langDirs = fs.readdirSync(userPath, { withFileTypes: true });
+      const langDirs = listDir(userPath);
 
       for (const langDir of langDirs) {
-        if (!langDir.isDirectory()) continue;
+        if (!isDirectory(langDir)) continue;
 
-        const langCode = langDir.name;
-        const basePath = path.win32.join(userPath, langCode);
-        const historyDbPath = path.win32.join(basePath, 'Phrases', 'history.sqlite');
+        const langCode = langDir;
+        const basePath = joinWin32(userPath, langCode);
+        const historyDbPath = joinWin32(basePath, 'Phrases', 'history.sqlite');
 
         // Only include if history database exists
-        if (fs.existsSync(historyDbPath)) {
+        if (pathExists(historyDbPath)) {
           results.push({
             userName,
             langCode,
@@ -313,7 +312,8 @@ export function findGrid3Users(): Grid3UserPath[] {
  * @param userName Optional user filter; matches case-insensitively
  * @returns Array of user/gridset path pairs
  */
-export function findGrid3Vocabularies(userName?: string): Grid3VocabularyPath[] {
+export function findGrid3Vocabularies(userName?: string, fileAdapter: FileAdapter = defaultFileAdapter): Grid3VocabularyPath[] {
+  const { pathExists, listDir, isDirectory } = fileAdapter;
   const results: Grid3VocabularyPath[] = [];
 
   if (process.platform !== 'win32') {
@@ -321,31 +321,31 @@ export function findGrid3Vocabularies(userName?: string): Grid3VocabularyPath[] 
   }
 
   const commonDocs = getCommonDocumentsPath();
-  const grid3BasePath = path.win32.join(commonDocs, 'Smartbox', 'Grid 3', 'Users');
+  const grid3BasePath = joinWin32(commonDocs, 'Smartbox', 'Grid 3', 'Users');
 
-  if (!fs.existsSync(grid3BasePath)) {
+  if (!pathExists(grid3BasePath)) {
     return results;
   }
 
   const normalizedUser = userName?.toLowerCase();
-  const users = fs.readdirSync(grid3BasePath, { withFileTypes: true });
+  const users = listDir(grid3BasePath);
 
   for (const userDir of users) {
-    if (!userDir.isDirectory()) continue;
-    if (normalizedUser && userDir.name.toLowerCase() !== normalizedUser) continue;
+    if (!isDirectory(userDir)) continue;
+    if (normalizedUser && userDir.toLowerCase() !== normalizedUser) continue;
 
-    const userRoot = path.win32.join(grid3BasePath, userDir.name);
-    const gridSetsDir = path.win32.join(userRoot, 'Grid Sets');
-    if (!fs.existsSync(gridSetsDir)) continue;
+    const userRoot = joinWin32(grid3BasePath, userDir);
+    const gridSetsDir = joinWin32(userRoot, 'Grid Sets');
+    if (!pathExists(gridSetsDir)) continue;
 
-    const entries = fs.readdirSync(gridSetsDir, { withFileTypes: true });
+    const entries = listDir(gridSetsDir);
     for (const entry of entries) {
-      if (!entry.isFile()) continue;
-      const ext = path.extname(entry.name).toLowerCase();
+      if (!pathExists(entry) || isDirectory(entry)) continue;
+      const ext = extname(entry).toLowerCase();
       if (ext === '.gridset' || ext === '.gridsetx' || ext === '.grd' || ext === '.grdl') {
         results.push({
-          userName: userDir.name,
-          gridsetPath: path.win32.join(gridSetsDir, entry.name),
+          userName: userDir,
+          gridsetPath: joinWin32(gridSetsDir, entry),
         });
       }
     }
@@ -378,12 +378,13 @@ export function findGrid3UserHistory(userName: string, langCode?: string): strin
 /**
  * Check whether Grid 3 appears to be installed (Windows only)
  */
-export function isGrid3Installed(): boolean {
+export function isGrid3Installed(fileAdapter: FileAdapter = defaultFileAdapter): boolean {
+  const { pathExists } = fileAdapter;
   if (process.platform !== 'win32') return false;
   const commonDocs = getCommonDocumentsPath();
   if (!commonDocs) return false;
-  const grid3BasePath = path.win32.join(commonDocs, 'Smartbox', 'Grid 3', 'Users');
-  return fs.existsSync(grid3BasePath);
+  const grid3BasePath = joinWin32(commonDocs, 'Smartbox', 'Grid 3', 'Users');
+  return pathExists(grid3BasePath);
 }
 
 function parseGrid3ContentXml(xmlContent: string): string {
@@ -404,8 +405,9 @@ function parseGrid3ContentXml(xmlContent: string): string {
  * @param historyDbPath Absolute path to the history database
  * @returns Parsed history entries grouped by phrase
  */
-export function readGrid3History(historyDbPath: string): Grid3HistoryEntry[] {
-  if (!fs.existsSync(historyDbPath)) return [];
+export function readGrid3History(historyDbPath: string, fileAdapter: FileAdapter = defaultFileAdapter): Grid3HistoryEntry[] {
+  const { pathExists } = fileAdapter;
+  if (!pathExists(historyDbPath)) return [];
 
   const db = new Database(historyDbPath, { readonly: true });
   const rows = db

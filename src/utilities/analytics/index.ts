@@ -10,8 +10,7 @@
  * @module
  */
 
-import path from 'path';
-import fs from 'fs';
+import { defaultFileAdapter, FileAdapter } from '../../utils/io';
 
 // Always-available exports
 export * from './metrics/types';
@@ -37,15 +36,17 @@ export { ReferenceLoader } from './reference';
 /**
  * Get the default reference data path
  */
-export function getReferenceDataPath(): string {
-  return path.join(__dirname, 'reference', 'data');
+export function getReferenceDataPath(fileAdapter: FileAdapter): string {
+  const { join } = fileAdapter;
+  return join(__dirname, 'reference', 'data');
 }
 
 /**
  * Check if reference data files exist
  */
-export function hasReferenceData(): boolean {
-  const dataPath = getReferenceDataPath();
+export function hasReferenceData(fileAdapter: FileAdapter = defaultFileAdapter): boolean {
+  const { pathExists, join } = fileAdapter;
+  const dataPath = getReferenceDataPath(fileAdapter);
   const requiredFiles = [
     'core_lists.en.json',
     'common_words.en.json',
@@ -54,5 +55,5 @@ export function hasReferenceData(): boolean {
     'fringe.en.json',
   ];
 
-  return requiredFiles.every((file) => fs.existsSync(path.join(dataPath, file)));
+  return requiredFiles.every((file) => pathExists(join(dataPath, file)));
 }

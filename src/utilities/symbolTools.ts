@@ -1,6 +1,5 @@
-import path from 'path';
-import fs from 'fs';
 import { extractSymbolReferences } from '../processors/gridset/symbols';
+import { defaultFileAdapter, FileAdapter } from '../utils/io';
 
 // Dynamic imports for optional dependencies
 type Database = typeof import('better-sqlite3');
@@ -15,10 +14,12 @@ export abstract class SymbolExtractor {
 export abstract class SymbolResolver {
   protected symbolPath: string;
   protected dbPath: string;
+  protected fileAdapter: FileAdapter;
 
-  constructor(symbolPath: string, dbPath: string) {
+  constructor(symbolPath: string, dbPath: string, fileAdapter: FileAdapter = defaultFileAdapter) {
     this.symbolPath = symbolPath;
     this.dbPath = dbPath;
+    this.fileAdapter = fileAdapter;
   }
 
   abstract resolveSymbol(symbolRef: string): string | null;
@@ -46,7 +47,9 @@ export class SnapSymbolExtractor extends SymbolExtractor {
 }
 
 export class SnapSymbolResolver extends SymbolResolver {
+
   resolveSymbol(symbolRef: string): string | null {
+    const { join, writeBinaryToPath } = this.fileAdapter;
     if (!Database) throw new Error('better-sqlite3 not installed');
     const db = new Database(this.dbPath, { readonly: true });
     const query = 'SELECT ImageData FROM Symbol WHERE Id = ?';
@@ -54,8 +57,8 @@ export class SnapSymbolResolver extends SymbolResolver {
     db.close();
     if (!row) return null;
 
-    const outPath = path.join(this.symbolPath, `${symbolRef}.png`);
-    fs.writeFileSync(outPath, row.ImageData);
+    const outPath = join(this.symbolPath, `${symbolRef}.png`);
+    writeBinaryToPath(outPath, row.ImageData);
     return outPath;
   }
 }
@@ -93,9 +96,10 @@ export class Grid3SymbolExtractor extends SymbolExtractor {
 
 export class Grid3SymbolResolver extends SymbolResolver {
   resolveSymbol(symbolRef: string): string | null {
+    const { join, pathExists } = this.fileAdapter;
     // Implementation depends on Grid 3 symbol storage format
-    const symbolPath = path.join(this.symbolPath, symbolRef);
-    return fs.existsSync(symbolPath) ? symbolPath : null;
+    const symbolPath = join(this.symbolPath, symbolRef);
+    return pathExists(symbolPath) ? symbolPath : null;
   }
 }
 
@@ -109,20 +113,26 @@ export class TouchChatSymbolExtractor extends SymbolExtractor {
 
 export class TouchChatSymbolResolver extends SymbolResolver {
   resolveSymbol(symbolRef: string): string | null {
+    const { join, pathExists } = this.fileAdapter;
     // Implementation depends on TouchChat symbol storage format
-    const symbolPath = path.join(this.symbolPath, symbolRef);
-    return fs.existsSync(symbolPath) ? symbolPath : null;
+    const symbolPath = join(this.symbolPath, symbolRef);
+    return pathExists(symbolPath) ? symbolPath : null;
   }
 }
 
 // --- Simple fallback function for PCS-style lookup ---
-export function resolveSymbol(label: string, symbolDir: string): string | null {
+export function resolveSymbol(
+  label: string,
+  symbolDir: string,
+  fileAdapter: FileAdapter = defaultFileAdapter
+): string | null {
+  const { join, pathExists } = fileAdapter;
   const cleanLabel = label.toLowerCase().replace(/[^a-z0-9]/g, '');
   const exts = ['.png', '.jpg', '.svg'];
 
   for (const ext of exts) {
-    const symbolPath = path.join(symbolDir, cleanLabel + ext);
-    if (fs.existsSync(symbolPath)) {
+    const symbolPath = join(symbolDir, cleanLabel + ext);
+    if (pathExists(symbolPath)) {
       return symbolPath;
     }
   }

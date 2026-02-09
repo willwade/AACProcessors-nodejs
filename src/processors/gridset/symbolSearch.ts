@@ -9,8 +9,7 @@
  * active family=active family.png=active family
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
+import { defaultFileAdapter, FileAdapter } from "../../utils/io";
 
 /**
  * Symbol search result
@@ -48,9 +47,10 @@ export interface LibrarySearchIndex {
  * @param pixFilePath - Path to .pix file
  * @returns Search index
  */
-export function parsePixFile(pixFilePath: string): LibrarySearchIndex {
-  const content = fs.readFileSync(pixFilePath, 'utf-8');
-  const library = path.basename(pixFilePath, '.pix');
+export function parsePixFile(pixFilePath: string, fileAdapter: FileAdapter = defaultFileAdapter): LibrarySearchIndex {
+  const { readTextFromInput, basename } = fileAdapter;
+  const content = readTextFromInput(pixFilePath);
+  const library = basename(pixFilePath, '.pix');
 
   const searchTerms = new Map<string, string>();
   const filenames = new Map<string, string>();
@@ -84,29 +84,31 @@ export function parsePixFile(pixFilePath: string): LibrarySearchIndex {
  * @returns Map of library name to search index
  */
 export function loadSearchIndexes(
-  options: SymbolSearchOptions = {}
+  options: SymbolSearchOptions = {},
+  fileAdapter: FileAdapter = defaultFileAdapter
 ): Map<string, LibrarySearchIndex> {
+  const { listDir, pathExists, join, basename } = fileAdapter;
   const { grid3Path, locale = 'en-GB', libraries: specifiedLibs } = options;
 
   if (!grid3Path) {
     throw new Error('grid3Path is required for symbol search');
   }
 
-  const searchIndexesDir = path.join(grid3Path, 'Locale', locale, 'symbolsearch');
+  const searchIndexesDir = join(grid3Path, 'Locale', locale, 'symbolsearch');
 
-  if (!fs.existsSync(searchIndexesDir)) {
+  if (!pathExists(searchIndexesDir)) {
     throw new Error(`Symbol search directory not found: ${searchIndexesDir}`);
   }
 
   const indexes = new Map<string, LibrarySearchIndex>();
-  const files = fs.readdirSync(searchIndexesDir);
+  const files = listDir(searchIndexesDir);
 
   for (const file of files) {
     if (!file.endsWith('.pix')) {
       continue;
     }
 
-    const libraryName = path.basename(file, '.pix');
+    const libraryName = basename(file, '.pix');
 
     // Filter libraries if specified
     if (specifiedLibs && specifiedLibs.length > 0) {
@@ -116,7 +118,7 @@ export function loadSearchIndexes(
     }
 
     try {
-      const pixFilePath = path.join(searchIndexesDir, file);
+      const pixFilePath = join(searchIndexesDir, file);
       const index = parsePixFile(pixFilePath);
       indexes.set(libraryName, index);
     } catch (error) {
