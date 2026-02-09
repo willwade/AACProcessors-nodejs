@@ -22,7 +22,6 @@ import {
 import {
   ProcessorInput,
   getBasename,
-  getFs,
   getPath,
 } from '../utils/io';
 
@@ -224,7 +223,12 @@ class ApplePanelsProcessor extends BaseProcessor {
   }
 
   async loadIntoTree(filePathOrBuffer: ProcessorInput): Promise<AACTree> {
-    const { readBinaryFromInput, readTextFromInput } = this.options.fileAdapter;
+    const {
+      readBinaryFromInput,
+      readTextFromInput,
+      pathExists,
+      getFileSize,
+    } = this.options.fileAdapter;
     await Promise.resolve();
     const filename =
       typeof filePathOrBuffer === 'string' ? getBasename(filePathOrBuffer) : 'upload.plist';
@@ -232,7 +236,6 @@ class ApplePanelsProcessor extends BaseProcessor {
 
     try {
       if (typeof filePathOrBuffer === 'string') {
-        const fs = getFs();
         const path = getPath();
         if (filePathOrBuffer.endsWith('.ascconfig')) {
           const panelDefsPath = path.join(
@@ -241,8 +244,8 @@ class ApplePanelsProcessor extends BaseProcessor {
             'Resources',
             'PanelDefinitions.plist'
           );
-          if (fs.existsSync(panelDefsPath)) {
-            buffer = fs.readFileSync(panelDefsPath);
+          if (pathExists(panelDefsPath)) {
+            buffer = readBinaryFromInput(panelDefsPath);
           } else {
             const validation = buildValidationResultFromMessage({
               filename,
@@ -255,7 +258,7 @@ class ApplePanelsProcessor extends BaseProcessor {
             throw new ValidationFailureError('Apple Panels file not found', validation);
           }
         } else {
-          buffer = fs.readFileSync(filePathOrBuffer);
+          buffer = readBinaryFromInput(filePathOrBuffer);
         }
       } else {
         buffer = readBinaryFromInput(filePathOrBuffer);
@@ -401,8 +404,7 @@ class ApplePanelsProcessor extends BaseProcessor {
         filesize:
           typeof filePathOrBuffer === 'string'
             ? (() => {
-                const fs = getFs();
-                return fs.existsSync(filePathOrBuffer) ? fs.statSync(filePathOrBuffer).size : 0;
+                return pathExists(filePathOrBuffer) ? getFileSize(filePathOrBuffer) : 0;
               })()
             : readBinaryFromInput(filePathOrBuffer).byteLength,
         format: 'applepanels',
@@ -483,7 +485,7 @@ class ApplePanelsProcessor extends BaseProcessor {
   }
 
   async saveFromTree(tree: AACTree, outputPath: string): Promise<void> {
-    const { writeTextToPath } = this.options.fileAdapter;
+    const { writeTextToPath, pathExists, mkDir } = this.options.fileAdapter;
     await Promise.resolve();
     // Support two output modes:
     // 1) Single-file .plist (PanelDefinitions.plist content written directly)
@@ -495,15 +497,14 @@ class ApplePanelsProcessor extends BaseProcessor {
     let contentsPath = '';
     let resourcesPath = '';
     if (!isSinglePlist) {
-      const fs = getFs();
       const path = getPath();
       configPath = outputPath.endsWith('.ascconfig') ? outputPath : `${outputPath}.ascconfig`;
       contentsPath = path.join(configPath, 'Contents');
       resourcesPath = path.join(contentsPath, 'Resources');
 
-      if (!fs.existsSync(configPath)) fs.mkdirSync(configPath, { recursive: true });
-      if (!fs.existsSync(contentsPath)) fs.mkdirSync(contentsPath, { recursive: true });
-      if (!fs.existsSync(resourcesPath)) fs.mkdirSync(resourcesPath, { recursive: true });
+      if (!pathExists(configPath)) mkDir(configPath, { recursive: true });
+      if (!pathExists(contentsPath)) mkDir(contentsPath, { recursive: true });
+      if (!pathExists(resourcesPath)) mkDir(resourcesPath, { recursive: true });
 
       // Create Info.plist (bundle mode only)
       const infoPlist = {
@@ -666,10 +667,9 @@ class ApplePanelsProcessor extends BaseProcessor {
 
     if (isSinglePlist) {
       // Write single PanelDefinitions.plist file directly
-      const fs = getFs();
       const path = getPath();
       const dir = path.dirname(outputPath);
-      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      if (!pathExists(dir)) mkDir(dir, { recursive: true });
       writeTextToPath(outputPath, panelDefsContent);
     } else {
       // Write into bundle structure

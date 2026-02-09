@@ -10,6 +10,13 @@ export interface FileAdapter {
   ) => string;
   writeBinaryToPath: (outputPath: string, data: BinaryOutput) => void;
   writeTextToPath: (outputPath: string, text: string) => void;
+  pathExists: (path: string) => boolean;
+  isDirectory: (path: string) => boolean;
+  getFileSize: (path: string) => number;
+  mkDir: (path: string, options?: { recursive?: boolean }) => void;
+  listDir: (path: string) => string[];
+  removePath: (path: string, options?: { recursive?: boolean, force?: boolean }) => void;
+  mkTempDir: (prefix: string) => string;
 }
 
 let cachedFs: typeof import('fs') | null = null;
@@ -36,7 +43,7 @@ export function getNodeRequire(): NodeRequire {
   return cachedRequire;
 }
 
-export function getFs(): typeof import('fs') {
+function getFs(): typeof import('fs') {
   if (!cachedFs) {
     try {
       const nodeRequire = getNodeRequire();
@@ -178,9 +185,51 @@ function writeTextToPath(outputPath: string, text: string): void {
   fs.writeFileSync(outputPath, text, 'utf8');
 }
 
+function pathExists(path: string): boolean {
+  const fs = getFs();
+  return fs.existsSync(path);
+}
+
+function isDirectory(path: string): boolean {
+  const fs = getFs();
+  return fs.statSync(path).isDirectory();
+}
+
+function getFileSize(path: string): number {
+  const fs = getFs();
+  return fs.statSync(path).size;
+}
+
+function mkDir(path: string, options?: { recursive?: boolean }): void {
+  const fs = getFs();
+  fs.mkdirSync(path, options);
+}
+
+function listDir(path: string): string[] {
+  const fs = getFs();
+  return fs.readdirSync(path);
+}
+
+function removePath(path: string, options?: {recursive?: boolean, force?: boolean}) {
+  const fs = getFs();
+  fs.rmSync(path, options);
+}
+
+function mkTempDir (prefix: string): string {
+  const fs = getFs();
+  return fs.mkdtempSync(prefix);
+}
+
 export const defaultFileAdapter: FileAdapter = {
   readBinaryFromInput,
   readTextFromInput,
   writeBinaryToPath,
   writeTextToPath,
+  pathExists,
+  isDirectory,
+  getFileSize,
+  mkDir,
+  listDir,
+  removePath,
+  mkTempDir,
 }

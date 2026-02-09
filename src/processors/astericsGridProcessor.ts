@@ -21,7 +21,6 @@ import {
 import {
   ProcessorInput,
   getBasename,
-  getFs,
   encodeBase64,
 } from '../utils/io';
 
@@ -1737,9 +1736,9 @@ class AstericsGridProcessor extends BaseProcessor {
     targetFilePath: string,
     audioMappings: Map<string, { audioData: Buffer; metadata?: string }>
   ): void {
+    const { writeBinaryToPath, readBinaryFromInput } = this.options.fileAdapter;
     // Copy the source file to target
-    const fs = getFs();
-    fs.copyFileSync(sourceFilePath, targetFilePath);
+    writeBinaryToPath(targetFilePath, readBinaryFromInput(sourceFilePath));
 
     // Add audio recordings to the copy
     audioMappings.forEach((audioInfo, elementId) => {
