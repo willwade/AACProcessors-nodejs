@@ -43,7 +43,7 @@
 import { AACTree, AACButton, AACSemanticCategory } from './treeStructure';
 import { StringCasing, detectCasing, isNumericOrEmpty } from './stringCasing';
 import { ValidationResult } from '../validation/validationTypes';
-import { BinaryOutput, ProcessorInput } from '../utils/io';
+import { BinaryOutput, defaultFileAdapter, FileAdapter, ProcessorInput } from '../utils/io';
 import { getZipAdapter, ZipAdapter } from '../utils/zip';
 
 // Configuration options for processors
@@ -72,6 +72,9 @@ export interface ProcessorConfig {
   // Locale for symbol libraries (e.g., 'en-GB', 'en-US')
   // Defaults to 'en-GB' if not specified
   grid3Locale?: string;
+
+  // Adapter for reading/writing files
+  fileAdapter: FileAdapter;
 
   // Adapter for handling encoding/decoding zip files
   zipAdapter: (input?: ProcessorInput) => Promise<ZipAdapter>;
@@ -126,6 +129,7 @@ abstract class BaseProcessor {
       excludeNavigationButtons: true,
       excludeSystemButtons: true,
       preserveAllButtons: false,
+      fileAdapter: defaultFileAdapter,
       zipAdapter: getZipAdapter,
       ...options,
     };

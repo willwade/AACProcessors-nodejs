@@ -14,7 +14,7 @@
 
 import * as fs from 'fs';
 import { resolveSymbolReference, parseSymbolReference, type SymbolReference } from './symbols';
-import { ProcessorInput } from '../../utils/io';
+import { defaultFileAdapter, FileAdapter, ProcessorInput } from '../../utils/io';
 import { getZipAdapter, ZipAdapter } from '../../utils/zip';
 
 /**
@@ -94,12 +94,13 @@ export async function extractButtonImage(
   resolvedImageEntry: string | undefined,
   symbolReference: string | undefined,
   options: SymbolExtractionOptions = {},
-  zipAdapter: (input: ProcessorInput) => Promise<ZipAdapter>
+  fileAdapter: FileAdapter = defaultFileAdapter,
+  zipAdapter?: (input: ProcessorInput) => Promise<ZipAdapter>
 ): Promise<ExtractedImage> {
   // Priority 1: Use embedded image if available
   if (resolvedImageEntry && options.preferEmbedded !== false) {
     try {
-      const zip = zipAdapter ? await zipAdapter(gridsetBuffer) : await getZipAdapter(gridsetBuffer);
+      const zip = zipAdapter ? await zipAdapter(gridsetBuffer) : await getZipAdapter(gridsetBuffer, fileAdapter);
       const entries = zip.listFiles();
       const entry = entries.find((e) => e === resolvedImageEntry);
 

@@ -161,7 +161,10 @@ class SnapProcessor extends BaseProcessor {
         }
       }
 
-      dbResult = await openSqliteDatabase(inputFile, { readonly: true });
+      dbResult = await openSqliteDatabase(inputFile, {
+        readonly: true,
+        fileAdapter: this.options.fileAdapter,
+      });
       const db = dbResult.db;
 
       const getTableColumns = (tableName: string): Set<string> => {
@@ -1437,7 +1440,7 @@ class SnapProcessor extends BaseProcessor {
    * @returns Promise with validation result
    */
   async validate(filePath: string): Promise<ValidationResult> {
-    return SnapValidator.validateFile(filePath);
+    return SnapValidator.validateFile(filePath, this.options.fileAdapter);
   }
 
   /**

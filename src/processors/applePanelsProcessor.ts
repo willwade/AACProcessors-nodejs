@@ -24,9 +24,6 @@ import {
   getBasename,
   getFs,
   getPath,
-  readBinaryFromInput,
-  readTextFromInput,
-  writeTextToPath,
 } from '../utils/io';
 
 interface ApplePanelsActionParameters {
@@ -227,6 +224,7 @@ class ApplePanelsProcessor extends BaseProcessor {
   }
 
   async loadIntoTree(filePathOrBuffer: ProcessorInput): Promise<AACTree> {
+    const { readBinaryFromInput, readTextFromInput } = this.options.fileAdapter;
     await Promise.resolve();
     const filename =
       typeof filePathOrBuffer === 'string' ? getBasename(filePathOrBuffer) : 'upload.plist';
@@ -421,6 +419,7 @@ class ApplePanelsProcessor extends BaseProcessor {
     translations: Map<string, string>,
     outputPath: string
   ): Promise<Uint8Array> {
+    const { readBinaryFromInput } = this.options.fileAdapter;
     // Load the tree, apply translations, and save to new file
     const tree = await this.loadIntoTree(filePathOrBuffer);
 
@@ -484,6 +483,7 @@ class ApplePanelsProcessor extends BaseProcessor {
   }
 
   async saveFromTree(tree: AACTree, outputPath: string): Promise<void> {
+    const { writeTextToPath } = this.options.fileAdapter;
     await Promise.resolve();
     // Support two output modes:
     // 1) Single-file .plist (PanelDefinitions.plist content written directly)

@@ -2,6 +2,16 @@ export type ProcessorInput = string | Buffer | ArrayBuffer | Uint8Array;
 
 export type BinaryOutput = Buffer | Uint8Array;
 
+export interface FileAdapter {
+  readBinaryFromInput: (input: ProcessorInput) => Uint8Array;
+  readTextFromInput: (
+    input: ProcessorInput,
+    encoding?: BufferEncoding
+  ) => string;
+  writeBinaryToPath: (outputPath: string, data: BinaryOutput) => void;
+  writeTextToPath: (outputPath: string, text: string) => void;
+}
+
 let cachedFs: typeof import('fs') | null = null;
 let cachedPath: typeof import('path') | null = null;
 let cachedOs: typeof import('os') | null = null;
@@ -127,7 +137,7 @@ export function encodeText(text: string): BinaryOutput {
   return new TextEncoder().encode(text);
 }
 
-export function readBinaryFromInput(input: ProcessorInput): Uint8Array {
+function readBinaryFromInput(input: ProcessorInput): Uint8Array {
   if (typeof input === 'string') {
     const fs = getFs();
     return fs.readFileSync(input);
@@ -141,7 +151,7 @@ export function readBinaryFromInput(input: ProcessorInput): Uint8Array {
   return input;
 }
 
-export function readTextFromInput(
+function readTextFromInput(
   input: ProcessorInput,
   encoding: BufferEncoding = 'utf8'
 ): string {
@@ -158,12 +168,19 @@ export function readTextFromInput(
   return decodeText(input);
 }
 
-export function writeBinaryToPath(outputPath: string, data: BinaryOutput): void {
+function writeBinaryToPath(outputPath: string, data: BinaryOutput): void {
   const fs = getFs();
   fs.writeFileSync(outputPath, data);
 }
 
-export function writeTextToPath(outputPath: string, text: string): void {
+function writeTextToPath(outputPath: string, text: string): void {
   const fs = getFs();
   fs.writeFileSync(outputPath, text, 'utf8');
+}
+
+export const defaultFileAdapter: FileAdapter = {
+  readBinaryFromInput,
+  readTextFromInput,
+  writeBinaryToPath,
+  writeTextToPath,
 }

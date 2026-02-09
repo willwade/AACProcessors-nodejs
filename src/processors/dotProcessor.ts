@@ -14,10 +14,6 @@ import {
 import {
   ProcessorInput,
   getBasename,
-  readBinaryFromInput,
-  readTextFromInput,
-  writeBinaryToPath,
-  writeTextToPath,
   encodeText,
 } from '../utils/io';
 
@@ -91,6 +87,7 @@ class DotProcessor extends BaseProcessor {
   }
 
   async extractTexts(filePathOrBuffer: ProcessorInput): Promise<string[]> {
+    const { readTextFromInput } = this.options.fileAdapter;
     await Promise.resolve();
     const content = readTextFromInput(filePathOrBuffer);
 
@@ -113,6 +110,7 @@ class DotProcessor extends BaseProcessor {
   }
 
   async loadIntoTree(filePathOrBuffer: ProcessorInput): Promise<AACTree> {
+    const { readBinaryFromInput, readTextFromInput } = this.options.fileAdapter;
     await Promise.resolve();
     const filename =
       typeof filePathOrBuffer === 'string' ? getBasename(filePathOrBuffer) : 'upload.dot';
@@ -219,6 +217,7 @@ class DotProcessor extends BaseProcessor {
     translations: Map<string, string>,
     outputPath: string
   ): Promise<Uint8Array> {
+    const { readTextFromInput, writeBinaryToPath } = this.options.fileAdapter;
     await Promise.resolve();
     const content = readTextFromInput(filePathOrBuffer);
     let translatedContent = content;
@@ -242,6 +241,7 @@ class DotProcessor extends BaseProcessor {
   }
 
   async saveFromTree(tree: AACTree, _outputPath: string): Promise<void> {
+    const { writeTextToPath } = this.options.fileAdapter;
     await Promise.resolve();
     let dotContent = `digraph "${tree.metadata?.name || 'AACBoard'}" {\n`;
 

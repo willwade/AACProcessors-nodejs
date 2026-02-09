@@ -2,13 +2,14 @@
 import { XMLParser, XMLValidator } from 'fast-xml-parser';
 import { BaseValidator } from './baseValidator';
 import { ValidationResult } from './validationTypes';
-import { decodeText, getBasename, getFs, readBinaryFromInput, toUint8Array } from '../utils/io';
+import { decodeText, defaultFileAdapter, FileAdapter, getBasename, getFs, toUint8Array } from '../utils/io';
 
 /**
  * Validator for OPML files
  */
 export class OpmlValidator extends BaseValidator {
-  static async validateFile(filePath: string): Promise<ValidationResult> {
+  static async validateFile(filePath: string, fileAdapter?: FileAdapter): Promise<ValidationResult> {
+    const { readBinaryFromInput } = fileAdapter ?? defaultFileAdapter;
     const validator = new OpmlValidator();
     const content = readBinaryFromInput(filePath);
     const stats = getFs().statSync(filePath);

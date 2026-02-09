@@ -1,5 +1,5 @@
 import type { SqlJsConfig, SqlJsStatic } from 'sql.js';
-import { getFs, getNodeRequire, getOs, getPath, isNodeRuntime, readBinaryFromInput } from './io';
+import { defaultFileAdapter, FileAdapter, getFs, getNodeRequire, getOs, getPath, isNodeRuntime } from './io';
 
 export interface SqliteStatementAdapter {
   all(...params: unknown[]): any[];
@@ -15,6 +15,7 @@ export interface SqliteDatabaseAdapter {
 
 export interface SqliteOpenOptions {
   readonly?: boolean;
+  fileAdapter?: FileAdapter;
 }
 
 export interface SqliteOpenResult {
@@ -105,6 +106,7 @@ export async function openSqliteDatabase(
   input: string | Uint8Array | ArrayBuffer | Buffer,
   options: SqliteOpenOptions = {}
 ): Promise<SqliteOpenResult> {
+  const { readBinaryFromInput } = options.fileAdapter ?? defaultFileAdapter;
   if (typeof input === 'string') {
     if (!isNodeRuntime()) {
       throw new Error('SQLite file paths are not supported in browser environments.');

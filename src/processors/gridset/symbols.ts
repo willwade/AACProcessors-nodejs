@@ -13,7 +13,7 @@
  * This module provides symbol resolution and metadata extraction.
  */
 
-import { getFs, getPath, ProcessorInput } from '../../utils/io';
+import { defaultFileAdapter, FileAdapter, getFs, getPath, ProcessorInput } from '../../utils/io';
 import { getZipAdapter, ZipAdapter } from '../../utils/zip';
 
 /**
@@ -324,6 +324,7 @@ export function getSymbolLibraryInfo(
 export async function resolveSymbolReference(
   reference: string,
   options: SymbolResolutionOptions = {},
+  fileAdapter: FileAdapter = defaultFileAdapter,
   zipAdapter?: (input: ProcessorInput) => Promise<ZipAdapter>
 ): Promise<SymbolResolutionResult> {
   const parsed = parseSymbolReference(reference);
@@ -359,7 +360,7 @@ export async function resolveSymbolReference(
   try {
     // .symbols files are ZIP archives
     const zipFile = libraryInfo.pixFile;
-    const zip = zipAdapter ? await zipAdapter(zipFile) : await getZipAdapter(zipFile);
+    const zip = zipAdapter ? await zipAdapter(zipFile) : await getZipAdapter(zipFile, fileAdapter);
 
     // The path in the symbol reference becomes the path within the symbols/ folder
     // e.g., [tawasl]/above bw.png becomes symbols/above bw.png

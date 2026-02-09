@@ -1,3 +1,4 @@
+import { defaultFileAdapter, FileAdapter } from '../utils/io';
 import { getZipAdapter } from '../utils/zip';
 import {
   ValidationError,
@@ -24,6 +25,7 @@ export abstract class BaseValidator {
       includeWarnings: options.includeWarnings ?? true,
       stopOnBlocker: options.stopOnBlocker ?? true,
       customRules: options.customRules || [],
+      fileAdapter: defaultFileAdapter,
       zipAdapter: getZipAdapter,
       ...options,
     };
@@ -180,7 +182,7 @@ export abstract class BaseValidator {
    * Must be implemented by subclasses if they support file-based validation
    */
   // eslint-disable-next-line @typescript-eslint/require-await
-  static async validateFile(_filePath: string): Promise<ValidationResult> {
+  static async validateFile(_filePath: string, fileAdapter?: FileAdapter): Promise<ValidationResult> {
     throw new Error('validateFile must be implemented by subclass');
   }
 

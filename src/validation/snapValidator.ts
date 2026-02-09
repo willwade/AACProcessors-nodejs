@@ -4,7 +4,7 @@ import * as xml2js from 'xml2js';
 import JSZip from 'jszip';
 import { BaseValidator } from './baseValidator';
 import { ValidationResult } from './validationTypes';
-import { getBasename, getFs, readBinaryFromInput, toUint8Array } from '../utils/io';
+import { defaultFileAdapter, FileAdapter, getBasename, getFs, toUint8Array } from '../utils/io';
 import { openSqliteDatabase } from '../utils/sqlite';
 
 /**
@@ -19,7 +19,8 @@ export class SnapValidator extends BaseValidator {
   /**
    * Validate a Snap file from disk
    */
-  static async validateFile(filePath: string): Promise<ValidationResult> {
+  static async validateFile(filePath: string, fileAdapter?: FileAdapter): Promise<ValidationResult> {
+    const { readBinaryFromInput } = fileAdapter ?? defaultFileAdapter;
     const validator = new SnapValidator();
     const content = readBinaryFromInput(filePath);
     const stats = getFs().statSync(filePath);
@@ -203,7 +204,10 @@ export class SnapValidator extends BaseValidator {
     await this.add_check('sqlite', 'valid SQLite database', async () => {
       let cleanup: (() => void) | undefined;
       try {
-        const result = await openSqliteDatabase(content, { readonly: true });
+        const result = await openSqliteDatabase(content, {
+          readonly: true,
+          fileAdapter: this._options.fileAdapter,
+        });
         const db = result.db;
         cleanup = result.cleanup;
 

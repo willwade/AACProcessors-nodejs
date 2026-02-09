@@ -44,10 +44,11 @@ import { DotValidator } from './dotValidator';
 import { ApplePanelsValidator } from './applePanelsValidator';
 import { ObfsetValidator } from './obfsetValidator';
 import {
+  defaultFileAdapter,
+  FileAdapter,
   getBasename,
   getFs,
   isNodeRuntime,
-  readBinaryFromInput,
   toUint8Array,
   type ProcessorInput,
 } from '../utils/io';
@@ -131,11 +132,13 @@ export function getValidatorForFile(filename: string): BaseValidator | null {
  */
 export async function validateFileOrBuffer(
   filePathOrBuffer: ProcessorInput,
+  fileAdapter?: FileAdapter,
   filenameHint?: string
 ): Promise<ValidationResult> {
   const isPath = typeof filePathOrBuffer === 'string';
   const name = filenameHint || (isPath ? getBasename(filePathOrBuffer) : 'upload');
   const validator = getValidatorForFile(name) || getValidatorForFormat(name);
+  const adapter = fileAdapter ?? defaultFileAdapter;
 
   if (!validator) {
     throw new Error(`No validator registered for ${name}`);
@@ -150,10 +153,10 @@ export async function validateFileOrBuffer(
     };
 
     if (typeof ctor.validateFile === 'function') {
-      return ctor.validateFile(filePathOrBuffer);
+      return ctor.validateFile(filePathOrBuffer, adapter);
     }
 
-    const buf = readBinaryFromInput(filePathOrBuffer);
+    const buf = adapter.readBinaryFromInput(filePathOrBuffer);
     const stats = getFs().statSync(filePathOrBuffer);
     return validator.validate(buf, getBasename(filePathOrBuffer), stats.size);
   }

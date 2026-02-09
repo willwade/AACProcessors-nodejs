@@ -25,8 +25,6 @@ import {
   getOs,
   getPath,
   isNodeRuntime,
-  readBinaryFromInput,
-  writeBinaryToPath,
 } from '../utils/io';
 import {
   extractAllButtonsForTranslation,
@@ -143,6 +141,7 @@ class TouchChatProcessor extends BaseProcessor {
   }
 
   async loadIntoTree(filePathOrBuffer: ProcessorInput): Promise<AACTree> {
+    const { readBinaryFromInput } = this.options.fileAdapter;
     await Promise.resolve();
     // Unzip .ce file, extract the .c4v SQLite DB, and parse pages/buttons
     let db: SqliteDatabaseAdapter | null = null;
@@ -160,7 +159,10 @@ class TouchChatProcessor extends BaseProcessor {
         throw new Error('No .c4v vocab DB found in TouchChat export');
       }
       const dbBuffer = await zip.readFile(vocabEntry);
-      const dbResult = await openSqliteDatabase(dbBuffer, { readonly: true });
+      const dbResult = await openSqliteDatabase(dbBuffer, {
+        readonly: true,
+        fileAdapter: this.options.fileAdapter,
+      });
       db = dbResult.db;
       cleanup = dbResult.cleanup;
 
@@ -807,6 +809,7 @@ class TouchChatProcessor extends BaseProcessor {
   }
 
   async saveFromTree(tree: AACTree, outputPath: string): Promise<void> {
+    const { writeBinaryToPath } = this.options.fileAdapter;
     await Promise.resolve();
     if (!isNodeRuntime()) {
       throw new Error(
@@ -1344,7 +1347,7 @@ class TouchChatProcessor extends BaseProcessor {
    * @returns Promise with validation result
    */
   async validate(filePath: string): Promise<ValidationResult> {
-    return TouchChatValidator.validateFile(filePath);
+    return TouchChatValidator.validateFile(filePath, this.options.fileAdapter);
   }
 
   /**
