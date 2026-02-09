@@ -764,7 +764,8 @@ class TouchChatProcessor extends BaseProcessor {
           name: vocabEntry.entryName,
           data: readBinaryFromInput(dbPath),
         });
-        await outputZip.writeFiles(files);
+        const zipData = await outputZip.writeFiles(files);
+        writeBinaryToPath(outputPath, zipData);
       } finally {
         try {
           removePath(tempDir, { recursive: true, force: true });
