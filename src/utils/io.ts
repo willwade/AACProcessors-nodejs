@@ -203,7 +203,8 @@ function removePath(path: string, options?: { recursive?: boolean; force?: boole
 }
 
 function mkTempDir(prefix: string): string {
-  return getFs().mkdtempSync(prefix);
+  const path = join(getOs().tmpdir(), prefix);
+  return getFs().mkdtempSync(path);
 }
 
 function join(...pathParts: string[]): string {

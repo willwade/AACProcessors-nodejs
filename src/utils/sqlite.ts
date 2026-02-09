@@ -1,5 +1,5 @@
 import type { SqlJsConfig, SqlJsStatic } from 'sql.js';
-import { defaultFileAdapter, FileAdapter, getNodeRequire, getOs, isNodeRuntime } from './io';
+import { defaultFileAdapter, FileAdapter, getNodeRequire, isNodeRuntime } from './io';
 
 export interface SqliteStatementAdapter {
   all(...params: unknown[]): any[];
@@ -125,8 +125,7 @@ export async function openSqliteDatabase(
     return { db: createSqlJsAdapter(db) };
   }
 
-  const os = getOs();
-  const tempDir = mkTempDir(join(os.tmpdir(), 'aac-sqlite-'));
+  const tempDir = mkTempDir('aac-sqlite-');
   const dbPath = join(tempDir, 'input.sqlite');
   writeBinaryToPath(dbPath, data);
 

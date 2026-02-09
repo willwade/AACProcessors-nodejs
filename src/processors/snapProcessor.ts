@@ -17,7 +17,7 @@ import {
 import { generateCloneId } from '../utilities/analytics/utils/idGenerator';
 import { SnapValidator } from '../validation/snapValidator';
 import { ValidationResult } from '../validation/validationTypes';
-import { ProcessorInput, getNodeRequire, isNodeRuntime, getOs } from '../utils/io';
+import { ProcessorInput, getNodeRequire, isNodeRuntime } from '../utils/io';
 import { openSqliteDatabase, requireBetterSqlite3 } from '../utils/sqlite';
 
 /**
@@ -133,10 +133,8 @@ class SnapProcessor extends BaseProcessor {
       if (typeof filePathOrBuffer === 'string') {
         const fileName = basename(filePathOrBuffer).toLowerCase();
         if (fileName.endsWith('.sub.zip') || filePathOrBuffer.endsWith('.sub')) {
-          const os = getOs();
-
           // Extract .sub.zip to find the embedded .sps file
-          const tempDir = mkTempDir(join(os.tmpdir(), 'snap-sub-'));
+          const tempDir = mkTempDir('snap-sub-');
           const zip = await this.options.zipAdapter(filePathOrBuffer);
 
           // Find the .sps file in the archive

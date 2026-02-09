@@ -19,7 +19,7 @@ import { generateCloneId } from '../utilities/analytics/utils/idGenerator';
 import { detectCasing, isNumericOrEmpty } from '../core/stringCasing';
 import { TouchChatValidator } from '../validation/touchChatValidator';
 import { ValidationResult } from '../validation/validationTypes';
-import { ProcessorInput, getOs, isNodeRuntime } from '../utils/io';
+import { ProcessorInput, isNodeRuntime } from '../utils/io';
 import {
   extractAllButtonsForTranslation,
   validateTranslationResults,
@@ -669,8 +669,6 @@ class TouchChatProcessor extends BaseProcessor {
      * within the embedded SQLite database, ensuring assets and metadata remain intact.
      */
     if (typeof filePathOrBuffer === 'string') {
-      const os = getOs();
-
       const inputPath = filePathOrBuffer;
       const outputDir = dirname(outputPath);
       if (!pathExists(outputDir)) {
@@ -687,7 +685,7 @@ class TouchChatProcessor extends BaseProcessor {
         throw new Error('No .c4v vocab DB found in TouchChat export');
       }
 
-      const tempDir = mkTempDir(join(os.tmpdir(), 'touchchat-translate-'));
+      const tempDir = mkTempDir('touchchat-translate-');
       const dbPath = join(tempDir, 'vocab.c4v');
       try {
         writeBinaryToPath(dbPath, await vocabEntry.getData());
@@ -818,9 +816,8 @@ class TouchChatProcessor extends BaseProcessor {
         'saveFromTree is only supported in Node.js environments for TouchChat files.'
       );
     }
-    const os = getOs();
     // Create a TouchChat database that matches the expected schema for loading
-    const tmpDir = mkTempDir(join(os.tmpdir(), 'touchchat-export-'));
+    const tmpDir = mkTempDir('touchchat-export-');
     const dbPath = join(tmpDir, 'vocab.c4v');
 
     try {
