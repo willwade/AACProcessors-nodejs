@@ -6,18 +6,18 @@ import {
   AACSemanticCategory,
   AACSemanticIntent,
 } from '../../core/treeStructure';
-import { execSync } from 'child_process';
-import Database from 'better-sqlite3';
 import { dotNetTicksToDate } from '../../utils/dotnetTicks';
 import { getZipEntriesFromAdapter, resolveGridsetPasswordFromEnv } from './password';
 import {
   defaultFileAdapter,
   extname,
   FileAdapter,
+  getNodeRequire,
   joinWin32,
   ProcessorInput,
 } from '../../utils/io';
 import { getZipAdapter, ZipAdapter } from '../../utils/zip';
+import { requireBetterSqlite3 } from '../../utils/sqlite';
 
 function normalizeZipPath(p: string): string {
   const unified = p.replace(/\\/g, '/');
@@ -216,9 +216,10 @@ export function getCommonDocumentsPath(): string {
 
   try {
     // Query registry for Common Documents path
+    const child_process = getNodeRequire()('child_process') as typeof import('child_process');
     const command =
       'REG.EXE QUERY "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders" /V "Common Documents"';
-    const output = execSync(command, { encoding: 'utf-8', windowsHide: true });
+    const output = child_process.execSync(command, { encoding: 'utf-8', windowsHide: true });
 
     // Parse the output to extract the path
     const match = output.match(/Common Documents\s+REG_SZ\s+(.+)/);
@@ -421,6 +422,7 @@ export function readGrid3History(
   const { pathExists } = fileAdapter;
   if (!pathExists(historyDbPath)) return [];
 
+  const Database = requireBetterSqlite3();
   const db = new Database(historyDbPath, { readonly: true });
   const rows = db
     .prepare(

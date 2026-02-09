@@ -4,9 +4,9 @@ import {
   AACSemanticIntent,
   AACButton,
 } from '../../core/treeStructure';
-import Database from 'better-sqlite3';
 import { dotNetTicksToDate } from '../../utils/dotnetTicks';
-import { defaultFileAdapter, extname, FileAdapter, ProcessorInput } from '../../utils/io';
+import { defaultFileAdapter, extname, FileAdapter, getNodeRequire, ProcessorInput } from '../../utils/io';
+import { requireBetterSqlite3 } from '../../utils/sqlite';
 
 // Minimal Snap helpers (stubs) to align with processors/<engine>/helpers pattern
 // NOTE: Snap files can store different types of image data in PageSetData:
@@ -117,9 +117,10 @@ export function openImage(
     return null;
   }
 
-  let db: Database.Database | null = null;
+  const better_sqlite3 = getNodeRequire()('better-sqlite3');
+  let db = null;
   try {
-    db = new Database(dbPath, { readonly: true });
+    db = new better_sqlite3.Database(dbPath, { readonly: true });
 
     // Query PageSetData for the symbol
     const row = db
@@ -355,6 +356,7 @@ export function readSnapUsage(
   const { pathExists } = fileAdapter;
   if (!pathExists(pagesetPath)) return [];
 
+  const Database = requireBetterSqlite3();
   const db = new Database(pagesetPath, { readonly: true });
 
   const tableCheck = db
