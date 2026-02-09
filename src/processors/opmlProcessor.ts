@@ -12,11 +12,7 @@ import {
   ValidationFailureError,
   buildValidationResultFromMessage,
 } from '../validation/validationTypes';
-import {
-  ProcessorInput,
-  getBasename,
-  encodeText,
-} from '../utils/io';
+import { ProcessorInput, getBasename, encodeText } from '../utils/io';
 
 interface OpmlOutline {
   '@_text'?: string;

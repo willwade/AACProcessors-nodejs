@@ -18,11 +18,7 @@ import {
   ValidationFailureError,
   buildValidationResultFromMessage,
 } from '../validation/validationTypes';
-import {
-  ProcessorInput,
-  getBasename,
-  encodeBase64,
-} from '../utils/io';
+import { ProcessorInput, getBasename, encodeBase64 } from '../utils/io';
 
 // Asterics Grid data model interfaces
 interface GridData {
@@ -1310,11 +1306,7 @@ class AstericsGridProcessor extends BaseProcessor {
     translations: Map<string, string>,
     outputPath: string
   ): Promise<Uint8Array> {
-    const {
-      readTextFromInput,
-      readBinaryFromInput,
-      writeTextToPath
-    } = this.options.fileAdapter;
+    const { readTextFromInput, readBinaryFromInput, writeTextToPath } = this.options.fileAdapter;
     await Promise.resolve();
     let content = readTextFromInput(filePathOrBuffer);
 

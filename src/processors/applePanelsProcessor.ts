@@ -19,11 +19,7 @@ import {
   ValidationFailureError,
   buildValidationResultFromMessage,
 } from '../validation/validationTypes';
-import {
-  ProcessorInput,
-  getBasename,
-  getPath,
-} from '../utils/io';
+import { ProcessorInput, getBasename, getPath } from '../utils/io';
 
 interface ApplePanelsActionParameters {
   CharString?: string;
@@ -223,12 +219,8 @@ class ApplePanelsProcessor extends BaseProcessor {
   }
 
   async loadIntoTree(filePathOrBuffer: ProcessorInput): Promise<AACTree> {
-    const {
-      readBinaryFromInput,
-      readTextFromInput,
-      pathExists,
-      getFileSize,
-    } = this.options.fileAdapter;
+    const { readBinaryFromInput, readTextFromInput, pathExists, getFileSize } =
+      this.options.fileAdapter;
     await Promise.resolve();
     const filename =
       typeof filePathOrBuffer === 'string' ? getBasename(filePathOrBuffer) : 'upload.plist';

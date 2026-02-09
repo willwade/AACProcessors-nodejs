@@ -57,7 +57,9 @@ export async function auditGridsetImages(
   let unresolvedImages = 0;
 
   try {
-    const zip = zipAdapter ? await zipAdapter(gridsetBuffer) : await getZipAdapter(gridsetBuffer, fileAdapter);
+    const zip = zipAdapter
+      ? await zipAdapter(gridsetBuffer)
+      : await getZipAdapter(gridsetBuffer, fileAdapter);
 
     const entries = getZipEntriesFromAdapter(zip, password);
     const parser = new XMLParser();

@@ -22,11 +22,7 @@ import {
   type ButtonForTranslation,
   type LLMLTranslationResult,
 } from '../utilities/translation/translationProcessor';
-import {
-  ProcessorInput,
-  encodeBase64,
-  decodeText,
-} from '../utils/io';
+import { ProcessorInput, encodeBase64, decodeText } from '../utils/io';
 import { getZipAdapter, ZipAdapter } from '../utils/zip';
 
 const OBF_FORMAT_VERSION = 'open-board-0.1';

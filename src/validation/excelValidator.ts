@@ -2,18 +2,21 @@
 import * as ExcelJS from 'exceljs';
 import { BaseValidator } from './baseValidator';
 import { ValidationResult } from './validationTypes';
-import { defaultFileAdapter, FileAdapter, getBasename, getFs, toArrayBuffer } from '../utils/io';
+import { defaultFileAdapter, FileAdapter, getBasename, toArrayBuffer } from '../utils/io';
 
 /**
  * Validator for Excel imports (.xlsx/.xls)
  */
 export class ExcelValidator extends BaseValidator {
-  static async validateFile(filePath: string, fileAdapter?: FileAdapter): Promise<ValidationResult> {
-    const { readBinaryFromInput } = fileAdapter ?? defaultFileAdapter;
+  static async validateFile(
+    filePath: string,
+    fileAdapter?: FileAdapter
+  ): Promise<ValidationResult> {
+    const { readBinaryFromInput, getFileSize } = fileAdapter ?? defaultFileAdapter;
     const validator = new ExcelValidator();
     const content = readBinaryFromInput(filePath);
-    const stats = getFs().statSync(filePath);
-    return validator.validate(content, getBasename(filePath), stats.size);
+    const size = getFileSize(filePath);
+    return validator.validate(content, getBasename(filePath), size);
   }
 
   static async identifyFormat(_content: any, filename: string): Promise<boolean> {

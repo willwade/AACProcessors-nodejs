@@ -100,7 +100,9 @@ export async function extractButtonImage(
   // Priority 1: Use embedded image if available
   if (resolvedImageEntry && options.preferEmbedded !== false) {
     try {
-      const zip = zipAdapter ? await zipAdapter(gridsetBuffer) : await getZipAdapter(gridsetBuffer, fileAdapter);
+      const zip = zipAdapter
+        ? await zipAdapter(gridsetBuffer)
+        : await getZipAdapter(gridsetBuffer, fileAdapter);
       const entries = zip.listFiles();
       const entry = entries.find((e) => e === resolvedImageEntry);
 

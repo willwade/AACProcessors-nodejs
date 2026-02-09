@@ -47,7 +47,6 @@ import {
   defaultFileAdapter,
   FileAdapter,
   getBasename,
-  getFs,
   isNodeRuntime,
   toUint8Array,
   type ProcessorInput,
@@ -153,12 +152,12 @@ export async function validateFileOrBuffer(
     };
 
     if (typeof ctor.validateFile === 'function') {
-      return ctor.validateFile(filePathOrBuffer, adapter);
+      return ctor.validateFile(filePathOrBuffer);
     }
 
     const buf = adapter.readBinaryFromInput(filePathOrBuffer);
-    const stats = getFs().statSync(filePathOrBuffer);
-    return validator.validate(buf, getBasename(filePathOrBuffer), stats.size);
+    const size = adapter.getFileSize(filePathOrBuffer);
+    return validator.validate(buf, getBasename(filePathOrBuffer), size);
   }
 
   const buffer = toUint8Array(filePathOrBuffer);

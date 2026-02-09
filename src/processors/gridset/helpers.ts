@@ -68,7 +68,9 @@ export async function openImage(
   zipAdapter?: (input?: ProcessorInput) => Promise<ZipAdapter>
 ): Promise<Uint8Array | null> {
   try {
-    const zip = zipAdapter ? await zipAdapter(gridsetBuffer,) : await getZipAdapter(gridsetBuffer, fileAdapter);
+    const zip = zipAdapter
+      ? await zipAdapter(gridsetBuffer)
+      : await getZipAdapter(gridsetBuffer, fileAdapter);
     const entries = getZipEntriesFromAdapter(zip, password);
     const want = normalizeZipPath(entryPath);
     const entry = entries.find((e) => normalizeZipPath(e.entryName) === want);

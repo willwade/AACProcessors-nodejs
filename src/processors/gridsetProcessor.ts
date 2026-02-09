@@ -2057,11 +2057,11 @@ class GridsetProcessor extends BaseProcessor {
   async saveFromTree(tree: AACTree, outputPath: string): Promise<void> {
     const files: ZipFile[] = [];
     const { writeBinaryToPath } = this.options.fileAdapter;
-    const { writeFiles } = await this.options.zipAdapter();
+    const zip = await this.options.zipAdapter();
 
     if (Object.keys(tree.pages).length === 0) {
       // Create empty zip for empty tree
-      const zipBuffer = await writeFiles([]);
+      const zipBuffer = await zip.writeFiles([]);
       writeBinaryToPath(outputPath, zipBuffer);
       return;
     }
@@ -2422,7 +2422,7 @@ class GridsetProcessor extends BaseProcessor {
     });
 
     // Write the zip file
-    const zipBuffer = await writeFiles(files);
+    const zipBuffer = await zip.writeFiles(files);
     writeBinaryToPath(outputPath, zipBuffer);
   }
 

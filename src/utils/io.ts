@@ -4,10 +4,7 @@ export type BinaryOutput = Buffer | Uint8Array;
 
 export interface FileAdapter {
   readBinaryFromInput: (input: ProcessorInput) => Uint8Array;
-  readTextFromInput: (
-    input: ProcessorInput,
-    encoding?: BufferEncoding
-  ) => string;
+  readTextFromInput: (input: ProcessorInput, encoding?: BufferEncoding) => string;
   writeBinaryToPath: (outputPath: string, data: BinaryOutput) => void;
   writeTextToPath: (outputPath: string, text: string) => void;
   pathExists: (path: string) => boolean;
@@ -15,7 +12,7 @@ export interface FileAdapter {
   getFileSize: (path: string) => number;
   mkDir: (path: string, options?: { recursive?: boolean }) => void;
   listDir: (path: string) => string[];
-  removePath: (path: string, options?: { recursive?: boolean, force?: boolean }) => void;
+  removePath: (path: string, options?: { recursive?: boolean; force?: boolean }) => void;
   mkTempDir: (prefix: string) => string;
 }
 
@@ -158,10 +155,7 @@ function readBinaryFromInput(input: ProcessorInput): Uint8Array {
   return input;
 }
 
-function readTextFromInput(
-  input: ProcessorInput,
-  encoding: BufferEncoding = 'utf8'
-): string {
+function readTextFromInput(input: ProcessorInput, encoding: BufferEncoding = 'utf8'): string {
   if (typeof input === 'string') {
     const fs = getFs();
     return fs.readFileSync(input, encoding);
@@ -210,12 +204,12 @@ function listDir(path: string): string[] {
   return fs.readdirSync(path);
 }
 
-function removePath(path: string, options?: {recursive?: boolean, force?: boolean}) {
+function removePath(path: string, options?: { recursive?: boolean; force?: boolean }): void {
   const fs = getFs();
   fs.rmSync(path, options);
 }
 
-function mkTempDir (prefix: string): string {
+function mkTempDir(prefix: string): string {
   const fs = getFs();
   return fs.mkdtempSync(prefix);
 }
@@ -232,4 +226,4 @@ export const defaultFileAdapter: FileAdapter = {
   listDir,
   removePath,
   mkTempDir,
-}
+};

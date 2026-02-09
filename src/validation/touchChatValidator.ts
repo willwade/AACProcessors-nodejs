@@ -9,7 +9,6 @@ import {
   defaultFileAdapter,
   FileAdapter,
   getBasename,
-  getFs,
   type ProcessorInput,
   toUint8Array,
 } from '../utils/io';
@@ -29,12 +28,15 @@ export class TouchChatValidator extends BaseValidator {
   /**
    * Validate a TouchChat file from disk
    */
-  static async validateFile(filePath: string, fileAdapter?: FileAdapter): Promise<ValidationResult> {
-    const { readBinaryFromInput } = fileAdapter ?? defaultFileAdapter;
+  static async validateFile(
+    filePath: string,
+    fileAdapter?: FileAdapter
+  ): Promise<ValidationResult> {
+    const { readBinaryFromInput, getFileSize } = fileAdapter ?? defaultFileAdapter;
     const validator = new TouchChatValidator();
     const content = readBinaryFromInput(filePath);
-    const stats = getFs().statSync(filePath);
-    return validator.validate(content, getBasename(filePath), stats.size);
+    const size = getFileSize(filePath);
+    return validator.validate(content, getBasename(filePath), size);
   }
 
   /**
@@ -53,7 +55,9 @@ export class TouchChatValidator extends BaseValidator {
 
     // Try to parse as ZIP and check for .c4v database
     try {
-      const zip = zipAdapter ? await zipAdapter(content) : await getZipAdapter(content, fileAdapter);
+      const zip = zipAdapter
+        ? await zipAdapter(content)
+        : await getZipAdapter(content, fileAdapter);
       const entries = zip.listFiles();
       if (entries.some((entry) => entry.toLowerCase().endsWith('.c4v'))) {
         return true;
@@ -91,7 +95,13 @@ export class TouchChatValidator extends BaseValidator {
     });
 
     const looksLikeXml = this.isXmlBuffer(content);
-    const zipped = looksLikeXml ? false : await this.tryValidateZipSqlite(content, this._options.fileAdapter, this._options.zipAdapter);
+    const zipped = looksLikeXml
+      ? false
+      : await this.tryValidateZipSqlite(
+          content,
+          this._options.fileAdapter,
+          this._options.zipAdapter
+        );
     if (!zipped) {
       let xmlObj: any = null;
       await this.add_check('xml_parse', 'valid XML', async () => {
@@ -311,12 +321,14 @@ export class TouchChatValidator extends BaseValidator {
   private async tryValidateZipSqlite(
     content: Buffer | Uint8Array,
     fileAdapter: FileAdapter = defaultFileAdapter,
-    zipAdapter?: (input: ProcessorInput) => Promise<ZipAdapter>,
+    zipAdapter?: (input: ProcessorInput) => Promise<ZipAdapter>
   ): Promise<boolean> {
     let usedZip = false;
     await this.add_check('zip', 'TouchChat ZIP package', async () => {
       try {
-        const zip = zipAdapter ? await zipAdapter(content) : await getZipAdapter(content, fileAdapter);
+        const zip = zipAdapter
+          ? await zipAdapter(content)
+          : await getZipAdapter(content, fileAdapter);
         const entries = zip.listFiles();
         const vocabEntry = entries.find((name) => name.toLowerCase().endsWith('.c4v'));
         if (!vocabEntry) {

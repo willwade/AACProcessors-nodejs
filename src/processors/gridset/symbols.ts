@@ -225,7 +225,7 @@ export function getSymbolSearchIndexesDir(
  */
 export function getAvailableSymbolLibraries(
   options: SymbolResolutionOptions = {},
-  fileAdapter?: FileAdapter,
+  fileAdapter?: FileAdapter
 ): SymbolLibraryInfo[] {
   const { pathExists, getFileSize, listDir } = fileAdapter ?? defaultFileAdapter;
   const grid3Path = options.grid3Path || options.symbolDir || getDefaultGrid3Path();
@@ -272,7 +272,7 @@ export function getAvailableSymbolLibraries(
 export function getSymbolLibraryInfo(
   libraryName: string,
   options: SymbolResolutionOptions = {},
-  fileAdapter?: FileAdapter,
+  fileAdapter?: FileAdapter
 ): SymbolLibraryInfo | undefined {
   const { pathExists, getFileSize } = fileAdapter ?? defaultFileAdapter;
   const grid3Path = options.grid3Path || options.symbolDir || getDefaultGrid3Path();

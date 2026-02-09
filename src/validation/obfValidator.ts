@@ -6,7 +6,13 @@
 import JSZip from 'jszip';
 import { BaseValidator } from './baseValidator';
 import { ValidationResult } from './validationTypes';
-import { decodeText, defaultFileAdapter, FileAdapter, getBasename, getFs, toUint8Array } from '../utils/io';
+import {
+  decodeText,
+  defaultFileAdapter,
+  FileAdapter,
+  getBasename,
+  toUint8Array,
+} from '../utils/io';
 
 const OBF_FORMAT = 'open-board-0.1';
 const OBF_FORMAT_CURRENT_VERSION = 0.1;
@@ -22,12 +28,15 @@ export class ObfValidator extends BaseValidator {
   /**
    * Validate an OBF file from disk
    */
-  static async validateFile(filePath: string, fileAdapter?: FileAdapter): Promise<ValidationResult> {
-    const { readBinaryFromInput } = fileAdapter ?? defaultFileAdapter;
+  static async validateFile(
+    filePath: string,
+    fileAdapter?: FileAdapter
+  ): Promise<ValidationResult> {
+    const { readBinaryFromInput, getFileSize } = fileAdapter ?? defaultFileAdapter;
     const validator = new ObfValidator();
     const content = readBinaryFromInput(filePath);
-    const stats = getFs().statSync(filePath);
-    return validator.validate(content, getBasename(filePath), stats.size);
+    const size = getFileSize(filePath);
+    return validator.validate(content, getBasename(filePath), size);
   }
 
   /**

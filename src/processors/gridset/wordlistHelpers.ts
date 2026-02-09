@@ -138,7 +138,9 @@ export async function extractWordlists(
   const parser = new XMLParser();
 
   try {
-    const zip = zipAdapter ? await zipAdapter(gridsetBuffer) : await getZipAdapter(gridsetBuffer, fileAdapter);
+    const zip = zipAdapter
+      ? await zipAdapter(gridsetBuffer)
+      : await getZipAdapter(gridsetBuffer, fileAdapter);
     const entries = getZipEntriesFromAdapter(zip, password);
 
     // Process each grid file
@@ -224,7 +226,9 @@ export async function updateWordlist(
   });
 
   const updatedEntries: ZipFile[] = [];
-  const zip = zipAdapter ? await zipAdapter(gridsetBuffer) : await getZipAdapter(gridsetBuffer, fileAdapter);
+  const zip = zipAdapter
+    ? await zipAdapter(gridsetBuffer)
+    : await getZipAdapter(gridsetBuffer, fileAdapter);
   const entries = getZipEntriesFromAdapter(zip, password);
 
   let found = false;

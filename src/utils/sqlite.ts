@@ -1,5 +1,12 @@
 import type { SqlJsConfig, SqlJsStatic } from 'sql.js';
-import { defaultFileAdapter, FileAdapter, getFs, getNodeRequire, getOs, getPath, isNodeRuntime } from './io';
+import {
+  defaultFileAdapter,
+  FileAdapter,
+  getNodeRequire,
+  getOs,
+  getPath,
+  isNodeRuntime,
+} from './io';
 
 export interface SqliteStatementAdapter {
   all(...params: unknown[]): any[];
@@ -106,7 +113,8 @@ export async function openSqliteDatabase(
   input: string | Uint8Array | ArrayBuffer | Buffer,
   options: SqliteOpenOptions = {}
 ): Promise<SqliteOpenResult> {
-  const { readBinaryFromInput } = options.fileAdapter ?? defaultFileAdapter;
+  const { readBinaryFromInput, mkTempDir, writeBinaryToPath, removePath } =
+    options.fileAdapter ?? defaultFileAdapter;
   if (typeof input === 'string') {
     if (!isNodeRuntime()) {
       throw new Error('SQLite file paths are not supported in browser environments.');
@@ -124,12 +132,11 @@ export async function openSqliteDatabase(
     return { db: createSqlJsAdapter(db) };
   }
 
-  const fs = getFs();
   const path = getPath();
   const os = getOs();
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aac-sqlite-'));
+  const tempDir = mkTempDir(path.join(os.tmpdir(), 'aac-sqlite-'));
   const dbPath = path.join(tempDir, 'input.sqlite');
-  fs.writeFileSync(dbPath, data);
+  writeBinaryToPath(dbPath, data);
 
   const Database = getBetterSqlite3();
   const db = new Database(dbPath, { readonly: options.readonly ?? true }) as SqliteDatabaseAdapter;
@@ -138,7 +145,7 @@ export async function openSqliteDatabase(
       db.close();
     } finally {
       try {
-        fs.rmSync(tempDir, { recursive: true, force: true });
+        removePath(tempDir, { recursive: true, force: true });
       } catch (error) {
         console.warn('Failed to clean up temporary SQLite files:', error);
       }

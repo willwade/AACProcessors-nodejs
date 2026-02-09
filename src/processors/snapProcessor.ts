@@ -19,7 +19,6 @@ import { SnapValidator } from '../validation/snapValidator';
 import { ValidationResult } from '../validation/validationTypes';
 import { ProcessorInput, getNodeRequire, getPath, isNodeRuntime, getOs } from '../utils/io';
 import { openSqliteDatabase, requireBetterSqlite3 } from '../utils/sqlite';
-import { mkdir } from 'fs';
 
 /**
  * Convert a Buffer or Uint8Array to base64 string (browser and Node compatible)
@@ -846,13 +845,8 @@ class SnapProcessor extends BaseProcessor {
     translations: Map<string, string>,
     outputPath: string
   ): Promise<Uint8Array> {
-    const {
-      pathExists,
-      mkDir,
-      writeBinaryToPath,
-      readBinaryFromInput,
-      removePath
-    } = this.options.fileAdapter;
+    const { pathExists, mkDir, writeBinaryToPath, readBinaryFromInput, removePath } =
+      this.options.fileAdapter;
     if (!isNodeRuntime()) {
       throw new Error('processTexts is only supported in Node.js environments for Snap files.');
     }

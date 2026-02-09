@@ -1,4 +1,10 @@
-import { isNodeRuntime, getNodeRequire, ProcessorInput, FileAdapter, defaultFileAdapter } from './io';
+import {
+  isNodeRuntime,
+  getNodeRequire,
+  ProcessorInput,
+  FileAdapter,
+  defaultFileAdapter,
+} from './io';
 
 export interface ZipAdapter {
   listFiles(): string[];
@@ -11,7 +17,10 @@ export interface ZipFile {
   data: string | Uint8Array;
 }
 
-export async function getZipAdapter(input?: ProcessorInput, fileAdapter?: FileAdapter): Promise<ZipAdapter> {
+export async function getZipAdapter(
+  input?: ProcessorInput,
+  fileAdapter?: FileAdapter
+): Promise<ZipAdapter> {
   const adapter = fileAdapter ?? defaultFileAdapter;
   if (isNodeRuntime()) {
     const AdmZip = getNodeRequire()('adm-zip') as typeof import('adm-zip');
