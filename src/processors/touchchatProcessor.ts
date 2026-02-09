@@ -762,7 +762,8 @@ class TouchChatProcessor extends BaseProcessor {
           name: vocabEntry.entryName,
           data: fs.readFileSync(dbPath),
         });
-        await outputZip.writeFiles(files);
+        const zipData = await outputZip.writeFiles(files);
+        writeBinaryToPath(outputPath, zipData);
       } finally {
         try {
           fs.rmSync(tempDir, { recursive: true, force: true });
