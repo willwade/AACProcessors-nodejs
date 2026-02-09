@@ -1,12 +1,5 @@
 import type { SqlJsConfig, SqlJsStatic } from 'sql.js';
-import {
-  defaultFileAdapter,
-  FileAdapter,
-  getNodeRequire,
-  getOs,
-  getPath,
-  isNodeRuntime,
-} from './io';
+import { defaultFileAdapter, FileAdapter, getNodeRequire, getOs, isNodeRuntime } from './io';
 
 export interface SqliteStatementAdapter {
   all(...params: unknown[]): any[];
@@ -113,7 +106,7 @@ export async function openSqliteDatabase(
   input: string | Uint8Array | ArrayBuffer | Buffer,
   options: SqliteOpenOptions = {}
 ): Promise<SqliteOpenResult> {
-  const { readBinaryFromInput, mkTempDir, writeBinaryToPath, removePath } =
+  const { readBinaryFromInput, mkTempDir, writeBinaryToPath, removePath, join } =
     options.fileAdapter ?? defaultFileAdapter;
   if (typeof input === 'string') {
     if (!isNodeRuntime()) {
@@ -132,10 +125,9 @@ export async function openSqliteDatabase(
     return { db: createSqlJsAdapter(db) };
   }
 
-  const path = getPath();
   const os = getOs();
-  const tempDir = mkTempDir(path.join(os.tmpdir(), 'aac-sqlite-'));
-  const dbPath = path.join(tempDir, 'input.sqlite');
+  const tempDir = mkTempDir(join(os.tmpdir(), 'aac-sqlite-'));
+  const dbPath = join(tempDir, 'input.sqlite');
   writeBinaryToPath(dbPath, data);
 
   const Database = getBetterSqlite3();

@@ -17,7 +17,7 @@ import {
 import { generateCloneId } from '../utilities/analytics/utils/idGenerator';
 import { SnapValidator } from '../validation/snapValidator';
 import { ValidationResult } from '../validation/validationTypes';
-import { ProcessorInput, getNodeRequire, getPath, isNodeRuntime, getOs } from '../utils/io';
+import { ProcessorInput, getNodeRequire, isNodeRuntime, getOs } from '../utils/io';
 import { openSqliteDatabase, requireBetterSqlite3 } from '../utils/sqlite';
 
 /**
@@ -120,7 +120,7 @@ class SnapProcessor extends BaseProcessor {
   }
 
   async loadIntoTree(filePathOrBuffer: ProcessorInput): Promise<AACTree> {
-    const { writeBinaryToPath, removePath, mkTempDir } = this.options.fileAdapter;
+    const { writeBinaryToPath, removePath, mkTempDir, basename, join } = this.options.fileAdapter;
     await Promise.resolve();
     const tree = new AACTree();
     let dbResult: Awaited<ReturnType<typeof openSqliteDatabase>> | null = null;
@@ -131,13 +131,12 @@ class SnapProcessor extends BaseProcessor {
       let inputFile = filePathOrBuffer;
 
       if (typeof filePathOrBuffer === 'string') {
-        const fileName = getPath().basename(filePathOrBuffer).toLowerCase();
+        const fileName = basename(filePathOrBuffer).toLowerCase();
         if (fileName.endsWith('.sub.zip') || filePathOrBuffer.endsWith('.sub')) {
-          const path = getPath();
           const os = getOs();
 
           // Extract .sub.zip to find the embedded .sps file
-          const tempDir = mkTempDir(path.join(os.tmpdir(), 'snap-sub-'));
+          const tempDir = mkTempDir(join(os.tmpdir(), 'snap-sub-'));
           const zip = await this.options.zipAdapter(filePathOrBuffer);
 
           // Find the .sps file in the archive
@@ -151,7 +150,7 @@ class SnapProcessor extends BaseProcessor {
 
           // Extract the .sps file
           const spsData = await zip.readFile(spsFile);
-          const extractedSpsPath = path.join(tempDir, path.basename(spsFile));
+          const extractedSpsPath = join(tempDir, basename(spsFile));
           writeBinaryToPath(extractedSpsPath, Buffer.from(spsData));
 
           inputFile = extractedSpsPath;
@@ -845,16 +844,15 @@ class SnapProcessor extends BaseProcessor {
     translations: Map<string, string>,
     outputPath: string
   ): Promise<Uint8Array> {
-    const { pathExists, mkDir, writeBinaryToPath, readBinaryFromInput, removePath } =
+    const { pathExists, mkDir, writeBinaryToPath, readBinaryFromInput, removePath, dirname } =
       this.options.fileAdapter;
     if (!isNodeRuntime()) {
       throw new Error('processTexts is only supported in Node.js environments for Snap files.');
     }
-    const path = getPath();
 
     if (typeof filePathOrBuffer === 'string') {
       const inputPath = filePathOrBuffer;
-      const outputDir = path.dirname(outputPath);
+      const outputDir = dirname(outputPath);
       if (!pathExists(outputDir)) {
         mkDir(outputDir, { recursive: true });
       }
@@ -969,13 +967,12 @@ class SnapProcessor extends BaseProcessor {
   }
 
   async saveFromTree(tree: AACTree, outputPath: string): Promise<void> {
-    const { pathExists, mkDir, removePath } = this.options.fileAdapter;
+    const { pathExists, mkDir, removePath, dirname } = this.options.fileAdapter;
     if (!isNodeRuntime()) {
       throw new Error('saveFromTree is only supported in Node.js environments for Snap files.');
     }
     await Promise.resolve();
-    const path = getPath();
-    const outputDir = path.dirname(outputPath);
+    const outputDir = dirname(outputPath);
     if (!pathExists(outputDir)) {
       mkDir(outputDir, { recursive: true });
     }
@@ -1451,12 +1448,11 @@ class SnapProcessor extends BaseProcessor {
    * @returns Array of available PageLayouts with their dimensions
    */
   getAvailablePageLayouts(filePath: string): PageLayoutInfo[] {
-    const { writeBinaryToPath, removePath, pathExists } = this.options.fileAdapter;
+    const { writeBinaryToPath, removePath, pathExists, join } = this.options.fileAdapter;
     if (!isNodeRuntime()) {
       throw new Error('getAvailablePageLayouts is only supported in Node.js environments.');
     }
-    const path = getPath();
-    const dbPath = typeof filePath === 'string' ? filePath : path.join(process.cwd(), 'temp.spb');
+    const dbPath = typeof filePath === 'string' ? filePath : join(process.cwd(), 'temp.spb');
 
     if (Buffer.isBuffer(filePath)) {
       writeBinaryToPath(dbPath, filePath);

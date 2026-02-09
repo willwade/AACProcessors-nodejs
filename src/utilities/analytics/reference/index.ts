@@ -6,7 +6,7 @@
  */
 
 import { CoreList, CommonWordsData, SynonymsData } from '../metrics/types';
-import { defaultFileAdapter, FileAdapter, getPath } from '../../../utils/io';
+import { defaultFileAdapter, FileAdapter } from '../../../utils/io';
 
 export interface ReferenceDataProvider {
   loadCoreLists(): CoreList[];
@@ -29,25 +29,31 @@ export interface ReferenceDataProvider {
 export class ReferenceLoader {
   private dataDir: string;
   private locale: string;
+  private fileAdapter: FileAdapter;
 
-  constructor(dataDir?: string, locale: string = 'en') {
+  constructor(
+    dataDir?: string,
+    locale: string = 'en',
+    fileAdapter: FileAdapter = defaultFileAdapter
+  ) {
     this.locale = locale;
+    this.fileAdapter = fileAdapter;
 
     if (dataDir) {
       this.dataDir = dataDir;
     } else {
       // Resolve the data directory relative to this file's location
       // Use __dirname which works correctly after compilation
-      this.dataDir = getPath().join(__dirname, 'data');
+      this.dataDir = this.fileAdapter.join(__dirname, 'data');
     }
   }
 
   /**
    * Load core vocabulary lists
    */
-  loadCoreLists(fileAdapter: FileAdapter = defaultFileAdapter): CoreList[] {
-    const { readTextFromInput } = fileAdapter;
-    const filePath = getPath().join(this.dataDir, `core_lists.${this.locale}.json`);
+  loadCoreLists(): CoreList[] {
+    const { readTextFromInput } = this.fileAdapter;
+    const filePath = this.fileAdapter.join(this.dataDir, `core_lists.${this.locale}.json`);
     const content = readTextFromInput(filePath);
     return JSON.parse(String(content)) as CoreList[];
   }
@@ -55,9 +61,9 @@ export class ReferenceLoader {
   /**
    * Load common words with baseline effort scores
    */
-  loadCommonWords(fileAdapter: FileAdapter = defaultFileAdapter): CommonWordsData {
-    const { readTextFromInput } = fileAdapter;
-    const filePath = getPath().join(this.dataDir, `common_words.${this.locale}.json`);
+  loadCommonWords(): CommonWordsData {
+    const { readTextFromInput, join } = this.fileAdapter;
+    const filePath = join(this.dataDir, `common_words.${this.locale}.json`);
     const content = readTextFromInput(filePath);
     return JSON.parse(String(content)) as CommonWordsData;
   }
@@ -65,9 +71,9 @@ export class ReferenceLoader {
   /**
    * Load synonym mappings
    */
-  loadSynonyms(fileAdapter: FileAdapter = defaultFileAdapter): SynonymsData {
-    const { readTextFromInput } = fileAdapter;
-    const filePath = getPath().join(this.dataDir, `synonyms.${this.locale}.json`);
+  loadSynonyms(): SynonymsData {
+    const { readTextFromInput, join } = this.fileAdapter;
+    const filePath = join(this.dataDir, `synonyms.${this.locale}.json`);
     const content = readTextFromInput(filePath);
     return JSON.parse(String(content)) as SynonymsData;
   }
@@ -75,9 +81,9 @@ export class ReferenceLoader {
   /**
    * Load test sentences
    */
-  loadSentences(fileAdapter: FileAdapter = defaultFileAdapter): string[][] {
-    const { readTextFromInput } = fileAdapter;
-    const filePath = getPath().join(this.dataDir, `sentences.${this.locale}.json`);
+  loadSentences(): string[][] {
+    const { readTextFromInput, join } = this.fileAdapter;
+    const filePath = join(this.dataDir, `sentences.${this.locale}.json`);
     const content = readTextFromInput(filePath);
     return JSON.parse(String(content)) as string[][];
   }
@@ -85,9 +91,9 @@ export class ReferenceLoader {
   /**
    * Load fringe vocabulary
    */
-  loadFringe(fileAdapter: FileAdapter = defaultFileAdapter): string[] {
-    const { readTextFromInput } = fileAdapter;
-    const filePath = getPath().join(this.dataDir, `fringe.${this.locale}.json`);
+  loadFringe(): string[] {
+    const { readTextFromInput, join } = this.fileAdapter;
+    const filePath = join(this.dataDir, `fringe.${this.locale}.json`);
     const content = readTextFromInput(filePath);
     const data = JSON.parse(String(content));
 
@@ -108,9 +114,9 @@ export class ReferenceLoader {
   /**
    * Load base words hash map
    */
-  loadBaseWords(fileAdapter: FileAdapter = defaultFileAdapter): { [word: string]: boolean } {
-    const { readTextFromInput } = fileAdapter;
-    const filePath = getPath().join(this.dataDir, `base_words.${this.locale}.json`);
+  loadBaseWords(): { [word: string]: boolean } {
+    const { readTextFromInput, join } = this.fileAdapter;
+    const filePath = join(this.dataDir, `base_words.${this.locale}.json`);
     const content = readTextFromInput(filePath);
     return JSON.parse(String(content)) as { [word: string]: boolean };
   }
@@ -160,15 +166,15 @@ export class ReferenceLoader {
 /**
  * Get the default reference data path
  */
-export function getReferenceDataPath(): string {
-  return String(getPath().join(__dirname, 'data'));
+export function getReferenceDataPath(fileAdapter: FileAdapter = defaultFileAdapter): string {
+  return String(fileAdapter.join(__dirname, 'data'));
 }
 
 /**
  * Check if reference data files exist
  */
 export function hasReferenceData(fileAdapter: FileAdapter = defaultFileAdapter): boolean {
-  const { pathExists } = fileAdapter;
+  const { pathExists, join } = fileAdapter;
   const dataPath = getReferenceDataPath();
   const requiredFiles = [
     'core_lists.en.json',
@@ -177,5 +183,5 @@ export function hasReferenceData(fileAdapter: FileAdapter = defaultFileAdapter):
     'synonyms.en.json',
     'fringe.en.json',
   ];
-  return requiredFiles.every((file) => pathExists(getPath().join(dataPath, file)));
+  return requiredFiles.every((file) => pathExists(join(dataPath, file)));
 }

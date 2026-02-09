@@ -13,7 +13,7 @@
  * This module provides symbol resolution and metadata extraction.
  */
 
-import { defaultFileAdapter, FileAdapter, getPath, ProcessorInput } from '../../utils/io';
+import { defaultFileAdapter, FileAdapter, ProcessorInput } from '../../utils/io';
 import { getZipAdapter, ZipAdapter } from '../../utils/zip';
 
 /**
@@ -108,14 +108,6 @@ export interface SymbolResolutionResult {
  */
 export const DEFAULT_LOCALE = 'en-GB';
 
-function getNodePath(): typeof import('path') {
-  try {
-    return getPath();
-  } catch {
-    throw new Error('Path utilities are not available in this environment.');
-  }
-}
-
 /**
  * Parse a symbol reference string
  * @param reference - Symbol reference like "[widgit]/food/apple.png"
@@ -198,9 +190,12 @@ export function getDefaultGrid3Path(fileAdapter?: FileAdapter): string {
  * @param grid3Path - Grid 3 installation path
  * @returns Path to Symbol Libraries directory (e.g., "C:\...\Grid 3\Resources\Symbols")
  */
-export function getSymbolLibrariesDir(grid3Path: string): string {
-  const path = getNodePath();
-  return path.join(grid3Path, SYMBOLS_SUBDIR);
+export function getSymbolLibrariesDir(
+  grid3Path: string,
+  fileAdapter: FileAdapter = defaultFileAdapter
+): string {
+  const { join } = fileAdapter;
+  return join(grid3Path, SYMBOLS_SUBDIR);
 }
 
 /**
@@ -212,10 +207,11 @@ export function getSymbolLibrariesDir(grid3Path: string): string {
  */
 export function getSymbolSearchIndexesDir(
   grid3Path: string,
-  locale: string = DEFAULT_LOCALE
+  locale: string = DEFAULT_LOCALE,
+  fileAdapter: FileAdapter = defaultFileAdapter
 ): string {
-  const path = getNodePath();
-  return path.join(grid3Path, SYMBOLSEARCH_SUBDIR, locale, 'symbolsearch');
+  const { join } = fileAdapter;
+  return join(grid3Path, SYMBOLSEARCH_SUBDIR, locale, 'symbolsearch');
 }
 
 /**
@@ -227,14 +223,14 @@ export function getAvailableSymbolLibraries(
   options: SymbolResolutionOptions = {},
   fileAdapter?: FileAdapter
 ): SymbolLibraryInfo[] {
-  const { pathExists, getFileSize, listDir } = fileAdapter ?? defaultFileAdapter;
+  const { pathExists, getFileSize, listDir, join, basename } = fileAdapter ?? defaultFileAdapter;
   const grid3Path = options.grid3Path || options.symbolDir || getDefaultGrid3Path();
 
   if (!grid3Path) {
     return [];
   }
 
-  const symbolsDir = getSymbolLibrariesDir(grid3Path);
+  const symbolsDir = getSymbolLibrariesDir(grid3Path, fileAdapter);
 
   if (!pathExists(symbolsDir)) {
     return [];
@@ -245,10 +241,9 @@ export function getAvailableSymbolLibraries(
 
   for (const file of files) {
     if (file.endsWith('.symbols')) {
-      const path = getNodePath();
-      const fullPath = path.join(symbolsDir, file);
+      const fullPath = join(symbolsDir, file);
       const size = getFileSize(fullPath);
-      const libraryName = path.basename(file, '.symbols');
+      const libraryName = basename(file, '.symbols');
 
       libraries.push({
         name: libraryName,
@@ -274,14 +269,14 @@ export function getSymbolLibraryInfo(
   options: SymbolResolutionOptions = {},
   fileAdapter?: FileAdapter
 ): SymbolLibraryInfo | undefined {
-  const { pathExists, getFileSize } = fileAdapter ?? defaultFileAdapter;
+  const { pathExists, getFileSize, join } = fileAdapter ?? defaultFileAdapter;
   const grid3Path = options.grid3Path || options.symbolDir || getDefaultGrid3Path();
 
   if (!grid3Path) {
     return undefined;
   }
 
-  const symbolsDir = getSymbolLibrariesDir(grid3Path);
+  const symbolsDir = getSymbolLibrariesDir(grid3Path, fileAdapter);
   const normalizedLibName = libraryName.toLowerCase();
 
   // Try different case variations
@@ -292,8 +287,7 @@ export function getSymbolLibraryInfo(
   ];
 
   for (const file of variations) {
-    const path = getNodePath();
-    const fullPath = path.join(symbolsDir, file);
+    const fullPath = join(symbolsDir, file);
     if (pathExists(fullPath)) {
       const size = getFileSize(fullPath);
       return {

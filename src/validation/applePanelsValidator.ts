@@ -7,7 +7,6 @@ import {
   defaultFileAdapter,
   FileAdapter,
   getBasename,
-  getPath,
   toUint8Array,
 } from '../utils/io';
 
@@ -21,15 +20,14 @@ export class ApplePanelsValidator extends BaseValidator {
     filePath: string,
     fileAdapter: FileAdapter = defaultFileAdapter
   ): Promise<ValidationResult> {
-    const { pathExists, isDirectory, getFileSize, readBinaryFromInput } = fileAdapter;
+    const { pathExists, isDirectory, getFileSize, readBinaryFromInput, join } = fileAdapter;
     const validator = new ApplePanelsValidator();
-    const path = getPath();
     let content: Uint8Array;
     const filename = getBasename(filePath);
     let size = 0;
 
     if (isDirectory(filePath) && filename.toLowerCase().endsWith('.ascconfig')) {
-      const panelPath = path.join(filePath, 'Contents', 'Resources', 'PanelDefinitions.plist');
+      const panelPath = join(filePath, 'Contents', 'Resources', 'PanelDefinitions.plist');
       if (!pathExists(panelPath)) {
         return validator.validate(Buffer.alloc(0), filename, 0);
       }
