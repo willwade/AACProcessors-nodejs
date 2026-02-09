@@ -3,13 +3,10 @@ import os from 'os';
 import path from 'path';
 import {
   decodeText,
+  defaultFileAdapter,
   encodeBase64,
   encodeText,
   getBasename,
-  readBinaryFromInput,
-  readTextFromInput,
-  writeBinaryToPath,
-  writeTextToPath,
 } from '../../src/utils/io';
 
 function createTempDir(prefix: string): string {
@@ -21,6 +18,8 @@ describe('io helpers', () => {
     const tempDir = createTempDir('aac-io-test-');
     const textPath = path.join(tempDir, 'note.txt');
     const binPath = path.join(tempDir, 'data.bin');
+    const { writeTextToPath, readTextFromInput, writeBinaryToPath, readBinaryFromInput } =
+      defaultFileAdapter;
 
     try {
       writeTextToPath(textPath, 'hello');

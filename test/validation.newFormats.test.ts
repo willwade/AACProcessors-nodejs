@@ -4,6 +4,7 @@ import ExcelJS from 'exceljs';
 import { validateFileOrBuffer, ValidationFailureError } from '../src/validation';
 import { OpmlProcessor } from '../src/processors/opmlProcessor';
 import { DotProcessor } from '../src/processors/dotProcessor';
+import { defaultFileAdapter } from '../src/utils/io';
 
 describe('Validation - additional formats', () => {
   const asset = (...parts: string[]): string => path.join(__dirname, 'assets', ...parts);
@@ -36,7 +37,7 @@ describe('Validation - additional formats', () => {
     sheet.getCell('B2').value = 'World';
     const buffer = Buffer.from(await workbook.xlsx.writeBuffer());
 
-    const result = await validateFileOrBuffer(buffer, 'sample.xlsx');
+    const result = await validateFileOrBuffer(buffer, defaultFileAdapter, 'sample.xlsx');
     expect(result.valid).toBe(true);
     expect(result.format).toBe('excel');
   });
@@ -46,7 +47,7 @@ describe('Validation - additional formats', () => {
     workbook.addWorksheet('Sheet 1').getCell('A1').value = 'legacy';
     const buffer = Buffer.from(await workbook.xlsx.writeBuffer());
 
-    const result = await validateFileOrBuffer(buffer, 'legacy.xls');
+    const result = await validateFileOrBuffer(buffer, defaultFileAdapter, 'legacy.xls');
     expect(result.valid).toBe(false);
     expect(result.errors).toBeGreaterThan(0);
     expect(result.results.some((c) => c.error?.includes('.xls'))).toBe(true);
@@ -75,7 +76,7 @@ describe('Validation - additional formats', () => {
       },
     });
     const buffer = Buffer.from(plistContent, 'utf8');
-    const result = await validateFileOrBuffer(buffer, 'panel.plist');
+    const result = await validateFileOrBuffer(buffer, defaultFileAdapter, 'panel.plist');
     expect(result.valid).toBe(true);
     expect(result.format).toBe('applepanels');
   });
@@ -86,7 +87,7 @@ describe('Validation - additional formats', () => {
       { id: 'board2', buttons: [{ id: 'b2', label: 'There' }], grid: { rows: 1, columns: 1 } },
     ];
     const buffer = Buffer.from(JSON.stringify(obfset));
-    const result = await validateFileOrBuffer(buffer, 'bundle.obfset');
+    const result = await validateFileOrBuffer(buffer, defaultFileAdapter, 'bundle.obfset');
     expect(result.valid).toBe(true);
     expect(result.format).toBe('obfset');
   });
