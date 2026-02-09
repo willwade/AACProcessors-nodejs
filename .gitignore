@@ -186,3 +186,6 @@ examples/gemini_response.txt
 aac-metrics/
 compare-effort-scores.ts
 .DS_Store
+
+# Watchman config (for dev env)
+.watchmanconfig
