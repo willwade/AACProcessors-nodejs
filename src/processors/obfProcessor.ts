@@ -729,8 +729,9 @@ class ObfProcessor extends BaseProcessor {
       const files = Object.values(tree.pages).map((page) => {
         const obfBoard = this.createObfBoardFromPage(page, 'Board', tree.metadata);
         const obfContent = JSON.stringify(obfBoard, null, 2);
+        const name = page.id.endsWith('.obf') ? page.id : `${page.id}.obf`;
         return {
-          name: `${page.id}.obf`,
+          name,
           data: new TextEncoder().encode(obfContent),
         };
       });
