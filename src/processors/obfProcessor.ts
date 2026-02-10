@@ -731,7 +731,7 @@ class ObfProcessor extends BaseProcessor {
         const obfContent = JSON.stringify(obfBoard, null, 2);
         return {
           name: `${page.id}.obf`,
-          data: Buffer.from(obfContent, 'utf8'),
+          data: new TextEncoder().encode(obfContent),
         };
       });
       const zip = await getZipAdapter(undefined, this.options.fileAdapter);
