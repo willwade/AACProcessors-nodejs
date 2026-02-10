@@ -253,8 +253,11 @@ export function findSnapPackages(
  * @param packageNamePattern Optional pattern to filter package names (default: 'TobiiDynavox')
  * @returns Path to the first matching Snap package, or null if not found
  */
-export function findSnapPackagePath(packageNamePattern = 'TobiiDynavox'): string | null {
-  const packages = findSnapPackages(packageNamePattern);
+export function findSnapPackagePath(
+  packageNamePattern = 'TobiiDynavox',
+  fileAdapter?: FileAdapter
+): string | null {
+  const packages = findSnapPackages(packageNamePattern, fileAdapter);
   return packages.length > 0 ? packages[0].packagePath : null;
 }
 
@@ -276,7 +279,7 @@ export function findSnapUsers(
     return results;
   }
 
-  const packagePath = findSnapPackagePath(packageNamePattern);
+  const packagePath = findSnapPackagePath(packageNamePattern, fileAdapter);
   if (!packagePath) {
     return results;
   }
@@ -298,7 +301,8 @@ export function findSnapUsers(
         const ext = extname(full).toLowerCase();
         return ext === '.sps' || ext === '.spb';
       },
-      2
+      2,
+      fileAdapter
     );
 
     results.push({
@@ -319,9 +323,12 @@ export function findSnapUsers(
  */
 export function findSnapUserVocabularies(
   userId?: string,
-  packageNamePattern = 'TobiiDynavox'
+  packageNamePattern = 'TobiiDynavox',
+  fileAdapter?: FileAdapter
 ): string[] {
-  const users = findSnapUsers(packageNamePattern).filter((u) => !userId || u.userId === userId);
+  const users = findSnapUsers(packageNamePattern, fileAdapter).filter(
+    (u) => !userId || u.userId === userId
+  );
   return users.flatMap((u) => u.vocabPaths);
 }
 
@@ -338,10 +345,15 @@ export function findSnapUserHistory(
   fileAdapter: FileAdapter = defaultFileAdapter
 ): string[] {
   const { basename } = fileAdapter;
-  const user = findSnapUsers(packageNamePattern).find((u) => u.userId === userId);
+  const user = findSnapUsers(packageNamePattern, fileAdapter).find((u) => u.userId === userId);
   if (!user) return [];
 
-  return collectFiles(user.userPath, (full) => basename(full).toLowerCase().includes('history'), 2);
+  return collectFiles(
+    user.userPath,
+    (full) => basename(full).toLowerCase().includes('history'),
+    2,
+    fileAdapter
+  );
 }
 
 /**

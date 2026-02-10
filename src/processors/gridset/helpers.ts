@@ -303,8 +303,8 @@ export function findGrid3UserPaths(fileAdapter: FileAdapter = defaultFileAdapter
  * Convenience method that returns just the database file paths
  * @returns Array of paths to history.sqlite files
  */
-export function findGrid3HistoryDatabases(): string[] {
-  return findGrid3UserPaths().map((userPath) => userPath.historyDbPath);
+export function findGrid3HistoryDatabases(fileAdapter?: FileAdapter): string[] {
+  return findGrid3UserPaths(fileAdapter).map((userPath) => userPath.historyDbPath);
 }
 
 /**
@@ -370,13 +370,17 @@ export function findGrid3Vocabularies(
  * @param langCode Optional language code filter (case-insensitive)
  * @returns Path to history.sqlite or null if not found
  */
-export function findGrid3UserHistory(userName: string, langCode?: string): string | null {
+export function findGrid3UserHistory(
+  userName: string,
+  langCode?: string,
+  fileAdapter?: FileAdapter
+): string | null {
   if (!userName) return null;
 
   const normalizedUser = userName.toLowerCase();
   const normalizedLang = langCode?.toLowerCase();
 
-  const match = findGrid3UserPaths().find(
+  const match = findGrid3UserPaths(fileAdapter).find(
     (u) =>
       u.userName.toLowerCase() === normalizedUser &&
       (!normalizedLang || u.langCode.toLowerCase() === normalizedLang)
