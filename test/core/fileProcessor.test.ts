@@ -125,6 +125,9 @@ describe('FileProcessor', () => {
       it('should detect snap format', async () => {
         expect(FileProcessor.detectFormat('test.sps')).toBe('snap');
         expect(FileProcessor.detectFormat('test.spb')).toBe('snap');
+        expect(FileProcessor.detectFormat('test.sub')).toBe('snap');
+        expect(FileProcessor.detectFormat('test.sub.zip')).toBe('snap');
+        expect(FileProcessor.detectFormat('/path/to/My Pageset.sub.zip')).toBe('snap');
       });
 
       it('should detect dot format', async () => {

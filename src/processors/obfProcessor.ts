@@ -51,6 +51,16 @@ interface ObfButton {
   image_id?: string; // Reference to image in the images array
 }
 
+interface ObfManifest {
+  format?: string;
+  root?: string;
+  paths?: {
+    boards?: { [key: string]: string };
+    images?: { [key: string]: string };
+    sounds?: { [key: string]: string };
+  };
+}
+
 /**
  * Map OBF hidden value to AAC standard visibility
  * OBF: true = hidden, false/undefined = visible
@@ -201,15 +211,14 @@ class ObfProcessor extends BaseProcessor {
     }
   }
 
-  private async processBoard(boardData: ObfBoard, _boardPath: string): Promise<AACPage> {
+  private async processBoard(
+    boardData: ObfBoard,
+    _boardPath: string,
+    isZipEntry: boolean
+  ): Promise<AACPage> {
     const sourceButtons = boardData.buttons || [];
 
     // Calculate page ID first (used to make button IDs unique)
-    const isZipEntry =
-      _boardPath &&
-      _boardPath.endsWith('.obf') &&
-      !_boardPath.includes('/') &&
-      !_boardPath.includes('\\');
     const pageId = isZipEntry
       ? _boardPath // Zip entry - use filename to match navigation paths
       : boardData?.id
@@ -437,7 +446,7 @@ class ObfProcessor extends BaseProcessor {
         const boardData = tryParseObfJson(content);
         if (boardData) {
           console.log('[OBF] Detected .obf file, parsed as JSON');
-          const page = await this.processBoard(boardData, filePathOrBuffer);
+          const page = await this.processBoard(boardData, filePathOrBuffer, false);
           tree.addPage(page);
 
           // Set metadata from root board
@@ -475,7 +484,7 @@ class ObfProcessor extends BaseProcessor {
       const asJson = tryParseObfJson(filePathOrBuffer);
       if (!asJson) throw new Error('Invalid OBF content: not JSON and not ZIP');
       console.log('[OBF] Detected buffer/string as OBF JSON');
-      const page = await this.processBoard(asJson, '[bufferOrString]');
+      const page = await this.processBoard(asJson, '[bufferOrString]', false);
       tree.addPage(page);
 
       // Set metadata from root board
@@ -508,10 +517,35 @@ class ObfProcessor extends BaseProcessor {
 
     console.log('[OBF] Detected zip archive, extracting .obf files');
 
-    // Collect all .obf entries
-    const obfEntries = this.zipFile
-      .listFiles()
-      .filter((name) => name.toLowerCase().endsWith('.obf'));
+    // List manifest and OBF files
+    const filesInZip = this.zipFile.listFiles();
+    const manifestFile = filesInZip.filter((name) => name.toLowerCase() === 'manifest.json');
+    let obfEntries = filesInZip.filter((name) => name.toLowerCase().endsWith('.obf'));
+
+    // Attempt to read manifest
+    if (manifestFile && manifestFile.length === 1) {
+      try {
+        const content = await this.zipFile.readFile(manifestFile[0]);
+        const data = decodeText(content);
+        const str = typeof data === 'string' ? data : readTextFromInput(data);
+        if (!str.trim()) throw new Error('Manifest object missing');
+        const manifestObject = JSON.parse(str) as ObfManifest;
+        if (!manifestObject) throw new Error('Manifest object is empty');
+
+        // Replace OBF file list
+        if (manifestObject.paths && manifestObject.paths.boards) {
+          obfEntries = Object.values(manifestObject.paths.boards);
+        }
+
+        // Move root board to top of list
+        if (manifestObject.root) {
+          obfEntries = obfEntries.filter((item) => item !== manifestObject.root);
+          obfEntries.unshift(manifestObject.root);
+        }
+      } catch (err) {
+        console.warn('[OBF] Error processing mainfest', err);
+      }
+    }
 
     // Process each .obf entry
     for (const entryName of obfEntries) {
@@ -519,7 +553,7 @@ class ObfProcessor extends BaseProcessor {
         const content = await this.zipFile.readFile(entryName);
         const boardData = tryParseObfJson(decodeText(content));
         if (boardData) {
-          const page = await this.processBoard(boardData, entryName);
+          const page = await this.processBoard(boardData, entryName, true);
           tree.addPage(page);
 
           // Set metadata if not already set (use first board as reference)

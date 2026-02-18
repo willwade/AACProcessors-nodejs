@@ -1,10 +1,13 @@
 import { SnapProcessor } from '../src/processors/snapProcessor';
 import { AACTree } from '../src/core/treeStructure';
 import path from 'path';
+import fs from 'fs';
+import AdmZip from 'adm-zip';
 
 describe('SnapProcessor', () => {
   const exampleFile: string = path.join(__dirname, 'assets/snap/example.spb');
   const exampleSPSFile: string = path.join(__dirname, 'assets/snap/example.sps');
+  const exampleSubZipFile: string = path.join(__dirname, 'assets/snap/example.sub.zip');
 
   it('should extract all texts from a .spb file', async () => {
     const processor = new SnapProcessor();
@@ -58,6 +61,14 @@ describe('SnapProcessor', () => {
     }
   });
 
+  it('should handle .sub.zip files by extracting and processing the embedded .sps file', async () => {
+    const processor = new SnapProcessor();
+    const tree: AACTree = await processor.loadIntoTree(exampleSubZipFile);
+    expect(tree).toBeTruthy();
+    const pageIds: string[] = Object.keys(tree.pages);
+    expect(pageIds.length).toBeGreaterThan(0);
+  });
+
   describe('Error Handling', () => {
     it('should throw error for non-existent file', async () => {
       const processor = new SnapProcessor();
@@ -73,6 +84,26 @@ describe('SnapProcessor', () => {
     it('should handle empty file path', async () => {
       const processor = new SnapProcessor();
       await expect(processor.loadIntoTree('')).rejects.toThrow();
+    });
+
+    it('should throw error for .sub.zip file without .sps file inside', async () => {
+      const processor = new SnapProcessor();
+      const zip = new AdmZip();
+      zip.addFile('not-an-sps.txt', Buffer.from('Not a pageset'));
+      const invalidSubZipPath = path.join(__dirname, 'invalid.sub.zip');
+      zip.writeZip(invalidSubZipPath);
+
+      await expect(processor.loadIntoTree(invalidSubZipPath)).rejects.toThrow(
+        'No .sps file found in .sub.zip archive'
+      );
+
+      // Cleanup
+      fs.unlinkSync(invalidSubZipPath);
+    });
+
+    it('should throw error for .sub.zip file that does not exist', async () => {
+      const processor = new SnapProcessor();
+      await expect(processor.loadIntoTree('non-existent.sub.zip')).rejects.toThrow();
     });
   });
 

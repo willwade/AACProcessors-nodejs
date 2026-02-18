@@ -26,6 +26,13 @@ class FileProcessor {
   static detectFormat(filePathOrBuffer: string | Buffer): FileFormat {
     if (typeof filePathOrBuffer === 'string') {
       const ext = path.extname(filePathOrBuffer).toLowerCase();
+      const fileName = path.basename(filePathOrBuffer).toLowerCase();
+
+      // Handle double extensions like .sub.zip
+      if (fileName.endsWith('.sub.zip') || ext === '.sub') {
+        return 'snap';
+      }
+
       switch (ext) {
         case '.gridset':
         case '.gridsetx':

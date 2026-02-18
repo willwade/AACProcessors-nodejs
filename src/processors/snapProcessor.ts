@@ -17,8 +17,9 @@ import {
 import { generateCloneId } from '../utilities/analytics/utils/idGenerator';
 import { SnapValidator } from '../validation/snapValidator';
 import { ValidationResult } from '../validation/validationTypes';
-import { ProcessorInput, getFs, getNodeRequire, getPath, isNodeRuntime } from '../utils/io';
+import { ProcessorInput, getFs, getNodeRequire, getPath, isNodeRuntime, getOs } from '../utils/io';
 import { openSqliteDatabase, requireBetterSqlite3 } from '../utils/sqlite';
+import { openZipFromInput } from '../utils/zip';
 
 /**
  * Convert a Buffer or Uint8Array to base64 string (browser and Node compatible)
@@ -123,8 +124,45 @@ class SnapProcessor extends BaseProcessor {
     await Promise.resolve();
     const tree = new AACTree();
     let dbResult: Awaited<ReturnType<typeof openSqliteDatabase>> | null = null;
+    let cleanupTempZip: (() => void) | null = null;
+
     try {
-      dbResult = await openSqliteDatabase(filePathOrBuffer, { readonly: true });
+      // Handle .sub.zip files (Snap pageset backups containing .sps files)
+      let inputFile = filePathOrBuffer;
+
+      if (typeof filePathOrBuffer === 'string') {
+        const fileName = getPath().basename(filePathOrBuffer).toLowerCase();
+        if (fileName.endsWith('.sub.zip') || filePathOrBuffer.endsWith('.sub')) {
+          const fs = getFs();
+          const path = getPath();
+          const os = getOs();
+
+          // Extract .sub.zip to find the embedded .sps file
+          const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'snap-sub-'));
+          const { zip } = await openZipFromInput(filePathOrBuffer);
+
+          // Find the .sps file in the archive
+          const files = zip.listFiles();
+          const spsFile = files.find((f) => f.endsWith('.sps'));
+
+          if (!spsFile) {
+            fs.rmSync(tempDir, { recursive: true, force: true });
+            throw new Error('No .sps file found in .sub.zip archive');
+          }
+
+          // Extract the .sps file
+          const spsData = await zip.readFile(spsFile);
+          const extractedSpsPath = path.join(tempDir, path.basename(spsFile));
+          fs.writeFileSync(extractedSpsPath, Buffer.from(spsData));
+
+          inputFile = extractedSpsPath;
+          cleanupTempZip = () => {
+            fs.rmSync(tempDir, { recursive: true, force: true });
+          };
+        }
+      }
+
+      dbResult = await openSqliteDatabase(inputFile, { readonly: true });
       const db = dbResult.db;
 
       const getTableColumns = (tableName: string): Set<string> => {
@@ -788,6 +826,14 @@ class SnapProcessor extends BaseProcessor {
         dbResult.cleanup();
       } else if (dbResult?.db) {
         dbResult.db.close();
+      }
+      // Clean up temporary extracted .sps file from .sub.zip
+      if (cleanupTempZip) {
+        try {
+          cleanupTempZip();
+        } catch (e) {
+          console.warn('[SnapProcessor] Failed to clean up temporary .sps file:', e);
+        }
       }
     }
   }
