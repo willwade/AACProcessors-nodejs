@@ -22,14 +22,7 @@ import {
   type ButtonForTranslation,
   type LLMLTranslationResult,
 } from '../utilities/translation/translationProcessor';
-import {
-  ProcessorInput,
-  readBinaryFromInput,
-  readTextFromInput,
-  writeTextToPath,
-  encodeBase64,
-  decodeText,
-} from '../utils/io';
+import { ProcessorInput, encodeBase64, decodeText } from '../utils/io';
 import { getZipAdapter, ZipAdapter } from '../utils/zip';
 
 const OBF_FORMAT_VERSION = 'open-board-0.1';
@@ -398,6 +391,7 @@ class ObfProcessor extends BaseProcessor {
   }
 
   async loadIntoTree(filePathOrBuffer: ProcessorInput): Promise<AACTree> {
+    const { readBinaryFromInput, readTextFromInput } = this.options.fileAdapter;
     // Detailed logging for debugging input
     const bufferLength =
       typeof filePathOrBuffer === 'string'
@@ -684,6 +678,7 @@ class ObfProcessor extends BaseProcessor {
     translations: Map<string, string>,
     outputPath: string
   ): Promise<Uint8Array> {
+    const { readBinaryFromInput } = this.options.fileAdapter;
     // Load the tree, apply translations, and save to new file
     const tree = await this.loadIntoTree(filePathOrBuffer);
 
@@ -720,6 +715,7 @@ class ObfProcessor extends BaseProcessor {
   }
 
   async saveFromTree(tree: AACTree, outputPath: string): Promise<void> {
+    const { writeTextToPath, writeBinaryToPath } = this.options.fileAdapter;
     if (outputPath.endsWith('.obf')) {
       // Save as single OBF JSON file
       const rootPage = tree.rootId ? tree.getPage(tree.rootId) : Object.values(tree.pages)[0];
@@ -733,14 +729,14 @@ class ObfProcessor extends BaseProcessor {
       const files = Object.values(tree.pages).map((page) => {
         const obfBoard = this.createObfBoardFromPage(page, 'Board', tree.metadata);
         const obfContent = JSON.stringify(obfBoard, null, 2);
+        const name = page.id.endsWith('.obf') ? page.id : `${page.id}.obf`;
         return {
-          name: `${page.id}.obf`,
-          data: Buffer.from(obfContent, 'utf8'),
+          name,
+          data: new TextEncoder().encode(obfContent),
         };
       });
-      const zip = await getZipAdapter();
+      const zip = await getZipAdapter(undefined, this.options.fileAdapter);
       const zipData = await zip.writeFiles(files);
-      const { writeBinaryToPath } = await import('../utils/io');
       writeBinaryToPath(outputPath, zipData);
     }
   }
@@ -772,7 +768,7 @@ class ObfProcessor extends BaseProcessor {
    */
   async validate(filePath: string): Promise<ValidationResult> {
     const ObfValidator = this.getObfValidator();
-    return ObfValidator.validateFile(filePath);
+    return ObfValidator.validateFile(filePath, this.options.fileAdapter);
   }
 
   /**
@@ -823,6 +819,7 @@ class ObfProcessor extends BaseProcessor {
     outputPath: string,
     options?: { allowPartial?: boolean }
   ): Promise<Uint8Array> {
+    const { readBinaryFromInput } = this.options.fileAdapter;
     const tree = await this.loadIntoTree(filePathOrBuffer);
 
     // Validate translations using shared utility

@@ -4,7 +4,13 @@
 import * as xml2js from 'xml2js';
 import { BaseValidator } from './baseValidator';
 import { ValidationResult } from './validationTypes';
-import { decodeText, getBasename, getFs, toUint8Array } from '../utils/io';
+import {
+  decodeText,
+  defaultFileAdapter,
+  FileAdapter,
+  getBasename,
+  toUint8Array,
+} from '../utils/io';
 
 /**
  * Validator for Grid3/Smartbox Gridset files (.gridset, .gridsetx)
@@ -17,12 +23,15 @@ export class GridsetValidator extends BaseValidator {
   /**
    * Validate a Gridset file from disk
    */
-  static async validateFile(filePath: string): Promise<ValidationResult> {
+  static async validateFile(
+    filePath: string,
+    fileAdapter?: FileAdapter
+  ): Promise<ValidationResult> {
+    const { readBinaryFromInput, getFileSize } = fileAdapter ?? defaultFileAdapter;
     const validator = new GridsetValidator();
-    const fs = getFs();
-    const content = fs.readFileSync(filePath);
-    const stats = fs.statSync(filePath);
-    return validator.validate(content, getBasename(filePath), stats.size);
+    const content = readBinaryFromInput(filePath);
+    const size = getFileSize(filePath);
+    return validator.validate(content, getBasename(filePath), size);
   }
 
   /**

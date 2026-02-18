@@ -1,3 +1,4 @@
+import { defaultFileAdapter } from '../utils/io';
 import { getZipAdapter } from '../utils/zip';
 import {
   ValidationError,
@@ -24,6 +25,7 @@ export abstract class BaseValidator {
       includeWarnings: options.includeWarnings ?? true,
       stopOnBlocker: options.stopOnBlocker ?? true,
       customRules: options.customRules || [],
+      fileAdapter: defaultFileAdapter,
       zipAdapter: getZipAdapter,
       ...options,
     };

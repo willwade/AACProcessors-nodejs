@@ -2,7 +2,13 @@
 import plist from 'plist';
 import { BaseValidator } from './baseValidator';
 import { ValidationResult } from './validationTypes';
-import { decodeText, getBasename, getFs, getPath, toUint8Array } from '../utils/io';
+import {
+  decodeText,
+  defaultFileAdapter,
+  FileAdapter,
+  getBasename,
+  toUint8Array,
+} from '../utils/io';
 
 type PanelsContainer = { panels?: any; Panels?: Record<string, any> };
 
@@ -10,25 +16,26 @@ type PanelsContainer = { panels?: any; Panels?: Record<string, any> };
  * Validator for Apple Panels (.plist or .ascconfig directory)
  */
 export class ApplePanelsValidator extends BaseValidator {
-  static async validateFile(filePath: string): Promise<ValidationResult> {
+  static async validateFile(
+    filePath: string,
+    fileAdapter: FileAdapter = defaultFileAdapter
+  ): Promise<ValidationResult> {
+    const { pathExists, isDirectory, getFileSize, readBinaryFromInput, join } = fileAdapter;
     const validator = new ApplePanelsValidator();
-    const fs = getFs();
-    const path = getPath();
-    let content: Buffer;
+    let content: Uint8Array;
     const filename = getBasename(filePath);
     let size = 0;
 
-    const stats = fs.existsSync(filePath) ? fs.statSync(filePath) : null;
-    if (stats?.isDirectory() && filename.toLowerCase().endsWith('.ascconfig')) {
-      const panelPath = path.join(filePath, 'Contents', 'Resources', 'PanelDefinitions.plist');
-      if (!fs.existsSync(panelPath)) {
+    if (isDirectory(filePath) && filename.toLowerCase().endsWith('.ascconfig')) {
+      const panelPath = join(filePath, 'Contents', 'Resources', 'PanelDefinitions.plist');
+      if (!pathExists(panelPath)) {
         return validator.validate(Buffer.alloc(0), filename, 0);
       }
-      content = fs.readFileSync(panelPath);
-      size = fs.statSync(panelPath).size;
+      content = readBinaryFromInput(panelPath);
+      size = getFileSize(panelPath);
     } else {
-      content = fs.readFileSync(filePath);
-      size = stats?.size || content.byteLength;
+      content = readBinaryFromInput(filePath);
+      size = getFileSize(filePath) || content.byteLength;
     }
 
     return validator.validate(content, filename, size);

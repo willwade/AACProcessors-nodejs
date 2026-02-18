@@ -2,6 +2,23 @@ export type ProcessorInput = string | Buffer | ArrayBuffer | Uint8Array;
 
 export type BinaryOutput = Buffer | Uint8Array;
 
+export interface FileAdapter {
+  readBinaryFromInput: (input: ProcessorInput) => Uint8Array;
+  readTextFromInput: (input: ProcessorInput, encoding?: BufferEncoding) => string;
+  writeBinaryToPath: (outputPath: string, data: BinaryOutput) => void;
+  writeTextToPath: (outputPath: string, text: string) => void;
+  pathExists: (path: string) => boolean;
+  isDirectory: (path: string) => boolean;
+  getFileSize: (path: string) => number;
+  mkDir: (path: string, options?: { recursive?: boolean }) => void;
+  listDir: (path: string) => string[];
+  removePath: (path: string, options?: { recursive?: boolean; force?: boolean }) => void;
+  mkTempDir: (prefix: string) => string;
+  join: (...pathParts: string[]) => string;
+  dirname: (path: string) => string;
+  basename: (path: string, suffix?: string) => string;
+}
+
 let cachedFs: typeof import('fs') | null = null;
 let cachedPath: typeof import('path') | null = null;
 let cachedOs: typeof import('os') | null = null;
@@ -26,7 +43,7 @@ export function getNodeRequire(): NodeRequire {
   return cachedRequire;
 }
 
-export function getFs(): typeof import('fs') {
+function getFs(): typeof import('fs') {
   if (!cachedFs) {
     try {
       const nodeRequire = getNodeRequire();
@@ -42,7 +59,7 @@ export function getFs(): typeof import('fs') {
   return cachedFs;
 }
 
-export function getPath(): typeof import('path') {
+function getPath(): typeof import('path') {
   if (!cachedPath) {
     try {
       const nodeRequire = getNodeRequire();
@@ -127,10 +144,17 @@ export function encodeText(text: string): BinaryOutput {
   return new TextEncoder().encode(text);
 }
 
-export function readBinaryFromInput(input: ProcessorInput): Uint8Array {
+// extname algorithm from node:path
+const splitDeviceRe = /^([a-zA-Z]:|[\\\/]{2}[^\\\/]+[\\\/]+[^\\\/]+)?([\\\/])?([\s\S]*?)$/; //eslint-disable-line
+const splitTailRe = /^([\s\S]*?)((?:\.{1,2}|[^\\\/]+?|)(\.[^.\/\\]*|))(?:[\\\/]*)$/;        //eslint-disable-line
+export function extname(path: string): string {
+  const tail = splitDeviceRe.exec(path)?.at(3) ?? '';
+  return splitTailRe.exec(tail)?.at(3) ?? '';
+}
+
+function readBinaryFromInput(input: ProcessorInput): Uint8Array {
   if (typeof input === 'string') {
-    const fs = getFs();
-    return fs.readFileSync(input);
+    return getFs().readFileSync(input);
   }
   if (typeof Buffer !== 'undefined' && Buffer.isBuffer(input)) {
     return input;
@@ -141,13 +165,9 @@ export function readBinaryFromInput(input: ProcessorInput): Uint8Array {
   return input;
 }
 
-export function readTextFromInput(
-  input: ProcessorInput,
-  encoding: BufferEncoding = 'utf8'
-): string {
+function readTextFromInput(input: ProcessorInput, encoding: BufferEncoding = 'utf8'): string {
   if (typeof input === 'string') {
-    const fs = getFs();
-    return fs.readFileSync(input, encoding);
+    return getFs().readFileSync(input, encoding);
   }
   if (typeof Buffer !== 'undefined' && Buffer.isBuffer(input)) {
     return input.toString(encoding);
@@ -158,12 +178,72 @@ export function readTextFromInput(
   return decodeText(input);
 }
 
-export function writeBinaryToPath(outputPath: string, data: BinaryOutput): void {
-  const fs = getFs();
-  fs.writeFileSync(outputPath, data);
+function writeBinaryToPath(outputPath: string, data: BinaryOutput): void {
+  getFs().writeFileSync(outputPath, data);
 }
 
-export function writeTextToPath(outputPath: string, text: string): void {
-  const fs = getFs();
-  fs.writeFileSync(outputPath, text, 'utf8');
+function writeTextToPath(outputPath: string, text: string): void {
+  getFs().writeFileSync(outputPath, text, 'utf8');
 }
+
+function pathExists(path: string): boolean {
+  return getFs().existsSync(path);
+}
+
+function isDirectory(path: string): boolean {
+  return getFs().statSync(path).isDirectory();
+}
+
+function getFileSize(path: string): number {
+  return getFs().statSync(path).size;
+}
+
+function mkDir(path: string, options?: { recursive?: boolean }): void {
+  getFs().mkdirSync(path, options);
+}
+
+function listDir(path: string): string[] {
+  return getFs().readdirSync(path);
+}
+
+function removePath(path: string, options?: { recursive?: boolean; force?: boolean }): void {
+  getFs().rmSync(path, options);
+}
+
+function mkTempDir(prefix: string): string {
+  const path = join(getOs().tmpdir(), prefix);
+  return getFs().mkdtempSync(path);
+}
+
+function join(...pathParts: string[]): string {
+  return getPath().join(...pathParts);
+}
+
+export function joinWin32(...pathParts: string[]): string {
+  return getPath().win32.join(...pathParts);
+}
+
+function dirname(path: string): string {
+  return getPath().dirname(path);
+}
+
+function basename(path: string, suffix?: string): string {
+  return getPath().basename(path, suffix);
+}
+
+export const defaultFileAdapter: FileAdapter = {
+  readBinaryFromInput,
+  readTextFromInput,
+  writeBinaryToPath,
+  writeTextToPath,
+  pathExists,
+  isDirectory,
+  getFileSize,
+  mkDir,
+  listDir,
+  removePath,
+  mkTempDir,
+  join,
+  dirname,
+  basename,
+};

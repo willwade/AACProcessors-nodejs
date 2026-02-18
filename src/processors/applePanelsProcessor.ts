@@ -13,21 +13,12 @@ import {
   AACSemanticCategory,
   AACSemanticIntent,
 } from '../core/treeStructure';
-// Removed unused import: FileProcessor
 import plist, { PlistValue } from 'plist';
 import {
   ValidationFailureError,
   buildValidationResultFromMessage,
 } from '../validation/validationTypes';
-import {
-  ProcessorInput,
-  getBasename,
-  getFs,
-  getPath,
-  readBinaryFromInput,
-  readTextFromInput,
-  writeTextToPath,
-} from '../utils/io';
+import { ProcessorInput, getBasename } from '../utils/io';
 
 interface ApplePanelsActionParameters {
   CharString?: string;
@@ -227,6 +218,8 @@ class ApplePanelsProcessor extends BaseProcessor {
   }
 
   async loadIntoTree(filePathOrBuffer: ProcessorInput): Promise<AACTree> {
+    const { readBinaryFromInput, readTextFromInput, pathExists, getFileSize, join } =
+      this.options.fileAdapter;
     await Promise.resolve();
     const filename =
       typeof filePathOrBuffer === 'string' ? getBasename(filePathOrBuffer) : 'upload.plist';
@@ -234,17 +227,15 @@ class ApplePanelsProcessor extends BaseProcessor {
 
     try {
       if (typeof filePathOrBuffer === 'string') {
-        const fs = getFs();
-        const path = getPath();
         if (filePathOrBuffer.endsWith('.ascconfig')) {
-          const panelDefsPath = path.join(
+          const panelDefsPath = join(
             filePathOrBuffer,
             'Contents',
             'Resources',
             'PanelDefinitions.plist'
           );
-          if (fs.existsSync(panelDefsPath)) {
-            buffer = fs.readFileSync(panelDefsPath);
+          if (pathExists(panelDefsPath)) {
+            buffer = readBinaryFromInput(panelDefsPath);
           } else {
             const validation = buildValidationResultFromMessage({
               filename,
@@ -257,7 +248,7 @@ class ApplePanelsProcessor extends BaseProcessor {
             throw new ValidationFailureError('Apple Panels file not found', validation);
           }
         } else {
-          buffer = fs.readFileSync(filePathOrBuffer);
+          buffer = readBinaryFromInput(filePathOrBuffer);
         }
       } else {
         buffer = readBinaryFromInput(filePathOrBuffer);
@@ -403,8 +394,7 @@ class ApplePanelsProcessor extends BaseProcessor {
         filesize:
           typeof filePathOrBuffer === 'string'
             ? (() => {
-                const fs = getFs();
-                return fs.existsSync(filePathOrBuffer) ? fs.statSync(filePathOrBuffer).size : 0;
+                return pathExists(filePathOrBuffer) ? getFileSize(filePathOrBuffer) : 0;
               })()
             : readBinaryFromInput(filePathOrBuffer).byteLength,
         format: 'applepanels',
@@ -421,6 +411,7 @@ class ApplePanelsProcessor extends BaseProcessor {
     translations: Map<string, string>,
     outputPath: string
   ): Promise<Uint8Array> {
+    const { readBinaryFromInput, join } = this.options.fileAdapter;
     // Load the tree, apply translations, and save to new file
     const tree = await this.loadIntoTree(filePathOrBuffer);
 
@@ -477,13 +468,13 @@ class ApplePanelsProcessor extends BaseProcessor {
     if (outputPath.endsWith('.plist')) {
       return readBinaryFromInput(outputPath);
     }
-    const path = getPath();
     const configPath = outputPath.endsWith('.ascconfig') ? outputPath : `${outputPath}.ascconfig`;
-    const panelDefsPath = path.join(configPath, 'Contents', 'Resources', 'PanelDefinitions.plist');
+    const panelDefsPath = join(configPath, 'Contents', 'Resources', 'PanelDefinitions.plist');
     return readBinaryFromInput(panelDefsPath);
   }
 
   async saveFromTree(tree: AACTree, outputPath: string): Promise<void> {
+    const { writeTextToPath, pathExists, mkDir, join, dirname } = this.options.fileAdapter;
     await Promise.resolve();
     // Support two output modes:
     // 1) Single-file .plist (PanelDefinitions.plist content written directly)
@@ -495,15 +486,13 @@ class ApplePanelsProcessor extends BaseProcessor {
     let contentsPath = '';
     let resourcesPath = '';
     if (!isSinglePlist) {
-      const fs = getFs();
-      const path = getPath();
       configPath = outputPath.endsWith('.ascconfig') ? outputPath : `${outputPath}.ascconfig`;
-      contentsPath = path.join(configPath, 'Contents');
-      resourcesPath = path.join(contentsPath, 'Resources');
+      contentsPath = join(configPath, 'Contents');
+      resourcesPath = join(contentsPath, 'Resources');
 
-      if (!fs.existsSync(configPath)) fs.mkdirSync(configPath, { recursive: true });
-      if (!fs.existsSync(contentsPath)) fs.mkdirSync(contentsPath, { recursive: true });
-      if (!fs.existsSync(resourcesPath)) fs.mkdirSync(resourcesPath, { recursive: true });
+      if (!pathExists(configPath)) mkDir(configPath, { recursive: true });
+      if (!pathExists(contentsPath)) mkDir(contentsPath, { recursive: true });
+      if (!pathExists(resourcesPath)) mkDir(resourcesPath, { recursive: true });
 
       // Create Info.plist (bundle mode only)
       const infoPlist = {
@@ -521,11 +510,11 @@ class ApplePanelsProcessor extends BaseProcessor {
           `Generated by AAC Processors${tree.metadata?.author ? ` - Author: ${tree.metadata.author}` : ''}`,
       };
       const infoPlistContent = plist.build(infoPlist);
-      writeTextToPath(path.join(contentsPath, 'Info.plist'), infoPlistContent);
+      writeTextToPath(join(contentsPath, 'Info.plist'), infoPlistContent);
 
       // Create AssetIndex.plist (empty)
       const assetIndexContent = plist.build({});
-      writeTextToPath(path.join(resourcesPath, 'AssetIndex.plist'), assetIndexContent);
+      writeTextToPath(join(resourcesPath, 'AssetIndex.plist'), assetIndexContent);
     }
 
     // Build PanelDefinitions content from tree
@@ -666,15 +655,12 @@ class ApplePanelsProcessor extends BaseProcessor {
 
     if (isSinglePlist) {
       // Write single PanelDefinitions.plist file directly
-      const fs = getFs();
-      const path = getPath();
-      const dir = path.dirname(outputPath);
-      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      const dir = dirname(outputPath);
+      if (!pathExists(dir)) mkDir(dir, { recursive: true });
       writeTextToPath(outputPath, panelDefsContent);
     } else {
       // Write into bundle structure
-      const path = getPath();
-      writeTextToPath(path.join(resourcesPath, 'PanelDefinitions.plist'), panelDefsContent);
+      writeTextToPath(join(resourcesPath, 'PanelDefinitions.plist'), panelDefsContent);
     }
   }
 

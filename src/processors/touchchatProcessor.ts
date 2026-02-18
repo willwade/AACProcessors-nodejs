@@ -19,15 +19,7 @@ import { generateCloneId } from '../utilities/analytics/utils/idGenerator';
 import { detectCasing, isNumericOrEmpty } from '../core/stringCasing';
 import { TouchChatValidator } from '../validation/touchChatValidator';
 import { ValidationResult } from '../validation/validationTypes';
-import {
-  ProcessorInput,
-  getFs,
-  getOs,
-  getPath,
-  isNodeRuntime,
-  readBinaryFromInput,
-  writeBinaryToPath,
-} from '../utils/io';
+import { ProcessorInput, isNodeRuntime } from '../utils/io';
 import {
   extractAllButtonsForTranslation,
   validateTranslationResults,
@@ -143,6 +135,7 @@ class TouchChatProcessor extends BaseProcessor {
   }
 
   async loadIntoTree(filePathOrBuffer: ProcessorInput): Promise<AACTree> {
+    const { readBinaryFromInput } = this.options.fileAdapter;
     await Promise.resolve();
     // Unzip .ce file, extract the .c4v SQLite DB, and parse pages/buttons
     let db: SqliteDatabaseAdapter | null = null;
@@ -160,7 +153,10 @@ class TouchChatProcessor extends BaseProcessor {
         throw new Error('No .c4v vocab DB found in TouchChat export');
       }
       const dbBuffer = await zip.readFile(vocabEntry);
-      const dbResult = await openSqliteDatabase(dbBuffer, { readonly: true });
+      const dbResult = await openSqliteDatabase(dbBuffer, {
+        readonly: true,
+        fileAdapter: this.options.fileAdapter,
+      });
       db = dbResult.db;
       cleanup = dbResult.cleanup;
 
@@ -649,6 +645,16 @@ class TouchChatProcessor extends BaseProcessor {
     translations: Map<string, string>,
     outputPath: string
   ): Promise<Uint8Array> {
+    const {
+      pathExists,
+      mkDir,
+      removePath,
+      mkTempDir,
+      writeBinaryToPath,
+      readBinaryFromInput,
+      dirname,
+      join,
+    } = this.options.fileAdapter;
     if (!isNodeRuntime()) {
       throw new Error(
         'processTexts is only supported in Node.js environments for TouchChat files.'
@@ -663,17 +669,13 @@ class TouchChatProcessor extends BaseProcessor {
      * within the embedded SQLite database, ensuring assets and metadata remain intact.
      */
     if (typeof filePathOrBuffer === 'string') {
-      const fs = getFs();
-      const path = getPath();
-      const os = getOs();
-
       const inputPath = filePathOrBuffer;
-      const outputDir = path.dirname(outputPath);
-      if (!fs.existsSync(outputDir)) {
-        fs.mkdirSync(outputDir, { recursive: true });
+      const outputDir = dirname(outputPath);
+      if (!pathExists(outputDir)) {
+        mkDir(outputDir, { recursive: true });
       }
-      if (fs.existsSync(outputPath)) {
-        fs.unlinkSync(outputPath);
+      if (pathExists(outputPath)) {
+        removePath(outputPath);
       }
 
       const zip = await this.options.zipAdapter(inputPath);
@@ -683,10 +685,10 @@ class TouchChatProcessor extends BaseProcessor {
         throw new Error('No .c4v vocab DB found in TouchChat export');
       }
 
-      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'touchchat-translate-'));
-      const dbPath = path.join(tempDir, 'vocab.c4v');
+      const tempDir = mkTempDir('touchchat-translate-');
+      const dbPath = join(tempDir, 'vocab.c4v');
       try {
-        fs.writeFileSync(dbPath, await vocabEntry.getData());
+        writeBinaryToPath(dbPath, await vocabEntry.getData());
 
         const Database = requireBetterSqlite3();
         const db = new Database(dbPath, { readonly: false });
@@ -760,19 +762,19 @@ class TouchChatProcessor extends BaseProcessor {
         }
         files.push({
           name: vocabEntry.entryName,
-          data: fs.readFileSync(dbPath),
+          data: readBinaryFromInput(dbPath),
         });
         const zipData = await outputZip.writeFiles(files);
         writeBinaryToPath(outputPath, zipData);
       } finally {
         try {
-          fs.rmSync(tempDir, { recursive: true, force: true });
+          removePath(tempDir, { recursive: true, force: true });
         } catch {
           // Best-effort cleanup
         }
       }
 
-      return fs.readFileSync(outputPath);
+      return readBinaryFromInput(outputPath);
     }
 
     // Fallback for buffer inputs: rebuild from tree (may drop TouchChat metadata)
@@ -803,23 +805,21 @@ class TouchChatProcessor extends BaseProcessor {
     });
 
     await this.saveFromTree(tree, outputPath);
-    const fs = getFs();
-    return fs.readFileSync(outputPath);
+    return readBinaryFromInput(outputPath);
   }
 
   async saveFromTree(tree: AACTree, outputPath: string): Promise<void> {
+    const { writeBinaryToPath, mkTempDir, readBinaryFromInput, pathExists, removePath, join } =
+      this.options.fileAdapter;
     await Promise.resolve();
     if (!isNodeRuntime()) {
       throw new Error(
         'saveFromTree is only supported in Node.js environments for TouchChat files.'
       );
     }
-    const fs = getFs();
-    const path = getPath();
-    const os = getOs();
     // Create a TouchChat database that matches the expected schema for loading
-    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'touchchat-export-'));
-    const dbPath = path.join(tmpDir, 'vocab.c4v');
+    const tmpDir = mkTempDir('touchchat-export-');
+    const dbPath = join(tmpDir, 'vocab.c4v');
 
     try {
       const Database = requireBetterSqlite3();
@@ -1215,7 +1215,7 @@ class TouchChatProcessor extends BaseProcessor {
 
       // Create zip file with the database
       const zip = await this.options.zipAdapter();
-      const data = fs.readFileSync(dbPath);
+      const data = readBinaryFromInput(dbPath);
       const zipData = await zip.writeFiles([
         {
           name: 'vocab.c4v',
@@ -1225,8 +1225,8 @@ class TouchChatProcessor extends BaseProcessor {
       writeBinaryToPath(outputPath, zipData);
     } finally {
       // Clean up
-      if (fs.existsSync(tmpDir)) {
-        fs.rmSync(tmpDir, { recursive: true, force: true });
+      if (pathExists(tmpDir)) {
+        removePath(tmpDir, { recursive: true, force: true });
       }
     }
   }
@@ -1345,7 +1345,7 @@ class TouchChatProcessor extends BaseProcessor {
    * @returns Promise with validation result
    */
   async validate(filePath: string): Promise<ValidationResult> {
-    return TouchChatValidator.validateFile(filePath);
+    return TouchChatValidator.validateFile(filePath, this.options.fileAdapter);
   }
 
   /**
@@ -1396,6 +1396,7 @@ class TouchChatProcessor extends BaseProcessor {
     outputPath: string,
     options?: { allowPartial?: boolean }
   ): Promise<Uint8Array> {
+    const { readBinaryFromInput } = this.options.fileAdapter;
     if (!isNodeRuntime()) {
       throw new Error(
         'processLLMTranslations is only supported in Node.js environments for TouchChat files.'
@@ -1446,8 +1447,7 @@ class TouchChatProcessor extends BaseProcessor {
 
     // Save and return
     await this.saveFromTree(tree, outputPath);
-    const fs = getFs();
-    return fs.readFileSync(outputPath);
+    return readBinaryFromInput(outputPath);
   }
 }
 

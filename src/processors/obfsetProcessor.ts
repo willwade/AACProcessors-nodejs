@@ -12,7 +12,7 @@ import {
   AACSemanticIntent,
 } from '../core/treeStructure';
 import { BaseProcessor, ProcessorOptions } from '../core/baseProcessor';
-import { ProcessorInput, readTextFromInput } from '../utils/io';
+import { ProcessorInput } from '../utils/io';
 
 interface ObfsetButton {
   id: string;
@@ -62,6 +62,7 @@ export class ObfsetProcessor extends BaseProcessor {
    * Load an .obfset file (JSON array of boards)
    */
   async loadIntoTree(filePathOrBuffer: ProcessorInput): Promise<AACTree> {
+    const { readTextFromInput } = this.options.fileAdapter;
     await Promise.resolve();
     const tree = new AACTree();
     tree.metadata.format = 'obfset';

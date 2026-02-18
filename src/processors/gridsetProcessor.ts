@@ -38,7 +38,7 @@ import { type SymbolReference, parseSymbolReference } from './gridset/symbols';
 import { isSymbolLibraryReference } from './gridset/resolver';
 import { generateCloneId } from '../utilities/analytics/utils/idGenerator';
 import { translateWithSymbols, extractSymbolsFromButton } from './gridset/symbolAlignment';
-import { ProcessorInput, readBinaryFromInput, decodeText, writeBinaryToPath } from '../utils/io';
+import { ProcessorInput, decodeText } from '../utils/io';
 import { ZipFile } from '../utils/zip';
 
 class GridsetProcessor extends BaseProcessor {
@@ -439,6 +439,7 @@ class GridsetProcessor extends BaseProcessor {
   }
 
   async loadIntoTree(filePathOrBuffer: ProcessorInput): Promise<AACTree> {
+    const { readBinaryFromInput } = this.options.fileAdapter;
     const tree = new AACTree();
 
     let zipResult: Awaited<ReturnType<typeof this.options.zipAdapter>>;
@@ -1888,6 +1889,7 @@ class GridsetProcessor extends BaseProcessor {
     translations: Map<string, string>,
     outputPath: string
   ): Promise<Uint8Array> {
+    const { readBinaryFromInput } = this.options.fileAdapter;
     // Load the tree, apply translations, and save to new file
     const tree = await this.loadIntoTree(filePathOrBuffer);
 
@@ -2003,6 +2005,7 @@ class GridsetProcessor extends BaseProcessor {
     outputPath: string,
     options?: { allowPartial?: boolean }
   ): Promise<Uint8Array> {
+    const { readBinaryFromInput } = this.options.fileAdapter;
     const tree = await this.loadIntoTree(filePathOrBuffer);
 
     // Validate translations using shared utility
@@ -2053,11 +2056,12 @@ class GridsetProcessor extends BaseProcessor {
 
   async saveFromTree(tree: AACTree, outputPath: string): Promise<void> {
     const files: ZipFile[] = [];
-    const adapter = await this.options.zipAdapter();
+    const { writeBinaryToPath } = this.options.fileAdapter;
+    const zip = await this.options.zipAdapter();
 
     if (Object.keys(tree.pages).length === 0) {
       // Create empty zip for empty tree
-      const zipBuffer = await adapter.writeFiles([]);
+      const zipBuffer = await zip.writeFiles([]);
       writeBinaryToPath(outputPath, zipBuffer);
       return;
     }
@@ -2418,7 +2422,7 @@ class GridsetProcessor extends BaseProcessor {
     });
 
     // Write the zip file
-    const zipBuffer = await adapter.writeFiles(files);
+    const zipBuffer = await zip.writeFiles(files);
     writeBinaryToPath(outputPath, zipBuffer);
   }
 
@@ -2544,7 +2548,7 @@ class GridsetProcessor extends BaseProcessor {
    * @returns Promise with validation result
    */
   async validate(filePath: string): Promise<ValidationResult> {
-    return GridsetValidator.validateFile(filePath);
+    return GridsetValidator.validateFile(filePath, this.options.fileAdapter);
   }
 }
 

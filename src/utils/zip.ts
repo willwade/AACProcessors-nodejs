@@ -1,4 +1,10 @@
-import { isNodeRuntime, readBinaryFromInput, getNodeRequire, ProcessorInput } from './io';
+import {
+  isNodeRuntime,
+  getNodeRequire,
+  ProcessorInput,
+  FileAdapter,
+  defaultFileAdapter,
+} from './io';
 
 export interface ZipAdapter {
   listFiles(): string[];
@@ -11,7 +17,11 @@ export interface ZipFile {
   data: string | Uint8Array;
 }
 
-export async function getZipAdapter(input?: ProcessorInput): Promise<ZipAdapter> {
+export async function getZipAdapter(
+  input?: ProcessorInput,
+  fileAdapter?: FileAdapter
+): Promise<ZipAdapter> {
+  const adapter = fileAdapter ?? defaultFileAdapter;
   if (isNodeRuntime()) {
     const AdmZip = getNodeRequire()('adm-zip') as typeof import('adm-zip');
     const zip =
@@ -19,7 +29,7 @@ export async function getZipAdapter(input?: ProcessorInput): Promise<ZipAdapter>
         ? new AdmZip(input)
         : typeof input === 'string'
           ? new AdmZip(input)
-          : new AdmZip(Buffer.from(readBinaryFromInput(input)));
+          : new AdmZip(Buffer.from(adapter.readBinaryFromInput(input)));
     return {
       listFiles: (): string[] => {
         return zip
@@ -46,7 +56,7 @@ export async function getZipAdapter(input?: ProcessorInput): Promise<ZipAdapter>
   if (input !== undefined && typeof input === 'string')
     throw new Error('Zip file paths are not supported in browser environments.');
 
-  const zip = input ? await JSZip.loadAsync(readBinaryFromInput(input)) : new JSZip();
+  const zip = input ? await JSZip.loadAsync(adapter.readBinaryFromInput(input)) : new JSZip();
   return {
     listFiles: (): string[] => {
       return Object.entries(zip.files)

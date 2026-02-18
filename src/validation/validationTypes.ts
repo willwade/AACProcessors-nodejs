@@ -1,4 +1,4 @@
-import { ProcessorInput } from '../utils/io';
+import { FileAdapter, ProcessorInput } from '../utils/io';
 import { ZipAdapter } from '../utils/zip';
 
 /**
@@ -63,6 +63,8 @@ export interface ValidationConfig {
   stopOnBlocker?: boolean;
   /** Custom validation rules to apply */
   customRules?: ValidationRule[];
+  /** Adapter for handling file IO (optional) */
+  fileAdapter: FileAdapter;
   /** Adapter for handling ZIP files (optional) */
   zipAdapter: (input: ProcessorInput) => Promise<ZipAdapter>;
 }

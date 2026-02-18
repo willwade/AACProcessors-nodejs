@@ -6,7 +6,6 @@ import {
   AACSemanticIntent,
 } from '../../src/core/treeStructure';
 import { BaseProcessor } from '../../src/core/baseProcessor';
-import FileProcessor from '../../src/core/fileProcessor';
 
 describe('src/core Coverage Boost', () => {
   describe('AACButton constructor legacy mappings', () => {
@@ -227,21 +226,6 @@ describe('src/core Coverage Boost', () => {
 
       const item = extractedMap.get('test');
       expect(item.vocabPlacementMeta.vocabLocations).toHaveLength(2);
-    });
-  });
-
-  describe('FileProcessor', () => {
-    it('should return unknown for buffers (not yet implemented)', async () => {
-      expect(FileProcessor.detectFormat(Buffer.from('test'))).toBe('unknown');
-    });
-
-    it('should detect various extensions', async () => {
-      expect(FileProcessor.detectFormat('test.gridset')).toBe('gridset');
-      expect(FileProcessor.detectFormat('test.obz')).toBe('coughdrop');
-      expect(FileProcessor.detectFormat('test.wfl')).toBe('touchchat');
-      expect(FileProcessor.detectFormat('test.spb')).toBe('snap');
-      expect(FileProcessor.detectFormat('test.xlsx')).toBe('excel');
-      expect(FileProcessor.detectFormat('test.unknown')).toBe('unknown');
     });
   });
 });

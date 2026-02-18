@@ -16,6 +16,7 @@ import {
   findSnapUserVocabularies,
   findSnapUserHistory,
 } from '../src/processors/snap/helpers';
+import { defaultFileAdapter } from '../src/utils/io';
 
 // Mock modules
 jest.mock('fs');
@@ -88,26 +89,22 @@ describe('Grid3 Path Discovery', () => {
 
       const grid3BasePath = path.win32.join(mockCommonDocs, 'Smartbox', 'Grid 3', 'Users');
 
-      // Mock directory structure
-      mockFs.existsSync.mockImplementation((p: any) => {
-        const pathStr = String(p);
-        if (pathStr === grid3BasePath) return true;
-        if (pathStr.includes('history.sqlite')) return true;
-        return false;
+      const result = findGrid3UserPaths({
+        ...defaultFileAdapter,
+        listDir: (pathStr) => {
+          if (pathStr === grid3BasePath) return ['TestUser'];
+          if (pathStr.includes('TestUser')) return ['en-gb'];
+          return [];
+        },
+        isDirectory: (pathStr) => {
+          return pathStr.endsWith('TestUser') || pathStr.endsWith('en-gb');
+        },
+        pathExists: (pathStr) => {
+          if (pathStr === grid3BasePath) return true;
+          if (pathStr.includes('history.sqlite')) return true;
+          return false;
+        },
       });
-
-      mockFs.readdirSync.mockImplementation((p: any, _options?: any) => {
-        const pathStr = String(p);
-        if (pathStr === grid3BasePath) {
-          return [{ name: 'TestUser', isDirectory: () => true }] as any;
-        }
-        if (pathStr.includes('TestUser')) {
-          return [{ name: 'en-gb', isDirectory: () => true }] as any;
-        }
-        return [] as any;
-      });
-
-      const result = findGrid3UserPaths();
 
       expect(result).toHaveLength(1);
       expect(result[0]).toMatchObject({
@@ -149,16 +146,17 @@ describe('Grid3 Path Discovery', () => {
 
       const grid3BasePath = path.win32.join(mockCommonDocs, 'Smartbox', 'Grid 3', 'Users');
 
-      mockFs.existsSync.mockReturnValue(true);
-      mockFs.readdirSync.mockImplementation((p: any) => {
-        const pathStr = String(p);
-        if (pathStr === grid3BasePath) {
-          return [{ name: 'User1', isDirectory: () => true }] as any;
-        }
-        return [{ name: 'en-us', isDirectory: () => true }] as any;
+      const result = findGrid3HistoryDatabases({
+        ...defaultFileAdapter,
+        pathExists: () => true,
+        listDir: (pathStr) => {
+          if (pathStr === grid3BasePath) return ['User1'];
+          return ['en-us'];
+        },
+        isDirectory: (pathStr) => {
+          return pathStr.endsWith('User1') || pathStr.endsWith('en-us');
+        },
       });
-
-      const result = findGrid3HistoryDatabases();
 
       expect(result).toHaveLength(1);
       expect(result[0]).toContain('history.sqlite');
@@ -172,28 +170,19 @@ describe('Grid3 Path Discovery', () => {
       const gridSetsDir = path.win32.join(grid3BasePath, 'User1', 'Grid Sets');
 
       mockExecSync.mockReturnValue(`Common Documents    REG_SZ    ${mockCommonDocs}\r\n` as any);
-      mockFs.existsSync.mockImplementation((p: any) => {
-        const pathStr = String(p);
-        return pathStr === grid3BasePath || pathStr === gridSetsDir;
-      });
-      mockFs.readdirSync.mockImplementation((p: any) => {
-        const pathStr = String(p);
-        if (pathStr === grid3BasePath) {
-          return [{ name: 'User1', isDirectory: () => true }] as any;
-        }
-        if (pathStr === gridSetsDir) {
-          return [
-            {
-              name: 'Test.gridset',
-              isDirectory: () => false,
-              isFile: () => true,
-            },
-          ] as any;
-        }
-        return [] as any;
-      });
 
-      const result = findGrid3Vocabularies();
+      const result = findGrid3Vocabularies(undefined, {
+        ...defaultFileAdapter,
+        pathExists: (pathStr) =>
+          pathStr === grid3BasePath || pathStr === gridSetsDir || pathStr.endsWith('Test.gridset'),
+        listDir: (pathStr) => {
+          if (pathStr === grid3BasePath) return ['User1'];
+          if (pathStr === gridSetsDir) return ['Test.gridset'];
+          return [];
+        },
+        isDirectory: (pathStr) =>
+          pathStr === grid3BasePath || pathStr === gridSetsDir || pathStr.endsWith('User1'),
+      });
 
       expect(result).toHaveLength(1);
       expect(result[0]).toMatchObject({
@@ -210,25 +199,20 @@ describe('Grid3 Path Discovery', () => {
 
       const grid3BasePath = path.win32.join(mockCommonDocs, 'Smartbox', 'Grid 3', 'Users');
 
-      mockFs.existsSync.mockImplementation((p: any) => {
-        const pathStr = String(p);
-        if (pathStr === grid3BasePath) return true;
-        if (pathStr.includes('history.sqlite')) return true;
-        return false;
+      const result = findGrid3UserHistory('User1', 'en-gb', {
+        ...defaultFileAdapter,
+        pathExists: (pathStr) => {
+          if (pathStr === grid3BasePath) return true;
+          if (pathStr.includes('history.sqlite')) return true;
+          return false;
+        },
+        listDir: (pathStr) => {
+          if (pathStr === grid3BasePath) return ['User1'];
+          if (pathStr.includes('User1')) return ['en-gb'];
+          return [];
+        },
+        isDirectory: (pathStr) => pathStr.endsWith('User1') || pathStr.endsWith('en-gb'),
       });
-
-      mockFs.readdirSync.mockImplementation((p: any) => {
-        const pathStr = String(p);
-        if (pathStr === grid3BasePath) {
-          return [{ name: 'User1', isDirectory: () => true }] as any;
-        }
-        if (pathStr.includes('User1')) {
-          return [{ name: 'en-gb', isDirectory: () => true }] as any;
-        }
-        return [] as any;
-      });
-
-      const result = findGrid3UserHistory('User1', 'en-gb');
 
       expect(result).toContain('history.sqlite');
     });
@@ -264,14 +248,16 @@ describe('Snap Path Discovery', () => {
 
   describe('findSnapPackages', () => {
     it('should find Snap packages matching pattern', async () => {
-      mockFs.existsSync.mockReturnValue(true);
-      mockFs.readdirSync.mockReturnValue([
-        { name: 'TobiiDynavox.Snap_abc123', isDirectory: () => true },
-        { name: 'TobiiDynavox.Communicator_def456', isDirectory: () => true },
-        { name: 'Microsoft.WindowsStore_xyz789', isDirectory: () => true },
-      ] as any);
-
-      const result = findSnapPackagesFromSnap();
+      const result = findSnapPackagesFromSnap(undefined, {
+        ...defaultFileAdapter,
+        pathExists: () => true,
+        listDir: () => [
+          'TobiiDynavox.Snap_abc123',
+          'TobiiDynavox.Communicator_def456',
+          'Microsoft.WindowsStore_xyz789',
+        ],
+        isDirectory: () => true,
+      });
 
       expect(result).toHaveLength(2);
       expect(result[0].packageName).toBe('TobiiDynavox.Snap_abc123');
@@ -280,13 +266,12 @@ describe('Snap Path Discovery', () => {
     });
 
     it('should filter by custom pattern', async () => {
-      mockFs.existsSync.mockReturnValue(true);
-      mockFs.readdirSync.mockReturnValue([
-        { name: 'TobiiDynavox.Snap_abc123', isDirectory: () => true },
-        { name: 'CustomApp.Package_xyz', isDirectory: () => true },
-      ] as any);
-
-      const result = findSnapPackagesFromSnap('CustomApp');
+      const result = findSnapPackagesFromSnap('CustomApp', {
+        ...defaultFileAdapter,
+        pathExists: () => true,
+        listDir: () => ['TobiiDynavox.Snap_abc123', 'CustomApp.Package_xyz'],
+        isDirectory: () => true,
+      });
 
       expect(result).toHaveLength(1);
       expect(result[0].packageName).toBe('CustomApp.Package_xyz');
@@ -324,12 +309,12 @@ describe('Snap Path Discovery', () => {
 
   describe('findSnapPackagePath', () => {
     it('should return first matching package path', async () => {
-      mockFs.existsSync.mockReturnValue(true);
-      mockFs.readdirSync.mockReturnValue([
-        { name: 'TobiiDynavox.Snap_abc123', isDirectory: () => true },
-      ] as any);
-
-      const result = findSnapPackagePathFromSnap();
+      const result = findSnapPackagePathFromSnap(undefined, {
+        ...defaultFileAdapter,
+        pathExists: () => true,
+        listDir: () => ['TobiiDynavox.Snap_abc123'],
+        isDirectory: () => true,
+      });
 
       expect(result).toContain('TobiiDynavox.Snap_abc123');
     });
@@ -353,32 +338,21 @@ describe('Snap Path Discovery', () => {
       const userPath = path.join(usersRoot, 'user1');
       const vocabPath = path.join(userPath, 'board.sps');
 
-      mockFs.existsSync.mockImplementation((p: any) => {
-        const pathStr = String(p);
-        return pathStr === packagesPath || pathStr === usersRoot || pathStr === userPath;
+      const users = findSnapUsers('TobiiDynavox', {
+        ...defaultFileAdapter,
+        pathExists: (pathStr) =>
+          pathStr === packagesPath || pathStr === usersRoot || pathStr === userPath,
+        listDir: (pathStr) => {
+          if (pathStr === packagesPath) return ['TobiiDynavox.Snap_abc123'];
+          if (pathStr === usersRoot) return ['user1', 'SwiftKeyStaticModels'];
+          if (pathStr === userPath) return ['board.sps', 'notes.txt'];
+          return [];
+        },
+        isDirectory: (pathStr) =>
+          pathStr.endsWith('TobiiDynavox.Snap_abc123') ||
+          pathStr.endsWith('user1') ||
+          pathStr.endsWith('SwiftKeyStaticModels'),
       });
-
-      mockFs.readdirSync.mockImplementation((p: any) => {
-        const pathStr = String(p);
-        if (pathStr === packagesPath) {
-          return [{ name: 'TobiiDynavox.Snap_abc123', isDirectory: () => true }] as any;
-        }
-        if (pathStr === usersRoot) {
-          return [
-            { name: 'user1', isDirectory: () => true },
-            { name: 'SwiftKeyStaticModels', isDirectory: () => true },
-          ] as any;
-        }
-        if (pathStr === userPath) {
-          return [
-            { name: 'board.sps', isDirectory: () => false },
-            { name: 'notes.txt', isDirectory: () => false },
-          ] as any;
-        }
-        return [] as any;
-      });
-
-      const users = findSnapUsers();
 
       expect(users).toHaveLength(1);
       expect(users[0]).toMatchObject({ userId: 'user1' });
@@ -395,26 +369,19 @@ describe('Snap Path Discovery', () => {
       const userPath = path.join(usersRoot, 'user1');
       const vocabPath = path.join(userPath, 'board.sps');
 
-      mockFs.existsSync.mockImplementation((p: any) => {
-        const pathStr = String(p);
-        return pathStr === packagesPath || pathStr === usersRoot || pathStr === userPath;
+      const result = findSnapUserVocabularies('user1', 'TobiiDynavox', {
+        ...defaultFileAdapter,
+        pathExists: (pathStr) =>
+          pathStr === packagesPath || pathStr === usersRoot || pathStr === userPath,
+        listDir: (pathStr) => {
+          if (pathStr === packagesPath) return ['TobiiDynavox.Snap_abc123'];
+          if (pathStr === usersRoot) return ['user1'];
+          if (pathStr === userPath) return ['board.sps'];
+          return [];
+        },
+        isDirectory: (pathStr) =>
+          pathStr.endsWith('TobiiDynavox.Snap_abc123') || pathStr.endsWith('user1'),
       });
-
-      mockFs.readdirSync.mockImplementation((p: any) => {
-        const pathStr = String(p);
-        if (pathStr === packagesPath) {
-          return [{ name: 'TobiiDynavox.Snap_abc123', isDirectory: () => true }] as any;
-        }
-        if (pathStr === usersRoot) {
-          return [{ name: 'user1', isDirectory: () => true }] as any;
-        }
-        if (pathStr === userPath) {
-          return [{ name: 'board.sps', isDirectory: () => false }] as any;
-        }
-        return [] as any;
-      });
-
-      const result = findSnapUserVocabularies('user1');
 
       expect(result).toContain(vocabPath);
     });
@@ -429,26 +396,19 @@ describe('Snap Path Discovery', () => {
       const userPath = path.join(usersRoot, 'user1');
       const historyPath = path.join(userPath, 'history.db');
 
-      mockFs.existsSync.mockImplementation((p: any) => {
-        const pathStr = String(p);
-        return pathStr === packagesPath || pathStr === usersRoot || pathStr === userPath;
+      const result = findSnapUserHistory('user1', 'TobiiDynavox', {
+        ...defaultFileAdapter,
+        pathExists: (pathStr) =>
+          pathStr === packagesPath || pathStr === usersRoot || pathStr === userPath,
+        listDir: (pathStr) => {
+          if (pathStr === packagesPath) return ['TobiiDynavox.Snap_abc123'];
+          if (pathStr === usersRoot) return ['user1'];
+          if (pathStr === userPath) return ['history.db'];
+          return [];
+        },
+        isDirectory: (pathStr) =>
+          pathStr.endsWith('TobiiDynavox.Snap_abc123') || pathStr.endsWith('user1'),
       });
-
-      mockFs.readdirSync.mockImplementation((p: any) => {
-        const pathStr = String(p);
-        if (pathStr === packagesPath) {
-          return [{ name: 'TobiiDynavox.Snap_abc123', isDirectory: () => true }] as any;
-        }
-        if (pathStr === usersRoot) {
-          return [{ name: 'user1', isDirectory: () => true }] as any;
-        }
-        if (pathStr === userPath) {
-          return [{ name: 'history.db', isDirectory: () => false }] as any;
-        }
-        return [] as any;
-      });
-
-      const result = findSnapUserHistory('user1');
 
       expect(result).toContain(historyPath);
     });

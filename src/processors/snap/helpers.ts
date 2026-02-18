@@ -4,11 +4,15 @@ import {
   AACSemanticIntent,
   AACButton,
 } from '../../core/treeStructure';
-import * as fs from 'fs';
-import * as path from 'path';
-import Database from 'better-sqlite3';
 import { dotNetTicksToDate } from '../../utils/dotnetTicks';
-import { ProcessorInput } from '../../utils/io';
+import {
+  defaultFileAdapter,
+  extname,
+  FileAdapter,
+  getNodeRequire,
+  ProcessorInput,
+} from '../../utils/io';
+import { requireBetterSqlite3 } from '../../utils/sqlite';
 
 // Minimal Snap helpers (stubs) to align with processors/<engine>/helpers pattern
 // NOTE: Snap files can store different types of image data in PageSetData:
@@ -22,8 +26,10 @@ import { ProcessorInput } from '../../utils/io';
 function collectFiles(
   root: string,
   matcher: (fullPath: string) => boolean,
-  maxDepth = 3
+  maxDepth = 3,
+  fileAdapter: FileAdapter = defaultFileAdapter
 ): string[] {
+  const { listDir, join, isDirectory } = fileAdapter;
   const results = new Set<string>();
   const stack: Array<{ dir: string; depth: number }> = [{ dir: root, depth: 0 }];
 
@@ -32,16 +38,16 @@ function collectFiles(
     if (!current) continue;
     if (current.depth > maxDepth) continue;
 
-    let entries: fs.Dirent[];
+    let entries: string[];
     try {
-      entries = fs.readdirSync(current.dir, { withFileTypes: true });
+      entries = listDir(current.dir);
     } catch (error) {
       continue;
     }
 
     for (const entry of entries) {
-      const fullPath = path.join(current.dir, entry.name);
-      if (entry.isDirectory()) {
+      const fullPath = join(current.dir, entry);
+      if (isDirectory(entry)) {
         stack.push({ dir: fullPath, depth: current.depth + 1 });
       } else if (matcher(fullPath)) {
         results.add(fullPath);
@@ -96,18 +102,20 @@ export function getAllowedImageEntries(tree: AACTree): Set<string> {
  * @param entryPath Symbol identifier (e.g., "SYM:12345")
  * @returns Image data buffer or null if not found
  */
-export function openImage(dbOrFile: ProcessorInput, entryPath: string): Buffer | null {
+export function openImage(
+  dbOrFile: ProcessorInput,
+  entryPath: string,
+  fileAdapter: FileAdapter = defaultFileAdapter
+): Buffer | null {
+  const { mkTempDir, join, writeBinaryToPath, removePath, dirname } = fileAdapter;
   let dbPath: string;
   let cleanupNeeded = false;
 
   // Handle Buffer input by writing to temp file
   if (Buffer.isBuffer(dbOrFile)) {
-    if (typeof fs.mkdtempSync !== 'function') {
-      return null; // Not in Node environment
-    }
-    const tempDir = fs.mkdtempSync(path.join(process.cwd(), 'snap-'));
-    dbPath = path.join(tempDir, 'temp.sps');
-    fs.writeFileSync(dbPath, dbOrFile);
+    const tempDir = mkTempDir(join(process.cwd(), 'snap-'));
+    dbPath = join(tempDir, 'temp.sps');
+    writeBinaryToPath(dbPath, dbOrFile);
     cleanupNeeded = true;
   } else if (typeof dbOrFile === 'string') {
     dbPath = dbOrFile;
@@ -115,9 +123,10 @@ export function openImage(dbOrFile: ProcessorInput, entryPath: string): Buffer |
     return null;
   }
 
-  let db: Database.Database | null = null;
+  const better_sqlite3 = getNodeRequire()('better-sqlite3');
+  let db = null;
   try {
-    db = new Database(dbPath, { readonly: true });
+    db = new better_sqlite3.Database(dbPath, { readonly: true });
 
     // Query PageSetData for the symbol
     const row = db
@@ -141,9 +150,9 @@ export function openImage(dbOrFile: ProcessorInput, entryPath: string): Buffer |
     }
     if (cleanupNeeded && dbPath) {
       try {
-        fs.unlinkSync(dbPath);
-        const dir = path.dirname(dbPath);
-        fs.rmdirSync(dir);
+        removePath(dbPath);
+        const dir = dirname(dbPath);
+        removePath(dir);
       } catch (e) {
         // Ignore cleanup errors
       }
@@ -190,7 +199,11 @@ export interface SnapUsageEntry {
  * @param packageNamePattern Optional pattern to filter package names (default: 'TobiiDynavox')
  * @returns Array of Snap package path information
  */
-export function findSnapPackages(packageNamePattern = 'TobiiDynavox'): SnapPackagePath[] {
+export function findSnapPackages(
+  packageNamePattern = 'TobiiDynavox',
+  fileAdapter: FileAdapter = defaultFileAdapter
+): SnapPackagePath[] {
+  const { join, listDir, isDirectory, pathExists } = fileAdapter;
   const results: SnapPackagePath[] = [];
 
   // Only works on Windows
@@ -204,26 +217,26 @@ export function findSnapPackages(packageNamePattern = 'TobiiDynavox'): SnapPacka
       return results;
     }
 
-    const packagesPath = path.join(localAppData, 'Packages');
+    const packagesPath = join(localAppData, 'Packages');
 
     // Check if Packages directory exists
-    if (!fs.existsSync(packagesPath)) {
+    if (!pathExists(packagesPath)) {
       return results;
     }
 
     // Enumerate packages
-    const packages = fs.readdirSync(packagesPath, { withFileTypes: true });
+    const packages = listDir(packagesPath);
 
     for (const packageDir of packages) {
-      if (!packageDir.isDirectory()) continue;
+      if (!isDirectory(packageDir)) continue;
 
-      const packageName = packageDir.name;
+      const packageName = packageDir;
 
       // Filter by pattern
       if (packageName.includes(packageNamePattern)) {
         results.push({
           packageName,
-          packagePath: path.join(packagesPath, packageName),
+          packagePath: join(packagesPath, packageName),
         });
       }
     }
@@ -240,8 +253,11 @@ export function findSnapPackages(packageNamePattern = 'TobiiDynavox'): SnapPacka
  * @param packageNamePattern Optional pattern to filter package names (default: 'TobiiDynavox')
  * @returns Path to the first matching Snap package, or null if not found
  */
-export function findSnapPackagePath(packageNamePattern = 'TobiiDynavox'): string | null {
-  const packages = findSnapPackages(packageNamePattern);
+export function findSnapPackagePath(
+  packageNamePattern = 'TobiiDynavox',
+  fileAdapter?: FileAdapter
+): string | null {
+  const packages = findSnapPackages(packageNamePattern, fileAdapter);
   return packages.length > 0 ? packages[0].packagePath : null;
 }
 
@@ -252,40 +268,45 @@ export function findSnapPackagePath(packageNamePattern = 'TobiiDynavox'): string
  * @param packageNamePattern Optional package filter (default TobiiDynavox)
  * @returns Array of user info with vocab paths
  */
-export function findSnapUsers(packageNamePattern = 'TobiiDynavox'): SnapUserInfo[] {
+export function findSnapUsers(
+  packageNamePattern = 'TobiiDynavox',
+  fileAdapter: FileAdapter = defaultFileAdapter
+): SnapUserInfo[] {
+  const { join, listDir, isDirectory, pathExists } = fileAdapter;
   const results: SnapUserInfo[] = [];
 
   if (process.platform !== 'win32') {
     return results;
   }
 
-  const packagePath = findSnapPackagePath(packageNamePattern);
+  const packagePath = findSnapPackagePath(packageNamePattern, fileAdapter);
   if (!packagePath) {
     return results;
   }
 
-  const usersRoot = path.join(packagePath, 'LocalState', 'Users');
-  if (!fs.existsSync(usersRoot)) {
+  const usersRoot = join(packagePath, 'LocalState', 'Users');
+  if (!pathExists(usersRoot)) {
     return results;
   }
 
-  const entries = fs.readdirSync(usersRoot, { withFileTypes: true });
+  const entries = listDir(usersRoot);
   for (const entry of entries) {
-    if (!entry.isDirectory()) continue;
-    if (entry.name.toLowerCase().startsWith('swiftkey')) continue;
+    if (!isDirectory(entry)) continue;
+    if (entry.toLowerCase().startsWith('swiftkey')) continue;
 
-    const userPath = path.join(usersRoot, entry.name);
+    const userPath = join(usersRoot, entry);
     const vocabPaths = collectFiles(
       userPath,
       (full) => {
-        const ext = path.extname(full).toLowerCase();
+        const ext = extname(full).toLowerCase();
         return ext === '.sps' || ext === '.spb';
       },
-      2
+      2,
+      fileAdapter
     );
 
     results.push({
-      userId: entry.name,
+      userId: entry,
       userPath,
       vocabPaths,
     });
@@ -302,9 +323,12 @@ export function findSnapUsers(packageNamePattern = 'TobiiDynavox'): SnapUserInfo
  */
 export function findSnapUserVocabularies(
   userId?: string,
-  packageNamePattern = 'TobiiDynavox'
+  packageNamePattern = 'TobiiDynavox',
+  fileAdapter?: FileAdapter
 ): string[] {
-  const users = findSnapUsers(packageNamePattern).filter((u) => !userId || u.userId === userId);
+  const users = findSnapUsers(packageNamePattern, fileAdapter).filter(
+    (u) => !userId || u.userId === userId
+  );
   return users.flatMap((u) => u.vocabPaths);
 }
 
@@ -315,14 +339,20 @@ export function findSnapUserVocabularies(
  * @param packageNamePattern Optional package filter
  * @returns Array of history file paths (may be empty if not found)
  */
-export function findSnapUserHistory(userId: string, packageNamePattern = 'TobiiDynavox'): string[] {
-  const user = findSnapUsers(packageNamePattern).find((u) => u.userId === userId);
+export function findSnapUserHistory(
+  userId: string,
+  packageNamePattern = 'TobiiDynavox',
+  fileAdapter: FileAdapter = defaultFileAdapter
+): string[] {
+  const { basename } = fileAdapter;
+  const user = findSnapUsers(packageNamePattern, fileAdapter).find((u) => u.userId === userId);
   if (!user) return [];
 
   return collectFiles(
     user.userPath,
-    (full) => path.basename(full).toLowerCase().includes('history'),
-    2
+    (full) => basename(full).toLowerCase().includes('history'),
+    2,
+    fileAdapter
   );
 }
 
@@ -337,9 +367,14 @@ export function isSnapInstalled(packageNamePattern = 'TobiiDynavox'): boolean {
 /**
  * Read Snap usage history from a pageset file (.sps/.spb)
  */
-export function readSnapUsage(pagesetPath: string): SnapUsageEntry[] {
-  if (!fs.existsSync(pagesetPath)) return [];
+export function readSnapUsage(
+  pagesetPath: string,
+  fileAdapter: FileAdapter = defaultFileAdapter
+): SnapUsageEntry[] {
+  const { pathExists } = fileAdapter;
+  if (!pathExists(pagesetPath)) return [];
 
+  const Database = requireBetterSqlite3();
   const db = new Database(pagesetPath, { readonly: true });
 
   const tableCheck = db

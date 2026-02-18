@@ -1,17 +1,27 @@
 /* eslint-disable @typescript-eslint/require-await */
 import { BaseValidator } from './baseValidator';
 import { ValidationResult } from './validationTypes';
-import { decodeText, getBasename, getFs, readBinaryFromInput, toUint8Array } from '../utils/io';
+import {
+  decodeText,
+  defaultFileAdapter,
+  FileAdapter,
+  getBasename,
+  toUint8Array,
+} from '../utils/io';
 
 /**
  * Validator for Graphviz DOT files
  */
 export class DotValidator extends BaseValidator {
-  static async validateFile(filePath: string): Promise<ValidationResult> {
+  static async validateFile(
+    filePath: string,
+    fileAdapter?: FileAdapter
+  ): Promise<ValidationResult> {
+    const { readBinaryFromInput, getFileSize } = fileAdapter ?? defaultFileAdapter;
     const validator = new DotValidator();
     const content = readBinaryFromInput(filePath);
-    const stats = getFs().statSync(filePath);
-    return validator.validate(content, getBasename(filePath), stats.size);
+    const size = getFileSize(filePath);
+    return validator.validate(content, getBasename(filePath), size);
   }
 
   static async identifyFormat(content: any, filename: string): Promise<boolean> {

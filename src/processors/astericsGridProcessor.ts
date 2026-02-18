@@ -18,15 +18,7 @@ import {
   ValidationFailureError,
   buildValidationResultFromMessage,
 } from '../validation/validationTypes';
-import {
-  ProcessorInput,
-  getBasename,
-  getFs,
-  readBinaryFromInput,
-  readTextFromInput,
-  writeTextToPath,
-  encodeBase64,
-} from '../utils/io';
+import { ProcessorInput, getBasename, encodeBase64 } from '../utils/io';
 
 // Asterics Grid data model interfaces
 interface GridData {
@@ -761,6 +753,7 @@ class AstericsGridProcessor extends BaseProcessor {
   }
 
   private extractRawTexts(filePathOrBuffer: ProcessorInput): string[] {
+    const { readTextFromInput } = this.options.fileAdapter;
     let content = readTextFromInput(filePathOrBuffer);
 
     // Remove BOM if present
@@ -847,6 +840,7 @@ class AstericsGridProcessor extends BaseProcessor {
   }
 
   async loadIntoTree(filePathOrBuffer: ProcessorInput): Promise<AACTree> {
+    const { readBinaryFromInput, readTextFromInput } = this.options.fileAdapter;
     await Promise.resolve();
     const tree = new AACTree();
     const filename =
@@ -1312,6 +1306,7 @@ class AstericsGridProcessor extends BaseProcessor {
     translations: Map<string, string>,
     outputPath: string
   ): Promise<Uint8Array> {
+    const { readTextFromInput, readBinaryFromInput, writeTextToPath } = this.options.fileAdapter;
     await Promise.resolve();
     let content = readTextFromInput(filePathOrBuffer);
 
@@ -1448,6 +1443,7 @@ class AstericsGridProcessor extends BaseProcessor {
   }
 
   async saveFromTree(tree: AACTree, outputPath: string): Promise<void> {
+    const { writeTextToPath } = this.options.fileAdapter;
     await Promise.resolve();
     // Use default Asterics Grid styling instead of taking from first page
     // This prevents issues where the first page has unusual colors (like purple)
@@ -1669,6 +1665,7 @@ class AstericsGridProcessor extends BaseProcessor {
     audioData: Buffer,
     metadata?: string
   ): void {
+    const { readTextFromInput, writeTextToPath } = this.options.fileAdapter;
     let content = readTextFromInput(filePath);
 
     // Remove BOM if present
@@ -1731,9 +1728,9 @@ class AstericsGridProcessor extends BaseProcessor {
     targetFilePath: string,
     audioMappings: Map<string, { audioData: Buffer; metadata?: string }>
   ): void {
+    const { writeBinaryToPath, readBinaryFromInput } = this.options.fileAdapter;
     // Copy the source file to target
-    const fs = getFs();
-    fs.copyFileSync(sourceFilePath, targetFilePath);
+    writeBinaryToPath(targetFilePath, readBinaryFromInput(sourceFilePath));
 
     // Add audio recordings to the copy
     audioMappings.forEach((audioInfo, elementId) => {
@@ -1750,6 +1747,7 @@ class AstericsGridProcessor extends BaseProcessor {
    * Extract all element IDs from the grid file for audio mapping
    */
   getElementIds(filePathOrBuffer: ProcessorInput): string[] {
+    const { readTextFromInput } = this.options.fileAdapter;
     let content = readTextFromInput(filePathOrBuffer);
 
     // Remove BOM if present
@@ -1778,6 +1776,7 @@ class AstericsGridProcessor extends BaseProcessor {
    * Check if an element has audio recording
    */
   hasAudioRecording(filePathOrBuffer: ProcessorInput, elementId: string): boolean {
+    const { readTextFromInput } = this.options.fileAdapter;
     let content = readTextFromInput(filePathOrBuffer);
 
     // Remove BOM if present

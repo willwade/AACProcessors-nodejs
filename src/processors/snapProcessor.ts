@@ -17,7 +17,7 @@ import {
 import { generateCloneId } from '../utilities/analytics/utils/idGenerator';
 import { SnapValidator } from '../validation/snapValidator';
 import { ValidationResult } from '../validation/validationTypes';
-import { ProcessorInput, getFs, getNodeRequire, getPath, isNodeRuntime, getOs } from '../utils/io';
+import { ProcessorInput, getNodeRequire, isNodeRuntime } from '../utils/io';
 import { openSqliteDatabase, requireBetterSqlite3 } from '../utils/sqlite';
 
 /**
@@ -120,6 +120,7 @@ class SnapProcessor extends BaseProcessor {
   }
 
   async loadIntoTree(filePathOrBuffer: ProcessorInput): Promise<AACTree> {
+    const { writeBinaryToPath, removePath, mkTempDir, basename, join } = this.options.fileAdapter;
     await Promise.resolve();
     const tree = new AACTree();
     let dbResult: Awaited<ReturnType<typeof openSqliteDatabase>> | null = null;
@@ -130,14 +131,10 @@ class SnapProcessor extends BaseProcessor {
       let inputFile = filePathOrBuffer;
 
       if (typeof filePathOrBuffer === 'string') {
-        const fileName = getPath().basename(filePathOrBuffer).toLowerCase();
+        const fileName = basename(filePathOrBuffer).toLowerCase();
         if (fileName.endsWith('.sub.zip') || filePathOrBuffer.endsWith('.sub')) {
-          const fs = getFs();
-          const path = getPath();
-          const os = getOs();
-
           // Extract .sub.zip to find the embedded .sps file
-          const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'snap-sub-'));
+          const tempDir = mkTempDir('snap-sub-');
           const zip = await this.options.zipAdapter(filePathOrBuffer);
 
           // Find the .sps file in the archive
@@ -145,23 +142,26 @@ class SnapProcessor extends BaseProcessor {
           const spsFile = files.find((f) => f.endsWith('.sps'));
 
           if (!spsFile) {
-            fs.rmSync(tempDir, { recursive: true, force: true });
+            removePath(tempDir, { recursive: true, force: true });
             throw new Error('No .sps file found in .sub.zip archive');
           }
 
           // Extract the .sps file
           const spsData = await zip.readFile(spsFile);
-          const extractedSpsPath = path.join(tempDir, path.basename(spsFile));
-          fs.writeFileSync(extractedSpsPath, Buffer.from(spsData));
+          const extractedSpsPath = join(tempDir, basename(spsFile));
+          writeBinaryToPath(extractedSpsPath, Buffer.from(spsData));
 
           inputFile = extractedSpsPath;
           cleanupTempZip = () => {
-            fs.rmSync(tempDir, { recursive: true, force: true });
+            removePath(tempDir, { recursive: true, force: true });
           };
         }
       }
 
-      dbResult = await openSqliteDatabase(inputFile, { readonly: true });
+      dbResult = await openSqliteDatabase(inputFile, {
+        readonly: true,
+        fileAdapter: this.options.fileAdapter,
+      });
       const db = dbResult.db;
 
       const getTableColumns = (tableName: string): Set<string> => {
@@ -842,22 +842,22 @@ class SnapProcessor extends BaseProcessor {
     translations: Map<string, string>,
     outputPath: string
   ): Promise<Uint8Array> {
+    const { pathExists, mkDir, writeBinaryToPath, readBinaryFromInput, removePath, dirname } =
+      this.options.fileAdapter;
     if (!isNodeRuntime()) {
       throw new Error('processTexts is only supported in Node.js environments for Snap files.');
     }
-    const fs = getFs();
-    const path = getPath();
 
     if (typeof filePathOrBuffer === 'string') {
       const inputPath = filePathOrBuffer;
-      const outputDir = path.dirname(outputPath);
-      if (!fs.existsSync(outputDir)) {
-        fs.mkdirSync(outputDir, { recursive: true });
+      const outputDir = dirname(outputPath);
+      if (!pathExists(outputDir)) {
+        mkDir(outputDir, { recursive: true });
       }
-      if (fs.existsSync(outputPath)) {
-        fs.unlinkSync(outputPath);
+      if (pathExists(outputPath)) {
+        removePath(outputPath);
       }
-      fs.copyFileSync(inputPath, outputPath);
+      writeBinaryToPath(outputPath, readBinaryFromInput(inputPath));
 
       const Database = requireBetterSqlite3();
       const db = new Database(outputPath, { readonly: false });
@@ -930,7 +930,7 @@ class SnapProcessor extends BaseProcessor {
         db.close();
       }
 
-      return fs.readFileSync(outputPath);
+      return readBinaryFromInput(outputPath);
     }
 
     // Fallback for buffer inputs: rebuild from tree (may drop Snap assets)
@@ -961,22 +961,21 @@ class SnapProcessor extends BaseProcessor {
     });
 
     await this.saveFromTree(tree, outputPath);
-    return fs.readFileSync(outputPath);
+    return readBinaryFromInput(outputPath);
   }
 
   async saveFromTree(tree: AACTree, outputPath: string): Promise<void> {
+    const { pathExists, mkDir, removePath, dirname } = this.options.fileAdapter;
     if (!isNodeRuntime()) {
       throw new Error('saveFromTree is only supported in Node.js environments for Snap files.');
     }
     await Promise.resolve();
-    const fs = getFs();
-    const path = getPath();
-    const outputDir = path.dirname(outputPath);
-    if (!fs.existsSync(outputDir)) {
-      fs.mkdirSync(outputDir, { recursive: true });
+    const outputDir = dirname(outputPath);
+    if (!pathExists(outputDir)) {
+      mkDir(outputDir, { recursive: true });
     }
-    if (fs.existsSync(outputPath)) {
-      fs.unlinkSync(outputPath);
+    if (pathExists(outputPath)) {
+      removePath(outputPath);
     }
     // Create a new SQLite database for Snap format
     const Database = requireBetterSqlite3();
@@ -1341,12 +1340,12 @@ class SnapProcessor extends BaseProcessor {
     targetDbPath: string,
     audioMappings: Map<number, { audioData: Uint8Array; metadata?: string }>
   ): Promise<void> {
+    const { writeBinaryToPath, readBinaryFromInput } = this.options.fileAdapter;
     if (!isNodeRuntime()) {
       throw new Error('createAudioEnhancedPageset is only supported in Node.js environments.');
     }
-    const fs = getFs();
     // Copy the source database to target
-    fs.copyFileSync(sourceDbPath, targetDbPath);
+    writeBinaryToPath(targetDbPath, readBinaryFromInput(sourceDbPath));
 
     // Add audio recordings to the copy
     for (const [buttonId, audioInfo] of audioMappings.entries()) {
@@ -1437,7 +1436,7 @@ class SnapProcessor extends BaseProcessor {
    * @returns Promise with validation result
    */
   async validate(filePath: string): Promise<ValidationResult> {
-    return SnapValidator.validateFile(filePath);
+    return SnapValidator.validateFile(filePath, this.options.fileAdapter);
   }
 
   /**
@@ -1447,15 +1446,14 @@ class SnapProcessor extends BaseProcessor {
    * @returns Array of available PageLayouts with their dimensions
    */
   getAvailablePageLayouts(filePath: string): PageLayoutInfo[] {
+    const { writeBinaryToPath, removePath, pathExists, join } = this.options.fileAdapter;
     if (!isNodeRuntime()) {
       throw new Error('getAvailablePageLayouts is only supported in Node.js environments.');
     }
-    const fs = getFs();
-    const path = getPath();
-    const dbPath = typeof filePath === 'string' ? filePath : path.join(process.cwd(), 'temp.spb');
+    const dbPath = typeof filePath === 'string' ? filePath : join(process.cwd(), 'temp.spb');
 
     if (Buffer.isBuffer(filePath)) {
-      fs.writeFileSync(dbPath, filePath);
+      writeBinaryToPath(dbPath, filePath);
     }
 
     let db: any = null;
@@ -1511,9 +1509,9 @@ class SnapProcessor extends BaseProcessor {
       }
 
       // Clean up temporary file if created from buffer
-      if (Buffer.isBuffer(filePath) && fs.existsSync(dbPath)) {
+      if (Buffer.isBuffer(filePath) && pathExists(dbPath)) {
         try {
-          fs.unlinkSync(dbPath);
+          removePath(dbPath);
         } catch (e) {
           console.warn('Failed to clean up temporary file:', e);
         }

@@ -6,10 +6,10 @@ import { BaseValidator } from './baseValidator';
 import { ValidationResult } from './validationTypes';
 import {
   decodeText,
+  defaultFileAdapter,
+  FileAdapter,
   getBasename,
-  getFs,
   type ProcessorInput,
-  readBinaryFromInput,
   toUint8Array,
 } from '../utils/io';
 import { openSqliteDatabase } from '../utils/sqlite';
@@ -28,11 +28,15 @@ export class TouchChatValidator extends BaseValidator {
   /**
    * Validate a TouchChat file from disk
    */
-  static async validateFile(filePath: string): Promise<ValidationResult> {
+  static async validateFile(
+    filePath: string,
+    fileAdapter?: FileAdapter
+  ): Promise<ValidationResult> {
+    const { readBinaryFromInput, getFileSize } = fileAdapter ?? defaultFileAdapter;
     const validator = new TouchChatValidator();
     const content = readBinaryFromInput(filePath);
-    const stats = getFs().statSync(filePath);
-    return validator.validate(content, getBasename(filePath), stats.size);
+    const size = getFileSize(filePath);
+    return validator.validate(content, getBasename(filePath), size);
   }
 
   /**
@@ -41,6 +45,7 @@ export class TouchChatValidator extends BaseValidator {
   static async identifyFormat(
     content: any,
     filename: string,
+    fileAdapter: FileAdapter = defaultFileAdapter,
     zipAdapter?: (input: ProcessorInput) => Promise<ZipAdapter>
   ): Promise<boolean> {
     const name = filename.toLowerCase();
@@ -50,7 +55,9 @@ export class TouchChatValidator extends BaseValidator {
 
     // Try to parse as ZIP and check for .c4v database
     try {
-      const zip = zipAdapter ? await zipAdapter(content) : await getZipAdapter(content);
+      const zip = zipAdapter
+        ? await zipAdapter(content)
+        : await getZipAdapter(content, fileAdapter);
       const entries = zip.listFiles();
       if (entries.some((entry) => entry.toLowerCase().endsWith('.c4v'))) {
         return true;
@@ -88,7 +95,13 @@ export class TouchChatValidator extends BaseValidator {
     });
 
     const looksLikeXml = this.isXmlBuffer(content);
-    const zipped = looksLikeXml ? false : await this.tryValidateZipSqlite(content);
+    const zipped = looksLikeXml
+      ? false
+      : await this.tryValidateZipSqlite(
+          content,
+          this._options.fileAdapter,
+          this._options.zipAdapter
+        );
     if (!zipped) {
       let xmlObj: any = null;
       await this.add_check('xml_parse', 'valid XML', async () => {
@@ -305,11 +318,17 @@ export class TouchChatValidator extends BaseValidator {
     return bytes[start] === 0x3c; // '<'
   }
 
-  private async tryValidateZipSqlite(content: Buffer | Uint8Array): Promise<boolean> {
+  private async tryValidateZipSqlite(
+    content: Buffer | Uint8Array,
+    fileAdapter: FileAdapter = defaultFileAdapter,
+    zipAdapter?: (input: ProcessorInput) => Promise<ZipAdapter>
+  ): Promise<boolean> {
     let usedZip = false;
     await this.add_check('zip', 'TouchChat ZIP package', async () => {
       try {
-        const zip = await getZipAdapter(content);
+        const zip = zipAdapter
+          ? await zipAdapter(content)
+          : await getZipAdapter(content, fileAdapter);
         const entries = zip.listFiles();
         const vocabEntry = entries.find((name) => name.toLowerCase().endsWith('.c4v'));
         if (!vocabEntry) {
@@ -334,7 +353,10 @@ export class TouchChatValidator extends BaseValidator {
     await this.add_check('sqlite', 'valid TouchChat SQLite database', async () => {
       let cleanup: (() => void) | undefined;
       try {
-        const result = await openSqliteDatabase(content, { readonly: true });
+        const result = await openSqliteDatabase(content, {
+          readonly: true,
+          fileAdapter: this._options.fileAdapter,
+        });
         const db = result.db;
         cleanup = result.cleanup;
 

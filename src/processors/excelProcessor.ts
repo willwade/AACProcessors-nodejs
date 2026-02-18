@@ -1,5 +1,3 @@
-import fs from 'fs';
-import path from 'path';
 import { ProcessorInput } from '../utils/io';
 import * as ExcelJS from 'exceljs';
 import {
@@ -55,11 +53,12 @@ export class ExcelProcessor extends BaseProcessor {
     _translations: Map<string, string>,
     outputPath: string
   ): Promise<Uint8Array> {
+    const { dirname, pathExists, mkDir } = this.options.fileAdapter;
     await Promise.resolve();
     console.warn('ExcelProcessor.processTexts is not implemented yet.');
-    const outputDir = path.dirname(outputPath);
-    if (!fs.existsSync(outputDir)) {
-      fs.mkdirSync(outputDir, { recursive: true });
+    const outputDir = dirname(outputPath);
+    if (!pathExists(outputDir)) {
+      mkDir(outputDir, { recursive: true });
     }
     return Buffer.alloc(0);
   }
@@ -539,8 +538,9 @@ export class ExcelProcessor extends BaseProcessor {
    * Note: This method is async but maintains the sync interface for compatibility
    */
   async saveFromTree(tree: AACTree, outputPath: string): Promise<void> {
-    const outputDir = path.dirname(outputPath);
-    fs.mkdirSync(outputDir, { recursive: true });
+    const { mkDir, dirname, writeTextToPath } = this.options.fileAdapter;
+    const outputDir = dirname(outputPath);
+    mkDir(outputDir, { recursive: true });
 
     try {
       await this.saveFromTreeAsync(tree, outputPath);
@@ -549,8 +549,8 @@ export class ExcelProcessor extends BaseProcessor {
       console.error('Failed to save Excel file:', message);
       try {
         const fallbackPath = outputPath.replace(/\.xlsx$/i, '_error.txt');
-        fs.mkdirSync(path.dirname(fallbackPath), { recursive: true });
-        fs.writeFileSync(fallbackPath, `Error saving Excel file: ${message}`);
+        mkDir(dirname(fallbackPath), { recursive: true });
+        writeTextToPath(fallbackPath, `Error saving Excel file: ${message}`);
       } catch (writeError) {
         console.error('Failed to write Excel error file:', writeError);
       }

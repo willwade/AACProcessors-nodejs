@@ -13,7 +13,7 @@
  * This module provides symbol resolution and metadata extraction.
  */
 
-import { getFs, getPath, ProcessorInput } from '../../utils/io';
+import { defaultFileAdapter, FileAdapter, ProcessorInput } from '../../utils/io';
 import { getZipAdapter, ZipAdapter } from '../../utils/zip';
 
 /**
@@ -108,22 +108,6 @@ export interface SymbolResolutionResult {
  */
 export const DEFAULT_LOCALE = 'en-GB';
 
-function getNodeFs(): typeof import('fs') {
-  try {
-    return getFs();
-  } catch {
-    throw new Error('Symbol library access is not available in this environment.');
-  }
-}
-
-function getNodePath(): typeof import('path') {
-  try {
-    return getPath();
-  } catch {
-    throw new Error('Path utilities are not available in this environment.');
-  }
-}
-
 /**
  * Parse a symbol reference string
  * @param reference - Symbol reference like "[widgit]/food/apple.png"
@@ -167,15 +151,15 @@ export function isSymbolReference(reference: string): boolean {
  * Get the default Grid 3 installation path for the current platform
  * @returns Default Grid 3 path or empty string if not found
  */
-export function getDefaultGrid3Path(): string {
+export function getDefaultGrid3Path(fileAdapter?: FileAdapter): string {
+  const { pathExists } = fileAdapter ?? defaultFileAdapter;
   const platform = (
     typeof process !== 'undefined' && process.platform ? process.platform : 'unknown'
   ) as keyof typeof DEFAULT_GRID3_PATHS;
   const defaultPath = DEFAULT_GRID3_PATHS[platform] || '';
 
   try {
-    const fs = getNodeFs();
-    if (defaultPath && fs.existsSync(defaultPath)) {
+    if (defaultPath && pathExists(defaultPath)) {
       return defaultPath;
     }
 
@@ -189,7 +173,7 @@ export function getDefaultGrid3Path(): string {
     ];
 
     for (const testPath of commonPaths) {
-      if (fs.existsSync(testPath)) {
+      if (pathExists(testPath)) {
         return testPath;
       }
     }
@@ -206,9 +190,12 @@ export function getDefaultGrid3Path(): string {
  * @param grid3Path - Grid 3 installation path
  * @returns Path to Symbol Libraries directory (e.g., "C:\...\Grid 3\Resources\Symbols")
  */
-export function getSymbolLibrariesDir(grid3Path: string): string {
-  const path = getNodePath();
-  return path.join(grid3Path, SYMBOLS_SUBDIR);
+export function getSymbolLibrariesDir(
+  grid3Path: string,
+  fileAdapter: FileAdapter = defaultFileAdapter
+): string {
+  const { join } = fileAdapter;
+  return join(grid3Path, SYMBOLS_SUBDIR);
 }
 
 /**
@@ -220,10 +207,11 @@ export function getSymbolLibrariesDir(grid3Path: string): string {
  */
 export function getSymbolSearchIndexesDir(
   grid3Path: string,
-  locale: string = DEFAULT_LOCALE
+  locale: string = DEFAULT_LOCALE,
+  fileAdapter: FileAdapter = defaultFileAdapter
 ): string {
-  const path = getNodePath();
-  return path.join(grid3Path, SYMBOLSEARCH_SUBDIR, locale, 'symbolsearch');
+  const { join } = fileAdapter;
+  return join(grid3Path, SYMBOLSEARCH_SUBDIR, locale, 'symbolsearch');
 }
 
 /**
@@ -232,36 +220,36 @@ export function getSymbolSearchIndexesDir(
  * @returns Array of symbol library information
  */
 export function getAvailableSymbolLibraries(
-  options: SymbolResolutionOptions = {}
+  options: SymbolResolutionOptions = {},
+  fileAdapter?: FileAdapter
 ): SymbolLibraryInfo[] {
+  const { pathExists, getFileSize, listDir, join, basename } = fileAdapter ?? defaultFileAdapter;
   const grid3Path = options.grid3Path || options.symbolDir || getDefaultGrid3Path();
 
   if (!grid3Path) {
     return [];
   }
 
-  const symbolsDir = getSymbolLibrariesDir(grid3Path);
+  const symbolsDir = getSymbolLibrariesDir(grid3Path, fileAdapter);
 
-  const fs = getNodeFs();
-  if (!fs.existsSync(symbolsDir)) {
+  if (!pathExists(symbolsDir)) {
     return [];
   }
 
   const libraries: SymbolLibraryInfo[] = [];
-  const files = fs.readdirSync(symbolsDir);
+  const files = listDir(symbolsDir);
 
   for (const file of files) {
     if (file.endsWith('.symbols')) {
-      const path = getNodePath();
-      const fullPath = path.join(symbolsDir, file);
-      const stats = fs.statSync(fullPath);
-      const libraryName = path.basename(file, '.symbols');
+      const fullPath = join(symbolsDir, file);
+      const size = getFileSize(fullPath);
+      const libraryName = basename(file, '.symbols');
 
       libraries.push({
         name: libraryName,
         pixFile: fullPath, // Reuse this field for the .symbols file path
         exists: true,
-        size: stats.size,
+        size,
         locale: 'global', // .symbols files are not locale-specific
       });
     }
@@ -278,15 +266,17 @@ export function getAvailableSymbolLibraries(
  */
 export function getSymbolLibraryInfo(
   libraryName: string,
-  options: SymbolResolutionOptions = {}
+  options: SymbolResolutionOptions = {},
+  fileAdapter?: FileAdapter
 ): SymbolLibraryInfo | undefined {
+  const { pathExists, getFileSize, join } = fileAdapter ?? defaultFileAdapter;
   const grid3Path = options.grid3Path || options.symbolDir || getDefaultGrid3Path();
 
   if (!grid3Path) {
     return undefined;
   }
 
-  const symbolsDir = getSymbolLibrariesDir(grid3Path);
+  const symbolsDir = getSymbolLibrariesDir(grid3Path, fileAdapter);
   const normalizedLibName = libraryName.toLowerCase();
 
   // Try different case variations
@@ -297,16 +287,14 @@ export function getSymbolLibraryInfo(
   ];
 
   for (const file of variations) {
-    const path = getNodePath();
-    const fullPath = path.join(symbolsDir, file);
-    const fs = getNodeFs();
-    if (fs.existsSync(fullPath)) {
-      const stats = fs.statSync(fullPath);
+    const fullPath = join(symbolsDir, file);
+    if (pathExists(fullPath)) {
+      const size = getFileSize(fullPath);
       return {
         name: libraryName,
         pixFile: fullPath,
         exists: true,
-        size: stats.size,
+        size,
         locale: 'global',
       };
     }
@@ -324,6 +312,7 @@ export function getSymbolLibraryInfo(
 export async function resolveSymbolReference(
   reference: string,
   options: SymbolResolutionOptions = {},
+  fileAdapter: FileAdapter = defaultFileAdapter,
   zipAdapter?: (input: ProcessorInput) => Promise<ZipAdapter>
 ): Promise<SymbolResolutionResult> {
   const parsed = parseSymbolReference(reference);
@@ -359,7 +348,7 @@ export async function resolveSymbolReference(
   try {
     // .symbols files are ZIP archives
     const zipFile = libraryInfo.pixFile;
-    const zip = zipAdapter ? await zipAdapter(zipFile) : await getZipAdapter(zipFile);
+    const zip = zipAdapter ? await zipAdapter(zipFile) : await getZipAdapter(zipFile, fileAdapter);
 
     // The path in the symbol reference becomes the path within the symbols/ folder
     // e.g., [tawasl]/above bw.png becomes symbols/above bw.png
