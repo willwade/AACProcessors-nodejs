@@ -82,7 +82,14 @@ async function main() {
     .usage('<gridset> [options]')
     .argument('<gridset>', 'Path to .gridset file')
     .option('--page-name <substring>', 'Only update pages whose name includes this substring')
-    .option('--layout <layoutId>', 'Target keyboard layout id', 'ar-arabic-101')
+    .option('--all-letter-pages', 'Update all pages containing Action.Letter commands')
+    .option('--layout <layoutId>', 'Target keyboard layout id')
+    .option('--target-lang <code>', 'Pick target layout by language prefix (example: ar, en)')
+    .option(
+      '--target-layout-index <number>',
+      '1-based index when --target-lang returns multiple layouts'
+    )
+    .option('--list-target-layouts', 'List layouts matching --target-lang and exit')
     .option('--source-layout <layoutId>', 'Source keyboard layout id', 'en-us')
     .option('--output <path>', 'Output .gridset path (default: add -keyboard-replaced)')
     .option('--flip-keys-for-grid-rl', 'Mirror key positions before mapping')
@@ -97,27 +104,81 @@ async function main() {
     return;
   }
 
-  if (!options.pageName) {
-    console.error('Error: --page-name is required to avoid accidental global changes.');
+  if (!options.pageName && !options.allLetterPages) {
+    console.error('Error: provide --page-name <substring> or --all-letter-pages.');
     process.exit(1);
+  }
+
+  if (options.pageName && options.allLetterPages) {
+    console.log('Both --page-name and --all-letter-pages were provided; using --all-letter-pages.');
   }
 
   const outputPath =
     options.output || gridsetPath.replace(/\.gridset$/i, '-keyboard-replaced.gridset');
 
   let loadKeyboard;
+  let getAvailableLayouts;
   let extractLayers;
   try {
-    ({ loadKeyboard, extractLayers } = require('worldalphabets'));
+    ({ loadKeyboard, getAvailableLayouts, extractLayers } = require('worldalphabets'));
   } catch (error) {
     console.error('Missing dependency: worldalphabets');
     console.error('Install it for this script with: npm install --no-save worldalphabets');
     process.exit(1);
   }
 
+  let targetLayoutId = options.layout || null;
+  if (!targetLayoutId && options.targetLang) {
+    const languageCode = String(options.targetLang).trim().toLowerCase();
+    const layouts = await getAvailableLayouts();
+    const matchingLayouts = layouts
+      .filter((id) => typeof id === 'string')
+      .filter((id) => id.toLowerCase().startsWith(`${languageCode}-`))
+      .sort((a, b) => a.localeCompare(b));
+
+    if (matchingLayouts.length === 0) {
+      console.error(`No keyboard layouts found for --target-lang ${languageCode}`);
+      process.exit(1);
+    }
+
+    if (options.listTargetLayouts) {
+      console.log(`Layouts for ${languageCode}:`);
+      matchingLayouts.forEach((layoutId, index) => {
+        console.log(`${index + 1}. ${layoutId}`);
+      });
+      return;
+    }
+
+    if (options.targetLayoutIndex !== undefined) {
+      const parsedIndex = parseInt(String(options.targetLayoutIndex), 10);
+      if (Number.isNaN(parsedIndex) || parsedIndex < 1 || parsedIndex > matchingLayouts.length) {
+        console.error(
+          `Invalid --target-layout-index ${options.targetLayoutIndex}. Valid range: 1-${matchingLayouts.length}`
+        );
+        process.exit(1);
+      }
+      targetLayoutId = matchingLayouts[parsedIndex - 1];
+    } else {
+      targetLayoutId = matchingLayouts[0];
+      console.log(
+        `Using first layout for ${languageCode}: ${targetLayoutId} (use --target-layout-index to select another)`
+      );
+    }
+  } else if (targetLayoutId && options.targetLang) {
+    console.log('Both --layout and --target-lang were provided; using --layout.');
+  } else if (options.listTargetLayouts) {
+    console.error('Error: --list-target-layouts requires --target-lang.');
+    process.exit(1);
+  }
+
+  if (!targetLayoutId) {
+    targetLayoutId = 'ar-arabic-101';
+    console.log(`No target layout provided. Using default: ${targetLayoutId}`);
+  }
+
   console.log('Loading layouts...');
   const sourceLayout = await loadKeyboard(options.sourceLayout);
-  const targetLayout = await loadKeyboard(options.layout);
+  const targetLayout = await loadKeyboard(targetLayoutId);
   const { layers: sourceLayers, charToCodes } = buildLayerMaps(sourceLayout, extractLayers);
   const { layers: targetLayers } = buildLayerMaps(targetLayout, extractLayers);
   const positionMap = buildPositionMap(sourceLayout);
@@ -125,11 +186,17 @@ async function main() {
   console.log('Loading gridset...');
   const zip = new AdmZip(gridsetPath);
   const entries = zip.getEntries();
-  const nameFilter = String(options.pageName).toLowerCase();
+  const useAllLetterPages = Boolean(options.allLetterPages);
+  const nameFilter = useAllLetterPages ? '' : String(options.pageName).toLowerCase();
   const parser = new XMLParser({ ignoreAttributes: false });
-  const builder = new XMLBuilder({ ignoreAttributes: false, suppressEmptyNode: true });
+  const builder = new XMLBuilder({
+    ignoreAttributes: false,
+    suppressEmptyNode: true,
+    suppressBooleanAttributes: false
+  });
 
   let pagesMatched = 0;
+  let pagesWithLetterButtons = 0;
   let buttonsUpdated = 0;
   let buttonsSkipped = 0;
 
@@ -137,7 +204,7 @@ async function main() {
     if (entry.isDirectory) continue;
     if (!entry.entryName.startsWith('Grids/') || !entry.entryName.endsWith('/grid.xml')) continue;
     const pageName = entry.entryName.slice('Grids/'.length, -'/grid.xml'.length);
-    if (!pageName.toLowerCase().includes(nameFilter)) continue;
+    if (!useAllLetterPages && !pageName.toLowerCase().includes(nameFilter)) continue;
 
     pagesMatched += 1;
 
@@ -154,6 +221,7 @@ async function main() {
     }
 
     let gridUpdated = 0;
+    let gridHasLetterButtons = false;
 
     for (const cell of cells) {
       const content = cell.Content || cell.content;
@@ -171,7 +239,7 @@ async function main() {
       }
       if (!targetCommand) continue;
 
-      const params = asArray(targetCommand.Parameter);
+      const params = asArray(targetCommand.Parameter || targetCommand.parameter);
       let letterParam = null;
       for (const param of params) {
         const key = String(getAttr(param, ['@_Key', '@_key']) || '').toLowerCase();
@@ -181,6 +249,7 @@ async function main() {
         }
       }
       if (!letterParam) continue;
+      gridHasLetterButtons = true;
 
       const original = normalizeChar(getAttr(letterParam, ['#text']) || '');
       if (!original || original.length !== 1) {
@@ -228,6 +297,8 @@ async function main() {
       buttonsUpdated += 1;
     }
 
+    if (gridHasLetterButtons) pagesWithLetterButtons += 1;
+
     if (gridUpdated > 0) {
       const rebuilt = builder.build(parsed);
       zip.updateFile(entry.entryName, Buffer.from(rebuilt, 'utf8'));
@@ -235,6 +306,7 @@ async function main() {
   }
 
   console.log(`Pages matched: ${pagesMatched}`);
+  console.log(`Pages with Action.Letter buttons: ${pagesWithLetterButtons}`);
   console.log(`Buttons updated: ${buttonsUpdated}`);
   console.log(`Buttons skipped: ${buttonsSkipped}`);
 
