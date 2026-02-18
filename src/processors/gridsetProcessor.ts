@@ -38,15 +38,8 @@ import { type SymbolReference, parseSymbolReference } from './gridset/symbols';
 import { isSymbolLibraryReference } from './gridset/resolver';
 import { generateCloneId } from '../utilities/analytics/utils/idGenerator';
 import { translateWithSymbols, extractSymbolsFromButton } from './gridset/symbolAlignment';
-import {
-  ProcessorInput,
-  readBinaryFromInput,
-  decodeText,
-  writeBinaryToPath,
-  getNodeRequire,
-  isNodeRuntime,
-} from '../utils/io';
-import { openZipFromInput } from '../utils/zip';
+import { ProcessorInput, readBinaryFromInput, decodeText, writeBinaryToPath } from '../utils/io';
+import { ZipFile } from '../utils/zip';
 
 class GridsetProcessor extends BaseProcessor {
   constructor(options?: ProcessorOptions) {
@@ -448,17 +441,15 @@ class GridsetProcessor extends BaseProcessor {
   async loadIntoTree(filePathOrBuffer: ProcessorInput): Promise<AACTree> {
     const tree = new AACTree();
 
-    let zipResult: Awaited<ReturnType<typeof openZipFromInput>>;
+    let zipResult: Awaited<ReturnType<typeof this.options.zipAdapter>>;
     try {
       const zipInput = readBinaryFromInput(filePathOrBuffer);
-      zipResult = this.options.zipAdapter
-        ? await this.options.zipAdapter(zipInput)
-        : await openZipFromInput(zipInput);
+      zipResult = await this.options.zipAdapter(zipInput);
     } catch (error: any) {
       throw new Error(`Invalid ZIP file format: ${error.message}`);
     }
     const password = this.getGridsetPassword(filePathOrBuffer);
-    const entries = getZipEntriesFromAdapter(zipResult.zip, password);
+    const entries = getZipEntriesFromAdapter(zipResult, password);
     const options = {
       ignoreAttributes: false,
       ignoreDeclaration: true,
@@ -2061,37 +2052,12 @@ class GridsetProcessor extends BaseProcessor {
   }
 
   async saveFromTree(tree: AACTree, outputPath: string): Promise<void> {
-    const useNodeZip = isNodeRuntime();
-    let addText: (entryPath: string, content: string) => void;
-    let addBinary: (entryPath: string, content: Uint8Array) => void;
-    let finalizeZip: () => Promise<Uint8Array>;
-
-    if (useNodeZip) {
-      const AdmZip = getNodeRequire()('adm-zip') as typeof import('adm-zip');
-      const zip = new AdmZip();
-      addText = (entryPath: string, content: string) => {
-        zip.addFile(entryPath, Buffer.from(content, 'utf8'));
-      };
-      addBinary = (entryPath: string, content: Uint8Array) => {
-        zip.addFile(entryPath, Buffer.from(content));
-      };
-      finalizeZip = () => Promise.resolve(zip.toBuffer());
-    } else {
-      const module = await import('jszip');
-      const JSZip = module.default || module;
-      const zip = new JSZip();
-      addText = (entryPath: string, content: string) => {
-        zip.file(entryPath, content, { binary: false });
-      };
-      addBinary = (entryPath: string, content: Uint8Array) => {
-        zip.file(entryPath, content);
-      };
-      finalizeZip = async () => zip.generateAsync({ type: 'uint8array' });
-    }
+    const files: ZipFile[] = [];
+    const adapter = await this.options.zipAdapter();
 
     if (Object.keys(tree.pages).length === 0) {
       // Create empty zip for empty tree
-      const zipBuffer = await finalizeZip();
+      const zipBuffer = await adapter.writeFiles([]);
       writeBinaryToPath(outputPath, zipBuffer);
       return;
     }
@@ -2175,7 +2141,10 @@ class GridsetProcessor extends BaseProcessor {
       suppressEmptyNode: true,
     });
     const settingsXmlContent = settingsBuilder.build(settingsData);
-    addText('Settings0/settings.xml', settingsXmlContent);
+    files.push({
+      name: 'Settings0/settings.xml',
+      data: settingsXmlContent,
+    });
 
     // Create Settings0/Styles/style.xml if there are styles
     if (uniqueStyles.size > 0) {
@@ -2213,7 +2182,10 @@ class GridsetProcessor extends BaseProcessor {
         indentBy: '  ',
       });
       const styleXmlContent = styleBuilder.build(styleData);
-      addText('Settings0/Styles/styles.xml', styleXmlContent);
+      files.push({
+        name: 'Settings0/Styles/styles.xml',
+        data: styleXmlContent,
+      });
     }
 
     // Collect grid file paths for FileMap.xml
@@ -2382,7 +2354,10 @@ class GridsetProcessor extends BaseProcessor {
       // Add to zip in Grids folder with proper Grid3 naming
       const gridPath = `Grids/${page.name || page.id}/grid.xml`;
       gridFilePaths.push(gridPath);
-      addText(gridPath, xmlContent);
+      files.push({
+        name: gridPath,
+        data: xmlContent,
+      });
     });
 
     // Write image files to ZIP
@@ -2390,7 +2365,10 @@ class GridsetProcessor extends BaseProcessor {
       if (imgData.imageData && imgData.imageData.length > 0) {
         // Create image path in the grid's directory
         const imagePath = `Grids/${imgData.pageName}/${imgData.x}-${imgData.y}-0-text-0.${imgData.ext}`;
-        addBinary(imagePath, imgData.imageData);
+        files.push({
+          name: imagePath,
+          data: imgData.imageData,
+        });
       }
     });
 
@@ -2434,10 +2412,13 @@ class GridsetProcessor extends BaseProcessor {
       indentBy: '  ',
     });
     const fileMapXmlContent = fileMapBuilder.build(fileMapData);
-    addText('FileMap.xml', fileMapXmlContent);
+    files.push({
+      name: 'FileMap.xml',
+      data: fileMapXmlContent,
+    });
 
     // Write the zip file
-    const zipBuffer = await finalizeZip();
+    const zipBuffer = await adapter.writeFiles(files);
     writeBinaryToPath(outputPath, zipBuffer);
   }
 

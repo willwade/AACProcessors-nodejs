@@ -1,7 +1,7 @@
 import type JSZip from 'jszip';
 import { ProcessorOptions } from '../../core/baseProcessor';
 import { ProcessorInput } from '../../utils/io';
-import { type ZipAdapter } from '../../utils/zip';
+import { ZipAdapter } from '../../utils/zip';
 
 function getExtension(source: string): string {
   const index = source.lastIndexOf('.');

@@ -29,10 +29,8 @@ import {
   writeTextToPath,
   encodeBase64,
   decodeText,
-  getNodeRequire,
-  isNodeRuntime,
 } from '../utils/io';
-import { openZipFromInput, type ZipAdapter } from '../utils/zip';
+import { getZipAdapter, ZipAdapter } from '../utils/zip';
 
 const OBF_FORMAT_VERSION = 'open-board-0.1';
 
@@ -503,10 +501,7 @@ class ObfProcessor extends BaseProcessor {
     }
 
     try {
-      const zipResult = this.options.zipAdapter
-        ? await this.options.zipAdapter(filePathOrBuffer)
-        : await openZipFromInput(filePathOrBuffer);
-      this.zipFile = zipResult.zip;
+      this.zipFile = await this.options.zipAdapter(filePathOrBuffer);
     } catch (err) {
       console.error('[OBF] Error loading ZIP:', err);
       throw err;
@@ -735,35 +730,18 @@ class ObfProcessor extends BaseProcessor {
       const obfBoard = this.createObfBoardFromPage(rootPage, 'Exported Board', tree.metadata);
       writeTextToPath(outputPath, JSON.stringify(obfBoard, null, 2));
     } else {
-      // Save as OBZ (zip with multiple OBF files)
-      if (isNodeRuntime()) {
-        const AdmZip = getNodeRequire()('adm-zip') as typeof import('adm-zip');
-        const zip = new AdmZip();
-
-        Object.values(tree.pages).forEach((page) => {
-          const obfBoard = this.createObfBoardFromPage(page, 'Board', tree.metadata);
-          const obfContent = JSON.stringify(obfBoard, null, 2);
-          zip.addFile(`${page.id}.obf`, Buffer.from(obfContent, 'utf8'));
-        });
-
-        const zipBuffer = zip.toBuffer();
-        const { writeBinaryToPath } = await import('../utils/io');
-        writeBinaryToPath(outputPath, zipBuffer);
-      } else {
-        const module = await import('jszip');
-        const JSZip = module.default || module;
-        const zip = new JSZip();
-
-        Object.values(tree.pages).forEach((page) => {
-          const obfBoard = this.createObfBoardFromPage(page, 'Board', tree.metadata);
-          const obfContent = JSON.stringify(obfBoard, null, 2);
-          zip.file(`${page.id}.obf`, obfContent);
-        });
-
-        const zipBuffer = await zip.generateAsync({ type: 'uint8array' });
-        const { writeBinaryToPath } = await import('../utils/io');
-        writeBinaryToPath(outputPath, zipBuffer);
-      }
+      const files = Object.values(tree.pages).map((page) => {
+        const obfBoard = this.createObfBoardFromPage(page, 'Board', tree.metadata);
+        const obfContent = JSON.stringify(obfBoard, null, 2);
+        return {
+          name: `${page.id}.obf`,
+          data: Buffer.from(obfContent, 'utf8'),
+        };
+      });
+      const zip = await getZipAdapter();
+      const zipData = await zip.writeFiles(files);
+      const { writeBinaryToPath } = await import('../utils/io');
+      writeBinaryToPath(outputPath, zipData);
     }
   }
 

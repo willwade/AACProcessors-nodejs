@@ -13,8 +13,9 @@
  */
 
 import * as fs from 'fs';
-import AdmZip from 'adm-zip';
 import { resolveSymbolReference, parseSymbolReference, type SymbolReference } from './symbols';
+import { ProcessorInput } from '../../utils/io';
+import { getZipAdapter, ZipAdapter } from '../../utils/zip';
 
 /**
  * Image extraction result
@@ -88,21 +89,22 @@ const OPEN_LICENSE_SYMBOLS: {
  * @param options - Extraction options
  * @returns Extracted image data
  */
-export function extractButtonImage(
+export async function extractButtonImage(
   gridsetBuffer: Buffer,
   resolvedImageEntry: string | undefined,
   symbolReference: string | undefined,
-  options: SymbolExtractionOptions = {}
-): ExtractedImage {
+  options: SymbolExtractionOptions = {},
+  zipAdapter: (input: ProcessorInput) => Promise<ZipAdapter>
+): Promise<ExtractedImage> {
   // Priority 1: Use embedded image if available
   if (resolvedImageEntry && options.preferEmbedded !== false) {
     try {
-      const zip = new AdmZip(gridsetBuffer);
-      const entries = zip.getEntries();
-      const entry = entries.find((e: any) => e.entryName === resolvedImageEntry);
+      const zip = zipAdapter ? await zipAdapter(gridsetBuffer) : await getZipAdapter(gridsetBuffer);
+      const entries = zip.listFiles();
+      const entry = entries.find((e) => e === resolvedImageEntry);
 
       if (entry) {
-        const data = entry.getData();
+        const data = Buffer.from(await zip.readFile(entry));
         const format = detectImageFormat(data);
         return {
           found: true,
@@ -119,7 +121,7 @@ export function extractButtonImage(
 
   // Priority 2: Check symbol library reference
   if (symbolReference) {
-    return extractSymbolLibraryImage(symbolReference, options);
+    return await extractSymbolLibraryImage(symbolReference, options);
   }
 
   // Not found
@@ -135,10 +137,10 @@ export function extractButtonImage(
  * @param options - Extraction options
  * @returns Extracted image or reference info
  */
-export function extractSymbolLibraryImage(
+export async function extractSymbolLibraryImage(
   reference: string,
   options: SymbolExtractionOptions = {}
-): ExtractedImage {
+): Promise<ExtractedImage> {
   const ref = parseSymbolReferenceSafe(reference);
 
   if (!ref || !ref.isValid) {
@@ -153,7 +155,7 @@ export function extractSymbolLibraryImage(
   const libInfo = OPEN_LICENSE_SYMBOLS[ref.library as keyof typeof OPEN_LICENSE_SYMBOLS];
 
   // Resolve symbol reference and extract from .symbols file
-  const resolved = resolveSymbolReference(reference, {
+  const resolved = await resolveSymbolReference(reference, {
     grid3Path: options.grid3Path,
   });
 

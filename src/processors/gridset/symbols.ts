@@ -13,7 +13,8 @@
  * This module provides symbol resolution and metadata extraction.
  */
 
-import { getFs, getNodeRequire, getPath } from '../../utils/io';
+import { getFs, getPath, ProcessorInput } from '../../utils/io';
+import { getZipAdapter, ZipAdapter } from '../../utils/zip';
 
 /**
  * Default Grid 3 installation paths by platform
@@ -120,23 +121,6 @@ function getNodePath(): typeof import('path') {
     return getPath();
   } catch {
     throw new Error('Path utilities are not available in this environment.');
-  }
-}
-
-let cachedAdmZip: typeof import('adm-zip') | null = null;
-function getAdmZip(): typeof import('adm-zip') {
-  if (cachedAdmZip) return cachedAdmZip;
-  try {
-    const nodeRequire = getNodeRequire();
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const module = nodeRequire('adm-zip') as typeof import('adm-zip') & {
-      default?: typeof import('adm-zip');
-    };
-    const resolved = module.default || module;
-    cachedAdmZip = resolved;
-    return resolved;
-  } catch {
-    throw new Error('Symbol library access requires AdmZip in this environment.');
   }
 }
 
@@ -337,10 +321,11 @@ export function getSymbolLibraryInfo(
  * @param options - Resolution options
  * @returns Resolution result with image data if found
  */
-export function resolveSymbolReference(
+export async function resolveSymbolReference(
   reference: string,
-  options: SymbolResolutionOptions = {}
-): SymbolResolutionResult {
+  options: SymbolResolutionOptions = {},
+  zipAdapter?: (input: ProcessorInput) => Promise<ZipAdapter>
+): Promise<SymbolResolutionResult> {
   const parsed = parseSymbolReference(reference);
 
   if (!parsed.isValid) {
@@ -373,19 +358,19 @@ export function resolveSymbolReference(
 
   try {
     // .symbols files are ZIP archives
-    const AdmZip = getAdmZip();
-    const zip = new AdmZip(libraryInfo.pixFile);
+    const zipFile = libraryInfo.pixFile;
+    const zip = zipAdapter ? await zipAdapter(zipFile) : await getZipAdapter(zipFile);
 
     // The path in the symbol reference becomes the path within the symbols/ folder
     // e.g., [tawasl]/above bw.png becomes symbols/above bw.png
     const symbolPath = `symbols/${parsed.path}`;
 
-    const entry = zip.getEntry(symbolPath);
+    const entry = await zip.readFile(symbolPath);
 
     if (!entry) {
       // Try without the symbols/ prefix (in case reference already includes it)
       const altPath = parsed.path.startsWith('symbols/') ? parsed.path : `symbols/${parsed.path}`;
-      const altEntry = zip.getEntry(altPath);
+      const altEntry = await zip.readFile(altPath);
 
       if (!altEntry) {
         return {
@@ -398,7 +383,7 @@ export function resolveSymbolReference(
       }
 
       // Found with alternate path
-      const data = altEntry.getData();
+      const data = Buffer.from(altEntry);
       return {
         reference: parsed,
         found: true,
@@ -409,7 +394,7 @@ export function resolveSymbolReference(
     }
 
     // Found the symbol!
-    const data = entry.getData();
+    const data = Buffer.from(entry);
     return {
       reference: parsed,
       found: true,

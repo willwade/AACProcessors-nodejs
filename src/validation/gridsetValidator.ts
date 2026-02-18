@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/require-await */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
-import JSZip from 'jszip';
 import * as xml2js from 'xml2js';
 import { BaseValidator } from './baseValidator';
 import { ValidationResult } from './validationTypes';
@@ -134,24 +133,17 @@ export class GridsetValidator extends BaseValidator {
     filename: string,
     _filesize: number
   ): Promise<void> {
-    let zip: JSZip;
-    try {
-      zip = await JSZip.loadAsync(toUint8Array(content));
-    } catch (e: any) {
-      this.err(`Failed to open ZIP archive: ${e.message}`, true);
-      return;
-    }
-
-    const entries = Object.values(zip.files).filter((entry) => !entry.dir);
+    const zip = await this._options.zipAdapter(content);
+    const entries = zip.listFiles();
 
     // Check for gridset.xml (required)
     await this.add_check('gridset_xml_presence', 'gridset.xml presence', async () => {
-      const gridsetEntry = entries.find((e) => e.name.toLowerCase() === 'gridset.xml');
+      const gridsetEntry = entries.find((e) => e.toLowerCase() === 'gridset.xml');
       if (!gridsetEntry) {
         this.err('Missing gridset.xml in archive', true);
       } else {
         try {
-          const gridsetXml = await gridsetEntry.async('string');
+          const gridsetXml = await zip.readFile(gridsetEntry);
           const parser = new xml2js.Parser();
           const xmlObj = await parser.parseStringPromise(gridsetXml);
           const gridset = xmlObj.gridset || xmlObj.Gridset;
@@ -168,12 +160,12 @@ export class GridsetValidator extends BaseValidator {
 
     // Check for settings.xml (highly recommended/required for metadata)
     await this.add_check('settings_xml_presence', 'settings.xml presence', async () => {
-      const settingsEntry = entries.find((e) => e.name.toLowerCase() === 'settings.xml');
+      const settingsEntry = entries.find((e) => e.toLowerCase() === 'settings.xml');
       if (!settingsEntry) {
         this.warn('Missing settings.xml in archive (required for full metadata)');
       } else {
         try {
-          const settingsXml = await settingsEntry.async('string');
+          const settingsXml = await zip.readFile(settingsEntry);
           const parser = new xml2js.Parser();
           const xmlObj = await parser.parseStringPromise(settingsXml);
           const settings =

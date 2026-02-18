@@ -2,7 +2,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import AdmZip from 'adm-zip';
-import { openZipFromInput } from '../../src/utils/zip';
+import { getZipAdapter } from '../../src/utils/zip';
 
 function createTempDir(prefix: string): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), prefix));
@@ -14,7 +14,7 @@ describe('zip adapter (Node)', () => {
     zip.addFile('foo.txt', Buffer.from('hello', 'utf8'));
 
     const buffer = zip.toBuffer();
-    const { zip: adapter } = await openZipFromInput(new Uint8Array(buffer));
+    const adapter = await getZipAdapter(new Uint8Array(buffer));
 
     expect(adapter.listFiles()).toContain('foo.txt');
     const contents = await adapter.readFile('foo.txt');
@@ -29,7 +29,7 @@ describe('zip adapter (Node)', () => {
       zip.addFile('bar.txt', Buffer.from('world', 'utf8'));
       zip.writeZip(zipPath);
 
-      const { zip: adapter } = await openZipFromInput(zipPath);
+      const adapter = await getZipAdapter(zipPath);
       expect(adapter.listFiles()).toContain('bar.txt');
       const contents = await adapter.readFile('bar.txt');
       expect(Buffer.from(contents).toString('utf8')).toBe('world');
