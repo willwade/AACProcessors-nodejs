@@ -121,7 +121,7 @@ describe('Grid3 Path Discovery', () => {
       );
       mockFs.existsSync.mockReturnValue(false);
 
-      const result = findGrid3UserPaths();
+      const result = await findGrid3UserPaths();
 
       expect(result).toEqual([]);
     });
@@ -132,7 +132,7 @@ describe('Grid3 Path Discovery', () => {
         configurable: true,
       });
 
-      const result = findGrid3UserPaths();
+      const result = await findGrid3UserPaths();
 
       expect(result).toEqual([]);
       expect(mockFs.existsSync).not.toHaveBeenCalled();
@@ -280,7 +280,7 @@ describe('Snap Path Discovery', () => {
     it('should return empty array if Packages directory does not exist', async () => {
       mockFs.existsSync.mockReturnValue(false);
 
-      const result = findSnapPackagesFromSnap();
+      const result = await findSnapPackagesFromSnap();
 
       expect(result).toEqual([]);
     });
@@ -288,7 +288,7 @@ describe('Snap Path Discovery', () => {
     it('should return empty array if LOCALAPPDATA is not set', async () => {
       delete process.env.LOCALAPPDATA;
 
-      const result = findSnapPackagesFromSnap();
+      const result = await findSnapPackagesFromSnap();
 
       expect(result).toEqual([]);
       expect(mockFs.existsSync).not.toHaveBeenCalled();
@@ -300,7 +300,7 @@ describe('Snap Path Discovery', () => {
         configurable: true,
       });
 
-      const result = findSnapPackagesFromSnap();
+      const result = await findSnapPackagesFromSnap();
 
       expect(result).toEqual([]);
       expect(mockFs.existsSync).not.toHaveBeenCalled();
@@ -323,7 +323,7 @@ describe('Snap Path Discovery', () => {
       mockFs.existsSync.mockReturnValue(true);
       mockFs.readdirSync.mockReturnValue([] as any);
 
-      const result = findSnapPackagePathFromSnap();
+      const result = await findSnapPackagePathFromSnap();
 
       expect(result).toBeNull();
     });
