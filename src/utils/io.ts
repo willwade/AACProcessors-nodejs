@@ -49,7 +49,7 @@ function getFs(): typeof import('node:fs/promises') {
   if (!cachedFs) {
     try {
       const nodeRequire = getNodeRequire();
-      const fsModule = 'fs';
+      const fsModule = 'node:fs/promises';
       cachedFs = nodeRequire(fsModule);
     } catch {
       throw new Error('File system access is not available in this environment.');
