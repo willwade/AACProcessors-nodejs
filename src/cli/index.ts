@@ -242,7 +242,7 @@ program
         const filteringOptions = parseFilteringOptions(options);
 
         // Auto-detect input format
-        const inputFormat = input;
+        const inputFormat = (await detectFormat(input));
         const inputProcessor = getProcessor(inputFormat, filteringOptions);
 
         // Load the tree (handle both files and folders)
