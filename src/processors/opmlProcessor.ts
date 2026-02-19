@@ -90,7 +90,7 @@ class OpmlProcessor extends BaseProcessor {
   async extractTexts(filePathOrBuffer: ProcessorInput): Promise<string[]> {
     const { readTextFromInput } = this.options.fileAdapter;
     await Promise.resolve();
-    const content = readTextFromInput(filePathOrBuffer);
+    const content = await readTextFromInput(filePathOrBuffer);
 
     const parser = new XMLParser({ ignoreAttributes: false });
     const data = parser.parse(content) as OpmlDocument;
@@ -130,8 +130,8 @@ class OpmlProcessor extends BaseProcessor {
     await Promise.resolve();
     const filename =
       typeof filePathOrBuffer === 'string' ? getBasename(filePathOrBuffer) : 'upload.opml';
-    const buffer = readBinaryFromInput(filePathOrBuffer);
-    const content = readTextFromInput(buffer);
+    const buffer = await readBinaryFromInput(filePathOrBuffer);
+    const content = await readTextFromInput(buffer);
 
     try {
       if (!content || !content.trim()) {
@@ -222,7 +222,7 @@ class OpmlProcessor extends BaseProcessor {
   ): Promise<Uint8Array> {
     const { writeBinaryToPath, readTextFromInput } = this.options.fileAdapter;
     await Promise.resolve();
-    const content = readTextFromInput(filePathOrBuffer);
+    const content = await readTextFromInput(filePathOrBuffer);
 
     let translatedContent = content;
 
@@ -239,7 +239,7 @@ class OpmlProcessor extends BaseProcessor {
     });
 
     const resultBuffer = encodeText(translatedContent);
-    writeBinaryToPath(outputPath, resultBuffer);
+    await writeBinaryToPath(outputPath, resultBuffer);
     return resultBuffer;
   }
 
@@ -321,7 +321,7 @@ class OpmlProcessor extends BaseProcessor {
       attributeNamePrefix: '@_',
     });
     const xml = '<?xml version="1.0" encoding="UTF-8"?>\n' + builder.build(opmlObj);
-    writeTextToPath(outputPath, xml);
+    await writeTextToPath(outputPath, xml);
   }
 
   /**

@@ -742,7 +742,7 @@ class AstericsGridProcessor extends BaseProcessor {
     }
 
     // Also extract texts from the raw file for comprehensive coverage
-    const rawTexts = this.extractRawTexts(filePathOrBuffer);
+    const rawTexts = await this.extractRawTexts(filePathOrBuffer);
     rawTexts.forEach((text) => {
       if (text && !texts.includes(text)) {
         texts.push(text);
@@ -752,9 +752,9 @@ class AstericsGridProcessor extends BaseProcessor {
     return texts;
   }
 
-  private extractRawTexts(filePathOrBuffer: ProcessorInput): string[] {
+  private async extractRawTexts(filePathOrBuffer: ProcessorInput): Promise<string[]> {
     const { readTextFromInput } = this.options.fileAdapter;
-    let content = readTextFromInput(filePathOrBuffer);
+    let content = await readTextFromInput(filePathOrBuffer);
 
     // Remove BOM if present
     if (content.charCodeAt(0) === 0xfeff) {
@@ -845,10 +845,10 @@ class AstericsGridProcessor extends BaseProcessor {
     const tree = new AACTree();
     const filename =
       typeof filePathOrBuffer === 'string' ? getBasename(filePathOrBuffer) : 'upload.grd';
-    const buffer = readBinaryFromInput(filePathOrBuffer);
+    const buffer = await readBinaryFromInput(filePathOrBuffer);
 
     try {
-      let content = readTextFromInput(buffer);
+      let content = await readTextFromInput(buffer);
 
       // Remove BOM if present
       if (content.charCodeAt(0) === 0xfeff) {
@@ -1308,7 +1308,7 @@ class AstericsGridProcessor extends BaseProcessor {
   ): Promise<Uint8Array> {
     const { readTextFromInput, readBinaryFromInput, writeTextToPath } = this.options.fileAdapter;
     await Promise.resolve();
-    let content = readTextFromInput(filePathOrBuffer);
+    let content = await readTextFromInput(filePathOrBuffer);
 
     // Remove BOM if present
     if (content.charCodeAt(0) === 0xfeff) {
@@ -1321,8 +1321,8 @@ class AstericsGridProcessor extends BaseProcessor {
     this.applyTranslationsToGridFile(grdFile, translations);
 
     // Write the translated file
-    writeTextToPath(outputPath, JSON.stringify(grdFile, null, 2));
-    return readBinaryFromInput(outputPath);
+    await writeTextToPath(outputPath, JSON.stringify(grdFile, null, 2));
+    return await readBinaryFromInput(outputPath);
   }
 
   private applyTranslationsToGridFile(
@@ -1653,20 +1653,20 @@ class AstericsGridProcessor extends BaseProcessor {
       },
     };
 
-    writeTextToPath(outputPath, JSON.stringify(grdFile, null, 2));
+    await writeTextToPath(outputPath, JSON.stringify(grdFile, null, 2));
   }
 
   /**
    * Add audio recording to a specific grid element
    */
-  addAudioToElement(
+  async addAudioToElement(
     filePath: string,
     elementId: string,
     audioData: Buffer,
     metadata?: string
-  ): void {
+  ): Promise<void> {
     const { readTextFromInput, writeTextToPath } = this.options.fileAdapter;
-    let content = readTextFromInput(filePath);
+    let content = await readTextFromInput(filePath);
 
     // Remove BOM if present
     if (content.charCodeAt(0) === 0xfeff) {
@@ -1717,38 +1717,46 @@ class AstericsGridProcessor extends BaseProcessor {
     }
 
     // Write back to file
-    writeTextToPath(filePath, JSON.stringify(grdFile, null, 2));
+    await writeTextToPath(filePath, JSON.stringify(grdFile, null, 2));
   }
 
   /**
    * Create a copy of the grid file with audio recordings added
    */
-  createAudioEnhancedGridFile(
+  async createAudioEnhancedGridFile(
     sourceFilePath: string,
     targetFilePath: string,
     audioMappings: Map<string, { audioData: Buffer; metadata?: string }>
-  ): void {
+  ): Promise<void> {
     const { writeBinaryToPath, readBinaryFromInput } = this.options.fileAdapter;
     // Copy the source file to target
-    writeBinaryToPath(targetFilePath, readBinaryFromInput(sourceFilePath));
+    await writeBinaryToPath(targetFilePath, await readBinaryFromInput(sourceFilePath));
 
     // Add audio recordings to the copy
-    audioMappings.forEach((audioInfo, elementId) => {
-      try {
-        this.addAudioToElement(targetFilePath, elementId, audioInfo.audioData, audioInfo.metadata);
-      } catch (error) {
-        // Failed to add audio to element - continue with others
-        console.warn(`Failed to add audio to element ${elementId}:`, error);
-      }
-    });
+    await Promise.all(
+      Object.entries(audioMappings).map(async (item) => {
+        const [elementId, audioInfo] = item;
+        try {
+          await this.addAudioToElement(
+            targetFilePath,
+            elementId,
+            audioInfo.audioData,
+            audioInfo.metadata
+          );
+        } catch (error) {
+          // Failed to add audio to element - continue with others
+          console.warn(`Failed to add audio to element ${elementId}:`, error);
+        }
+      })
+    );
   }
 
   /**
    * Extract all element IDs from the grid file for audio mapping
    */
-  getElementIds(filePathOrBuffer: ProcessorInput): string[] {
+  async getElementIds(filePathOrBuffer: ProcessorInput): Promise<string[]> {
     const { readTextFromInput } = this.options.fileAdapter;
-    let content = readTextFromInput(filePathOrBuffer);
+    let content = await readTextFromInput(filePathOrBuffer);
 
     // Remove BOM if present
     if (content.charCodeAt(0) === 0xfeff) {
@@ -1775,9 +1783,9 @@ class AstericsGridProcessor extends BaseProcessor {
   /**
    * Check if an element has audio recording
    */
-  hasAudioRecording(filePathOrBuffer: ProcessorInput, elementId: string): boolean {
+  async hasAudioRecording(filePathOrBuffer: ProcessorInput, elementId: string): Promise<boolean> {
     const { readTextFromInput } = this.options.fileAdapter;
-    let content = readTextFromInput(filePathOrBuffer);
+    let content = await readTextFromInput(filePathOrBuffer);
 
     // Remove BOM if present
     if (content.charCodeAt(0) === 0xfeff) {

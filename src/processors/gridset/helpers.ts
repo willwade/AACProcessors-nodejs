@@ -242,7 +242,9 @@ export function getCommonDocumentsPath(): string {
  * C:\Users\Public\Documents\Smartbox\Grid 3\Users\{UserName}\Grid Sets\
  * @returns Array of Grid3 user path information
  */
-export function findGrid3UserPaths(fileAdapter: FileAdapter = defaultFileAdapter): Grid3UserPath[] {
+export async function findGrid3UserPaths(
+  fileAdapter: FileAdapter = defaultFileAdapter
+): Promise<Grid3UserPath[]> {
   const { pathExists, listDir, isDirectory } = fileAdapter;
   const results: Grid3UserPath[] = [];
 
@@ -257,31 +259,31 @@ export function findGrid3UserPaths(fileAdapter: FileAdapter = defaultFileAdapter
     const grid3BasePath = joinWin32(commonDocs, 'Smartbox', 'Grid 3', 'Users');
 
     // Check if Grid3 Users directory exists
-    if (!pathExists(grid3BasePath)) {
+    if (!(await pathExists(grid3BasePath))) {
       return results;
     }
 
     // Enumerate users
-    const users = listDir(grid3BasePath);
+    const users = await listDir(grid3BasePath);
 
     for (const userDir of users) {
-      if (!isDirectory(userDir)) continue;
+      if (!(await isDirectory(userDir))) continue;
 
       const userName = userDir;
       const userPath = joinWin32(grid3BasePath, userName);
 
       // Enumerate language codes
-      const langDirs = listDir(userPath);
+      const langDirs = await listDir(userPath);
 
       for (const langDir of langDirs) {
-        if (!isDirectory(langDir)) continue;
+        if (!(await isDirectory(langDir))) continue;
 
         const langCode = langDir;
         const basePath = joinWin32(userPath, langCode);
         const historyDbPath = joinWin32(basePath, 'Phrases', 'history.sqlite');
 
         // Only include if history database exists
-        if (pathExists(historyDbPath)) {
+        if (await pathExists(historyDbPath)) {
           results.push({
             userName,
             langCode,
@@ -303,15 +305,16 @@ export function findGrid3UserPaths(fileAdapter: FileAdapter = defaultFileAdapter
  * Convenience method that returns just the database file paths
  * @returns Array of paths to history.sqlite files
  */
-export function findGrid3HistoryDatabases(fileAdapter?: FileAdapter): string[] {
-  return findGrid3UserPaths(fileAdapter).map((userPath) => userPath.historyDbPath);
+export async function findGrid3HistoryDatabases(fileAdapter?: FileAdapter): Promise<string[]> {
+  const userPaths = await findGrid3UserPaths(fileAdapter);
+  return userPaths.map((userPath) => userPath.historyDbPath);
 }
 
 /**
  * Get Grid 3 users (alias of findGrid3UserPaths for clarity)
  */
-export function findGrid3Users(): Grid3UserPath[] {
-  return findGrid3UserPaths();
+export async function findGrid3Users(): Promise<Grid3UserPath[]> {
+  return await findGrid3UserPaths();
 }
 
 /**
@@ -319,10 +322,10 @@ export function findGrid3Users(): Grid3UserPath[] {
  * @param userName Optional user filter; matches case-insensitively
  * @returns Array of user/gridset path pairs
  */
-export function findGrid3Vocabularies(
+export async function findGrid3Vocabularies(
   userName?: string,
   fileAdapter: FileAdapter = defaultFileAdapter
-): Grid3VocabularyPath[] {
+): Promise<Grid3VocabularyPath[]> {
   const { pathExists, listDir, isDirectory } = fileAdapter;
   const results: Grid3VocabularyPath[] = [];
 
@@ -333,24 +336,24 @@ export function findGrid3Vocabularies(
   const commonDocs = getCommonDocumentsPath();
   const grid3BasePath = joinWin32(commonDocs, 'Smartbox', 'Grid 3', 'Users');
 
-  if (!pathExists(grid3BasePath)) {
+  if (!(await pathExists(grid3BasePath))) {
     return results;
   }
 
   const normalizedUser = userName?.toLowerCase();
-  const users = listDir(grid3BasePath);
+  const users = await listDir(grid3BasePath);
 
   for (const userDir of users) {
-    if (!isDirectory(userDir)) continue;
+    if (!(await isDirectory(userDir))) continue;
     if (normalizedUser && userDir.toLowerCase() !== normalizedUser) continue;
 
     const userRoot = joinWin32(grid3BasePath, userDir);
     const gridSetsDir = joinWin32(userRoot, 'Grid Sets');
-    if (!pathExists(gridSetsDir)) continue;
+    if (!(await pathExists(gridSetsDir))) continue;
 
-    const entries = listDir(gridSetsDir);
+    const entries = await listDir(gridSetsDir);
     for (const entry of entries) {
-      if (!pathExists(entry) || isDirectory(entry)) continue;
+      if (!(await pathExists(entry)) || (await isDirectory(entry))) continue;
       const ext = extname(entry).toLowerCase();
       if (ext === '.gridset' || ext === '.gridsetx' || ext === '.grd' || ext === '.grdl') {
         results.push({
@@ -370,17 +373,18 @@ export function findGrid3Vocabularies(
  * @param langCode Optional language code filter (case-insensitive)
  * @returns Path to history.sqlite or null if not found
  */
-export function findGrid3UserHistory(
+export async function findGrid3UserHistory(
   userName: string,
   langCode?: string,
   fileAdapter?: FileAdapter
-): string | null {
+): Promise<string | null> {
   if (!userName) return null;
 
   const normalizedUser = userName.toLowerCase();
   const normalizedLang = langCode?.toLowerCase();
 
-  const match = findGrid3UserPaths(fileAdapter).find(
+  const userPaths = await findGrid3UserPaths(fileAdapter);
+  const match = userPaths.find(
     (u) =>
       u.userName.toLowerCase() === normalizedUser &&
       (!normalizedLang || u.langCode.toLowerCase() === normalizedLang)
@@ -392,13 +396,15 @@ export function findGrid3UserHistory(
 /**
  * Check whether Grid 3 appears to be installed (Windows only)
  */
-export function isGrid3Installed(fileAdapter: FileAdapter = defaultFileAdapter): boolean {
+export async function isGrid3Installed(
+  fileAdapter: FileAdapter = defaultFileAdapter
+): Promise<boolean> {
   const { pathExists } = fileAdapter;
   if (process.platform !== 'win32') return false;
   const commonDocs = getCommonDocumentsPath();
   if (!commonDocs) return false;
   const grid3BasePath = joinWin32(commonDocs, 'Smartbox', 'Grid 3', 'Users');
-  return pathExists(grid3BasePath);
+  return await pathExists(grid3BasePath);
 }
 
 function parseGrid3ContentXml(xmlContent: string): string {
@@ -419,12 +425,12 @@ function parseGrid3ContentXml(xmlContent: string): string {
  * @param historyDbPath Absolute path to the history database
  * @returns Parsed history entries grouped by phrase
  */
-export function readGrid3History(
+export async function readGrid3History(
   historyDbPath: string,
   fileAdapter: FileAdapter = defaultFileAdapter
-): Grid3HistoryEntry[] {
+): Promise<Grid3HistoryEntry[]> {
   const { pathExists } = fileAdapter;
-  if (!pathExists(historyDbPath)) return [];
+  if (!(await pathExists(historyDbPath))) return [];
 
   const Database = requireBetterSqlite3();
   const db = new Database(historyDbPath, { readonly: true });
@@ -501,17 +507,21 @@ export function readGrid3History(
  * @param langCode Optional language code to narrow selection (case-insensitive)
  * @returns History entries for that user/language, or empty array if none
  */
-export function readGrid3HistoryForUser(userName: string, langCode?: string): Grid3HistoryEntry[] {
-  const dbPath = findGrid3UserHistory(userName, langCode);
+export async function readGrid3HistoryForUser(
+  userName: string,
+  langCode?: string
+): Promise<Grid3HistoryEntry[]> {
+  const dbPath = await findGrid3UserHistory(userName, langCode);
   if (!dbPath) return [];
-  return readGrid3History(dbPath);
+  return await readGrid3History(dbPath);
 }
 
 /**
  * Load all available Grid 3 histories on the machine.
  * @returns Combined history entries from every discovered history.sqlite
  */
-export function readAllGrid3History(): Grid3HistoryEntry[] {
-  const paths = findGrid3HistoryDatabases();
-  return paths.flatMap((p) => readGrid3History(p));
+export async function readAllGrid3History(): Promise<Grid3HistoryEntry[]> {
+  const paths = await findGrid3HistoryDatabases();
+  const history = await Promise.all(paths.map(async (p) => await readGrid3History(p)));
+  return history.flat();
 }

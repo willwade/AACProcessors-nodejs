@@ -1,25 +1,27 @@
+import { F_OK } from 'node:constants';
+
 export type ProcessorInput = string | Buffer | ArrayBuffer | Uint8Array;
 
 export type BinaryOutput = Buffer | Uint8Array;
 
 export interface FileAdapter {
-  readBinaryFromInput: (input: ProcessorInput) => Uint8Array;
-  readTextFromInput: (input: ProcessorInput, encoding?: BufferEncoding) => string;
-  writeBinaryToPath: (outputPath: string, data: BinaryOutput) => void;
-  writeTextToPath: (outputPath: string, text: string) => void;
-  pathExists: (path: string) => boolean;
-  isDirectory: (path: string) => boolean;
-  getFileSize: (path: string) => number;
-  mkDir: (path: string, options?: { recursive?: boolean }) => void;
-  listDir: (path: string) => string[];
-  removePath: (path: string, options?: { recursive?: boolean; force?: boolean }) => void;
-  mkTempDir: (prefix: string) => string;
+  readBinaryFromInput: (input: ProcessorInput) => Promise<Uint8Array>;
+  readTextFromInput: (input: ProcessorInput, encoding?: BufferEncoding) => Promise<string>;
+  writeBinaryToPath: (outputPath: string, data: BinaryOutput) => Promise<void>;
+  writeTextToPath: (outputPath: string, text: string) => Promise<void>;
+  pathExists: (path: string) => Promise<boolean>;
+  isDirectory: (path: string) => Promise<boolean>;
+  getFileSize: (path: string) => Promise<number>;
+  mkDir: (path: string, options?: { recursive?: boolean }) => Promise<void>;
+  listDir: (path: string) => Promise<string[]>;
+  removePath: (path: string, options?: { recursive?: boolean; force?: boolean }) => Promise<void>;
+  mkTempDir: (prefix: string) => Promise<string>;
   join: (...pathParts: string[]) => string;
   dirname: (path: string) => string;
   basename: (path: string, suffix?: string) => string;
 }
 
-let cachedFs: typeof import('fs') | null = null;
+let cachedFs: typeof import('node:fs/promises') | null = null;
 let cachedPath: typeof import('path') | null = null;
 let cachedOs: typeof import('os') | null = null;
 let cachedRequire: NodeRequire | null | undefined = undefined;
@@ -43,7 +45,7 @@ export function getNodeRequire(): NodeRequire {
   return cachedRequire;
 }
 
-function getFs(): typeof import('fs') {
+function getFs(): typeof import('node:fs/promises') {
   if (!cachedFs) {
     try {
       const nodeRequire = getNodeRequire();
@@ -152,9 +154,9 @@ export function extname(path: string): string {
   return splitTailRe.exec(tail)?.at(3) ?? '';
 }
 
-function readBinaryFromInput(input: ProcessorInput): Uint8Array {
+async function readBinaryFromInput(input: ProcessorInput): Promise<Uint8Array> {
   if (typeof input === 'string') {
-    return getFs().readFileSync(input);
+    return await getFs().readFile(input);
   }
   if (typeof Buffer !== 'undefined' && Buffer.isBuffer(input)) {
     return input;
@@ -165,9 +167,12 @@ function readBinaryFromInput(input: ProcessorInput): Uint8Array {
   return input;
 }
 
-function readTextFromInput(input: ProcessorInput, encoding: BufferEncoding = 'utf8'): string {
+async function readTextFromInput(
+  input: ProcessorInput,
+  encoding: BufferEncoding = 'utf8'
+): Promise<string> {
   if (typeof input === 'string') {
-    return getFs().readFileSync(input, encoding);
+    return await getFs().readFile(input, encoding);
   }
   if (typeof Buffer !== 'undefined' && Buffer.isBuffer(input)) {
     return input.toString(encoding);
@@ -178,41 +183,49 @@ function readTextFromInput(input: ProcessorInput, encoding: BufferEncoding = 'ut
   return decodeText(input);
 }
 
-function writeBinaryToPath(outputPath: string, data: BinaryOutput): void {
-  getFs().writeFileSync(outputPath, data);
+async function writeBinaryToPath(outputPath: string, data: BinaryOutput): Promise<void> {
+  await getFs().writeFile(outputPath, data);
 }
 
-function writeTextToPath(outputPath: string, text: string): void {
-  getFs().writeFileSync(outputPath, text, 'utf8');
+async function writeTextToPath(outputPath: string, text: string): Promise<void> {
+  await getFs().writeFile(outputPath, text, 'utf8');
 }
 
-function pathExists(path: string): boolean {
-  return getFs().existsSync(path);
+async function pathExists(path: string): Promise<boolean> {
+  try {
+    await getFs().access(path, F_OK);
+    return true;
+  } catch (e) {
+    return false;
+  }
 }
 
-function isDirectory(path: string): boolean {
-  return getFs().statSync(path).isDirectory();
+async function isDirectory(path: string): Promise<boolean> {
+  return (await getFs().stat(path)).isDirectory();
 }
 
-function getFileSize(path: string): number {
-  return getFs().statSync(path).size;
+async function getFileSize(path: string): Promise<number> {
+  return (await getFs().stat(path)).size;
 }
 
-function mkDir(path: string, options?: { recursive?: boolean }): void {
-  getFs().mkdirSync(path, options);
+async function mkDir(path: string, options?: { recursive?: boolean }): Promise<void> {
+  await getFs().mkdir(path, options);
 }
 
-function listDir(path: string): string[] {
-  return getFs().readdirSync(path);
+async function listDir(path: string): Promise<string[]> {
+  return await getFs().readdir(path);
 }
 
-function removePath(path: string, options?: { recursive?: boolean; force?: boolean }): void {
-  getFs().rmSync(path, options);
+async function removePath(
+  path: string,
+  options?: { recursive?: boolean; force?: boolean }
+): Promise<void> {
+  await getFs().rm(path, options);
 }
 
-function mkTempDir(prefix: string): string {
+async function mkTempDir(prefix: string): Promise<string> {
   const path = join(getOs().tmpdir(), prefix);
-  return getFs().mkdtempSync(path);
+  return await getFs().mkdtemp(path);
 }
 
 function join(...pathParts: string[]): string {

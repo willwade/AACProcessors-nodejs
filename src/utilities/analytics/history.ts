@@ -149,8 +149,9 @@ export function exportHistoryToBaton(
 /**
  * Read Grid 3 phrase history from a history.sqlite database and tag entries with their source.
  */
-export function readGrid3History(historyDbPath: string): HistoryEntry[] {
-  return readGrid3HistoryImpl(historyDbPath).map((e) => ({
+export async function readGrid3History(historyDbPath: string): Promise<HistoryEntry[]> {
+  const history = await readGrid3HistoryImpl(historyDbPath);
+  return history.map((e) => ({
     ...e,
     source: 'Grid',
   }));
@@ -159,8 +160,12 @@ export function readGrid3History(historyDbPath: string): HistoryEntry[] {
 /**
  * Read Grid 3 history for a specific user/language combination.
  */
-export function readGrid3HistoryForUser(userName: string, langCode?: string): HistoryEntry[] {
-  return readGrid3HistoryForUserImpl(userName, langCode).map((e) => ({
+export async function readGrid3HistoryForUser(
+  userName: string,
+  langCode?: string
+): Promise<HistoryEntry[]> {
+  const history = await readGrid3HistoryForUserImpl(userName, langCode);
+  return history.map((e) => ({
     ...e,
     source: 'Grid',
   }));
@@ -169,47 +174,53 @@ export function readGrid3HistoryForUser(userName: string, langCode?: string): Hi
 /**
  * Read every available Grid 3 history database on the machine.
  */
-export function readAllGrid3History(): HistoryEntry[] {
-  return readAllGrid3HistoryImpl().map((e) => ({ ...e, source: 'Grid' }));
+export async function readAllGrid3History(): Promise<HistoryEntry[]> {
+  const history = await readAllGrid3HistoryImpl();
+  return history.map((e) => ({ ...e, source: 'Grid' }));
 }
 
 /**
  * Read Snap button usage from a pageset database and tag entries with source.
  */
-export function readSnapUsage(pagesetPath: string): HistoryEntry[] {
-  return readSnapUsageImpl(pagesetPath).map((e) => ({ ...e, source: 'Snap' }));
+export async function readSnapUsage(pagesetPath: string): Promise<HistoryEntry[]> {
+  const usage = await readSnapUsageImpl(pagesetPath);
+  return usage.map((e) => ({ ...e, source: 'Snap' }));
 }
 
 /**
  * Read Snap usage for a specific user across all discovered pagesets.
  */
-export function readSnapUsageForUser(
+export async function readSnapUsageForUser(
   userId?: string,
   packageNamePattern = 'TobiiDynavox'
-): HistoryEntry[] {
-  return readSnapUsageForUserImpl(userId, packageNamePattern).map((e) => ({
+): Promise<HistoryEntry[]> {
+  const usage = await readSnapUsageForUserImpl(userId, packageNamePattern);
+  return usage.map((e) => ({
     ...e,
     source: 'Snap',
   }));
 }
 
-export function listSnapUsers(): SnapUserInfo[] {
-  return findSnapUsers();
+export async function listSnapUsers(): Promise<SnapUserInfo[]> {
+  return await findSnapUsers();
 }
 
 /**
  * List Grid 3 users on the current machine.
  */
-export function listGrid3Users(): Grid3UserPath[] {
-  return findGrid3Users();
+export async function listGrid3Users(): Promise<Grid3UserPath[]> {
+  return await findGrid3Users();
 }
 
 /**
  * Convenience helper to gather all available history across Grid 3 and Snap.
  * Returns an empty array if no history files are present.
  */
-export function collectUnifiedHistory(): HistoryEntry[] {
-  const gridHistory = readAllGrid3History();
-  const snapHistory = findSnapUsers().flatMap((u) => readSnapUsageForUser(u.userId));
-  return [...gridHistory, ...snapHistory];
+export async function collectUnifiedHistory(): Promise<HistoryEntry[]> {
+  const gridHistory = await readAllGrid3History();
+  const users = await findSnapUsers();
+  const snapHistory = await Promise.all(
+    users.map(async (u) => await readSnapUsageForUser(u.userId))
+  );
+  return [...gridHistory, ...snapHistory.flat()];
 }

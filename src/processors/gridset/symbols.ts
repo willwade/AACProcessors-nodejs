@@ -151,7 +151,7 @@ export function isSymbolReference(reference: string): boolean {
  * Get the default Grid 3 installation path for the current platform
  * @returns Default Grid 3 path or empty string if not found
  */
-export function getDefaultGrid3Path(fileAdapter?: FileAdapter): string {
+export async function getDefaultGrid3Path(fileAdapter?: FileAdapter): Promise<string> {
   const { pathExists } = fileAdapter ?? defaultFileAdapter;
   const platform = (
     typeof process !== 'undefined' && process.platform ? process.platform : 'unknown'
@@ -159,7 +159,7 @@ export function getDefaultGrid3Path(fileAdapter?: FileAdapter): string {
   const defaultPath = DEFAULT_GRID3_PATHS[platform] || '';
 
   try {
-    if (defaultPath && pathExists(defaultPath)) {
+    if (defaultPath && (await pathExists(defaultPath))) {
       return defaultPath;
     }
 
@@ -173,7 +173,7 @@ export function getDefaultGrid3Path(fileAdapter?: FileAdapter): string {
     ];
 
     for (const testPath of commonPaths) {
-      if (pathExists(testPath)) {
+      if (await pathExists(testPath)) {
         return testPath;
       }
     }
@@ -219,12 +219,12 @@ export function getSymbolSearchIndexesDir(
  * @param options - Resolution options
  * @returns Array of symbol library information
  */
-export function getAvailableSymbolLibraries(
+export async function getAvailableSymbolLibraries(
   options: SymbolResolutionOptions = {},
   fileAdapter?: FileAdapter
-): SymbolLibraryInfo[] {
+): Promise<SymbolLibraryInfo[]> {
   const { pathExists, getFileSize, listDir, join, basename } = fileAdapter ?? defaultFileAdapter;
-  const grid3Path = options.grid3Path || options.symbolDir || getDefaultGrid3Path();
+  const grid3Path = options.grid3Path || options.symbolDir || (await getDefaultGrid3Path());
 
   if (!grid3Path) {
     return [];
@@ -232,17 +232,17 @@ export function getAvailableSymbolLibraries(
 
   const symbolsDir = getSymbolLibrariesDir(grid3Path, fileAdapter);
 
-  if (!pathExists(symbolsDir)) {
+  if (!(await pathExists(symbolsDir))) {
     return [];
   }
 
   const libraries: SymbolLibraryInfo[] = [];
-  const files = listDir(symbolsDir);
+  const files = await listDir(symbolsDir);
 
   for (const file of files) {
     if (file.endsWith('.symbols')) {
       const fullPath = join(symbolsDir, file);
-      const size = getFileSize(fullPath);
+      const size = await getFileSize(fullPath);
       const libraryName = basename(file, '.symbols');
 
       libraries.push({
@@ -264,13 +264,13 @@ export function getAvailableSymbolLibraries(
  * @param options - Resolution options
  * @returns Symbol library info or undefined if not found
  */
-export function getSymbolLibraryInfo(
+export async function getSymbolLibraryInfo(
   libraryName: string,
   options: SymbolResolutionOptions = {},
   fileAdapter?: FileAdapter
-): SymbolLibraryInfo | undefined {
+): Promise<SymbolLibraryInfo | undefined> {
   const { pathExists, getFileSize, join } = fileAdapter ?? defaultFileAdapter;
-  const grid3Path = options.grid3Path || options.symbolDir || getDefaultGrid3Path();
+  const grid3Path = options.grid3Path || options.symbolDir || (await getDefaultGrid3Path());
 
   if (!grid3Path) {
     return undefined;
@@ -288,8 +288,8 @@ export function getSymbolLibraryInfo(
 
   for (const file of variations) {
     const fullPath = join(symbolsDir, file);
-    if (pathExists(fullPath)) {
-      const size = getFileSize(fullPath);
+    if (await pathExists(fullPath)) {
+      const size = await getFileSize(fullPath);
       return {
         name: libraryName,
         pixFile: fullPath,
@@ -325,7 +325,7 @@ export async function resolveSymbolReference(
     };
   }
 
-  const grid3Path = options.grid3Path || getDefaultGrid3Path();
+  const grid3Path = options.grid3Path || (await getDefaultGrid3Path());
 
   if (!grid3Path) {
     return {
@@ -335,7 +335,7 @@ export async function resolveSymbolReference(
     };
   }
 
-  const libraryInfo = getSymbolLibraryInfo(parsed.library, { grid3Path });
+  const libraryInfo = await getSymbolLibraryInfo(parsed.library, { grid3Path });
 
   if (!libraryInfo || !libraryInfo.exists) {
     return {

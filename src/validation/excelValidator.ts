@@ -14,8 +14,8 @@ export class ExcelValidator extends BaseValidator {
   ): Promise<ValidationResult> {
     const { readBinaryFromInput, getFileSize } = fileAdapter ?? defaultFileAdapter;
     const validator = new ExcelValidator();
-    const content = readBinaryFromInput(filePath);
-    const size = getFileSize(filePath);
+    const content = await readBinaryFromInput(filePath);
+    const size = await getFileSize(filePath);
     return validator.validate(content, getBasename(filePath), size);
   }
 

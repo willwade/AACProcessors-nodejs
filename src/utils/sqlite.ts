@@ -20,7 +20,7 @@ export interface SqliteOpenOptions {
 
 export interface SqliteOpenResult {
   db: SqliteDatabaseAdapter;
-  cleanup?: () => void;
+  cleanup?: () => Promise<void>;
 }
 
 let sqlJsConfig: SqlJsConfig | null = null;
@@ -117,7 +117,7 @@ export async function openSqliteDatabase(
     return { db };
   }
 
-  const data = readBinaryFromInput(input);
+  const data = await readBinaryFromInput(input);
 
   if (!isNodeRuntime()) {
     const SQL = await getSqlJs();
@@ -125,18 +125,18 @@ export async function openSqliteDatabase(
     return { db: createSqlJsAdapter(db) };
   }
 
-  const tempDir = mkTempDir('aac-sqlite-');
+  const tempDir = await mkTempDir('aac-sqlite-');
   const dbPath = join(tempDir, 'input.sqlite');
-  writeBinaryToPath(dbPath, data);
+  await writeBinaryToPath(dbPath, data);
 
   const Database = getBetterSqlite3();
   const db = new Database(dbPath, { readonly: options.readonly ?? true }) as SqliteDatabaseAdapter;
-  const cleanup = (): void => {
+  const cleanup = async (): Promise<void> => {
     try {
       db.close();
     } finally {
       try {
-        removePath(tempDir, { recursive: true, force: true });
+        await removePath(tempDir, { recursive: true, force: true });
       } catch (error) {
         console.warn('Failed to clean up temporary SQLite files:', error);
       }

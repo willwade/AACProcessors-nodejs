@@ -155,8 +155,8 @@ export async function validateFileOrBuffer(
       return ctor.validateFile(filePathOrBuffer);
     }
 
-    const buf = adapter.readBinaryFromInput(filePathOrBuffer);
-    const size = adapter.getFileSize(filePathOrBuffer);
+    const buf = await adapter.readBinaryFromInput(filePathOrBuffer);
+    const size = await adapter.getFileSize(filePathOrBuffer);
     return validator.validate(buf, getBasename(filePathOrBuffer), size);
   }
 

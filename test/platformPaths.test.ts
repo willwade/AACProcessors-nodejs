@@ -89,17 +89,17 @@ describe('Grid3 Path Discovery', () => {
 
       const grid3BasePath = path.win32.join(mockCommonDocs, 'Smartbox', 'Grid 3', 'Users');
 
-      const result = findGrid3UserPaths({
+      const result = await findGrid3UserPaths({
         ...defaultFileAdapter,
-        listDir: (pathStr) => {
+        listDir: async (pathStr) => {
           if (pathStr === grid3BasePath) return ['TestUser'];
           if (pathStr.includes('TestUser')) return ['en-gb'];
           return [];
         },
-        isDirectory: (pathStr) => {
+        isDirectory: async (pathStr) => {
           return pathStr.endsWith('TestUser') || pathStr.endsWith('en-gb');
         },
-        pathExists: (pathStr) => {
+        pathExists: async (pathStr) => {
           if (pathStr === grid3BasePath) return true;
           if (pathStr.includes('history.sqlite')) return true;
           return false;
@@ -146,14 +146,14 @@ describe('Grid3 Path Discovery', () => {
 
       const grid3BasePath = path.win32.join(mockCommonDocs, 'Smartbox', 'Grid 3', 'Users');
 
-      const result = findGrid3HistoryDatabases({
+      const result = await findGrid3HistoryDatabases({
         ...defaultFileAdapter,
-        pathExists: () => true,
-        listDir: (pathStr) => {
+        pathExists: async () => true,
+        listDir: async (pathStr) => {
           if (pathStr === grid3BasePath) return ['User1'];
           return ['en-us'];
         },
-        isDirectory: (pathStr) => {
+        isDirectory: async (pathStr) => {
           return pathStr.endsWith('User1') || pathStr.endsWith('en-us');
         },
       });
@@ -171,16 +171,16 @@ describe('Grid3 Path Discovery', () => {
 
       mockExecSync.mockReturnValue(`Common Documents    REG_SZ    ${mockCommonDocs}\r\n` as any);
 
-      const result = findGrid3Vocabularies(undefined, {
+      const result = await findGrid3Vocabularies(undefined, {
         ...defaultFileAdapter,
-        pathExists: (pathStr) =>
+        pathExists: async (pathStr) =>
           pathStr === grid3BasePath || pathStr === gridSetsDir || pathStr.endsWith('Test.gridset'),
-        listDir: (pathStr) => {
+        listDir: async (pathStr) => {
           if (pathStr === grid3BasePath) return ['User1'];
           if (pathStr === gridSetsDir) return ['Test.gridset'];
           return [];
         },
-        isDirectory: (pathStr) =>
+        isDirectory: async (pathStr) =>
           pathStr === grid3BasePath || pathStr === gridSetsDir || pathStr.endsWith('User1'),
       });
 
@@ -199,19 +199,19 @@ describe('Grid3 Path Discovery', () => {
 
       const grid3BasePath = path.win32.join(mockCommonDocs, 'Smartbox', 'Grid 3', 'Users');
 
-      const result = findGrid3UserHistory('User1', 'en-gb', {
+      const result = await findGrid3UserHistory('User1', 'en-gb', {
         ...defaultFileAdapter,
-        pathExists: (pathStr) => {
+        pathExists: async (pathStr) => {
           if (pathStr === grid3BasePath) return true;
           if (pathStr.includes('history.sqlite')) return true;
           return false;
         },
-        listDir: (pathStr) => {
+        listDir: async (pathStr) => {
           if (pathStr === grid3BasePath) return ['User1'];
           if (pathStr.includes('User1')) return ['en-gb'];
           return [];
         },
-        isDirectory: (pathStr) => pathStr.endsWith('User1') || pathStr.endsWith('en-gb'),
+        isDirectory: async (pathStr) => pathStr.endsWith('User1') || pathStr.endsWith('en-gb'),
       });
 
       expect(result).toContain('history.sqlite');
@@ -248,15 +248,15 @@ describe('Snap Path Discovery', () => {
 
   describe('findSnapPackages', () => {
     it('should find Snap packages matching pattern', async () => {
-      const result = findSnapPackagesFromSnap(undefined, {
+      const result = await findSnapPackagesFromSnap(undefined, {
         ...defaultFileAdapter,
-        pathExists: () => true,
-        listDir: () => [
+        pathExists: async () => true,
+        listDir: async () => [
           'TobiiDynavox.Snap_abc123',
           'TobiiDynavox.Communicator_def456',
           'Microsoft.WindowsStore_xyz789',
         ],
-        isDirectory: () => true,
+        isDirectory: async () => true,
       });
 
       expect(result).toHaveLength(2);
@@ -266,11 +266,11 @@ describe('Snap Path Discovery', () => {
     });
 
     it('should filter by custom pattern', async () => {
-      const result = findSnapPackagesFromSnap('CustomApp', {
+      const result = await findSnapPackagesFromSnap('CustomApp', {
         ...defaultFileAdapter,
-        pathExists: () => true,
-        listDir: () => ['TobiiDynavox.Snap_abc123', 'CustomApp.Package_xyz'],
-        isDirectory: () => true,
+        pathExists: async () => true,
+        listDir: async () => ['TobiiDynavox.Snap_abc123', 'CustomApp.Package_xyz'],
+        isDirectory: async () => true,
       });
 
       expect(result).toHaveLength(1);
@@ -309,11 +309,11 @@ describe('Snap Path Discovery', () => {
 
   describe('findSnapPackagePath', () => {
     it('should return first matching package path', async () => {
-      const result = findSnapPackagePathFromSnap(undefined, {
+      const result = await findSnapPackagePathFromSnap(undefined, {
         ...defaultFileAdapter,
-        pathExists: () => true,
-        listDir: () => ['TobiiDynavox.Snap_abc123'],
-        isDirectory: () => true,
+        pathExists: async () => true,
+        listDir: async () => ['TobiiDynavox.Snap_abc123'],
+        isDirectory: async () => true,
       });
 
       expect(result).toContain('TobiiDynavox.Snap_abc123');
@@ -338,17 +338,17 @@ describe('Snap Path Discovery', () => {
       const userPath = path.join(usersRoot, 'user1');
       const vocabPath = path.join(userPath, 'board.sps');
 
-      const users = findSnapUsers('TobiiDynavox', {
+      const users = await findSnapUsers('TobiiDynavox', {
         ...defaultFileAdapter,
-        pathExists: (pathStr) =>
+        pathExists: async (pathStr) =>
           pathStr === packagesPath || pathStr === usersRoot || pathStr === userPath,
-        listDir: (pathStr) => {
+        listDir: async (pathStr) => {
           if (pathStr === packagesPath) return ['TobiiDynavox.Snap_abc123'];
           if (pathStr === usersRoot) return ['user1', 'SwiftKeyStaticModels'];
           if (pathStr === userPath) return ['board.sps', 'notes.txt'];
           return [];
         },
-        isDirectory: (pathStr) =>
+        isDirectory: async (pathStr) =>
           pathStr.endsWith('TobiiDynavox.Snap_abc123') ||
           pathStr.endsWith('user1') ||
           pathStr.endsWith('SwiftKeyStaticModels'),
@@ -369,17 +369,17 @@ describe('Snap Path Discovery', () => {
       const userPath = path.join(usersRoot, 'user1');
       const vocabPath = path.join(userPath, 'board.sps');
 
-      const result = findSnapUserVocabularies('user1', 'TobiiDynavox', {
+      const result = await findSnapUserVocabularies('user1', 'TobiiDynavox', {
         ...defaultFileAdapter,
-        pathExists: (pathStr) =>
+        pathExists: async (pathStr) =>
           pathStr === packagesPath || pathStr === usersRoot || pathStr === userPath,
-        listDir: (pathStr) => {
+        listDir: async (pathStr) => {
           if (pathStr === packagesPath) return ['TobiiDynavox.Snap_abc123'];
           if (pathStr === usersRoot) return ['user1'];
           if (pathStr === userPath) return ['board.sps'];
           return [];
         },
-        isDirectory: (pathStr) =>
+        isDirectory: async (pathStr) =>
           pathStr.endsWith('TobiiDynavox.Snap_abc123') || pathStr.endsWith('user1'),
       });
 
@@ -396,17 +396,17 @@ describe('Snap Path Discovery', () => {
       const userPath = path.join(usersRoot, 'user1');
       const historyPath = path.join(userPath, 'history.db');
 
-      const result = findSnapUserHistory('user1', 'TobiiDynavox', {
+      const result = await findSnapUserHistory('user1', 'TobiiDynavox', {
         ...defaultFileAdapter,
-        pathExists: (pathStr) =>
+        pathExists: async (pathStr) =>
           pathStr === packagesPath || pathStr === usersRoot || pathStr === userPath,
-        listDir: (pathStr) => {
+        listDir: async (pathStr) => {
           if (pathStr === packagesPath) return ['TobiiDynavox.Snap_abc123'];
           if (pathStr === usersRoot) return ['user1'];
           if (pathStr === userPath) return ['history.db'];
           return [];
         },
-        isDirectory: (pathStr) =>
+        isDirectory: async (pathStr) =>
           pathStr.endsWith('TobiiDynavox.Snap_abc123') || pathStr.endsWith('user1'),
       });
 

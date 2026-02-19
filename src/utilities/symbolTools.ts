@@ -22,7 +22,7 @@ export abstract class SymbolResolver {
     this.fileAdapter = fileAdapter;
   }
 
-  abstract resolveSymbol(symbolRef: string): string | null;
+  abstract resolveSymbol(symbolRef: string): Promise<string | null>;
 }
 
 // --- Snap (Tobii Dynavox) ---
@@ -47,7 +47,7 @@ export class SnapSymbolExtractor extends SymbolExtractor {
 }
 
 export class SnapSymbolResolver extends SymbolResolver {
-  resolveSymbol(symbolRef: string): string | null {
+  async resolveSymbol(symbolRef: string): Promise<string | null> {
     const { join, writeBinaryToPath } = this.fileAdapter;
     if (!Database) throw new Error('better-sqlite3 not installed');
     const db = new Database(this.dbPath, { readonly: true });
@@ -57,7 +57,7 @@ export class SnapSymbolResolver extends SymbolResolver {
     if (!row) return null;
 
     const outPath = join(this.symbolPath, `${symbolRef}.png`);
-    writeBinaryToPath(outPath, row.ImageData);
+    await writeBinaryToPath(outPath, row.ImageData);
     return outPath;
   }
 }
@@ -94,11 +94,12 @@ export class Grid3SymbolExtractor extends SymbolExtractor {
 }
 
 export class Grid3SymbolResolver extends SymbolResolver {
-  resolveSymbol(symbolRef: string): string | null {
+  async resolveSymbol(symbolRef: string): Promise<string | null> {
     const { join, pathExists } = this.fileAdapter;
     // Implementation depends on Grid 3 symbol storage format
     const symbolPath = join(this.symbolPath, symbolRef);
-    return pathExists(symbolPath) ? symbolPath : null;
+    const exists = await pathExists(symbolPath);
+    return exists ? symbolPath : null;
   }
 }
 
@@ -111,27 +112,28 @@ export class TouchChatSymbolExtractor extends SymbolExtractor {
 }
 
 export class TouchChatSymbolResolver extends SymbolResolver {
-  resolveSymbol(symbolRef: string): string | null {
+  async resolveSymbol(symbolRef: string): Promise<string | null> {
     const { join, pathExists } = this.fileAdapter;
     // Implementation depends on TouchChat symbol storage format
     const symbolPath = join(this.symbolPath, symbolRef);
-    return pathExists(symbolPath) ? symbolPath : null;
+    const exists = await pathExists(symbolPath);
+    return exists ? symbolPath : null;
   }
 }
 
 // --- Simple fallback function for PCS-style lookup ---
-export function resolveSymbol(
+export async function resolveSymbol(
   label: string,
   symbolDir: string,
   fileAdapter: FileAdapter = defaultFileAdapter
-): string | null {
+): Promise<string | null> {
   const { join, pathExists } = fileAdapter;
   const cleanLabel = label.toLowerCase().replace(/[^a-z0-9]/g, '');
   const exts = ['.png', '.jpg', '.svg'];
 
   for (const ext of exts) {
     const symbolPath = join(symbolDir, cleanLabel + ext);
-    if (pathExists(symbolPath)) {
+    if (await pathExists(symbolPath)) {
       return symbolPath;
     }
   }

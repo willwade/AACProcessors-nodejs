@@ -23,12 +23,12 @@ import { requireBetterSqlite3 } from '../../utils/sqlite';
 // NOTE: Snap buttons currently do not populate resolvedImageEntry; these helpers
 // therefore return empty collections until image resolution is implemented.
 
-function collectFiles(
+async function collectFiles(
   root: string,
   matcher: (fullPath: string) => boolean,
   maxDepth = 3,
   fileAdapter: FileAdapter = defaultFileAdapter
-): string[] {
+): Promise<string[]> {
   const { listDir, join, isDirectory } = fileAdapter;
   const results = new Set<string>();
   const stack: Array<{ dir: string; depth: number }> = [{ dir: root, depth: 0 }];
@@ -40,14 +40,14 @@ function collectFiles(
 
     let entries: string[];
     try {
-      entries = listDir(current.dir);
+      entries = await listDir(current.dir);
     } catch (error) {
       continue;
     }
 
     for (const entry of entries) {
       const fullPath = join(current.dir, entry);
-      if (isDirectory(entry)) {
+      if (await isDirectory(entry)) {
         stack.push({ dir: fullPath, depth: current.depth + 1 });
       } else if (matcher(fullPath)) {
         results.add(fullPath);
@@ -102,20 +102,20 @@ export function getAllowedImageEntries(tree: AACTree): Set<string> {
  * @param entryPath Symbol identifier (e.g., "SYM:12345")
  * @returns Image data buffer or null if not found
  */
-export function openImage(
+export async function openImage(
   dbOrFile: ProcessorInput,
   entryPath: string,
   fileAdapter: FileAdapter = defaultFileAdapter
-): Buffer | null {
+): Promise<Buffer | null> {
   const { mkTempDir, join, writeBinaryToPath, removePath, dirname } = fileAdapter;
   let dbPath: string;
   let cleanupNeeded = false;
 
   // Handle Buffer input by writing to temp file
   if (Buffer.isBuffer(dbOrFile)) {
-    const tempDir = mkTempDir(join(process.cwd(), 'snap-'));
+    const tempDir = await mkTempDir(join(process.cwd(), 'snap-'));
     dbPath = join(tempDir, 'temp.sps');
-    writeBinaryToPath(dbPath, dbOrFile);
+    await writeBinaryToPath(dbPath, dbOrFile);
     cleanupNeeded = true;
   } else if (typeof dbOrFile === 'string') {
     dbPath = dbOrFile;
@@ -150,9 +150,9 @@ export function openImage(
     }
     if (cleanupNeeded && dbPath) {
       try {
-        removePath(dbPath);
+        await removePath(dbPath);
         const dir = dirname(dbPath);
-        removePath(dir);
+        await removePath(dir);
       } catch (e) {
         // Ignore cleanup errors
       }
@@ -199,10 +199,10 @@ export interface SnapUsageEntry {
  * @param packageNamePattern Optional pattern to filter package names (default: 'TobiiDynavox')
  * @returns Array of Snap package path information
  */
-export function findSnapPackages(
+export async function findSnapPackages(
   packageNamePattern = 'TobiiDynavox',
   fileAdapter: FileAdapter = defaultFileAdapter
-): SnapPackagePath[] {
+): Promise<SnapPackagePath[]> {
   const { join, listDir, isDirectory, pathExists } = fileAdapter;
   const results: SnapPackagePath[] = [];
 
@@ -220,15 +220,15 @@ export function findSnapPackages(
     const packagesPath = join(localAppData, 'Packages');
 
     // Check if Packages directory exists
-    if (!pathExists(packagesPath)) {
+    if (!(await pathExists(packagesPath))) {
       return results;
     }
 
     // Enumerate packages
-    const packages = listDir(packagesPath);
+    const packages = await listDir(packagesPath);
 
     for (const packageDir of packages) {
-      if (!isDirectory(packageDir)) continue;
+      if (!(await isDirectory(packageDir))) continue;
 
       const packageName = packageDir;
 
@@ -253,11 +253,11 @@ export function findSnapPackages(
  * @param packageNamePattern Optional pattern to filter package names (default: 'TobiiDynavox')
  * @returns Path to the first matching Snap package, or null if not found
  */
-export function findSnapPackagePath(
+export async function findSnapPackagePath(
   packageNamePattern = 'TobiiDynavox',
   fileAdapter?: FileAdapter
-): string | null {
-  const packages = findSnapPackages(packageNamePattern, fileAdapter);
+): Promise<string | null> {
+  const packages = await findSnapPackages(packageNamePattern, fileAdapter);
   return packages.length > 0 ? packages[0].packagePath : null;
 }
 
@@ -268,10 +268,10 @@ export function findSnapPackagePath(
  * @param packageNamePattern Optional package filter (default TobiiDynavox)
  * @returns Array of user info with vocab paths
  */
-export function findSnapUsers(
+export async function findSnapUsers(
   packageNamePattern = 'TobiiDynavox',
   fileAdapter: FileAdapter = defaultFileAdapter
-): SnapUserInfo[] {
+): Promise<SnapUserInfo[]> {
   const { join, listDir, isDirectory, pathExists } = fileAdapter;
   const results: SnapUserInfo[] = [];
 
@@ -279,23 +279,23 @@ export function findSnapUsers(
     return results;
   }
 
-  const packagePath = findSnapPackagePath(packageNamePattern, fileAdapter);
+  const packagePath = await findSnapPackagePath(packageNamePattern, fileAdapter);
   if (!packagePath) {
     return results;
   }
 
   const usersRoot = join(packagePath, 'LocalState', 'Users');
-  if (!pathExists(usersRoot)) {
+  if (!(await pathExists(usersRoot))) {
     return results;
   }
 
-  const entries = listDir(usersRoot);
+  const entries = await listDir(usersRoot);
   for (const entry of entries) {
-    if (!isDirectory(entry)) continue;
+    if (!(await isDirectory(entry))) continue;
     if (entry.toLowerCase().startsWith('swiftkey')) continue;
 
     const userPath = join(usersRoot, entry);
-    const vocabPaths = collectFiles(
+    const vocabPaths = await collectFiles(
       userPath,
       (full) => {
         const ext = extname(full).toLowerCase();
@@ -321,14 +321,13 @@ export function findSnapUsers(
  * @param packageNamePattern Optional package filter
  * @returns Array of vocab file paths
  */
-export function findSnapUserVocabularies(
+export async function findSnapUserVocabularies(
   userId?: string,
   packageNamePattern = 'TobiiDynavox',
   fileAdapter?: FileAdapter
-): string[] {
-  const users = findSnapUsers(packageNamePattern, fileAdapter).filter(
-    (u) => !userId || u.userId === userId
-  );
+): Promise<string[]> {
+  const allUsers = await findSnapUsers(packageNamePattern, fileAdapter);
+  const users = allUsers.filter((u) => !userId || u.userId === userId);
   return users.flatMap((u) => u.vocabPaths);
 }
 
@@ -339,16 +338,17 @@ export function findSnapUserVocabularies(
  * @param packageNamePattern Optional package filter
  * @returns Array of history file paths (may be empty if not found)
  */
-export function findSnapUserHistory(
+export async function findSnapUserHistory(
   userId: string,
   packageNamePattern = 'TobiiDynavox',
   fileAdapter: FileAdapter = defaultFileAdapter
-): string[] {
+): Promise<string[]> {
   const { basename } = fileAdapter;
-  const user = findSnapUsers(packageNamePattern, fileAdapter).find((u) => u.userId === userId);
+  const allUsers = await findSnapUsers(packageNamePattern, fileAdapter);
+  const user = allUsers.find((u) => u.userId === userId);
   if (!user) return [];
 
-  return collectFiles(
+  return await collectFiles(
     user.userPath,
     (full) => basename(full).toLowerCase().includes('history'),
     2,
@@ -367,12 +367,12 @@ export function isSnapInstalled(packageNamePattern = 'TobiiDynavox'): boolean {
 /**
  * Read Snap usage history from a pageset file (.sps/.spb)
  */
-export function readSnapUsage(
+export async function readSnapUsage(
   pagesetPath: string,
   fileAdapter: FileAdapter = defaultFileAdapter
-): SnapUsageEntry[] {
+): Promise<SnapUsageEntry[]> {
   const { pathExists } = fileAdapter;
-  if (!pathExists(pagesetPath)) return [];
+  if (!(await pathExists(pagesetPath))) return [];
 
   const Database = requireBetterSqlite3();
   const db = new Database(pagesetPath, { readonly: true });
@@ -449,11 +449,13 @@ export function readSnapUsage(
 /**
  * Read Snap usage history for a user (all pagesets)
  */
-export function readSnapUsageForUser(
+export async function readSnapUsageForUser(
   userId?: string,
   packageNamePattern = 'TobiiDynavox'
-): SnapUsageEntry[] {
-  const users = findSnapUsers(packageNamePattern).filter((u) => !userId || u.userId === userId);
+): Promise<SnapUsageEntry[]> {
+  const allUsers = await findSnapUsers(packageNamePattern);
+  const users = allUsers.filter((u) => !userId || u.userId === userId);
   const pagesets = users.flatMap((u) => u.vocabPaths);
-  return pagesets.flatMap((p) => readSnapUsage(p));
+  const usage = await Promise.all(pagesets.map(async (p) => await readSnapUsage(p)));
+  return usage.flat();
 }

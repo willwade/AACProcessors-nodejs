@@ -66,7 +66,7 @@ export class ObfsetProcessor extends BaseProcessor {
     await Promise.resolve();
     const tree = new AACTree();
     tree.metadata.format = 'obfset';
-    const content = readTextFromInput(filePathOrBuffer);
+    const content = await readTextFromInput(filePathOrBuffer);
 
     const boards: ObfsetBoard[] = JSON.parse(content);
 

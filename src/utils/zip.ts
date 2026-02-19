@@ -29,7 +29,7 @@ export async function getZipAdapter(
         ? new AdmZip(input)
         : typeof input === 'string'
           ? new AdmZip(input)
-          : new AdmZip(Buffer.from(adapter.readBinaryFromInput(input)));
+          : new AdmZip(Buffer.from(await adapter.readBinaryFromInput(input)));
     return {
       listFiles: (): string[] => {
         return zip
@@ -54,7 +54,7 @@ export async function getZipAdapter(
   const module = await import('jszip');
   const JSZip = module.default || module;
 
-  const zip = input ? await JSZip.loadAsync(adapter.readBinaryFromInput(input)) : new JSZip();
+  const zip = input ? await JSZip.loadAsync(await adapter.readBinaryFromInput(input)) : new JSZip();
   return {
     listFiles: (): string[] => {
       return Object.entries(zip.files)

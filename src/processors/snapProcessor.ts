@@ -124,7 +124,7 @@ class SnapProcessor extends BaseProcessor {
     await Promise.resolve();
     const tree = new AACTree();
     let dbResult: Awaited<ReturnType<typeof openSqliteDatabase>> | null = null;
-    let cleanupTempZip: (() => void) | null = null;
+    let cleanupTempZip: (() => Promise<void>) | null = null;
 
     try {
       // Handle .sub.zip files (Snap pageset backups containing .sps files)
@@ -134,7 +134,7 @@ class SnapProcessor extends BaseProcessor {
         const fileName = basename(filePathOrBuffer).toLowerCase();
         if (fileName.endsWith('.sub.zip') || filePathOrBuffer.endsWith('.sub')) {
           // Extract .sub.zip to find the embedded .sps file
-          const tempDir = mkTempDir('snap-sub-');
+          const tempDir = await mkTempDir('snap-sub-');
           const zip = await this.options.zipAdapter(filePathOrBuffer);
 
           // Find the .sps file in the archive
@@ -142,18 +142,18 @@ class SnapProcessor extends BaseProcessor {
           const spsFile = files.find((f) => f.endsWith('.sps'));
 
           if (!spsFile) {
-            removePath(tempDir, { recursive: true, force: true });
+            await removePath(tempDir, { recursive: true, force: true });
             throw new Error('No .sps file found in .sub.zip archive');
           }
 
           // Extract the .sps file
           const spsData = await zip.readFile(spsFile);
           const extractedSpsPath = join(tempDir, basename(spsFile));
-          writeBinaryToPath(extractedSpsPath, Buffer.from(spsData));
+          await writeBinaryToPath(extractedSpsPath, Buffer.from(spsData));
 
           inputFile = extractedSpsPath;
-          cleanupTempZip = () => {
-            removePath(tempDir, { recursive: true, force: true });
+          cleanupTempZip = async () => {
+            await removePath(tempDir, { recursive: true, force: true });
           };
         }
       }
@@ -822,14 +822,14 @@ class SnapProcessor extends BaseProcessor {
       }
     } finally {
       if (dbResult?.cleanup) {
-        dbResult.cleanup();
+        await dbResult.cleanup();
       } else if (dbResult?.db) {
         dbResult.db.close();
       }
       // Clean up temporary extracted .sps file from .sub.zip
       if (cleanupTempZip) {
         try {
-          cleanupTempZip();
+          await cleanupTempZip();
         } catch (e) {
           console.warn('[SnapProcessor] Failed to clean up temporary .sps file:', e);
         }
@@ -851,13 +851,14 @@ class SnapProcessor extends BaseProcessor {
     if (typeof filePathOrBuffer === 'string') {
       const inputPath = filePathOrBuffer;
       const outputDir = dirname(outputPath);
-      if (!pathExists(outputDir)) {
-        mkDir(outputDir, { recursive: true });
+      const dirExists = await pathExists(outputDir);
+      if (!dirExists) {
+        await mkDir(outputDir, { recursive: true });
       }
-      if (pathExists(outputPath)) {
-        removePath(outputPath);
+      if (await pathExists(outputPath)) {
+        await removePath(outputPath);
       }
-      writeBinaryToPath(outputPath, readBinaryFromInput(inputPath));
+      await writeBinaryToPath(outputPath, await readBinaryFromInput(inputPath));
 
       const Database = requireBetterSqlite3();
       const db = new Database(outputPath, { readonly: false });
@@ -930,7 +931,7 @@ class SnapProcessor extends BaseProcessor {
         db.close();
       }
 
-      return readBinaryFromInput(outputPath);
+      return await readBinaryFromInput(outputPath);
     }
 
     // Fallback for buffer inputs: rebuild from tree (may drop Snap assets)
@@ -961,7 +962,7 @@ class SnapProcessor extends BaseProcessor {
     });
 
     await this.saveFromTree(tree, outputPath);
-    return readBinaryFromInput(outputPath);
+    return await readBinaryFromInput(outputPath);
   }
 
   async saveFromTree(tree: AACTree, outputPath: string): Promise<void> {
@@ -971,11 +972,12 @@ class SnapProcessor extends BaseProcessor {
     }
     await Promise.resolve();
     const outputDir = dirname(outputPath);
-    if (!pathExists(outputDir)) {
-      mkDir(outputDir, { recursive: true });
+    const dirExists = await pathExists(outputDir);
+    if (!dirExists) {
+      await mkDir(outputDir, { recursive: true });
     }
-    if (pathExists(outputPath)) {
-      removePath(outputPath);
+    if (await pathExists(outputPath)) {
+      await removePath(outputPath);
     }
     // Create a new SQLite database for Snap format
     const Database = requireBetterSqlite3();
@@ -1345,7 +1347,7 @@ class SnapProcessor extends BaseProcessor {
       throw new Error('createAudioEnhancedPageset is only supported in Node.js environments.');
     }
     // Copy the source database to target
-    writeBinaryToPath(targetDbPath, readBinaryFromInput(sourceDbPath));
+    await writeBinaryToPath(targetDbPath, await readBinaryFromInput(sourceDbPath));
 
     // Add audio recordings to the copy
     for (const [buttonId, audioInfo] of audioMappings.entries()) {
@@ -1445,7 +1447,7 @@ class SnapProcessor extends BaseProcessor {
    * @param filePath - Path to the Snap file
    * @returns Array of available PageLayouts with their dimensions
    */
-  getAvailablePageLayouts(filePath: string): PageLayoutInfo[] {
+  async getAvailablePageLayouts(filePath: string): Promise<PageLayoutInfo[]> {
     const { writeBinaryToPath, removePath, pathExists, join } = this.options.fileAdapter;
     if (!isNodeRuntime()) {
       throw new Error('getAvailablePageLayouts is only supported in Node.js environments.');
@@ -1453,7 +1455,7 @@ class SnapProcessor extends BaseProcessor {
     const dbPath = typeof filePath === 'string' ? filePath : join(process.cwd(), 'temp.spb');
 
     if (Buffer.isBuffer(filePath)) {
-      writeBinaryToPath(dbPath, filePath);
+      await writeBinaryToPath(dbPath, filePath);
     }
 
     let db: any = null;
@@ -1509,9 +1511,10 @@ class SnapProcessor extends BaseProcessor {
       }
 
       // Clean up temporary file if created from buffer
-      if (Buffer.isBuffer(filePath) && pathExists(dbPath)) {
+      const exists = await pathExists(dbPath);
+      if (Buffer.isBuffer(filePath) && exists) {
         try {
-          removePath(dbPath);
+          await removePath(dbPath);
         } catch (e) {
           console.warn('Failed to clean up temporary file:', e);
         }

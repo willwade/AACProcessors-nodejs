@@ -33,14 +33,14 @@ export class ComparisonAnalyzer {
   /**
    * Compare two board sets
    */
-  compare(
+  async compare(
     targetResult: MetricsResult,
     compareResult: MetricsResult,
     options?: {
       includeSentences?: boolean;
       locale?: string;
     } & Partial<MetricsOptions>
-  ): ComparisonResult {
+  ): Promise<ComparisonResult> {
     // Create base result from target
     const baseResult = { ...targetResult };
 
@@ -101,7 +101,7 @@ export class ComparisonAnalyzer {
     });
 
     // Calculate CARE components
-    const careComponents = this.calculateCareComponents(
+    const careComponents = await this.calculateCareComponents(
       targetResult,
       compareResult,
       overlappingWords,
@@ -145,7 +145,7 @@ export class ComparisonAnalyzer {
     // Sentence analysis
     let sentences: any[] = [];
     if (options?.includeSentences) {
-      const testSentences = this.referenceLoader.loadSentences();
+      const testSentences = await this.referenceLoader.loadSentences();
       const targetSentences = this.sentenceAnalyzer.analyzeSentences(targetResult, testSentences);
       const compareSentences = this.sentenceAnalyzer.analyzeSentences(compareResult, testSentences);
 
@@ -160,7 +160,7 @@ export class ComparisonAnalyzer {
     }
 
     // Core vocabulary analysis
-    const coreLists = this.referenceLoader.loadCoreLists();
+    const coreLists = await this.referenceLoader.loadCoreLists();
     const cores: { [listId: string]: any } = {};
 
     coreLists.forEach((list) => {
@@ -215,8 +215,8 @@ export class ComparisonAnalyzer {
     });
 
     // Fringe vocabulary analysis
-    const fringeWords = this.analyzeFringe(targetWords, compareWords);
-    const commonFringeWords = this.analyzeCommonFringe(targetWords, compareWords);
+    const fringeWords = await this.analyzeFringe(targetWords, compareWords);
+    const commonFringeWords = await this.analyzeCommonFringe(targetWords, compareWords);
 
     return {
       ...baseResult,
@@ -269,7 +269,7 @@ export class ComparisonAnalyzer {
   /**
    * Calculate CARE component scores
    */
-  private calculateCareComponents(
+  private async calculateCareComponents(
     targetResult: MetricsResult,
     compareResult: MetricsResult,
     _overlappingWords: string[],
@@ -277,9 +277,9 @@ export class ComparisonAnalyzer {
       includeSentences?: boolean;
       locale?: string;
     } & Partial<MetricsOptions>
-  ): ComparisonResult['care_components'] {
+  ): Promise<ComparisonResult['care_components']> {
     // Load common words with baseline efforts (matching Ruby line 527-534)
-    const commonWordsData = this.referenceLoader.loadCommonWords();
+    const commonWordsData = await this.referenceLoader.loadCommonWords();
     const commonWords = new Map<string, number>();
     commonWordsData.words.forEach((word: string) => {
       commonWords.set(word.toLowerCase(), commonWordsData.efforts[word] || 0);
@@ -347,10 +347,10 @@ export class ComparisonAnalyzer {
     });
 
     // Load reference data
-    const coreLists = this.referenceLoader.loadCoreLists();
-    const fringe = this.referenceLoader.loadFringe();
-    const commonFringe = this.referenceLoader.loadCommonFringe();
-    const sentences = this.referenceLoader.loadSentences();
+    const coreLists = await this.referenceLoader.loadCoreLists();
+    const fringe = await this.referenceLoader.loadFringe();
+    const commonFringe = await this.referenceLoader.loadCommonFringe();
+    const sentences = await this.referenceLoader.loadSentences();
 
     // Calculate core coverage and effort (matching Ruby lines 609-647)
     let coreCount = 0;
@@ -561,11 +561,11 @@ export class ComparisonAnalyzer {
   /**
    * Analyze fringe vocabulary
    */
-  private analyzeFringe(
+  private async analyzeFringe(
     targetWords: Map<string, ButtonMetrics>,
     compareWords: Map<string, ButtonMetrics>
-  ): Array<{ word: string; effort: number; comp_effort: number }> {
-    const fringe = this.referenceLoader.loadFringe();
+  ): Promise<Array<{ word: string; effort: number; comp_effort: number }>> {
+    const fringe = await this.referenceLoader.loadFringe();
     const result: Array<{ word: string; effort: number; comp_effort: number }> = [];
 
     fringe.forEach((word) => {
@@ -589,11 +589,11 @@ export class ComparisonAnalyzer {
   /**
    * Analyze common fringe vocabulary
    */
-  private analyzeCommonFringe(
+  private async analyzeCommonFringe(
     targetWords: Map<string, ButtonMetrics>,
     compareWords: Map<string, ButtonMetrics>
-  ): Array<{ word: string; effort: number; comp_effort: number }> {
-    const fringe = this.referenceLoader.loadFringe();
+  ): Promise<Array<{ word: string; effort: number; comp_effort: number }>> {
+    const fringe = await this.referenceLoader.loadFringe();
     const result: Array<{ word: string; effort: number; comp_effort: number }> = [];
 
     fringe.forEach((word) => {

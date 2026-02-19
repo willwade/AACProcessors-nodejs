@@ -139,14 +139,14 @@ class TouchChatProcessor extends BaseProcessor {
     await Promise.resolve();
     // Unzip .ce file, extract the .c4v SQLite DB, and parse pages/buttons
     let db: SqliteDatabaseAdapter | null = null;
-    let cleanup: (() => void) | undefined;
+    let cleanup: (() => Promise<void>) | undefined;
 
     try {
       // Store source file path or buffer
       this.sourceFile = filePathOrBuffer;
 
       // Step 1: Unzip
-      const zipInput = readBinaryFromInput(filePathOrBuffer);
+      const zipInput = await readBinaryFromInput(filePathOrBuffer);
       const zip = await this.options.zipAdapter(zipInput);
       const vocabEntry = zip.listFiles().find((name) => name.endsWith('.c4v'));
       if (!vocabEntry) {
@@ -633,7 +633,7 @@ class TouchChatProcessor extends BaseProcessor {
     } finally {
       // Clean up
       if (cleanup) {
-        cleanup();
+        await cleanup();
       } else if (db) {
         db.close();
       }
@@ -671,11 +671,12 @@ class TouchChatProcessor extends BaseProcessor {
     if (typeof filePathOrBuffer === 'string') {
       const inputPath = filePathOrBuffer;
       const outputDir = dirname(outputPath);
-      if (!pathExists(outputDir)) {
-        mkDir(outputDir, { recursive: true });
+      const dirExists = await pathExists(outputDir);
+      if (!dirExists) {
+        await mkDir(outputDir, { recursive: true });
       }
-      if (pathExists(outputPath)) {
-        removePath(outputPath);
+      if (await pathExists(outputPath)) {
+        await removePath(outputPath);
       }
 
       const zip = await this.options.zipAdapter(inputPath);
@@ -685,10 +686,10 @@ class TouchChatProcessor extends BaseProcessor {
         throw new Error('No .c4v vocab DB found in TouchChat export');
       }
 
-      const tempDir = mkTempDir('touchchat-translate-');
+      const tempDir = await mkTempDir('touchchat-translate-');
       const dbPath = join(tempDir, 'vocab.c4v');
       try {
-        writeBinaryToPath(dbPath, await vocabEntry.getData());
+        await writeBinaryToPath(dbPath, await vocabEntry.getData());
 
         const Database = requireBetterSqlite3();
         const db = new Database(dbPath, { readonly: false });
@@ -762,19 +763,19 @@ class TouchChatProcessor extends BaseProcessor {
         }
         files.push({
           name: vocabEntry.entryName,
-          data: readBinaryFromInput(dbPath),
+          data: await readBinaryFromInput(dbPath),
         });
         const zipData = await outputZip.writeFiles(files);
-        writeBinaryToPath(outputPath, zipData);
+        await writeBinaryToPath(outputPath, zipData);
       } finally {
         try {
-          removePath(tempDir, { recursive: true, force: true });
+          await removePath(tempDir, { recursive: true, force: true });
         } catch {
           // Best-effort cleanup
         }
       }
 
-      return readBinaryFromInput(outputPath);
+      return await readBinaryFromInput(outputPath);
     }
 
     // Fallback for buffer inputs: rebuild from tree (may drop TouchChat metadata)
@@ -805,7 +806,7 @@ class TouchChatProcessor extends BaseProcessor {
     });
 
     await this.saveFromTree(tree, outputPath);
-    return readBinaryFromInput(outputPath);
+    return await readBinaryFromInput(outputPath);
   }
 
   async saveFromTree(tree: AACTree, outputPath: string): Promise<void> {
@@ -818,7 +819,7 @@ class TouchChatProcessor extends BaseProcessor {
       );
     }
     // Create a TouchChat database that matches the expected schema for loading
-    const tmpDir = mkTempDir('touchchat-export-');
+    const tmpDir = await mkTempDir('touchchat-export-');
     const dbPath = join(tmpDir, 'vocab.c4v');
 
     try {
@@ -1215,18 +1216,18 @@ class TouchChatProcessor extends BaseProcessor {
 
       // Create zip file with the database
       const zip = await this.options.zipAdapter();
-      const data = readBinaryFromInput(dbPath);
+      const data = await readBinaryFromInput(dbPath);
       const zipData = await zip.writeFiles([
         {
           name: 'vocab.c4v',
           data,
         },
       ]);
-      writeBinaryToPath(outputPath, zipData);
+      await writeBinaryToPath(outputPath, zipData);
     } finally {
       // Clean up
-      if (pathExists(tmpDir)) {
-        removePath(tmpDir, { recursive: true, force: true });
+      if (await pathExists(tmpDir)) {
+        await removePath(tmpDir, { recursive: true, force: true });
       }
     }
   }
@@ -1447,7 +1448,7 @@ class TouchChatProcessor extends BaseProcessor {
 
     // Save and return
     await this.saveFromTree(tree, outputPath);
-    return readBinaryFromInput(outputPath);
+    return await readBinaryFromInput(outputPath);
   }
 }
 

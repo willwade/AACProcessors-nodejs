@@ -34,8 +34,8 @@ export class TouchChatValidator extends BaseValidator {
   ): Promise<ValidationResult> {
     const { readBinaryFromInput, getFileSize } = fileAdapter ?? defaultFileAdapter;
     const validator = new TouchChatValidator();
-    const content = readBinaryFromInput(filePath);
-    const size = getFileSize(filePath);
+    const content = await readBinaryFromInput(filePath);
+    const size = await getFileSize(filePath);
     return validator.validate(content, getBasename(filePath), size);
   }
 
@@ -351,7 +351,7 @@ export class TouchChatValidator extends BaseValidator {
 
   private async validateSqliteStructure(content: Buffer | Uint8Array): Promise<void> {
     await this.add_check('sqlite', 'valid TouchChat SQLite database', async () => {
-      let cleanup: (() => void) | undefined;
+      let cleanup: (() => Promise<void>) | undefined;
       try {
         const result = await openSqliteDatabase(content, {
           readonly: true,
@@ -416,7 +416,7 @@ export class TouchChatValidator extends BaseValidator {
         this.err(`TouchChat database validation failed: ${e.message}`, true);
       } finally {
         if (cleanup) {
-          cleanup();
+          await cleanup();
         }
       }
     });

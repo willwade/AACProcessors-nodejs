@@ -9,21 +9,21 @@ import { CoreList, CommonWordsData, SynonymsData } from '../metrics/types';
 import { defaultFileAdapter, FileAdapter } from '../../../utils/io';
 
 export interface ReferenceDataProvider {
-  loadCoreLists(): CoreList[];
-  loadCommonWords(): CommonWordsData;
-  loadSynonyms(): SynonymsData;
-  loadSentences(): string[][];
-  loadFringe(): string[];
-  loadBaseWords(): { [word: string]: boolean };
-  loadCommonFringe(): string[];
-  loadAll(): {
+  loadCoreLists(): Promise<CoreList[]>;
+  loadCommonWords(): Promise<CommonWordsData>;
+  loadSynonyms(): Promise<SynonymsData>;
+  loadSentences(): Promise<string[][]>;
+  loadFringe(): Promise<string[]>;
+  loadBaseWords(): Promise<{ [word: string]: boolean }>;
+  loadCommonFringe(): Promise<string[]>;
+  loadAll(): Promise<{
     coreLists: CoreList[];
     commonWords: CommonWordsData;
     synonyms: SynonymsData;
     sentences: string[][];
     fringe: string[];
     baseWords: { [word: string]: boolean };
-  };
+  }>;
 }
 
 export class ReferenceLoader {
@@ -51,50 +51,50 @@ export class ReferenceLoader {
   /**
    * Load core vocabulary lists
    */
-  loadCoreLists(): CoreList[] {
+  async loadCoreLists(): Promise<CoreList[]> {
     const { readTextFromInput } = this.fileAdapter;
     const filePath = this.fileAdapter.join(this.dataDir, `core_lists.${this.locale}.json`);
-    const content = readTextFromInput(filePath);
+    const content = await readTextFromInput(filePath);
     return JSON.parse(String(content)) as CoreList[];
   }
 
   /**
    * Load common words with baseline effort scores
    */
-  loadCommonWords(): CommonWordsData {
+  async loadCommonWords(): Promise<CommonWordsData> {
     const { readTextFromInput, join } = this.fileAdapter;
     const filePath = join(this.dataDir, `common_words.${this.locale}.json`);
-    const content = readTextFromInput(filePath);
+    const content = await readTextFromInput(filePath);
     return JSON.parse(String(content)) as CommonWordsData;
   }
 
   /**
    * Load synonym mappings
    */
-  loadSynonyms(): SynonymsData {
+  async loadSynonyms(): Promise<SynonymsData> {
     const { readTextFromInput, join } = this.fileAdapter;
     const filePath = join(this.dataDir, `synonyms.${this.locale}.json`);
-    const content = readTextFromInput(filePath);
+    const content = await readTextFromInput(filePath);
     return JSON.parse(String(content)) as SynonymsData;
   }
 
   /**
    * Load test sentences
    */
-  loadSentences(): string[][] {
+  async loadSentences(): Promise<string[][]> {
     const { readTextFromInput, join } = this.fileAdapter;
     const filePath = join(this.dataDir, `sentences.${this.locale}.json`);
-    const content = readTextFromInput(filePath);
+    const content = await readTextFromInput(filePath);
     return JSON.parse(String(content)) as string[][];
   }
 
   /**
    * Load fringe vocabulary
    */
-  loadFringe(): string[] {
+  async loadFringe(): Promise<string[]> {
     const { readTextFromInput, join } = this.fileAdapter;
     const filePath = join(this.dataDir, `fringe.${this.locale}.json`);
-    const content = readTextFromInput(filePath);
+    const content = await readTextFromInput(filePath);
     const data = JSON.parse(String(content));
 
     // Flatten nested category words if needed
@@ -114,10 +114,10 @@ export class ReferenceLoader {
   /**
    * Load base words hash map
    */
-  loadBaseWords(): { [word: string]: boolean } {
+  async loadBaseWords(): Promise<{ [word: string]: boolean }> {
     const { readTextFromInput, join } = this.fileAdapter;
     const filePath = join(this.dataDir, `base_words.${this.locale}.json`);
-    const content = readTextFromInput(filePath);
+    const content = await readTextFromInput(filePath);
     return JSON.parse(String(content)) as { [word: string]: boolean };
   }
 
@@ -126,11 +126,11 @@ export class ReferenceLoader {
    * Common words that are NOT in core vocabulary lists
    * (matching Ruby loader.rb:413-420)
    */
-  loadCommonFringe(): string[] {
-    const commonWordsData = this.loadCommonWords();
+  async loadCommonFringe(): Promise<string[]> {
+    const commonWordsData = await this.loadCommonWords();
     const commonWords = new Set(commonWordsData.words.map((w) => w.toLowerCase()));
 
-    const coreLists = this.loadCoreLists();
+    const coreLists = await this.loadCoreLists();
     const coreWords = new Set<string>();
     coreLists.forEach((list) => {
       list.words.forEach((word) => coreWords.add(word.toLowerCase()));
@@ -144,21 +144,21 @@ export class ReferenceLoader {
   /**
    * Get all reference data at once
    */
-  loadAll(): {
+  async loadAll(): Promise<{
     coreLists: CoreList[];
     commonWords: CommonWordsData;
     synonyms: SynonymsData;
     sentences: string[][];
     fringe: string[];
     baseWords: { [word: string]: boolean };
-  } {
+  }> {
     return {
-      coreLists: this.loadCoreLists(),
-      commonWords: this.loadCommonWords(),
-      synonyms: this.loadSynonyms(),
-      sentences: this.loadSentences(),
-      fringe: this.loadFringe(),
-      baseWords: this.loadBaseWords(),
+      coreLists: await this.loadCoreLists(),
+      commonWords: await this.loadCommonWords(),
+      synonyms: await this.loadSynonyms(),
+      sentences: await this.loadSentences(),
+      fringe: await this.loadFringe(),
+      baseWords: await this.loadBaseWords(),
     };
   }
 }
@@ -173,7 +173,9 @@ export function getReferenceDataPath(fileAdapter: FileAdapter = defaultFileAdapt
 /**
  * Check if reference data files exist
  */
-export function hasReferenceData(fileAdapter: FileAdapter = defaultFileAdapter): boolean {
+export async function hasReferenceData(
+  fileAdapter: FileAdapter = defaultFileAdapter
+): Promise<boolean> {
   const { pathExists, join } = fileAdapter;
   const dataPath = getReferenceDataPath();
   const requiredFiles = [
@@ -183,5 +185,8 @@ export function hasReferenceData(fileAdapter: FileAdapter = defaultFileAdapter):
     'synonyms.en.json',
     'fringe.en.json',
   ];
-  return requiredFiles.every((file) => pathExists(join(dataPath, file)));
+  const existingPaths = await Promise.all(
+    requiredFiles.map(async (file) => await pathExists(join(dataPath, file)))
+  );
+  return existingPaths.every((exists) => exists);
 }

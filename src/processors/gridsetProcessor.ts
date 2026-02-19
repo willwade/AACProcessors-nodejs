@@ -444,7 +444,7 @@ class GridsetProcessor extends BaseProcessor {
 
     let zipResult: Awaited<ReturnType<typeof this.options.zipAdapter>>;
     try {
-      const zipInput = readBinaryFromInput(filePathOrBuffer);
+      const zipInput = await readBinaryFromInput(filePathOrBuffer);
       zipResult = await this.options.zipAdapter(zipInput);
     } catch (error: any) {
       throw new Error(`Invalid ZIP file format: ${error.message}`);
@@ -1954,7 +1954,7 @@ class GridsetProcessor extends BaseProcessor {
 
     // Save the translated tree and return its content
     await this.saveFromTree(tree, outputPath);
-    return readBinaryFromInput(outputPath);
+    return await readBinaryFromInput(outputPath);
   }
 
   /**
@@ -2051,7 +2051,7 @@ class GridsetProcessor extends BaseProcessor {
 
     // Save and return
     await this.saveFromTree(tree, outputPath);
-    return readBinaryFromInput(outputPath);
+    return await readBinaryFromInput(outputPath);
   }
 
   async saveFromTree(tree: AACTree, outputPath: string): Promise<void> {
@@ -2062,7 +2062,7 @@ class GridsetProcessor extends BaseProcessor {
     if (Object.keys(tree.pages).length === 0) {
       // Create empty zip for empty tree
       const zipBuffer = await zip.writeFiles([]);
-      writeBinaryToPath(outputPath, zipBuffer);
+      await writeBinaryToPath(outputPath, zipBuffer);
       return;
     }
 
@@ -2423,7 +2423,7 @@ class GridsetProcessor extends BaseProcessor {
 
     // Write the zip file
     const zipBuffer = await zip.writeFiles(files);
-    writeBinaryToPath(outputPath, zipBuffer);
+    await writeBinaryToPath(outputPath, zipBuffer);
   }
 
   // Helper method to calculate column definitions based on page layout
