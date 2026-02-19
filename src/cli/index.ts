@@ -11,6 +11,7 @@ import {
 import { ComparisonAnalyzer, MetricsCalculator } from '../utilities/analytics';
 import { CellScanningOrder, ScanningSelectionMethod } from '../types/aac';
 import { defaultFileAdapter, extname } from '../utils/io';
+import { readFileSync } from 'node:fs';
 
 const { pathExists, isDirectory, join, readTextFromInput, basename, writeTextToPath } =
   defaultFileAdapter;
@@ -88,7 +89,7 @@ function parseFilteringOptions(options: {
 }
 
 // Set version from package.json
-const packageJson = JSON.parse(await readTextFromInput(join(__dirname, '../../package.json'))) as {
+const packageJson = JSON.parse(readFileSync(join(__dirname, '../../package.json'), 'utf8')) as {
   version: string;
 };
 program.version(packageJson.version);
