@@ -77,7 +77,7 @@ export interface ProcessorConfig {
   fileAdapter: FileAdapter;
 
   // Adapter for handling encoding/decoding zip files
-  zipAdapter: (input?: ProcessorInput) => Promise<ZipAdapter>;
+  zipAdapter: (input?: ProcessorInput, fileAdapter?: FileAdapter) => Promise<ZipAdapter>;
 }
 export type ProcessorOptions = Partial<ProcessorConfig>;
 

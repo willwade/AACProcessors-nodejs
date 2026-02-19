@@ -53,8 +53,6 @@ export async function getZipAdapter(
 
   const module = await import('jszip');
   const JSZip = module.default || module;
-  if (input !== undefined && typeof input === 'string')
-    throw new Error('Zip file paths are not supported in browser environments.');
 
   const zip = input ? await JSZip.loadAsync(adapter.readBinaryFromInput(input)) : new JSZip();
   return {

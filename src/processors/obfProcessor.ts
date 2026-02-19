@@ -734,8 +734,8 @@ class ObfProcessor extends BaseProcessor {
           data: new TextEncoder().encode(obfContent),
         };
       });
-      const zip = await getZipAdapter(undefined, this.options.fileAdapter);
-      const zipData = await zip.writeFiles(files);
+      this.zipFile = await this.options.zipAdapter(outputPath, this.options.fileAdapter);
+      const zipData = await this.zipFile.writeFiles(files);
       writeBinaryToPath(outputPath, zipData);
     }
   }
