@@ -714,7 +714,7 @@ class ObfProcessor extends BaseProcessor {
   }
 
   async saveFromTree(tree: AACTree, outputPath: string): Promise<void> {
-    const { writeTextToPath, writeBinaryToPath } = this.options.fileAdapter;
+    const { writeTextToPath, writeBinaryToPath, pathExists } = this.options.fileAdapter;
     if (outputPath.endsWith('.obf')) {
       // Save as single OBF JSON file
       const rootPage = tree.rootId ? tree.getPage(tree.rootId) : Object.values(tree.pages)[0];
@@ -734,8 +734,11 @@ class ObfProcessor extends BaseProcessor {
           data: new TextEncoder().encode(obfContent),
         };
       });
-      //TODO update zip to retain images
-      this.zipFile = await this.options.zipAdapter(undefined, this.options.fileAdapter);
+      const fileExists = await pathExists(outputPath);
+      this.zipFile = await this.options.zipAdapter(
+        fileExists ? outputPath : undefined,
+        this.options.fileAdapter
+      );
       const zipData = await this.zipFile.writeFiles(files);
       await writeBinaryToPath(outputPath, zipData);
     }
