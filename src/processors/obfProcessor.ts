@@ -778,7 +778,7 @@ class ObfProcessor extends BaseProcessor {
    * This method uses shared translation utilities that work across all AAC formats.
    *
    * @param filePathOrBuffer - Path to OBF/OBZ file or buffer
-   * @returns Array of symbol information for LLM processing
+   * @returns Promise resolving to symbol information for LLM processing
    */
   async extractSymbolsForLLM(filePathOrBuffer: ProcessorInput): Promise<ButtonForTranslation[]> {
     const tree = await this.loadIntoTree(filePathOrBuffer);
@@ -811,7 +811,7 @@ class ObfProcessor extends BaseProcessor {
    * @param llmTranslations - Array of LLM translations with symbol info
    * @param outputPath - Where to save the translated OBF/OBZ file
    * @param options - Translation options (e.g., allowPartial for testing)
-   * @returns Buffer of the translated OBF/OBZ file
+   * @returns Promise resolving to a buffer of the translated OBF/OBZ file
    */
   async processLLMTranslations(
     filePathOrBuffer: ProcessorInput,

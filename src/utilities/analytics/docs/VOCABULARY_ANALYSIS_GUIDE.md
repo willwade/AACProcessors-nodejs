@@ -24,14 +24,14 @@ import { ObfsetProcessor, Analytics } from '@willwade/aac-processors';
 
 // Load board set
 const processor = new ObfsetProcessor();
-const tree = processor.loadIntoTree('path/to/boardset.obfset');
+const tree = await processor.loadIntoTree('path/to/boardset.obfset');
 
 // Calculate metrics
 const metrics = new Analytics.MetricsCalculator().analyze(tree);
 
 // Analyze vocabulary coverage
 const vocabAnalyzer = new Analytics.VocabularyAnalyzer();
-const analysis = vocabAnalyzer.analyze(metrics);
+const analysis = await vocabAnalyzer.analyze(metrics);
 
 console.log("Core Coverage:", analysis.core_coverage);
 console.log("High Effort Words:", analysis.high_effort_words);
@@ -132,7 +132,7 @@ const compareResult = calculator.analyze(compareTree);
 
 // Compare
 const comparisonAnalyzer = new Analytics.ComparisonAnalyzer();
-const comparison = comparisonAnalyzer.compare(targetResult, compareResult, {
+const comparison = await comparisonAnalyzer.compare(targetResult, compareResult, {
   includeSentences: true,
 });
 
@@ -230,12 +230,12 @@ All processors can now use these analysis features:
 import { ObfProcessor, Analytics } from '@willwade/aac-processors';
 
 const processor = new ObfProcessor();
-const tree = processor.loadIntoTree('my-board.obf');
+const tree = await processor.loadIntoTree('my-board.obf');
 
 const metrics = new Analytics.MetricsCalculator().analyze(tree);
 
 const vocabAnalyzer = new Analytics.VocabularyAnalyzer();
-const coverage = vocabAnalyzer.analyze(metrics);
+const coverage = await vocabAnalyzer.analyze(metrics);
 
 // Identify gaps in core vocabulary
 Object.entries(coverage.core_coverage).forEach(([id, data]) => {

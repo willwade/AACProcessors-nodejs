@@ -1356,7 +1356,7 @@ class TouchChatProcessor extends BaseProcessor {
    * This method uses shared translation utilities that work across all AAC formats.
    *
    * @param filePathOrBuffer - Path to TouchChat .ce file or buffer
-   * @returns Array of symbol information for LLM processing
+   * @returns Promise resolving to symbol information for LLM processing
    */
   async extractSymbolsForLLM(filePathOrBuffer: string | Buffer): Promise<ButtonForTranslation[]> {
     const tree = await this.loadIntoTree(filePathOrBuffer);
@@ -1389,7 +1389,7 @@ class TouchChatProcessor extends BaseProcessor {
    * @param llmTranslations - Array of LLM translations with symbol info
    * @param outputPath - Where to save the translated TouchChat file
    * @param options - Translation options (e.g., allowPartial for testing)
-   * @returns Buffer of the translated TouchChat file
+   * @returns Promise resolving to a buffer of the translated TouchChat file
    */
   async processLLMTranslations(
     filePathOrBuffer: string | Uint8Array,

@@ -1442,7 +1442,7 @@ class SnapProcessor extends BaseProcessor {
    * Get available PageLayouts for a Snap file
    * Useful for UI components that want to let users select layout size
    * @param filePath - Path to the Snap file
-   * @returns Array of available PageLayouts with their dimensions
+   * @returns Promise resolving to available PageLayouts with their dimensions
    */
   async getAvailablePageLayouts(filePath: string): Promise<PageLayoutInfo[]> {
     const { writeBinaryToPath, removePath, pathExists, join } = this.options.fileAdapter;

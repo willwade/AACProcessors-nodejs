@@ -559,7 +559,7 @@ program
         let care = undefined;
         if (options.care) {
           const comparison = new ComparisonAnalyzer();
-          care = comparison.compare(metrics, metrics, {
+          care = await comparison.compare(metrics, metrics, {
             includeSentences: true,
             usePrediction: !!options.usePrediction,
             scanningConfig,

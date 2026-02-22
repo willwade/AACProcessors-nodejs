@@ -20,7 +20,7 @@ export class ExcelProcessor extends BaseProcessor {
   /**
    * Extract all text content from an Excel file
    * @param filePathOrBuffer - Path to Excel file or Buffer containing Excel data
-   * @returns Array of all text content found in the Excel file
+   * @returns Promise resolving to all text content found in the Excel file
    */
   async extractTexts(_filePathOrBuffer: ProcessorInput): Promise<string[]> {
     console.warn('ExcelProcessor.extractTexts is not implemented yet.');
@@ -30,7 +30,7 @@ export class ExcelProcessor extends BaseProcessor {
   /**
    * Load Excel file into AACTree structure
    * @param filePathOrBuffer - Path to Excel file or Buffer containing Excel data
-   * @returns AACTree representation of the Excel file
+   * @returns Promise resolving to an AACTree representation of the Excel file
    */
   async loadIntoTree(_filePathOrBuffer: ProcessorInput): Promise<AACTree> {
     console.warn('ExcelProcessor.loadIntoTree is not implemented yet.');
@@ -44,7 +44,7 @@ export class ExcelProcessor extends BaseProcessor {
    * @param filePathOrBuffer - Path to Excel file or Buffer containing Excel data
    * @param translations - Map of original text to translated text
    * @param outputPath - Path where translated Excel file should be saved
-   * @returns Buffer containing the translated Excel file
+   * @returns Promise resolving to a buffer containing the translated Excel file
    */
   async processTexts(
     _filePathOrBuffer: ProcessorInput,

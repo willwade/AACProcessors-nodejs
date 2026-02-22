@@ -45,7 +45,7 @@ The `MetricsCalculator` is format-agnostic. You can use any processor to load a 
 import { ObfsetProcessor, Analytics } from '@willwade/aac-processors';
 
 const processor = new ObfsetProcessor();
-const tree = processor.loadIntoTree('set.obfset');
+const tree = await processor.loadIntoTree('set.obfset');
 const result = new Analytics.MetricsCalculator().analyze(tree);
 ```
 
@@ -54,7 +54,7 @@ const result = new Analytics.MetricsCalculator().analyze(tree);
 import { GridsetProcessor, Analytics } from '@willwade/aac-processors';
 
 const processor = new GridsetProcessor();
-const tree = processor.loadIntoTree('my_file.gridset');
+const tree = await processor.loadIntoTree('my_file.gridset');
 const result = new Analytics.MetricsCalculator().analyze(tree);
 ```
 
@@ -63,7 +63,7 @@ const result = new Analytics.MetricsCalculator().analyze(tree);
 import { SnapProcessor, Analytics } from '@willwade/aac-processors';
 
 const processor = new SnapProcessor();
-const tree = processor.loadIntoTree('SnapBackup.pageSet');
+const tree = await processor.loadIntoTree('SnapBackup.pageSet');
 const result = new Analytics.MetricsCalculator().analyze(tree);
 ```
 
@@ -72,7 +72,7 @@ const result = new Analytics.MetricsCalculator().analyze(tree);
 import { TouchChatProcessor, Analytics } from '@willwade/aac-processors';
 
 const processor = new TouchChatProcessor();
-const tree = processor.loadIntoTree('TouchChatBackup.zip');
+const tree = await processor.loadIntoTree('TouchChatBackup.zip');
 const result = new Analytics.MetricsCalculator().analyze(tree);
 ```
 

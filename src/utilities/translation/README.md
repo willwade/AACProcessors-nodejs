@@ -76,8 +76,8 @@ interface LLMLTranslationResult {
 import { extractAllButtonsForTranslation } from './translation/translationProcessor';
 
 // For gridset format
-extractSymbolsForLLM(filePath): ButtonForTranslation[] {
-  const tree = this.loadIntoTree(filePath);
+async extractSymbolsForLLM(filePath): Promise<ButtonForTranslation[]> {
+  const tree = await this.loadIntoTree(filePath);
 
   const allButtons: any[] = [];
   Object.values(tree.pages).forEach((page) => {
@@ -132,8 +132,8 @@ processLLMTranslations(
   filePath: string | Buffer,
   llmTranslations: LLMLTranslationResult[],
   outputPath: string
-): Buffer {
-  const tree = this.loadIntoTree(filePath);
+): Promise<Buffer> {
+  const tree = await this.loadIntoTree(filePath);
 
   // Validate using shared utility
   const buttonIds = Object.values(tree.pages).flatMap((page) =>
@@ -176,7 +176,7 @@ processLLMTranslations(
   });
 
   // Save and return
-  this.saveFromTree(tree, outputPath);
+  await this.saveFromTree(tree, outputPath);
   return fs.readFileSync(outputPath);
 }
 ```
@@ -202,8 +202,8 @@ extractSymbolsForLLM(filePath: string | Buffer): ButtonForTranslation[] {
 
 ```typescript
 // snapProcessor.ts
-extractSymbolsForLLM(filePath: string | Buffer): ButtonForTranslation[] {
-  const tree = this.loadIntoTree(filePath);
+async extractSymbolsForLLM(filePath: string | Buffer): Promise<ButtonForTranslation[]> {
+  const tree = await this.loadIntoTree(filePath);
   const allButtons: any[] = [];
 
   Object.values(tree.pages).forEach((page) => {

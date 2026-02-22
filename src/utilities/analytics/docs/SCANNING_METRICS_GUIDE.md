@@ -100,7 +100,7 @@ Grid 3 stores scan block information directly on each button in the XML:
 import { GridsetProcessor, Analytics } from '@willwade/aac-processors';
 
 const processor = new GridsetProcessor();
-const tree = processor.loadIntoTree('my_file.gridset');
+const tree = await processor.loadIntoTree('my_file.gridset');
 
 // Scan blocks are automatically extracted from @ScanBlock attribute
 const result = new Analytics.MetricsCalculator().analyze(tree);
@@ -157,7 +157,7 @@ import { SnapProcessor, Analytics } from '@willwade/aac-processors';
 
 // Option 1: Default - prefer largest layout with scanning enabled
 const processor = new SnapProcessor();
-const tree = processor.loadIntoTree('Core First Scanning.sps');
+const tree = await processor.loadIntoTree('Core First Scanning.sps');
 
 // Option 2: Specify layout preference
 const processor = new SnapProcessor(null, {
@@ -233,7 +233,7 @@ console.log('Core Words scan blocks:', scanBlockCounts);
 import { TouchChatProcessor, Analytics } from '@willwade/aac-processors';
 
 const processor = new TouchChatProcessor();
-const tree = processor.loadIntoTree('TouchChatBackup.zip');
+const tree = await processor.loadIntoTree('TouchChatBackup.zip');
 
 // All buttons have scanBlock = 1 (linear scanning)
 // Or scanBlock = undefined (no grouping)
@@ -298,7 +298,7 @@ import { SnapProcessor, Analytics } from '@willwade/aac-processors';
 const processor = new SnapProcessor(null, {
   pageLayoutPreference: 'scanning'  // Use scanning layout
 });
-const tree = processor.loadIntoTree('Core First Scanning.sps');
+const tree = await processor.loadIntoTree('Core First Scanning.sps');
 
 // Set root page for multi-vocab pagesets
 tree.rootId = '0219f681-1069-4296-be42-790ee828a7b4'; // Core Words

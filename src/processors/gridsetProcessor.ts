@@ -1964,7 +1964,7 @@ class GridsetProcessor extends BaseProcessor {
    * This method uses shared translation utilities that work across all AAC formats.
    *
    * @param filePathOrBuffer - Path to gridset file or buffer
-   * @returns Array of symbol information for LLM processing
+   * @returns Promise resolving to symbol information for LLM processing
    */
   async extractSymbolsForLLM(filePathOrBuffer: string | Buffer): Promise<ButtonForTranslation[]> {
     const tree = await this.loadIntoTree(filePathOrBuffer);
@@ -1997,7 +1997,7 @@ class GridsetProcessor extends BaseProcessor {
    * @param llmTranslations - Array of LLM translations with symbol info
    * @param outputPath - Where to save the translated gridset
    * @param options - Translation options (e.g., allowPartial for testing)
-   * @returns Buffer of the translated gridset
+   * @returns Promise resolving to a buffer of the translated gridset
    */
   async processLLMTranslations(
     filePathOrBuffer: string | Buffer,
