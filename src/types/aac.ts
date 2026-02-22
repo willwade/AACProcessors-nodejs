@@ -227,6 +227,6 @@ export interface AACTree {
 }
 
 export interface AACProcessor {
-  extractTexts(filePath: string | Buffer): string[];
-  loadIntoTree(filePath: string | Buffer): AACTree;
+  extractTexts(filePath: string | Buffer): Promise<string[]>;
+  loadIntoTree(filePath: string | Buffer): Promise<AACTree>;
 }
