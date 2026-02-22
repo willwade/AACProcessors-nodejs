@@ -136,7 +136,7 @@ class TouchChatProcessor extends BaseProcessor {
 
   async loadIntoTree(filePathOrBuffer: ProcessorInput): Promise<AACTree> {
     const { readBinaryFromInput } = this.options.fileAdapter;
-    await Promise.resolve();
+
     // Unzip .ce file, extract the .c4v SQLite DB, and parse pages/buttons
     let db: SqliteDatabaseAdapter | null = null;
     let cleanup: (() => Promise<void>) | undefined;
@@ -812,7 +812,7 @@ class TouchChatProcessor extends BaseProcessor {
   async saveFromTree(tree: AACTree, outputPath: string): Promise<void> {
     const { writeBinaryToPath, mkTempDir, readBinaryFromInput, pathExists, removePath, join } =
       this.options.fileAdapter;
-    await Promise.resolve();
+
     if (!isNodeRuntime()) {
       throw new Error(
         'saveFromTree is only supported in Node.js environments for TouchChat files.'
@@ -1330,7 +1330,7 @@ class TouchChatProcessor extends BaseProcessor {
       // Use existing processTexts method
       await this.processTexts(filePath, translations, outputPath);
 
-      return Promise.resolve(outputPath);
+      return outputPath;
     } catch (error) {
       return Promise.reject(
         new Error(
@@ -1346,7 +1346,7 @@ class TouchChatProcessor extends BaseProcessor {
    * @returns Promise with validation result
    */
   async validate(filePath: string): Promise<ValidationResult> {
-    return TouchChatValidator.validateFile(filePath, this.options.fileAdapter);
+    return await TouchChatValidator.validateFile(filePath, this.options.fileAdapter);
   }
 
   /**
