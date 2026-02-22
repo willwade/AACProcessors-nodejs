@@ -23,9 +23,8 @@ export class ExcelProcessor extends BaseProcessor {
    * @returns Array of all text content found in the Excel file
    */
   async extractTexts(_filePathOrBuffer: ProcessorInput): Promise<string[]> {
-
     console.warn('ExcelProcessor.extractTexts is not implemented yet.');
-    return [];
+    return Promise.resolve([]);
   }
 
   /**
@@ -37,7 +36,7 @@ export class ExcelProcessor extends BaseProcessor {
     console.warn('ExcelProcessor.loadIntoTree is not implemented yet.');
     const tree = new AACTree();
     tree.metadata.format = 'excel';
-    return tree;
+    return Promise.resolve(tree);
   }
 
   /**

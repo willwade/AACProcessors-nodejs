@@ -13,8 +13,7 @@ import { CellScanningOrder, ScanningSelectionMethod } from '../types/aac';
 import { defaultFileAdapter, extname } from '../utils/io';
 import { readFileSync } from 'node:fs';
 
-const { pathExists, isDirectory, join, readTextFromInput, basename, writeTextToPath } =
-  defaultFileAdapter;
+const { pathExists, isDirectory, join, basename, writeTextToPath } = defaultFileAdapter;
 
 // Helper function to detect format from file/folder path
 async function detectFormat(filePath: string): Promise<string> {
@@ -242,7 +241,7 @@ program
         const filteringOptions = parseFilteringOptions(options);
 
         // Auto-detect input format
-        const inputFormat = (await detectFormat(input));
+        const inputFormat = await detectFormat(input);
         const inputProcessor = getProcessor(inputFormat, filteringOptions);
 
         // Load the tree (handle both files and folders)

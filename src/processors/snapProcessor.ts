@@ -1325,7 +1325,7 @@ class SnapProcessor extends BaseProcessor {
       const metadataJson = metadata ? JSON.stringify({ FileName: metadata }) : null;
       updateButton.run(audioId, metadataJson, buttonId);
 
-      return audioId;
+      return Promise.resolve(audioId);
     } finally {
       db.close();
     }

@@ -1,5 +1,3 @@
-import { F_OK } from 'node:constants';
-
 export type ProcessorInput = string | Buffer | ArrayBuffer | Uint8Array;
 
 export type BinaryOutput = Buffer | Uint8Array;
@@ -185,10 +183,12 @@ async function readTextFromInput(
 
 async function writeBinaryToPath(outputPath: string, data: BinaryOutput): Promise<void> {
   getFs().writeFileSync(outputPath, data);
+  await Promise.resolve();
 }
 
 async function writeTextToPath(outputPath: string, text: string): Promise<void> {
   getFs().writeFileSync(outputPath, text, 'utf8');
+  await Promise.resolve();
 }
 
 async function pathExists(path: string): Promise<boolean> {
@@ -205,6 +205,7 @@ async function getFileSize(path: string): Promise<number> {
 
 async function mkDir(path: string, options?: { recursive?: boolean }): Promise<void> {
   getFs().mkdirSync(path, options);
+  await Promise.resolve();
 }
 
 async function listDir(path: string): Promise<string[]> {
@@ -216,6 +217,7 @@ async function removePath(
   options?: { recursive?: boolean; force?: boolean }
 ): Promise<void> {
   getFs().rmSync(path, options);
+  await Promise.resolve();
 }
 
 async function mkTempDir(prefix: string): Promise<string> {

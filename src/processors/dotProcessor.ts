@@ -237,7 +237,7 @@ class DotProcessor extends BaseProcessor {
 
   async saveFromTree(tree: AACTree, _outputPath: string): Promise<void> {
     const { writeTextToPath } = this.options.fileAdapter;
-    
+
     let dotContent = `digraph "${tree.metadata?.name || 'AACBoard'}" {\n`;
 
     // Helper to escape DOT string

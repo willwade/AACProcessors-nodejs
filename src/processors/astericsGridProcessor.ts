@@ -1740,8 +1740,8 @@ class AstericsGridProcessor extends BaseProcessor {
           await this.addAudioToElement(
             targetFilePath,
             elementId,
-            audioInfo.audioData,
-            audioInfo.metadata
+            audioInfo.audioData as Buffer,
+            audioInfo.metadata as string
           );
         } catch (error) {
           // Failed to add audio to element - continue with others

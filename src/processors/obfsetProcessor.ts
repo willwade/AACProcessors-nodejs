@@ -210,6 +210,7 @@ export class ObfsetProcessor extends BaseProcessor {
     _translations: Map<string, string>,
     _outputPath: string
   ): Promise<Uint8Array> {
+    await Promise.resolve();
     throw new Error('processTexts is not supported for .obfset currently');
   }
 
@@ -217,6 +218,7 @@ export class ObfsetProcessor extends BaseProcessor {
    * Save tree structure back to file
    */
   async saveFromTree(_tree: AACTree, _outputPath: string): Promise<void> {
+    await Promise.resolve();
     throw new Error('saveFromTree is not supported for .obfset currently');
   }
 
