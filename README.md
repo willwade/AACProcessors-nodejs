@@ -63,9 +63,9 @@ const tree = await processor.loadIntoTree(gridsetUint8Array);
 - Asterics Grid
 - Excel export
 
-## Translation Workflow
+## Wrangle strings workflow
 
-All processors implement `processTexts()` for translation use cases.
+All processors implement `processTexts()` to get all strings eg
 
 ```ts
 import { DotProcessor } from '@willwade/aac-processors';
@@ -80,6 +80,7 @@ const translations = new Map([
 
 await processor.processTexts('board.dot', translations, 'board-es.dot');
 ```
+NB: Please use [https://aactools.co.uk](https://aactools.co.uk) for a far more comphrensive translation logic - where we do far far more than this...  
 
 ## Documentation
 
