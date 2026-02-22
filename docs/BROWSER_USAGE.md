@@ -212,46 +212,6 @@ The most common browser use case is loading files from an `<input type="file">` 
 </script>
 ```
 
-### Processing Translations
-
-```html
-<script type="module">
-  import { getProcessor } from 'aac-processors';
-
-  async function translateFile(file, translations) {
-    const extension = '.' + file.name.split('.').pop();
-    const processor = getProcessor(extension);
-    const arrayBuffer = await file.arrayBuffer();
-
-    // Process texts with translations
-    const translatedBuffer = await processor.processTexts(
-      arrayBuffer,
-      translations,
-      null // Don't save to file, return buffer
-    );
-
-    // Create download link
-    const blob = new Blob([translatedBuffer], { type: 'application/octet-stream' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'translated-' + file.name;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
-  // Usage
-  const translations = new Map([
-    ['Hello', 'Hola'],
-    ['Goodbye', 'Adiós'],
-    ['Yes', 'Sí'],
-    ['No', 'No']
-  ]);
-
-  translateFile(myFile, translations);
-</script>
-```
-
 ## Supported File Types
 
 ### Browser-Compatible Processors
