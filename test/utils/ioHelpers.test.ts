@@ -14,7 +14,7 @@ function createTempDir(prefix: string): string {
 }
 
 describe('io helpers', () => {
-  it('reads and writes text and binary files', () => {
+  it('reads and writes text and binary files', async () => {
     const tempDir = createTempDir('aac-io-test-');
     const textPath = path.join(tempDir, 'note.txt');
     const binPath = path.join(tempDir, 'data.bin');
@@ -22,14 +22,14 @@ describe('io helpers', () => {
       defaultFileAdapter;
 
     try {
-      writeTextToPath(textPath, 'hello');
-      expect(readTextFromInput(textPath)).toBe('hello');
-      const bin = readBinaryFromInput(textPath);
+      await writeTextToPath(textPath, 'hello');
+      expect(await readTextFromInput(textPath)).toBe('hello');
+      const bin = await readBinaryFromInput(textPath);
       expect(Buffer.isBuffer(bin)).toBe(true);
 
       const data = Buffer.from([1, 2, 3, 4]);
-      writeBinaryToPath(binPath, data);
-      const readBack = readBinaryFromInput(binPath);
+      await writeBinaryToPath(binPath, data);
+      const readBack = await readBinaryFromInput(binPath);
       expect(Buffer.from(readBack)).toEqual(data);
     } finally {
       fs.rmSync(tempDir, { recursive: true, force: true });

@@ -21,41 +21,41 @@ export class InMemoryReferenceLoader implements ReferenceDataProvider {
     this.data = data;
   }
 
-  loadCoreLists(): CoreList[] {
-    return this.data.coreLists;
+  async loadCoreLists(): Promise<CoreList[]> {
+    return Promise.resolve(this.data.coreLists);
   }
 
-  loadCommonWords(): CommonWordsData {
-    return this.data.commonWords;
+  async loadCommonWords(): Promise<CommonWordsData> {
+    return Promise.resolve(this.data.commonWords);
   }
 
-  loadSynonyms(): SynonymsData {
-    return this.data.synonyms;
+  async loadSynonyms(): Promise<SynonymsData> {
+    return Promise.resolve(this.data.synonyms);
   }
 
-  loadSentences(): string[][] {
-    return this.data.sentences;
+  async loadSentences(): Promise<string[][]> {
+    return Promise.resolve(this.data.sentences);
   }
 
-  loadFringe(): string[] {
-    return this.data.fringe;
+  async loadFringe(): Promise<string[]> {
+    return Promise.resolve(this.data.fringe);
   }
 
-  loadBaseWords(): { [word: string]: boolean } {
-    return this.data.baseWords;
+  async loadBaseWords(): Promise<{ [word: string]: boolean }> {
+    return Promise.resolve(this.data.baseWords);
   }
 
-  loadCommonFringe(): string[] {
+  async loadCommonFringe(): Promise<string[]> {
     const commonWords = new Set(this.data.commonWords.words.map((w) => w.toLowerCase()));
     const coreWords = new Set<string>();
     this.data.coreLists.forEach((list) => {
       list.words.forEach((word) => coreWords.add(word.toLowerCase()));
     });
-    return Array.from(commonWords).filter((word) => !coreWords.has(word));
+    return Promise.resolve(Array.from(commonWords).filter((word) => !coreWords.has(word)));
   }
 
-  loadAll(): ReferenceData {
-    return this.data;
+  async loadAll(): Promise<ReferenceData> {
+    return Promise.resolve(this.data);
   }
 }
 

@@ -83,8 +83,8 @@ class DotProcessor extends BaseProcessor {
 
   async extractTexts(filePathOrBuffer: ProcessorInput): Promise<string[]> {
     const { readTextFromInput } = this.options.fileAdapter;
-    await Promise.resolve();
-    const content = readTextFromInput(filePathOrBuffer);
+
+    const content = await readTextFromInput(filePathOrBuffer);
 
     const { nodes, edges } = this.parseDotFile(content);
     const texts: string[] = [];
@@ -106,14 +106,14 @@ class DotProcessor extends BaseProcessor {
 
   async loadIntoTree(filePathOrBuffer: ProcessorInput): Promise<AACTree> {
     const { readBinaryFromInput, readTextFromInput } = this.options.fileAdapter;
-    await Promise.resolve();
+
     const filename =
       typeof filePathOrBuffer === 'string' ? getBasename(filePathOrBuffer) : 'upload.dot';
-    const buffer = readBinaryFromInput(filePathOrBuffer);
+    const buffer = await readBinaryFromInput(filePathOrBuffer);
     const filesize = buffer.byteLength;
 
     try {
-      const content = readTextFromInput(buffer);
+      const content = await readTextFromInput(buffer);
 
       if (!content || content.trim().length === 0) {
         const validation = buildValidationResultFromMessage({
@@ -213,8 +213,8 @@ class DotProcessor extends BaseProcessor {
     outputPath: string
   ): Promise<Uint8Array> {
     const { readTextFromInput, writeBinaryToPath } = this.options.fileAdapter;
-    await Promise.resolve();
-    const content = readTextFromInput(filePathOrBuffer);
+
+    const content = await readTextFromInput(filePathOrBuffer);
     let translatedContent = content;
 
     translations.forEach((translation, text) => {
@@ -231,13 +231,13 @@ class DotProcessor extends BaseProcessor {
     });
 
     const resultBuffer = encodeText(translatedContent || '');
-    writeBinaryToPath(outputPath, resultBuffer);
+    await writeBinaryToPath(outputPath, resultBuffer);
     return resultBuffer;
   }
 
   async saveFromTree(tree: AACTree, _outputPath: string): Promise<void> {
     const { writeTextToPath } = this.options.fileAdapter;
-    await Promise.resolve();
+
     let dotContent = `digraph "${tree.metadata?.name || 'AACBoard'}" {\n`;
 
     // Helper to escape DOT string
@@ -274,7 +274,7 @@ class DotProcessor extends BaseProcessor {
     }
 
     dotContent += '}\n';
-    writeTextToPath(_outputPath, dotContent);
+    await writeTextToPath(_outputPath, dotContent);
   }
 
   /**

@@ -384,11 +384,11 @@ function parseSymbolReferenceSafe(reference: string): SymbolReference | null {
 /**
  * Export symbol references to CSV for manual extraction
  */
-export function exportSymbolReferencesToCsv(
+export async function exportSymbolReferencesToCsv(
   report: SymbolReport,
   outputPath: string,
   fileAdapter: FileAdapter = defaultFileAdapter
-): void {
+): Promise<void> {
   const { writeTextToPath } = fileAdapter;
   const lines = ['Reference,Library,Path,Attribution,License'];
 
@@ -398,7 +398,7 @@ export function exportSymbolReferencesToCsv(
     );
   }
 
-  writeTextToPath(outputPath, lines.join('\n'));
+  await writeTextToPath(outputPath, lines.join('\n'));
 }
 
 /**

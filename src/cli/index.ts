@@ -11,14 +11,18 @@ import {
 import { ComparisonAnalyzer, MetricsCalculator } from '../utilities/analytics';
 import { CellScanningOrder, ScanningSelectionMethod } from '../types/aac';
 import { defaultFileAdapter, extname } from '../utils/io';
+import { readFileSync } from 'node:fs';
 
-const { pathExists, isDirectory, join, readTextFromInput, basename, writeTextToPath } =
-  defaultFileAdapter;
+const { pathExists, isDirectory, join, basename, writeTextToPath } = defaultFileAdapter;
 
 // Helper function to detect format from file/folder path
-function detectFormat(filePath: string): string {
+async function detectFormat(filePath: string): Promise<string> {
   // Check if it's a folder ending with .ascconfig
-  if (pathExists(filePath) && isDirectory(filePath) && filePath.endsWith('.ascconfig')) {
+  if (
+    (await pathExists(filePath)) &&
+    (await isDirectory(filePath)) &&
+    filePath.endsWith('.ascconfig')
+  ) {
     return 'ascconfig';
   }
 
@@ -84,7 +88,7 @@ function parseFilteringOptions(options: {
 }
 
 // Set version from package.json
-const packageJson = JSON.parse(readTextFromInput(join(__dirname, '../../package.json'))) as {
+const packageJson = JSON.parse(readFileSync(join(__dirname, '../../package.json'), 'utf8')) as {
   version: string;
 };
 program.version(packageJson.version);
@@ -116,7 +120,7 @@ program
         const filteringOptions = parseFilteringOptions(options);
 
         // Auto-detect format if not specified
-        const format = options.format || detectFormat(file);
+        const format = options.format || (await detectFormat(file));
         const processor = getProcessor(format, filteringOptions);
         const tree = await processor.loadIntoTree(file);
 
@@ -170,7 +174,7 @@ program
         const filteringOptions = parseFilteringOptions(options);
 
         // Auto-detect format if not specified
-        const format = options.format || detectFormat(file);
+        const format = options.format || (await detectFormat(file));
         const processor = getProcessor(format, filteringOptions);
         const texts = await processor.extractTexts(file);
 
@@ -237,7 +241,7 @@ program
         const filteringOptions = parseFilteringOptions(options);
 
         // Auto-detect input format
-        const inputFormat = detectFormat(input);
+        const inputFormat = await detectFormat(input);
         const inputProcessor = getProcessor(inputFormat, filteringOptions);
 
         // Load the tree (handle both files and folders)
@@ -293,7 +297,7 @@ program
     ) => {
       try {
         // Auto-detect format if not specified
-        const format = options.format || detectFormat(file);
+        const format = options.format || (await detectFormat(file));
 
         // Get processor with gridset password if provided
         const processorOptions: ProcessorOptions = {};
@@ -388,7 +392,7 @@ program
   .option('--encryption <mode>', 'Encryption label for baton export', 'none')
   .option('--version <version>', 'Baton export version', '1.0')
   .action(
-    (
+    async (
       input: string,
       options: {
         format?: string;
@@ -401,7 +405,7 @@ program
       }
     ) => {
       try {
-        if (!pathExists(input)) {
+        if (!(await pathExists(input))) {
           throw new Error(`File not found: ${input}`);
         }
 
@@ -412,9 +416,9 @@ program
 
         let entries;
         if (normalizedSource === 'grid3' || (normalizedSource === 'auto' && isGrid3Db)) {
-          entries = readGrid3History(input);
+          entries = await readGrid3History(input);
         } else if (normalizedSource === 'snap' || (normalizedSource === 'auto' && isSnap)) {
-          entries = readSnapUsage(input);
+          entries = await readSnapUsage(input);
         } else {
           throw new Error('Unable to detect history source. Use --source grid3 or --source snap.');
         }
@@ -435,7 +439,7 @@ program
 
         const output = JSON.stringify(payload, null, 2);
         if (options.out) {
-          writeTextToPath(options.out, output);
+          await writeTextToPath(options.out, output);
         } else {
           console.log(output);
         }
@@ -493,7 +497,7 @@ program
     ) => {
       try {
         const filteringOptions = parseFilteringOptions(options);
-        const format = options.format || detectFormat(file);
+        const format = options.format || (await detectFormat(file));
         const processor = getProcessor(format, filteringOptions);
         const tree = await processor.loadIntoTree(file);
 
@@ -575,7 +579,7 @@ program
 
         const output = options.pretty ? JSON.stringify(result, null, 2) : JSON.stringify(result);
         if (options.out) {
-          writeTextToPath(options.out, output);
+          await writeTextToPath(options.out, output);
         } else {
           console.log(output);
         }

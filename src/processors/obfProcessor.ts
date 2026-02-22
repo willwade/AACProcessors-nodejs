@@ -23,7 +23,7 @@ import {
   type LLMLTranslationResult,
 } from '../utilities/translation/translationProcessor';
 import { ProcessorInput, encodeBase64, decodeText } from '../utils/io';
-import { getZipAdapter, ZipAdapter } from '../utils/zip';
+import { ZipAdapter } from '../utils/zip';
 
 const OBF_FORMAT_VERSION = 'open-board-0.1';
 
@@ -395,7 +395,7 @@ class ObfProcessor extends BaseProcessor {
     const bufferLength =
       typeof filePathOrBuffer === 'string'
         ? null
-        : readBinaryFromInput(filePathOrBuffer).byteLength;
+        : (await readBinaryFromInput(filePathOrBuffer)).byteLength;
     console.log('[OBF] loadIntoTree called with:', {
       type: typeof filePathOrBuffer,
       isBuffer: typeof Buffer !== 'undefined' && Buffer.isBuffer(filePathOrBuffer),
@@ -407,9 +407,9 @@ class ObfProcessor extends BaseProcessor {
     const tree = new AACTree();
 
     // Helper: try to parse JSON OBF
-    function tryParseObfJson(data: ProcessorInput): ObfBoard | null {
+    async function tryParseObfJson(data: ProcessorInput): Promise<ObfBoard | null> {
       try {
-        const str = typeof data === 'string' ? data : readTextFromInput(data);
+        const str = typeof data === 'string' ? data : await readTextFromInput(data);
 
         // Check for empty or whitespace-only content
         if (!str.trim()) {
@@ -433,8 +433,8 @@ class ObfProcessor extends BaseProcessor {
     // If input is a string path and ends with .obf, treat as JSON
     if (typeof filePathOrBuffer === 'string' && filePathOrBuffer.toLowerCase().endsWith('.obf')) {
       try {
-        const content = readTextFromInput(filePathOrBuffer);
-        const boardData = tryParseObfJson(content);
+        const content = await readTextFromInput(filePathOrBuffer);
+        const boardData = await tryParseObfJson(content);
         if (boardData) {
           console.log('[OBF] Detected .obf file, parsed as JSON');
           const page = await this.processBoard(boardData, filePathOrBuffer, false);
@@ -461,18 +461,18 @@ class ObfProcessor extends BaseProcessor {
     }
 
     // Detect likely zip signature first
-    function isLikelyZip(input: ProcessorInput): boolean {
+    async function isLikelyZip(input: ProcessorInput): Promise<boolean> {
       if (typeof input === 'string') {
         const lowered = input.toLowerCase();
         return lowered.endsWith('.zip') || lowered.endsWith('.obz');
       }
-      const bytes = readBinaryFromInput(input);
+      const bytes = await readBinaryFromInput(input);
       return bytes.length >= 2 && bytes[0] === 0x50 && bytes[1] === 0x4b;
     }
 
     // Check if input is a buffer or string that parses as OBF JSON; throw if neither JSON nor ZIP
-    if (!isLikelyZip(filePathOrBuffer)) {
-      const asJson = tryParseObfJson(filePathOrBuffer);
+    if (!(await isLikelyZip(filePathOrBuffer))) {
+      const asJson = await tryParseObfJson(filePathOrBuffer);
       if (!asJson) throw new Error('Invalid OBF content: not JSON and not ZIP');
       console.log('[OBF] Detected buffer/string as OBF JSON');
       const page = await this.processBoard(asJson, '[bufferOrString]', false);
@@ -515,7 +515,7 @@ class ObfProcessor extends BaseProcessor {
       try {
         const content = await this.zipFile.readFile(manifestFile[0]);
         const data = decodeText(content);
-        const str = typeof data === 'string' ? data : readTextFromInput(data);
+        const str = typeof data === 'string' ? data : await readTextFromInput(data);
         if (!str.trim()) throw new Error('Manifest object missing');
         const manifestObject = JSON.parse(str) as ObfManifest;
         if (!manifestObject) throw new Error('Manifest object is empty');
@@ -539,7 +539,7 @@ class ObfProcessor extends BaseProcessor {
     for (const entryName of obfEntries) {
       try {
         const content = await this.zipFile.readFile(entryName);
-        const boardData = tryParseObfJson(decodeText(content));
+        const boardData = await tryParseObfJson(decodeText(content));
         if (boardData) {
           const page = await this.processBoard(boardData, entryName, true);
           tree.addPage(page);
@@ -710,7 +710,7 @@ class ObfProcessor extends BaseProcessor {
 
     // Save the translated tree and return its content
     await this.saveFromTree(tree, outputPath);
-    return readBinaryFromInput(outputPath);
+    return await readBinaryFromInput(outputPath);
   }
 
   async saveFromTree(tree: AACTree, outputPath: string): Promise<void> {
@@ -723,7 +723,7 @@ class ObfProcessor extends BaseProcessor {
       }
 
       const obfBoard = this.createObfBoardFromPage(rootPage, 'Exported Board', tree.metadata);
-      writeTextToPath(outputPath, JSON.stringify(obfBoard, null, 2));
+      await writeTextToPath(outputPath, JSON.stringify(obfBoard, null, 2));
     } else {
       const files = Object.values(tree.pages).map((page) => {
         const obfBoard = this.createObfBoardFromPage(page, 'Board', tree.metadata);
@@ -734,9 +734,10 @@ class ObfProcessor extends BaseProcessor {
           data: new TextEncoder().encode(obfContent),
         };
       });
-      const zip = await getZipAdapter(undefined, this.options.fileAdapter);
-      const zipData = await zip.writeFiles(files);
-      writeBinaryToPath(outputPath, zipData);
+      //TODO update zip to retain images
+      this.zipFile = await this.options.zipAdapter(undefined, this.options.fileAdapter);
+      const zipData = await this.zipFile.writeFiles(files);
+      await writeBinaryToPath(outputPath, zipData);
     }
   }
 
@@ -864,7 +865,7 @@ class ObfProcessor extends BaseProcessor {
 
     // Save and return
     await this.saveFromTree(tree, outputPath);
-    return readBinaryFromInput(outputPath);
+    return await readBinaryFromInput(outputPath);
   }
 
   private getObfValidator(): typeof import('../validation/obfValidator').ObfValidator {

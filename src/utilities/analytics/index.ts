@@ -44,7 +44,9 @@ export function getReferenceDataPath(fileAdapter: FileAdapter): string {
 /**
  * Check if reference data files exist
  */
-export function hasReferenceData(fileAdapter: FileAdapter = defaultFileAdapter): boolean {
+export async function hasReferenceData(
+  fileAdapter: FileAdapter = defaultFileAdapter
+): Promise<boolean> {
   const { pathExists, join } = fileAdapter;
   const dataPath = getReferenceDataPath(fileAdapter);
   const requiredFiles = [
@@ -55,5 +57,8 @@ export function hasReferenceData(fileAdapter: FileAdapter = defaultFileAdapter):
     'fringe.en.json',
   ];
 
-  return requiredFiles.every((file) => pathExists(join(dataPath, file)));
+  const existingPaths = await Promise.all(
+    requiredFiles.map(async (file) => await pathExists(join(dataPath, file)))
+  );
+  return existingPaths.every((exists) => exists);
 }

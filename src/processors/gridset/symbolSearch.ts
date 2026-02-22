@@ -47,12 +47,12 @@ export interface LibrarySearchIndex {
  * @param pixFilePath - Path to .pix file
  * @returns Search index
  */
-export function parsePixFile(
+export async function parsePixFile(
   pixFilePath: string,
   fileAdapter: FileAdapter = defaultFileAdapter
-): LibrarySearchIndex {
+): Promise<LibrarySearchIndex> {
   const { readTextFromInput, basename } = fileAdapter;
-  const content = readTextFromInput(pixFilePath);
+  const content = await readTextFromInput(pixFilePath);
   const library = basename(pixFilePath, '.pix');
 
   const searchTerms = new Map<string, string>();
@@ -86,10 +86,10 @@ export function parsePixFile(
  * @param options - Search options
  * @returns Map of library name to search index
  */
-export function loadSearchIndexes(
+export async function loadSearchIndexes(
   options: SymbolSearchOptions = {},
   fileAdapter: FileAdapter = defaultFileAdapter
-): Map<string, LibrarySearchIndex> {
+): Promise<Map<string, LibrarySearchIndex>> {
   const { listDir, pathExists, join, basename } = fileAdapter;
   const { grid3Path, locale = 'en-GB', libraries: specifiedLibs } = options;
 
@@ -99,12 +99,12 @@ export function loadSearchIndexes(
 
   const searchIndexesDir = join(grid3Path, 'Locale', locale, 'symbolsearch');
 
-  if (!pathExists(searchIndexesDir)) {
+  if (!(await pathExists(searchIndexesDir))) {
     throw new Error(`Symbol search directory not found: ${searchIndexesDir}`);
   }
 
   const indexes = new Map<string, LibrarySearchIndex>();
-  const files = listDir(searchIndexesDir);
+  const files = await listDir(searchIndexesDir);
 
   for (const file of files) {
     if (!file.endsWith('.pix')) {
@@ -122,7 +122,7 @@ export function loadSearchIndexes(
 
     try {
       const pixFilePath = join(searchIndexesDir, file);
-      const index = parsePixFile(pixFilePath);
+      const index = await parsePixFile(pixFilePath);
       indexes.set(libraryName, index);
     } catch (error) {
       console.warn(`Failed to load index for ${libraryName}:`, error);
@@ -138,11 +138,11 @@ export function loadSearchIndexes(
  * @param options - Search options
  * @returns Array of search results
  */
-export function searchSymbols(
+export async function searchSymbols(
   searchTerm: string,
   options: SymbolSearchOptions = {}
-): SymbolSearchResult[] {
-  const indexes = loadSearchIndexes(options);
+): Promise<SymbolSearchResult[]> {
+  const indexes = await loadSearchIndexes(options);
   const results: SymbolSearchResult[] = [];
   const lowerSearchTerm = searchTerm.toLowerCase().trim();
   const limit = options.limit || 100;
@@ -203,12 +203,12 @@ export function searchSymbols(
  * @param options - Search options
  * @returns Symbol filename or undefined
  */
-export function getSymbolFilename(
+export async function getSymbolFilename(
   searchTerm: string,
   library: string,
   options: SymbolSearchOptions = {}
-): string | undefined {
-  const indexes = loadSearchIndexes({
+): Promise<string | undefined> {
+  const indexes = await loadSearchIndexes({
     ...options,
     libraries: [library],
   });
@@ -228,12 +228,12 @@ export function getSymbolFilename(
  * @param options - Search options
  * @returns Display name or undefined
  */
-export function getSymbolDisplayName(
+export async function getSymbolDisplayName(
   symbolFilename: string,
   library: string,
   options: SymbolSearchOptions = {}
-): string | undefined {
-  const indexes = loadSearchIndexes({
+): Promise<string | undefined> {
+  const indexes = await loadSearchIndexes({
     ...options,
     libraries: [library],
   });
@@ -252,8 +252,11 @@ export function getSymbolDisplayName(
  * @param options - Search options
  * @returns Array of search terms
  */
-export function getAllSearchTerms(library: string, options: SymbolSearchOptions = {}): string[] {
-  const indexes = loadSearchIndexes({
+export async function getAllSearchTerms(
+  library: string,
+  options: SymbolSearchOptions = {}
+): Promise<string[]> {
+  const indexes = await loadSearchIndexes({
     ...options,
     libraries: [library],
   });
@@ -272,11 +275,11 @@ export function getAllSearchTerms(library: string, options: SymbolSearchOptions 
  * @param options - Search options
  * @returns Array of suggested terms
  */
-export function getSearchSuggestions(
+export async function getSearchSuggestions(
   partialTerm: string,
   options: SymbolSearchOptions = {}
-): string[] {
-  const indexes = loadSearchIndexes(options);
+): Promise<string[]> {
+  const indexes = await loadSearchIndexes(options);
   const suggestions = new Set<string>();
   const lowerPartial = partialTerm.toLowerCase().trim();
 
@@ -297,11 +300,11 @@ export function getSearchSuggestions(
  * @param options - Search options
  * @returns Array of full symbol references
  */
-export function searchSymbolsWithReferences(
+export async function searchSymbolsWithReferences(
   searchTerm: string,
   options: SymbolSearchOptions = {}
-): string[] {
-  const results = searchSymbols(searchTerm, options);
+): Promise<string[]> {
+  const results = await searchSymbols(searchTerm, options);
 
   return results.map((r) => `[${r.library}]${r.symbolFilename}`);
 }
@@ -311,8 +314,10 @@ export function searchSymbolsWithReferences(
  * @param options - Search options
  * @returns Map of library name to symbol count
  */
-export function countLibrarySymbols(options: SymbolSearchOptions = {}): Map<string, number> {
-  const indexes = loadSearchIndexes(options);
+export async function countLibrarySymbols(
+  options: SymbolSearchOptions = {}
+): Promise<Map<string, number>> {
+  const indexes = await loadSearchIndexes(options);
   const counts = new Map<string, number>();
 
   for (const [libraryName, index] of indexes.entries()) {
@@ -342,8 +347,10 @@ export interface SymbolSearchStats {
  * @param options - Search options
  * @returns Statistics about available symbols
  */
-export function getSymbolSearchStats(options: SymbolSearchOptions = {}): SymbolSearchStats {
-  const indexes = loadSearchIndexes(options);
+export async function getSymbolSearchStats(
+  options: SymbolSearchOptions = {}
+): Promise<SymbolSearchStats> {
+  const indexes = await loadSearchIndexes(options);
   const stats: SymbolSearchStats = {
     totalLibraries: indexes.size,
     totalSymbols: 0,

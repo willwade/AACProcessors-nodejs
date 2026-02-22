@@ -139,13 +139,13 @@ describe('AstericsGridProcessor', () => {
     const processor = new AstericsGridProcessor();
 
     // Test getElementIds method
-    const elementIds = processor.getElementIds(exampleGrdFile);
+    const elementIds = await processor.getElementIds(exampleGrdFile);
     expect(Array.isArray(elementIds)).toBe(true);
     expect(elementIds.length).toBeGreaterThan(0);
 
     // Test hasAudioRecording method
     const firstElementId = elementIds[0];
-    const hasAudio = processor.hasAudioRecording(exampleGrdFile, firstElementId);
+    const hasAudio = await processor.hasAudioRecording(exampleGrdFile, firstElementId);
     expect(typeof hasAudio).toBe('boolean');
   });
 

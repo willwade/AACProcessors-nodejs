@@ -7,7 +7,7 @@ describe('History analytics wrappers (mocked)', () => {
   });
 
   it('wraps platform helpers and unifies histories', async () => {
-    jest.isolateModules(() => {
+    jest.isolateModules(async () => {
       jest.doMock('../src/processors/gridset/helpers', () => ({
         readGrid3History: jest.fn(() => [
           {
@@ -63,20 +63,20 @@ describe('History analytics wrappers (mocked)', () => {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const history = require('../src/utilities/analytics/history'); // eslint-disable-line @typescript-eslint/no-var-requires
 
-      const gridUserEntries = history.readGrid3HistoryForUser('alice');
+      const gridUserEntries = await history.readGrid3HistoryForUser('alice');
       expect(gridUserEntries[0].source).toBe('Grid');
       expect(gridUserEntries[0].content).toBe('grid user');
 
-      const gridAllEntries = history.readAllGrid3History();
+      const gridAllEntries = await history.readAllGrid3History();
       expect(gridAllEntries[0].source).toBe('Grid');
 
-      const snapEntries = history.readSnapUsageForUser('u1');
+      const snapEntries = await history.readSnapUsageForUser('u1');
       expect(snapEntries[0].source).toBe('Snap');
 
-      expect(history.listGrid3Users()).toHaveLength(1);
-      expect(history.listSnapUsers()).toHaveLength(1);
+      expect(await history.listGrid3Users()).toHaveLength(1);
+      expect(await history.listSnapUsers()).toHaveLength(1);
 
-      const unified = history.collectUnifiedHistory();
+      const unified = await history.collectUnifiedHistory();
       expect(unified.map((e: any) => e.source).sort()).toEqual(['Grid', 'Snap']);
     });
   });

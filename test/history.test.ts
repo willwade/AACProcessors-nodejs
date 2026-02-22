@@ -56,7 +56,7 @@ describe('History analytics', () => {
       'INSERT INTO PhraseHistory (PhraseId, Timestamp, Latitude, Longitude) VALUES (?, ?, ?, ?)'
     ).run(phraseId, ts, 51.5, -1.2);
 
-    const history = Analytics.readGrid3History(dbPath);
+    const history = await Analytics.readGrid3History(dbPath);
     expect(history).toHaveLength(1);
     const entry = history[0] as Analytics.HistoryEntry;
     expect(entry.source).toBe('Grid');
@@ -98,7 +98,7 @@ describe('History analytics', () => {
       'INSERT INTO PhraseHistory (PhraseId, Timestamp, Latitude, Longitude) VALUES (?, ?, ?, ?)'
     ).run(fallbackId, ts2, null, null);
 
-    const history = Analytics.readGrid3History(dbPath);
+    const history = await Analytics.readGrid3History(dbPath);
     expect(history).toHaveLength(1);
     expect(history[0].content).toBe('plain text only');
     expect(history[0].occurrences).toHaveLength(1);
@@ -136,7 +136,7 @@ describe('History analytics', () => {
       'INSERT INTO ButtonUsage (Timestamp, ButtonUniqueId, Modeling, AccessMethod, BlockId) VALUES (?, ?, ?, ?, ?)'
     ).run(ts, buttonId, 0, 2, 1);
 
-    const history = Analytics.readSnapUsage(pagesetPath);
+    const history = await Analytics.readSnapUsage(pagesetPath);
     expect(history).toHaveLength(1);
     const entry = history[0] as Analytics.HistoryEntry;
     expect(entry.source).toBe('Snap');

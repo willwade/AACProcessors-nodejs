@@ -25,17 +25,18 @@ export class ApplePanelsValidator extends BaseValidator {
     let content: Uint8Array;
     const filename = getBasename(filePath);
     let size = 0;
+    const isDir = await isDirectory(filePath);
 
-    if (isDirectory(filePath) && filename.toLowerCase().endsWith('.ascconfig')) {
+    if (isDir && filename.toLowerCase().endsWith('.ascconfig')) {
       const panelPath = join(filePath, 'Contents', 'Resources', 'PanelDefinitions.plist');
-      if (!pathExists(panelPath)) {
+      if (!(await pathExists(panelPath))) {
         return validator.validate(Buffer.alloc(0), filename, 0);
       }
-      content = readBinaryFromInput(panelPath);
-      size = getFileSize(panelPath);
+      content = await readBinaryFromInput(panelPath);
+      size = await getFileSize(panelPath);
     } else {
-      content = readBinaryFromInput(filePath);
-      size = getFileSize(filePath) || content.byteLength;
+      content = await readBinaryFromInput(filePath);
+      size = (await getFileSize(filePath)) || content.byteLength;
     }
 
     return validator.validate(content, filename, size);

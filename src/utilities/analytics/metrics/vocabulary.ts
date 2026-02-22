@@ -46,20 +46,20 @@ export class VocabularyAnalyzer {
   /**
    * Analyze vocabulary coverage against core lists
    */
-  analyze(
+  async analyze(
     metrics: MetricsResult,
     options?: {
       locale?: string;
       highEffortThreshold?: number;
       lowEffortThreshold?: number;
     }
-  ): VocabularyAnalysis {
+  ): Promise<VocabularyAnalysis> {
     // const locale = options?.locale || metrics.locale || 'en';
     const highEffortThreshold = options?.highEffortThreshold || 5.0;
     const lowEffortThreshold = options?.lowEffortThreshold || 2.0;
 
     // Load reference data
-    const coreLists = this.referenceLoader.loadCoreLists();
+    const coreLists = await this.referenceLoader.loadCoreLists();
 
     // Create word to effort map (using lowercase keys for matching)
     const wordEffortMap = new Map<string, number>();

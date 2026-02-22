@@ -23,9 +23,8 @@ export class ExcelProcessor extends BaseProcessor {
    * @returns Array of all text content found in the Excel file
    */
   async extractTexts(_filePathOrBuffer: ProcessorInput): Promise<string[]> {
-    await Promise.resolve();
     console.warn('ExcelProcessor.extractTexts is not implemented yet.');
-    return [];
+    return Promise.resolve([]);
   }
 
   /**
@@ -34,11 +33,10 @@ export class ExcelProcessor extends BaseProcessor {
    * @returns AACTree representation of the Excel file
    */
   async loadIntoTree(_filePathOrBuffer: ProcessorInput): Promise<AACTree> {
-    await Promise.resolve();
     console.warn('ExcelProcessor.loadIntoTree is not implemented yet.');
     const tree = new AACTree();
     tree.metadata.format = 'excel';
-    return tree;
+    return Promise.resolve(tree);
   }
 
   /**
@@ -54,11 +52,10 @@ export class ExcelProcessor extends BaseProcessor {
     outputPath: string
   ): Promise<Uint8Array> {
     const { dirname, pathExists, mkDir } = this.options.fileAdapter;
-    await Promise.resolve();
     console.warn('ExcelProcessor.processTexts is not implemented yet.');
     const outputDir = dirname(outputPath);
-    if (!pathExists(outputDir)) {
-      mkDir(outputDir, { recursive: true });
+    if (!(await pathExists(outputDir))) {
+      await mkDir(outputDir, { recursive: true });
     }
     return Buffer.alloc(0);
   }
@@ -540,7 +537,7 @@ export class ExcelProcessor extends BaseProcessor {
   async saveFromTree(tree: AACTree, outputPath: string): Promise<void> {
     const { mkDir, dirname, writeTextToPath } = this.options.fileAdapter;
     const outputDir = dirname(outputPath);
-    mkDir(outputDir, { recursive: true });
+    await mkDir(outputDir, { recursive: true });
 
     try {
       await this.saveFromTreeAsync(tree, outputPath);
@@ -549,8 +546,8 @@ export class ExcelProcessor extends BaseProcessor {
       console.error('Failed to save Excel file:', message);
       try {
         const fallbackPath = outputPath.replace(/\.xlsx$/i, '_error.txt');
-        mkDir(dirname(fallbackPath), { recursive: true });
-        writeTextToPath(fallbackPath, `Error saving Excel file: ${message}`);
+        await mkDir(dirname(fallbackPath), { recursive: true });
+        await writeTextToPath(fallbackPath, `Error saving Excel file: ${message}`);
       } catch (writeError) {
         console.error('Failed to write Excel error file:', writeError);
       }

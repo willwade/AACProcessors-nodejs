@@ -25,8 +25,8 @@ export class SnapValidator extends BaseValidator {
   ): Promise<ValidationResult> {
     const { readBinaryFromInput, getFileSize } = fileAdapter ?? defaultFileAdapter;
     const validator = new SnapValidator();
-    const content = readBinaryFromInput(filePath);
-    const size = getFileSize(filePath);
+    const content = await readBinaryFromInput(filePath);
+    const size = await getFileSize(filePath);
     return validator.validate(content, getBasename(filePath), size);
   }
 
@@ -205,7 +205,7 @@ export class SnapValidator extends BaseValidator {
     _filename: string
   ): Promise<void> {
     await this.add_check('sqlite', 'valid SQLite database', async () => {
-      let cleanup: (() => void) | undefined;
+      let cleanup: (() => Promise<void>) | undefined;
       try {
         const result = await openSqliteDatabase(content, {
           readonly: true,
@@ -265,7 +265,7 @@ export class SnapValidator extends BaseValidator {
         this.err(`file is not a valid SQLite database: ${e.message}`, true);
       } finally {
         if (cleanup) {
-          cleanup();
+          await cleanup();
         }
       }
     });
