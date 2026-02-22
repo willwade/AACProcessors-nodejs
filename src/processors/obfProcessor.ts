@@ -259,8 +259,7 @@ class ObfProcessor extends BaseProcessor {
         }
 
         return new AACButton({
-          // Make button ID unique by combining page ID and button ID
-          id: `${pageId}::${btn?.id || ''}`,
+          id: String(btn.id),
           label: String(btn?.label || ''),
           message: String(btn?.vocalization || btn?.label || ''),
           visibility: mapObfVisibility(btn.hidden),
@@ -319,7 +318,7 @@ class ObfProcessor extends BaseProcessor {
             orderRow.forEach((cellId, colIndex) => {
               if (cellId === null || cellId === undefined) return;
               if (rowIndex >= rows || colIndex >= cols) return;
-              const aacBtn = buttonMap.get(`${pageId}::${cellId}`);
+              const aacBtn = buttonMap.get(String(cellId));
               if (aacBtn) {
                 grid[rowIndex][colIndex] = aacBtn;
               }
@@ -331,7 +330,7 @@ class ObfProcessor extends BaseProcessor {
               const row = Math.floor(btn.box_id / cols);
               const col = btn.box_id % cols;
               if (row < rows && col < cols) {
-                const aacBtn = buttonMap.get(`${pageId}::${btn.id}`);
+                const aacBtn = buttonMap.get(String(btn.id));
                 if (aacBtn) {
                   grid[row][col] = aacBtn;
                 }
