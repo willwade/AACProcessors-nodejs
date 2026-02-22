@@ -172,7 +172,7 @@ async function readTextFromInput(
   encoding: BufferEncoding = 'utf8'
 ): Promise<string> {
   if (typeof input === 'string') {
-    return await Promise.resolve(getFs().readFileSync(input, encoding));
+    return Promise.resolve(getFs().readFileSync(input, encoding));
   }
   if (typeof Buffer !== 'undefined' && Buffer.isBuffer(input)) {
     return Promise.resolve(input.toString(encoding));
@@ -184,11 +184,11 @@ async function readTextFromInput(
 }
 
 async function writeBinaryToPath(outputPath: string, data: BinaryOutput): Promise<void> {
-  await getFs().writeFileSync(outputPath, data);
+  getFs().writeFileSync(outputPath, data);
 }
 
 async function writeTextToPath(outputPath: string, text: string): Promise<void> {
-  await getFs().writeFileSync(outputPath, text, 'utf8');
+  getFs().writeFileSync(outputPath, text, 'utf8');
 }
 
 async function pathExists(path: string): Promise<boolean> {
