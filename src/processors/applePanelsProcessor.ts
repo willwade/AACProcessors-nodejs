@@ -220,7 +220,7 @@ class ApplePanelsProcessor extends BaseProcessor {
   async loadIntoTree(filePathOrBuffer: ProcessorInput): Promise<AACTree> {
     const { readBinaryFromInput, readTextFromInput, pathExists, getFileSize, join } =
       this.options.fileAdapter;
-    await Promise.resolve();
+
     const filename =
       typeof filePathOrBuffer === 'string' ? getBasename(filePathOrBuffer) : 'upload.plist';
     let buffer: Uint8Array;
@@ -477,7 +477,7 @@ class ApplePanelsProcessor extends BaseProcessor {
 
   async saveFromTree(tree: AACTree, outputPath: string): Promise<void> {
     const { writeTextToPath, pathExists, mkDir, join, dirname } = this.options.fileAdapter;
-    await Promise.resolve();
+
     // Support two output modes:
     // 1) Single-file .plist (PanelDefinitions.plist content written directly)
     // 2) Apple Panels bundle folder (*.ascconfig) with Contents/Resources structure

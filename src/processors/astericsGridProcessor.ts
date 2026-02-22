@@ -841,7 +841,7 @@ class AstericsGridProcessor extends BaseProcessor {
 
   async loadIntoTree(filePathOrBuffer: ProcessorInput): Promise<AACTree> {
     const { readBinaryFromInput, readTextFromInput } = this.options.fileAdapter;
-    await Promise.resolve();
+
     const tree = new AACTree();
     const filename =
       typeof filePathOrBuffer === 'string' ? getBasename(filePathOrBuffer) : 'upload.grd';
@@ -1307,7 +1307,7 @@ class AstericsGridProcessor extends BaseProcessor {
     outputPath: string
   ): Promise<Uint8Array> {
     const { readTextFromInput, readBinaryFromInput, writeTextToPath } = this.options.fileAdapter;
-    await Promise.resolve();
+
     let content = await readTextFromInput(filePathOrBuffer);
 
     // Remove BOM if present
@@ -1444,7 +1444,7 @@ class AstericsGridProcessor extends BaseProcessor {
 
   async saveFromTree(tree: AACTree, outputPath: string): Promise<void> {
     const { writeTextToPath } = this.options.fileAdapter;
-    await Promise.resolve();
+
     // Use default Asterics Grid styling instead of taking from first page
     // This prevents issues where the first page has unusual colors (like purple)
     const defaultPageStyle = {

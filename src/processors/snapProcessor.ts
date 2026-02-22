@@ -121,7 +121,6 @@ class SnapProcessor extends BaseProcessor {
 
   async loadIntoTree(filePathOrBuffer: ProcessorInput): Promise<AACTree> {
     const { writeBinaryToPath, removePath, mkTempDir, basename, join } = this.options.fileAdapter;
-    await Promise.resolve();
     const tree = new AACTree();
     let dbResult: Awaited<ReturnType<typeof openSqliteDatabase>> | null = null;
     let cleanupTempZip: (() => Promise<void>) | null = null;
@@ -970,7 +969,6 @@ class SnapProcessor extends BaseProcessor {
     if (!isNodeRuntime()) {
       throw new Error('saveFromTree is only supported in Node.js environments for Snap files.');
     }
-    await Promise.resolve();
     const outputDir = dirname(outputPath);
     const dirExists = await pathExists(outputDir);
     if (!dirExists) {
@@ -1283,7 +1281,6 @@ class SnapProcessor extends BaseProcessor {
     audioData: Uint8Array,
     metadata?: string
   ): Promise<number> {
-    await Promise.resolve();
     if (!isNodeRuntime()) {
       throw new Error('addAudioToButton is only supported in Node.js environments.');
     }

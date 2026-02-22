@@ -23,7 +23,7 @@ export class ExcelProcessor extends BaseProcessor {
    * @returns Array of all text content found in the Excel file
    */
   async extractTexts(_filePathOrBuffer: ProcessorInput): Promise<string[]> {
-    await Promise.resolve();
+
     console.warn('ExcelProcessor.extractTexts is not implemented yet.');
     return [];
   }
@@ -34,7 +34,6 @@ export class ExcelProcessor extends BaseProcessor {
    * @returns AACTree representation of the Excel file
    */
   async loadIntoTree(_filePathOrBuffer: ProcessorInput): Promise<AACTree> {
-    await Promise.resolve();
     console.warn('ExcelProcessor.loadIntoTree is not implemented yet.');
     const tree = new AACTree();
     tree.metadata.format = 'excel';
@@ -54,7 +53,6 @@ export class ExcelProcessor extends BaseProcessor {
     outputPath: string
   ): Promise<Uint8Array> {
     const { dirname, pathExists, mkDir } = this.options.fileAdapter;
-    await Promise.resolve();
     console.warn('ExcelProcessor.processTexts is not implemented yet.');
     const outputDir = dirname(outputPath);
     if (!(await pathExists(outputDir))) {
