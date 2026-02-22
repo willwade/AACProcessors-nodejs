@@ -21,7 +21,7 @@ export interface FileAdapter {
   basename: (path: string, suffix?: string) => string;
 }
 
-let cachedFs: typeof import('node:fs/promises') | null = null;
+let cachedFs: typeof import('node:fs') | null = null;
 let cachedPath: typeof import('path') | null = null;
 let cachedOs: typeof import('os') | null = null;
 let cachedRequire: NodeRequire | null | undefined = undefined;
@@ -45,11 +45,11 @@ export function getNodeRequire(): NodeRequire {
   return cachedRequire;
 }
 
-function getFs(): typeof import('node:fs/promises') {
+function getFs(): typeof import('node:fs') {
   if (!cachedFs) {
     try {
       const nodeRequire = getNodeRequire();
-      const fsModule = 'node:fs/promises';
+      const fsModule = 'node:fs';
       cachedFs = nodeRequire(fsModule);
     } catch {
       throw new Error('File system access is not available in this environment.');
@@ -156,15 +156,15 @@ export function extname(path: string): string {
 
 async function readBinaryFromInput(input: ProcessorInput): Promise<Uint8Array> {
   if (typeof input === 'string') {
-    return await getFs().readFile(input);
+    return Promise.resolve(getFs().readFileSync(input));
   }
   if (typeof Buffer !== 'undefined' && Buffer.isBuffer(input)) {
-    return input;
+    return Promise.resolve(input);
   }
   if (input instanceof ArrayBuffer) {
-    return new Uint8Array(input);
+    return Promise.resolve(new Uint8Array(input));
   }
-  return input;
+  return Promise.resolve(input);
 }
 
 async function readTextFromInput(
@@ -172,60 +172,55 @@ async function readTextFromInput(
   encoding: BufferEncoding = 'utf8'
 ): Promise<string> {
   if (typeof input === 'string') {
-    return await getFs().readFile(input, encoding);
+    return await Promise.resolve(getFs().readFileSync(input, encoding));
   }
   if (typeof Buffer !== 'undefined' && Buffer.isBuffer(input)) {
-    return input.toString(encoding);
+    return Promise.resolve(input.toString(encoding));
   }
   if (input instanceof ArrayBuffer) {
-    return decodeText(new Uint8Array(input));
+    return Promise.resolve(decodeText(new Uint8Array(input)));
   }
-  return decodeText(input);
+  return Promise.resolve(decodeText(input));
 }
 
 async function writeBinaryToPath(outputPath: string, data: BinaryOutput): Promise<void> {
-  await getFs().writeFile(outputPath, data);
+  await getFs().writeFileSync(outputPath, data);
 }
 
 async function writeTextToPath(outputPath: string, text: string): Promise<void> {
-  await getFs().writeFile(outputPath, text, 'utf8');
+  await getFs().writeFileSync(outputPath, text, 'utf8');
 }
 
 async function pathExists(path: string): Promise<boolean> {
-  try {
-    await getFs().access(path, F_OK);
-    return true;
-  } catch (e) {
-    return false;
-  }
+  return Promise.resolve(getFs().existsSync(path));
 }
 
 async function isDirectory(path: string): Promise<boolean> {
-  return (await getFs().stat(path)).isDirectory();
+  return Promise.resolve(getFs().statSync(path).isDirectory());
 }
 
 async function getFileSize(path: string): Promise<number> {
-  return (await getFs().stat(path)).size;
+  return Promise.resolve(getFs().statSync(path).size);
 }
 
 async function mkDir(path: string, options?: { recursive?: boolean }): Promise<void> {
-  await getFs().mkdir(path, options);
+  getFs().mkdirSync(path, options);
 }
 
 async function listDir(path: string): Promise<string[]> {
-  return await getFs().readdir(path);
+  return Promise.resolve(getFs().readdirSync(path));
 }
 
 async function removePath(
   path: string,
   options?: { recursive?: boolean; force?: boolean }
 ): Promise<void> {
-  await getFs().rm(path, options);
+  getFs().rmSync(path, options);
 }
 
 async function mkTempDir(prefix: string): Promise<string> {
   const path = join(getOs().tmpdir(), prefix);
-  return await getFs().mkdtemp(path);
+  return Promise.resolve(getFs().mkdtempSync(path));
 }
 
 function join(...pathParts: string[]): string {
