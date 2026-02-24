@@ -138,9 +138,7 @@ class ObfProcessor extends BaseProcessor {
       return this.imageCache.get(imageId) ?? null;
     }
 
-    if (!this.zipFile || !images) {
-      return null;
-    }
+    if (!images) return null;
 
     // Find the image metadata
     const imageData = images.find((img: any) => img.id === imageId);
@@ -148,28 +146,37 @@ class ObfProcessor extends BaseProcessor {
       return null;
     }
 
-    // Try to get the image file from the ZIP
-    // Images are typically stored in an 'images' folder or root
-    const possiblePaths = [
-      imageData.path, // Explicit path if provided
-      `images/${imageData.filename || imageId}`, // Standard images folder
-      imageData.id, // Just the ID
-    ].filter(Boolean);
+    // If image has data property, use that
+    if ((imageData as { data?: string }).data) {
+      const dataUrl = (imageData as { data: string }).data;
+      this.imageCache.set(imageId, dataUrl);
+      return dataUrl;
+    }
 
-    for (const imagePath of possiblePaths) {
-      try {
-        const buffer = await this.zipFile.readFile(imagePath as string);
-        if (buffer) {
-          const contentType =
-            (imageData as { content_type?: string }).content_type ||
-            this.getMimeTypeFromFilename(imagePath as string);
-          const dataUrl = `data:${contentType};base64,${encodeBase64(buffer)}`;
-          this.imageCache.set(imageId, dataUrl);
-          return dataUrl;
+    if (this.zipFile) {
+      // Try to get the image file from the ZIP
+      // Images are typically stored in an 'images' folder or root
+      const possiblePaths = [
+        imageData.path, // Explicit path if provided
+        `images/${imageData.filename || imageId}`, // Standard images folder
+        imageData.id, // Just the ID
+      ].filter(Boolean);
+
+      for (const imagePath of possiblePaths) {
+        try {
+          const buffer = await this.zipFile.readFile(imagePath as string);
+          if (buffer) {
+            const contentType =
+              (imageData as { content_type?: string }).content_type ||
+              this.getMimeTypeFromFilename(imagePath as string);
+            const dataUrl = `data:${contentType};base64,${encodeBase64(buffer)}`;
+            this.imageCache.set(imageId, dataUrl);
+            return dataUrl;
+          }
+        } catch (err) {
+          // Continue to next path
+          continue;
         }
-      } catch (err) {
-        // Continue to next path
-        continue;
       }
     }
 
