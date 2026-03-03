@@ -672,6 +672,7 @@ class ObfProcessor extends BaseProcessor {
           border_color: button.style?.borderColor,
           box_id: buttonPositions.get(String(button.id ?? '')),
           image_id: imageId,
+          hidden: button.visibility === 'Hidden' || false,
         };
       }),
       images: Array.isArray(page.images) ? page.images : [],
