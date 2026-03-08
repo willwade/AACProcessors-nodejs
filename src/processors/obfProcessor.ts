@@ -732,10 +732,11 @@ class ObfProcessor extends BaseProcessor {
       const obfBoard = this.createObfBoardFromPage(rootPage, 'Exported Board', tree.metadata);
       await writeTextToPath(outputPath, JSON.stringify(obfBoard, null, 2));
     } else {
+      const getPageFilename = (id: string): string => (id.endsWith('.obf') ? id : `${id}.obf`);
       const files = Object.values(tree.pages).map((page) => {
         const obfBoard = this.createObfBoardFromPage(page, 'Board', tree.metadata);
         const obfContent = JSON.stringify(obfBoard, null, 2);
-        const name = page.id.endsWith('.obf') ? page.id : `${page.id}.obf`;
+        const name = getPageFilename(page.id);
         return {
           name,
           data: new TextEncoder().encode(obfContent),
@@ -745,7 +746,9 @@ class ObfProcessor extends BaseProcessor {
         format: OBF_FORMAT_VERSION,
         root: tree.metadata.defaultHomePageId,
         paths: {
-          boards: Object.fromEntries(Object.entries(tree.pages).map(([id, page]) => [id, page.id])),
+          boards: Object.fromEntries(
+            Object.entries(tree.pages).map(([id, page]) => [id, getPageFilename(page.id)])
+          ),
           images: {}, //TODO Add support for saving images as files
           sounds: {}, //TODO Add support for saving sounds as files
         },
