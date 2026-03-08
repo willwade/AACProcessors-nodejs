@@ -741,6 +741,19 @@ class ObfProcessor extends BaseProcessor {
           data: new TextEncoder().encode(obfContent),
         };
       });
+      const manifest: ObfManifest = {
+        format: OBF_FORMAT_VERSION,
+        root: tree.metadata.defaultHomePageId,
+        paths: {
+          boards: Object.fromEntries(Object.entries(tree.pages).map(([id, page]) => [id, page.id])),
+          images: {}, //TODO Add support for saving images as files
+          sounds: {}, //TODO Add support for saving sounds as files
+        },
+      };
+      files.push({
+        name: 'manifest.json',
+        data: new TextEncoder().encode(JSON.stringify(manifest)),
+      });
       const fileExists = await pathExists(outputPath);
       this.zipFile = await this.options.zipAdapter(
         fileExists ? outputPath : undefined,
