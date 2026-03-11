@@ -1,4 +1,4 @@
-import type { SqlJsConfig, SqlJsStatic } from 'sql.js';
+import type { SqlJsConfig, SqlJsStatic, InitSqlJsStatic } from 'sql.js';
 import { defaultFileAdapter, FileAdapter, getNodeRequire, isNodeRuntime } from './io';
 
 export interface SqliteStatementAdapter {
@@ -30,12 +30,14 @@ export function configureSqlJs(config: SqlJsConfig): void {
   sqlJsConfig = { ...(sqlJsConfig ?? {}), ...config };
 }
 
-async function getSqlJs(): Promise<SqlJsStatic> {
+async function getSqlJsBrowser(): Promise<SqlJsStatic> {
   if (!sqlJsPromise) {
-    sqlJsPromise = import('sql.js').then((module) => {
-      const initSqlJs = module.default || module;
-      return initSqlJs(sqlJsConfig ?? {});
-    });
+    const isBrowser = typeof globalThis !== 'undefined' && (globalThis as any).window !== undefined;
+    if (!isBrowser) throw new Error('Must be run in a browser');
+    const window = (globalThis as any).window;
+    if (!('initSqlJs' in window)) throw new Error('Need to add sql-wasm.js script element to DOM');
+    const initSqlJs = window.initSqlJs as InitSqlJsStatic;
+    sqlJsPromise = initSqlJs(sqlJsConfig ?? {});
   }
   return sqlJsPromise;
 }
@@ -120,7 +122,7 @@ export async function openSqliteDatabase(
   const data = await readBinaryFromInput(input);
 
   if (!isNodeRuntime()) {
-    const SQL = await getSqlJs();
+    const SQL = await getSqlJsBrowser();
     const db = new SQL.Database(data);
     return { db: createSqlJsAdapter(db) };
   }
