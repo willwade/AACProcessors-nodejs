@@ -5,6 +5,8 @@
  * It tests all browser-compatible processors with real file uploads.
  */
 
+window.initSqlJs = require('sql.js');
+
 // Polyfill Buffer for browser environment
 if (typeof (window as any).Buffer === 'undefined') {
   // Create a proper Buffer wrapper class that extends Uint8Array
@@ -82,6 +84,7 @@ import {
   AACButton
 } from '@willwade/aac-processors/browser';
 import { validateFileOrBuffer, type ValidationResult } from '@willwade/aac-processors/validation';
+import initSqlJs from 'sql.js';
 
 import sqlWasmUrl from 'sql.js/dist/sql-wasm.wasm?url';
 
