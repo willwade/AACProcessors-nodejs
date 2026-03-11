@@ -80,8 +80,8 @@ import {
   AACTree,
   AACPage,
   AACButton
-} from 'aac-processors';
-import { validateFileOrBuffer, type ValidationResult } from 'aac-processors/validation';
+} from '@willwade/aac-processors/browser';
+import { validateFileOrBuffer, type ValidationResult } from '@willwade/aac-processors/validation';
 
 import sqlWasmUrl from 'sql.js/dist/sql-wasm.wasm?url';
 

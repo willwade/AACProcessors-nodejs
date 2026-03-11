@@ -1,17 +1,13 @@
 import { defineConfig } from 'vite';
 import path from 'path';
+import commonjs from 'vite-plugin-commonjs';
 
 export default defineConfig({
+  plugins: [
+    commonjs()
+  ],
   resolve: {
     alias: [
-      {
-        find: /^aac-processors\/validation$/,
-        replacement: path.resolve(__dirname, '../../src/validation.ts'),
-      },
-      {
-        find: /^aac-processors$/,
-        replacement: path.resolve(__dirname, '../../src/index.browser.ts'),
-      },
       {
         find: /^stream$/,
         replacement: path.resolve(__dirname, 'node_modules/stream-browserify'),
@@ -31,8 +27,7 @@ export default defineConfig({
     ],
   },
   optimizeDeps: {
-    exclude: ['aac-processors'],
-    include: []
+    include: ['@willwade/aac-processors']
   },
   define: {
     'process.env': '{}',
@@ -51,7 +46,8 @@ export default defineConfig({
     sourcemap: true,
     commonjsOptions: {
       // Ignore Node.js built-in modules
-      ignore: ['crypto', 'stream', 'timers', 'events', 'fs', 'path', 'os']
+      ignore: ['crypto', 'stream', 'timers', 'events', 'fs', 'path', 'os'],
+      include: [/@willwade\/aac-processors/, /node_modules/]
     }
   }
 });
