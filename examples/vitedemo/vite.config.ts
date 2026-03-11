@@ -1,10 +1,19 @@
 import { defineConfig } from 'vite';
 import path from 'path';
 import commonjs from 'vite-plugin-commonjs';
+import { viteStaticCopy } from 'vite-plugin-static-copy';
 
 export default defineConfig({
   plugins: [
-    commonjs()
+    commonjs(),
+    viteStaticCopy({
+      targets: [
+        {
+          src: 'node_modules/sql.js/dist/sql-wasm.js',
+          dest: 'public'
+        }
+      ]
+    })
   ],
   resolve: {
     alias: [
