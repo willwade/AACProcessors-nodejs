@@ -31,7 +31,9 @@ Browser-safe entry that avoids Node-only dependencies. It expects `Buffer`,
 `Uint8Array`, or `ArrayBuffer` inputs rather than file paths.
 
 SQLite-backed formats (Snap `.sps/.spb` and TouchChat `.ce`) require a WASM
-SQLite engine. Configure `sql.js` in your bundler before loading those formats:
+SQLite engine. To support these, configure `sql.js` in your bundler
+and either include `<script src="sql-wasm.js"></script>` in your HTML, or
+`window.initSqlJs = require('sql.js');` in your app.
 
 ```ts
 import { configureSqlJs, SnapProcessor } from '@willwade/aac-processors/browser';
