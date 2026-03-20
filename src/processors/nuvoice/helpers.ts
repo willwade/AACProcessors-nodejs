@@ -1,5 +1,19 @@
 export type NuVoiceRecordType = 'v' | 'd' | 'm' | 'x' | 'X' | 'P' | 'H' | 'A' | 'n' | 'N' | 'S' | 'E' | 'G' | 'a' | 'C' | 'D' | 'U' | 'V' | 'p' | 'k' | 'q';
 
+export interface NuVoiceBinaryRecordBase {
+  type: NuVoiceRecordType;
+  rawLine: string;
+  bodyBytes: Uint8Array;
+  checksum: number;
+  checksumValid: boolean;
+}
+
+export interface NuVoiceTextSegment {
+  text: string;
+  hasNullTerminator: boolean;
+  suffixBytes: Uint8Array;
+}
+
 export interface NuVoiceHeaderRecord {
   type: 'v';
   rawLine: string;
@@ -8,25 +22,11 @@ export interface NuVoiceHeaderRecord {
   product?: string;
 }
 
-interface NuVoiceBinaryRecordBase {
-  type: 'd' | 'm' | 'x' | 'X';
-  rawLine: string;
-  bodyBytes: Uint8Array;
-  checksum: number;
-  checksumValid: boolean;
-}
-
 export interface NuVoiceDictionaryRecord extends NuVoiceBinaryRecordBase {
   type: 'd';
   word: string;
   pronunciation: string;
   trailingBytes: Uint8Array;
-}
-
-export interface NuVoiceTextSegment {
-  text: string;
-  hasNullTerminator: boolean;
-  suffixBytes: Uint8Array;
 }
 
 export interface NuVoiceMemoryRecord extends NuVoiceBinaryRecordBase {
@@ -48,25 +48,76 @@ export interface NuVoicePointerRecord extends NuVoiceBinaryRecordBase {
   type: 'X';
 }
 
+// Additional record types found in fuller MTI files (based on NuVoice Maps analysis)
 export interface NuVoicePageRecord extends NuVoiceBinaryRecordBase {
-  type: 'P';
-  pageId: string;
+  type: 'P'; // Page definition
+  pageId?: string;
   pageName?: string;
 }
 
-export interface NuVoiceButtonRecord extends NuVoiceBinaryRecordBase {
-  type: 'C';
-  pageId: string;
-  buttonId: string;
-  label?: string;
-  action?: string;
+export interface NuVoiceHeaderRecord2 extends NuVoiceBinaryRecordBase {
+  type: 'H'; // Additional header information
+}
+
+export interface NuVoiceActionRecord extends NuVoiceBinaryRecordBase {
+  type: 'A'; // Action/button definitions
+}
+
+export interface NuVoiceNavigationRecord extends NuVoiceBinaryRecordBase {
+  type: 'n'; // Navigation elements
+}
+
+export interface NuVoiceNodeRecord extends NuVoiceBinaryRecordBase {
+  type: 'N'; // Structural nodes
+}
+
+export interface NuVoiceSymbolRecord extends NuVoiceBinaryRecordBase {
+  type: 'S'; // Symbol/string data
+}
+
+export interface NuVoiceElementRecord extends NuVoiceBinaryRecordBase {
+  type: 'E'; // UI elements
 }
 
 export interface NuVoiceGridRecord extends NuVoiceBinaryRecordBase {
-  type: 'G';
-  pageId: string;
-  rows: number;
-  columns: number;
+  type: 'G'; // Grid layouts
+  gridId?: string;
+  rows?: number;
+  columns?: number;
+}
+
+export interface NuVoiceAudioRecord extends NuVoiceBinaryRecordBase {
+  type: 'a'; // Audio data
+}
+
+export interface NuVoiceCellRecord extends NuVoiceBinaryRecordBase {
+  type: 'C'; // Cell definitions
+  cellId?: string;
+  content?: string;
+}
+
+export interface NuVoiceDataRecord extends NuVoiceBinaryRecordBase {
+  type: 'D'; // Data records
+}
+
+export interface NuVoiceUIRecord extends NuVoiceBinaryRecordBase {
+  type: 'U'; // User interface elements
+}
+
+export interface NuVoiceVoiceRecord extends NuVoiceBinaryRecordBase {
+  type: 'V'; // Voice data
+}
+
+export interface NuVoicePositionRecord extends NuVoiceBinaryRecordBase {
+  type: 'p'; // Position data
+}
+
+export interface NuVoiceKeyRecord extends NuVoiceBinaryRecordBase {
+  type: 'k'; // Key definitions
+}
+
+export interface NuVoiceQueryRecord extends NuVoiceBinaryRecordBase {
+  type: 'q'; // Query data
 }
 
 export type NuVoiceRecord =
@@ -76,7 +127,7 @@ export type NuVoiceRecord =
   | NuVoiceLayoutRecord
   | NuVoicePointerRecord
   | NuVoicePageRecord
-  | NuVoiceButtonRecord
+  | NuVoiceActionRecord
   | NuVoiceGridRecord
   | NuVoiceBinaryRecordBase; // For unknown types
 
@@ -88,7 +139,7 @@ export interface NuVoiceDocument {
 
 export interface NuVoiceTextEntry {
   source: string;
-  table: 'dictionary' | 'memory' | 'layout';
+  table: 'dictionary' | 'memory' | 'layout' | 'other';
   column: 'WORD' | 'PRONUNCIATION' | 'TEXT';
   id: string;
 }
@@ -141,7 +192,7 @@ function isPrintableAscii(bytes: Uint8Array): boolean {
   return bytes.every((value) => value >= 0x20 && value <= 0x7e);
 }
 
-function parseTextSegment(payloadBytes: Uint8Array): NuVoiceTextSegment | null {
+export function parseTextSegment(payloadBytes: Uint8Array): NuVoiceTextSegment | null {
   if (payloadBytes.length === 0) {
     return null;
   }
@@ -406,15 +457,16 @@ export function serializeNuVoiceDocument(document: NuVoiceDocument): string {
       case 'v':
         return record.rawLine;
       case 'd':
-        return serializeDictionaryRecord(record);
+        return serializeDictionaryRecord(record as NuVoiceDictionaryRecord);
       case 'm':
-        return serializeMemoryRecord(record);
+        return serializeMemoryRecord(record as NuVoiceMemoryRecord);
       case 'x':
-        return serializeLayoutRecord(record);
+        return serializeLayoutRecord(record as NuVoiceLayoutRecord);
       case 'X':
-        return serializePointerRecord(record);
+        return serializePointerRecord(record as NuVoicePointerRecord);
       default:
-        throw new Error('Unsupported NuVoice record during serialization');
+        // For unknown record types, return the raw line as-is
+        return record.rawLine;
     }
   });
 
