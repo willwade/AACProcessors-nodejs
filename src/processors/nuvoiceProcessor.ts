@@ -199,24 +199,25 @@ class NuVoiceProcessor extends BaseProcessor {
 
     // Try to create additional pages from other record types
     const pageRecords = document.records.filter(
-      (record): record is NuVoicePageRecord => record.type === 'P'
+      (record) => record.type === 'P' && 'bodyBytes' in record
     );
     const actionRecords = document.records.filter(
-      (record): record is NuVoiceActionRecord => record.type === 'A'
+      (record) => record.type === 'A' && 'bodyBytes' in record
     );
     const navigationRecords = document.records.filter(
-      (record): record is NuVoiceNavigationRecord => record.type === 'n'
+      (record) => record.type === 'n' && 'bodyBytes' in record
     );
     const gridRecords = document.records.filter(
-      (record): record is NuVoiceGridRecord => record.type === 'G'
+      (record) => record.type === 'G' && 'bodyBytes' in record
     );
     const cellRecords = document.records.filter(
-      (record): record is NuVoiceCellRecord => record.type === 'C'
+      (record) => record.type === 'C' && 'bodyBytes' in record
     );
 
     // Create pages from P records
     pageRecords.forEach((record, index) => {
-      const textSegment = parseTextSegment(record.bodyBytes);
+      const binaryRecord = record as NuVoiceBinaryRecordBase;
+      const textSegment = parseTextSegment(binaryRecord.bodyBytes);
       const pageName = textSegment?.text || `Page ${index + 1}`;
       const page = new AACPage({
         id: `page-${index}`,
@@ -224,15 +225,30 @@ class NuVoiceProcessor extends BaseProcessor {
         buttons: [],
       });
 
+      // Add a button for this page even if no cells are found
+      page.addButton(
+        new AACButton({
+          id: `page-${index}-main`,
+          label: pageName,
+          message: `Access ${pageName}`,
+          type: 'SPEAK',
+          semanticAction: {
+            category: AACSemanticCategory.COMMUNICATION,
+            intent: AACSemanticIntent.SPEAK_TEXT,
+            parameters: { text: pageName },
+          },
+        })
+      );
+
       // Try to find associated cells for this page
       const pageCells = cellRecords.filter(cell => {
-        // Simple heuristic: check if cell data references this page
-        // In a real implementation, this would need proper MTI format understanding
-        return true; // For now, include all cells
+        // Simple heuristic: include all cells for now
+        return true;
       });
 
       pageCells.forEach((cell, cellIndex) => {
-        const cellText = parseTextSegment(cell.bodyBytes);
+        const cellBinary = cell as NuVoiceBinaryRecordBase;
+        const cellText = parseTextSegment(cellBinary.bodyBytes);
         if (cellText) {
           page.addButton(
             new AACButton({
@@ -242,7 +258,7 @@ class NuVoiceProcessor extends BaseProcessor {
               type: 'SPEAK',
               semanticAction: {
                 category: AACSemanticCategory.COMMUNICATION,
-              intent: AACSemanticIntent.SPEAK_TEXT,
+                intent: AACSemanticIntent.SPEAK_TEXT,
                 parameters: { text: cellText.text },
               },
             })
@@ -277,40 +293,38 @@ class NuVoiceProcessor extends BaseProcessor {
       });
 
       actionRecords.forEach((record, index) => {
-        const textSegment = parseTextSegment(record.bodyBytes);
-        if (textSegment) {
-          actionsPage.addButton(
-            new AACButton({
-              id: `action-${index}`,
-              label: textSegment.text,
-              message: textSegment.text,
-              type: 'SPEAK',
-              semanticAction: {
-                category: AACSemanticCategory.COMMUNICATION,
-                intent: AACSemanticIntent.SPEAK_TEXT,
-                parameters: { action: textSegment.text },
-              },
-            })
-          );
-        }
-      });
-
-      if (actionsPage.buttons.length > 0) {
-        tree.addPage(actionsPage);
-        mainPage.addButton(
+        const binaryRecord = record as NuVoiceBinaryRecordBase;
+        const textSegment = parseTextSegment(binaryRecord.bodyBytes);
+        const actionText = textSegment?.text || `Action ${index + 1}`;
+        actionsPage.addButton(
           new AACButton({
-            id: 'nav-actions',
-            label: 'Actions',
-            message: 'Open actions',
-            type: 'NAVIGATE',
+            id: `action-${index}`,
+            label: actionText,
+            message: actionText,
+            type: 'SPEAK',
             semanticAction: {
-              category: AACSemanticCategory.NAVIGATION,
-              intent: AACSemanticIntent.NAVIGATE_TO,
-              parameters: { pageId: 'actions' },
+              category: AACSemanticCategory.COMMUNICATION,
+              intent: AACSemanticIntent.SPEAK_TEXT,
+              parameters: { action: actionText },
             },
           })
         );
-      }
+      });
+
+      tree.addPage(actionsPage);
+      mainPage.addButton(
+        new AACButton({
+          id: 'nav-actions',
+          label: 'Actions',
+          message: 'Open actions',
+          type: 'NAVIGATE',
+          semanticAction: {
+            category: AACSemanticCategory.NAVIGATION,
+            intent: AACSemanticIntent.NAVIGATE_TO,
+            parameters: { pageId: 'actions' },
+          },
+        })
+      );
     }
 
     // Create navigation page from n records
@@ -322,40 +336,38 @@ class NuVoiceProcessor extends BaseProcessor {
       });
 
       navigationRecords.forEach((record, index) => {
-        const textSegment = parseTextSegment(record.bodyBytes);
-        if (textSegment) {
-          navPage.addButton(
-            new AACButton({
-              id: `nav-${index}`,
-              label: textSegment.text,
-              message: textSegment.text,
-              type: 'SPEAK',
-              semanticAction: {
-                category: AACSemanticCategory.NAVIGATION,
-                intent: AACSemanticIntent.NAVIGATE_TO,
-                parameters: { destination: textSegment.text },
-              },
-            })
-          );
-        }
-      });
-
-      if (navPage.buttons.length > 0) {
-        tree.addPage(navPage);
-        mainPage.addButton(
+        const binaryRecord = record as NuVoiceBinaryRecordBase;
+        const textSegment = parseTextSegment(binaryRecord.bodyBytes);
+        const navText = textSegment?.text || `Navigation ${index + 1}`;
+        navPage.addButton(
           new AACButton({
-            id: 'nav-navigation',
-            label: 'Navigation',
-            message: 'Open navigation',
-            type: 'NAVIGATE',
+            id: `nav-${index}`,
+            label: navText,
+            message: navText,
+            type: 'SPEAK',
             semanticAction: {
               category: AACSemanticCategory.NAVIGATION,
               intent: AACSemanticIntent.NAVIGATE_TO,
-              parameters: { pageId: 'navigation' },
+              parameters: { destination: navText },
             },
           })
         );
-      }
+      });
+
+      tree.addPage(navPage);
+      mainPage.addButton(
+        new AACButton({
+          id: 'nav-navigation',
+          label: 'Navigation',
+          message: 'Open navigation',
+          type: 'NAVIGATE',
+          semanticAction: {
+            category: AACSemanticCategory.NAVIGATION,
+            intent: AACSemanticIntent.NAVIGATE_TO,
+            parameters: { pageId: 'navigation' },
+          },
+        })
+      );
     }
 
     // Handle remaining unknown record types
