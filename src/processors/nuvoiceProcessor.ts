@@ -5,7 +5,7 @@ import {
   SourceString,
   TranslatedString,
 } from '../core/baseProcessor';
-import { AACTree, AACButton, AACPage } from '../core/treeStructure';
+import { AACTree, AACButton, AACPage, AACSemanticAction } from '../core/treeStructure';
 import { detectCasing } from '../core/stringCasing';
 import { encodeText, ProcessorInput } from '../utils/io';
 import {
@@ -15,9 +15,11 @@ import {
   NuVoiceLayoutRecord,
   NuVoiceMemoryRecord,
   parseNuVoiceDocument,
+  parseTextSegment,
   serializeNuVoiceDocument,
   setNuVoiceLayoutText,
   setNuVoiceMemoryText,
+  latin1ToBytes,
 } from './nuvoice/helpers';
 
 class NuVoiceProcessor extends BaseProcessor {
@@ -30,6 +32,30 @@ class NuVoiceProcessor extends BaseProcessor {
     const document = await this.readDocument(filePathOrBuffer);
     const tree = new AACTree();
 
+    // Count different record types
+    const recordCounts: Record<string, number> = {};
+    for (const record of document.records) {
+      recordCounts[record.type] = (recordCounts[record.type] || 0) + 1;
+    }
+
+    tree.metadata = {
+      format: 'nuvoice',
+      version: document.records.find((record) => record.type === 'v')?.version,
+      name: document.records.find((record) => record.type === 'v')?.product || 'NuVoice MTI',
+      recordCounts,
+      invalidChecksumCount: document.records.filter(
+        (record) => record.type !== 'v' && !record.checksumValid
+      ).length,
+    };
+
+    // Create main navigation page
+    const mainPage = new AACPage({
+      id: 'main',
+      name: 'Main',
+      buttons: [],
+    });
+
+    // Create content pages
     const dictionaryRecords = document.records.filter(
       (record): record is NuVoiceDictionaryRecord => record.type === 'd'
     );
@@ -40,81 +66,186 @@ class NuVoiceProcessor extends BaseProcessor {
       (record): record is NuVoiceLayoutRecord => record.type === 'x' && record.textSegment !== null
     );
 
-    tree.metadata = {
-      format: 'nuvoice',
-      version: document.records.find((record) => record.type === 'v')?.version,
-      name: document.records.find((record) => record.type === 'v')?.product || 'NuVoice MTI',
-      recordCounts: {
-        dictionary: dictionaryRecords.length,
-        memory: memoryRecords.length,
-        layout: layoutRecords.length,
-      },
-      invalidChecksumCount: document.records.filter(
-        (record) => record.type !== 'v' && !record.checksumValid
-      ).length,
-    };
-
+    // Dictionary page
     if (dictionaryRecords.length > 0) {
-      const page = new AACPage({
-        id: 'nuvoice-dictionary',
+      const dictPage = new AACPage({
+        id: 'dictionary',
         name: 'Pronunciation Dictionary',
         buttons: [],
       });
 
       dictionaryRecords.forEach((record, index) => {
-        page.addButton(
+        dictPage.addButton(
           new AACButton({
-            id: `dictionary:${index}`,
+            id: `dict:${index}`,
             label: record.word,
             message: record.pronunciation,
             type: 'SPEAK',
+            semanticAction: {
+              category: 'communication',
+              intent: 'pronunciation',
+              parameters: { word: record.word, pronunciation: record.pronunciation },
+            },
           })
         );
       });
 
-      tree.addPage(page);
+      tree.addPage(dictPage);
+
+      // Add navigation button to main page
+      mainPage.addButton(
+        new AACButton({
+          id: 'nav-dict',
+          label: 'Dictionary',
+          message: 'Open pronunciation dictionary',
+          type: 'NAVIGATE',
+          semanticAction: {
+            category: 'navigation',
+            intent: 'open_page',
+            parameters: { pageId: 'dictionary' },
+          },
+        })
+      );
     }
 
+    // Memory page
     if (memoryRecords.length > 0) {
-      const page = new AACPage({
-        id: 'nuvoice-memory',
+      const memoryPage = new AACPage({
+        id: 'memory',
         name: 'Memory Labels',
         buttons: [],
       });
 
-      memoryRecords.forEach((record) => {
-        page.addButton(
+      memoryRecords.forEach((record, index) => {
+        memoryPage.addButton(
           new AACButton({
-            id: `memory:${record.addressHex}`,
+            id: `mem:${index}`,
             label: record.textSegment?.text || '',
             message: record.textSegment?.text || '',
             type: 'SPEAK',
+            semanticAction: semanticAction: {
+              category: 'communication',
+              intent: 'speak',
+              parameters: { text: record.textSegment?.text },
+            }),
           })
         );
       });
 
-      tree.addPage(page);
+      tree.addPage(memoryPage);
+
+      mainPage.addButton(
+        new AACButton({
+          id: 'nav-memory',
+          label: 'Memory',
+          message: 'Open memory labels',
+          type: 'NAVIGATE',
+          semanticAction: semanticAction: {
+            category: 'navigation',
+            intent: 'open_page',
+            parameters: { pageId: 'memory' },
+          }),
+        })
+      );
     }
 
+    // Layout page
     if (layoutRecords.length > 0) {
-      const page = new AACPage({
-        id: 'nuvoice-layout',
+      const layoutPage = new AACPage({
+        id: 'layout',
         name: 'Layout Labels',
         buttons: [],
       });
 
-      layoutRecords.forEach((record) => {
-        page.addButton(
+      layoutRecords.forEach((record, index) => {
+        layoutPage.addButton(
           new AACButton({
-            id: `layout:${record.addressHex}`,
+            id: `layout:${index}`,
             label: record.textSegment?.text || '',
             message: record.textSegment?.text || '',
             type: 'SPEAK',
+            semanticAction: semanticAction: {
+              category: 'communication',
+              intent: 'speak',
+              parameters: { text: record.textSegment?.text },
+            }),
           })
         );
       });
 
-      tree.addPage(page);
+      tree.addPage(layoutPage);
+
+      mainPage.addButton(
+        new AACButton({
+          id: 'nav-layout',
+          label: 'Layout',
+          message: 'Open layout labels',
+          type: 'NAVIGATE',
+          semanticAction: semanticAction: {
+            category: 'navigation',
+            intent: 'open_page',
+            parameters: { pageId: 'layout' },
+          }),
+        })
+      );
+    }
+
+    // Try to create additional pages from other record types
+    const otherRecords = document.records.filter(
+      (record) => !['v', 'd', 'm', 'x', 'X'].includes(record.type) && 'bodyBytes' in record
+    );
+
+    if (otherRecords.length > 0) {
+      const otherPage = new AACPage({
+        id: 'other',
+        name: 'Additional Content',
+        buttons: [],
+      });
+
+      otherRecords.forEach((record, index) => {
+        const textSegment = parseTextSegment(record.bodyBytes);
+        if (textSegment) {
+          otherPage.addButton(
+            new AACButton({
+              id: `other:${index}`,
+              label: textSegment.text,
+              message: textSegment.text,
+              type: 'SPEAK',
+              semanticAction: semanticAction: {
+                category: 'communication',
+                intent: 'speak',
+                parameters: { text: textSegment.text },
+              }),
+            })
+          );
+        }
+      });
+
+      if (otherPage.buttons.length > 0) {
+        tree.addPage(otherPage);
+        mainPage.addButton(
+          new AACButton({
+            id: 'nav-other',
+            label: 'More',
+            message: 'Open additional content',
+            type: 'NAVIGATE',
+            semanticAction: semanticAction: {
+              category: 'navigation',
+              intent: 'open_page',
+              parameters: { pageId: 'other' },
+            }),
+          })
+        );
+      }
+    }
+
+    // Add main page if it has buttons
+    if (mainPage.buttons.length > 0) {
+      tree.addPage(mainPage);
+      tree.rootId = 'main';
+    } else if (tree.pages.size > 0) {
+      // Set root to first page if no main page
+      tree.rootId = Array.from(tree.pages.keys())[0];
     }
 
     return tree;
@@ -140,6 +271,22 @@ class NuVoiceProcessor extends BaseProcessor {
         const nextText = translations.get(record.textSegment.text);
         if (nextText !== undefined) {
           setNuVoiceLayoutText(record, nextText);
+        }
+      } else if ('bodyBytes' in record) {
+        // Try to update text in other binary records
+        const textSegment = parseTextSegment(record.bodyBytes);
+        if (textSegment) {
+          const nextText = translations.get(textSegment.text);
+          if (nextText !== undefined) {
+            // For generic records, try to update the text segment
+            // This is a simplified approach - in reality, each record type might have different structures
+            const newTextBytes = latin1ToBytes(nextText);
+            if (newTextBytes.length <= record.bodyBytes.length) {
+              // Replace the text segment in place
+              const textStart = record.bodyBytes.length - textSegment.suffixBytes.length - (textSegment.hasNullTerminator ? 1 : 0) - textSegment.text.length;
+              record.bodyBytes.set(newTextBytes, textStart);
+            }
+          }
         }
       }
     }
@@ -220,7 +367,7 @@ class NuVoiceProcessor extends BaseProcessor {
   }
 
   private async readDocument(filePathOrBuffer: ProcessorInput): Promise<NuVoiceDocument> {
-    const content = await this.options.fileAdapter.readTextFromInput(filePathOrBuffer, 'utf8');
+    const content = await this.options.fileAdapter.readTextFromInput(filePathOrBuffer, 'latin1');
     return parseNuVoiceDocument(content);
   }
 }

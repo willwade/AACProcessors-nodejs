@@ -1,4 +1,4 @@
-export type NuVoiceRecordType = 'v' | 'd' | 'm' | 'x' | 'X';
+export type NuVoiceRecordType = 'v' | 'd' | 'm' | 'x' | 'X' | 'P' | 'H' | 'A' | 'n' | 'N' | 'S' | 'E' | 'G' | 'a' | 'C' | 'D' | 'U' | 'V' | 'p' | 'k' | 'q';
 
 export interface NuVoiceHeaderRecord {
   type: 'v';
@@ -48,12 +48,37 @@ export interface NuVoicePointerRecord extends NuVoiceBinaryRecordBase {
   type: 'X';
 }
 
+export interface NuVoicePageRecord extends NuVoiceBinaryRecordBase {
+  type: 'P';
+  pageId: string;
+  pageName?: string;
+}
+
+export interface NuVoiceButtonRecord extends NuVoiceBinaryRecordBase {
+  type: 'C';
+  pageId: string;
+  buttonId: string;
+  label?: string;
+  action?: string;
+}
+
+export interface NuVoiceGridRecord extends NuVoiceBinaryRecordBase {
+  type: 'G';
+  pageId: string;
+  rows: number;
+  columns: number;
+}
+
 export type NuVoiceRecord =
   | NuVoiceHeaderRecord
   | NuVoiceDictionaryRecord
   | NuVoiceMemoryRecord
   | NuVoiceLayoutRecord
-  | NuVoicePointerRecord;
+  | NuVoicePointerRecord
+  | NuVoicePageRecord
+  | NuVoiceButtonRecord
+  | NuVoiceGridRecord
+  | NuVoiceBinaryRecordBase; // For unknown types
 
 export interface NuVoiceDocument {
   lineEnding: '\n' | '\r\n';
@@ -242,27 +267,73 @@ function parsePointerRecord(line: string): NuVoicePointerRecord {
   };
 }
 
+function parseGenericRecord(line: string, type: NuVoiceRecordType): NuVoiceBinaryRecordBase {
+  try {
+    return parseBinaryRecord(line);
+  } catch (error) {
+    // If parsing fails, create a minimal record
+    return {
+      type,
+      rawLine: line,
+      bodyBytes: new Uint8Array(),
+      checksum: 0,
+      checksumValid: false,
+    };
+  }
+}
+
 export function parseNuVoiceDocument(content: string): NuVoiceDocument {
   const lineEnding = content.includes('\r\n') ? '\r\n' : '\n';
   const trailingNewline = /\r?\n$/.test(content);
   const lines = content.split(/\r?\n/).filter((line) => line.length > 0);
 
-  const records = lines.map((line) => {
-    switch (line[0]) {
-      case 'v':
-        return parseHeaderRecord(line);
-      case 'd':
-        return parseDictionaryRecord(line);
-      case 'm':
-        return parseMemoryRecord(line);
-      case 'x':
-        return parseLayoutRecord(line);
-      case 'X':
-        return parsePointerRecord(line);
-      default:
-        throw new Error(`Unsupported NuVoice record type: ${line[0]}`);
+  const records: NuVoiceRecord[] = [];
+  for (const line of lines) {
+    if (line.length === 0) continue;
+    
+    try {
+      switch (line[0]) {
+        case 'v':
+          records.push(parseHeaderRecord(line));
+          break;
+        case 'd':
+          records.push(parseDictionaryRecord(line));
+          break;
+        case 'm':
+          records.push(parseMemoryRecord(line));
+          break;
+        case 'x':
+          records.push(parseLayoutRecord(line));
+          break;
+        case 'X':
+          records.push(parsePointerRecord(line));
+          break;
+        case 'P':
+        case 'H':
+        case 'A':
+        case 'n':
+        case 'N':
+        case 'S':
+        case 'E':
+        case 'G':
+        case 'a':
+        case 'C':
+        case 'D':
+        case 'U':
+        case 'V':
+        case 'p':
+        case 'k':
+        case 'q':
+          records.push(parseGenericRecord(line, line[0] as NuVoiceRecordType));
+          break;
+        default:
+          // Skip completely unknown characters
+          break;
+      }
+    } catch (error) {
+      console.warn(`Error parsing NuVoice record: ${(error as Error).message}, line: ${line.slice(0, 50)}...`);
     }
-  });
+  }
 
   return {
     lineEnding,
@@ -420,35 +491,49 @@ export function listNuVoiceTextEntries(document: NuVoiceDocument): NuVoiceTextEn
 
   for (const record of document.records) {
     if (record.type === 'd') {
+      const dictRecord = record as NuVoiceDictionaryRecord;
       entries.push({
-        source: record.word,
+        source: dictRecord.word,
         table: 'dictionary',
         column: 'WORD',
         id: `dictionary:${dictionaryIndex}:word`,
       });
-      if (record.pronunciation.length > 0) {
+      if (dictRecord.pronunciation.length > 0) {
         entries.push({
-          source: record.pronunciation,
+          source: dictRecord.pronunciation,
           table: 'dictionary',
           column: 'PRONUNCIATION',
           id: `dictionary:${dictionaryIndex}:pronunciation`,
         });
       }
       dictionaryIndex += 1;
-    } else if (record.type === 'm' && record.textSegment) {
+    } else if (record.type === 'm' && (record as NuVoiceMemoryRecord).textSegment) {
+      const memRecord = record as NuVoiceMemoryRecord;
       entries.push({
-        source: record.textSegment.text,
+        source: memRecord.textSegment!.text,
         table: 'memory',
         column: 'TEXT',
-        id: `memory:${record.addressHex}`,
+        id: `memory:${memRecord.addressHex}`,
       });
-    } else if (record.type === 'x' && record.textSegment) {
+    } else if (record.type === 'x' && (record as NuVoiceLayoutRecord).textSegment) {
+      const layoutRecord = record as NuVoiceLayoutRecord;
       entries.push({
-        source: record.textSegment.text,
+        source: layoutRecord.textSegment!.text,
         table: 'layout',
         column: 'TEXT',
-        id: `layout:${record.addressHex}`,
+        id: `layout:${layoutRecord.addressHex}`,
       });
+    } else if ('bodyBytes' in record) {
+      // Try to extract text from other binary records
+      const textSegment = parseTextSegment(record.bodyBytes);
+      if (textSegment) {
+        entries.push({
+          source: textSegment.text,
+          table: 'other',
+          column: 'TEXT',
+          id: `${record.type}:${record.rawLine.slice(1, 9)}`, // Use first 8 chars of body as ID
+        });
+      }
     }
   }
 

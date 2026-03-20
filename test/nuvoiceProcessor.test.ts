@@ -73,16 +73,18 @@ describe('NuVoiceProcessor', () => {
     expect(tree.metadata.format).toBe('nuvoice');
     expect(tree.metadata.version).toBe('390');
     expect(tree.metadata.recordCounts).toEqual({
-      dictionary: 1,
-      memory: 1,
-      layout: 1,
+      d: 1,
+      m: 1,
+      x: 1,
+      v: 1,
     });
 
-    expect(tree.pages['nuvoice-dictionary']).toBeDefined();
-    expect(tree.pages['nuvoice-memory']).toBeDefined();
-    expect(tree.pages['nuvoice-layout']).toBeDefined();
-    expect(tree.pages['nuvoice-dictionary'].buttons[0].label).toBe("-N'T");
-    expect(tree.pages['nuvoice-dictionary'].buttons[0].message).toBe('negative');
+    expect(tree.pages['dictionary']).toBeDefined();
+    expect(tree.pages['memory']).toBeDefined();
+    expect(tree.pages['layout']).toBeDefined();
+    expect(tree.pages['main']).toBeDefined(); // Main navigation page
+    expect(tree.pages['dictionary'].buttons[0].label).toBe("-N'T");
+    expect(tree.pages['dictionary'].buttons[0].message).toBe('negative');
   });
 
   it('returns metadata-rich extracted strings', async () => {
