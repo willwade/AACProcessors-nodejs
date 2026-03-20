@@ -1,11 +1,18 @@
 import {
   BaseProcessor,
+  ExtractedString,
   ExtractStringsResult,
-  ProcessorOptions,
   SourceString,
   TranslatedString,
+  VocabLocation,
 } from '../core/baseProcessor';
-import { AACTree, AACButton, AACPage, AACSemanticAction, AACSemanticCategory, AACSemanticIntent } from '../core/treeStructure';
+import {
+  AACTree,
+  AACButton,
+  AACPage,
+  AACSemanticCategory,
+  AACSemanticIntent,
+} from '../core/treeStructure';
 import { detectCasing } from '../core/stringCasing';
 import { encodeText, ProcessorInput } from '../utils/io';
 import {
@@ -16,11 +23,6 @@ import {
   NuVoiceHeaderRecord,
   NuVoiceLayoutRecord,
   NuVoiceMemoryRecord,
-  NuVoicePageRecord,
-  NuVoiceActionRecord,
-  NuVoiceNavigationRecord,
-  NuVoiceGridRecord,
-  NuVoiceCellRecord,
   parseNuVoiceDocument,
   parseTextSegment,
   serializeNuVoiceDocument,
@@ -47,8 +49,11 @@ class NuVoiceProcessor extends BaseProcessor {
 
     tree.metadata = {
       format: 'nuvoice',
-      version: (document.records.find((record) => record.type === 'v') as NuVoiceHeaderRecord)?.version,
-      name: (document.records.find((record) => record.type === 'v') as NuVoiceHeaderRecord)?.product || 'NuVoice MTI',
+      version: (document.records.find((record) => record.type === 'v') as NuVoiceHeaderRecord)
+        ?.version,
+      name:
+        (document.records.find((record) => record.type === 'v') as NuVoiceHeaderRecord)?.product ||
+        'NuVoice MTI',
       recordCounts,
       invalidChecksumCount: document.records.filter(
         (record) => record.type !== 'v' && 'checksumValid' in record && !record.checksumValid
@@ -67,10 +72,12 @@ class NuVoiceProcessor extends BaseProcessor {
       (record): record is NuVoiceDictionaryRecord => record.type === 'd'
     );
     const memoryRecords = document.records.filter(
-      (record): record is NuVoiceMemoryRecord => record.type === 'm' && 'textSegment' in record && record.textSegment !== null
+      (record): record is NuVoiceMemoryRecord =>
+        record.type === 'm' && 'textSegment' in record && record.textSegment !== null
     );
     const layoutRecords = document.records.filter(
-      (record): record is NuVoiceLayoutRecord => record.type === 'x' && 'textSegment' in record && record.textSegment !== null
+      (record): record is NuVoiceLayoutRecord =>
+        record.type === 'x' && 'textSegment' in record && record.textSegment !== null
     );
 
     // Dictionary page
@@ -207,9 +214,6 @@ class NuVoiceProcessor extends BaseProcessor {
     const navigationRecords = document.records.filter(
       (record) => record.type === 'n' && 'bodyBytes' in record
     );
-    const gridRecords = document.records.filter(
-      (record) => record.type === 'G' && 'bodyBytes' in record
-    );
     const cellRecords = document.records.filter(
       (record) => record.type === 'C' && 'bodyBytes' in record
     );
@@ -241,10 +245,8 @@ class NuVoiceProcessor extends BaseProcessor {
       );
 
       // Try to find associated cells for this page
-      const pageCells = cellRecords.filter(cell => {
-        // Simple heuristic: include all cells for now
-        return true;
-      });
+      // Simple heuristic: include all cells for now.
+      const pageCells = cellRecords;
 
       pageCells.forEach((cell, cellIndex) => {
         const cellBinary = cell as NuVoiceBinaryRecordBase;
@@ -276,7 +278,7 @@ class NuVoiceProcessor extends BaseProcessor {
             type: 'NAVIGATE',
             semanticAction: {
               category: AACSemanticCategory.NAVIGATION,
-            intent: AACSemanticIntent.NAVIGATE_TO,
+              intent: AACSemanticIntent.NAVIGATE_TO,
               parameters: { pageId: `page-${index}` },
             },
           })
@@ -372,7 +374,9 @@ class NuVoiceProcessor extends BaseProcessor {
 
     // Handle remaining unknown record types
     const otherRecords = document.records.filter(
-      (record) => !['v', 'd', 'm', 'x', 'X', 'P', 'A', 'n', 'C'].includes(record.type) && 'bodyBytes' in record
+      (record) =>
+        !['v', 'd', 'm', 'x', 'X', 'P', 'A', 'n', 'C'].includes(record.type) &&
+        'bodyBytes' in record
     );
 
     if (otherRecords.length > 0) {
@@ -384,7 +388,7 @@ class NuVoiceProcessor extends BaseProcessor {
 
       // Group by record type for better organization
       const recordsByType: Record<string, typeof otherRecords> = {};
-      otherRecords.forEach(record => {
+      otherRecords.forEach((record) => {
         if (!recordsByType[record.type]) {
           recordsByType[record.type] = [];
         }
@@ -454,16 +458,17 @@ class NuVoiceProcessor extends BaseProcessor {
       if (record.type === 'd') {
         const dictRecord = record as NuVoiceDictionaryRecord;
         dictRecord.word = translations.get(dictRecord.word) ?? dictRecord.word;
-        dictRecord.pronunciation = translations.get(dictRecord.pronunciation) ?? dictRecord.pronunciation;
+        dictRecord.pronunciation =
+          translations.get(dictRecord.pronunciation) ?? dictRecord.pronunciation;
       } else if (record.type === 'm' && 'textSegment' in record && record.textSegment) {
         const nextText = translations.get(record.textSegment.text);
         if (nextText !== undefined) {
-          setNuVoiceMemoryText(record as NuVoiceMemoryRecord, nextText);
+          setNuVoiceMemoryText(record, nextText);
         }
       } else if (record.type === 'x' && 'textSegment' in record && record.textSegment) {
         const nextText = translations.get(record.textSegment.text);
         if (nextText !== undefined) {
-          setNuVoiceLayoutText(record as NuVoiceLayoutRecord, nextText);
+          setNuVoiceLayoutText(record, nextText);
         }
       } else if ('bodyBytes' in record) {
         // Try to update text in other binary records (P, A, n, C, etc.)
@@ -477,7 +482,11 @@ class NuVoiceProcessor extends BaseProcessor {
             const newTextBytes = latin1ToBytes(nextText);
             if (newTextBytes.length <= record.bodyBytes.length) {
               // Replace the text segment in place
-              const textStart = binaryRecord.bodyBytes.length - textSegment.suffixBytes.length - (textSegment.hasNullTerminator ? 1 : 0) - textSegment.text.length;
+              const textStart =
+                binaryRecord.bodyBytes.length -
+                textSegment.suffixBytes.length -
+                (textSegment.hasNullTerminator ? 1 : 0) -
+                textSegment.text.length;
               binaryRecord.bodyBytes.set(newTextBytes, textStart);
             }
           }
@@ -490,9 +499,11 @@ class NuVoiceProcessor extends BaseProcessor {
     return encodeText(serialized);
   }
 
-  async saveFromTree(_tree: AACTree, _outputPath: string): Promise<void> {
-    throw new Error(
-      'NuVoice MTI saveFromTree is not supported yet; use processTexts on an existing .mti file.'
+  saveFromTree(_tree: AACTree, _outputPath: string): Promise<void> {
+    return Promise.reject(
+      new Error(
+        'NuVoice MTI saveFromTree is not supported yet; use processTexts on an existing .mti file.'
+      )
     );
   }
 
@@ -543,15 +554,7 @@ class NuVoiceProcessor extends BaseProcessor {
     return this.generateTranslatedDownloadGeneric(filePath, translatedStrings, sourceStrings);
   }
 
-  private buildExtractedEntry(
-    source: string,
-    vocabLocation: {
-      table: string;
-      id: string;
-      column: string;
-      casing: ReturnType<typeof detectCasing>;
-    }
-  ) {
+  private buildExtractedEntry(source: string, vocabLocation: VocabLocation): ExtractedString {
     return {
       string: source,
       vocabPlacementMeta: {

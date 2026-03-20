@@ -1,4 +1,25 @@
-export type NuVoiceRecordType = 'v' | 'd' | 'm' | 'x' | 'X' | 'P' | 'H' | 'A' | 'n' | 'N' | 'S' | 'E' | 'G' | 'a' | 'C' | 'D' | 'U' | 'V' | 'p' | 'k' | 'q';
+export type NuVoiceRecordType =
+  | 'v'
+  | 'd'
+  | 'm'
+  | 'x'
+  | 'X'
+  | 'P'
+  | 'H'
+  | 'A'
+  | 'n'
+  | 'N'
+  | 'S'
+  | 'E'
+  | 'G'
+  | 'a'
+  | 'C'
+  | 'D'
+  | 'U'
+  | 'V'
+  | 'p'
+  | 'k'
+  | 'q';
 
 export interface NuVoiceBinaryRecordBase {
   type: NuVoiceRecordType;
@@ -185,7 +206,7 @@ export function latin1ToBytes(text: string): Uint8Array {
 
 export function computeNuVoiceChecksum(bodyBytes: Uint8Array): number {
   const sum = bodyBytes.reduce((total, value) => total + value, 0);
-  return (~sum) & 0xff;
+  return ~sum & 0xff;
 }
 
 function isPrintableAscii(bytes: Uint8Array): boolean {
@@ -341,7 +362,7 @@ export function parseNuVoiceDocument(content: string): NuVoiceDocument {
   const records: NuVoiceRecord[] = [];
   for (const line of lines) {
     if (line.length === 0) continue;
-    
+
     try {
       switch (line[0]) {
         case 'v':
@@ -382,7 +403,9 @@ export function parseNuVoiceDocument(content: string): NuVoiceDocument {
           break;
       }
     } catch (error) {
-      console.warn(`Error parsing NuVoice record: ${(error as Error).message}, line: ${line.slice(0, 50)}...`);
+      console.warn(
+        `Error parsing NuVoice record: ${(error as Error).message}, line: ${line.slice(0, 50)}...`
+      );
     }
   }
 
@@ -559,22 +582,26 @@ export function listNuVoiceTextEntries(document: NuVoiceDocument): NuVoiceTextEn
         });
       }
       dictionaryIndex += 1;
-    } else if (record.type === 'm' && (record as NuVoiceMemoryRecord).textSegment) {
+    } else if (record.type === 'm') {
       const memRecord = record as NuVoiceMemoryRecord;
-      entries.push({
-        source: memRecord.textSegment!.text,
-        table: 'memory',
-        column: 'TEXT',
-        id: `memory:${memRecord.addressHex}`,
-      });
-    } else if (record.type === 'x' && (record as NuVoiceLayoutRecord).textSegment) {
+      if (memRecord.textSegment) {
+        entries.push({
+          source: memRecord.textSegment.text,
+          table: 'memory',
+          column: 'TEXT',
+          id: `memory:${memRecord.addressHex}`,
+        });
+      }
+    } else if (record.type === 'x') {
       const layoutRecord = record as NuVoiceLayoutRecord;
-      entries.push({
-        source: layoutRecord.textSegment!.text,
-        table: 'layout',
-        column: 'TEXT',
-        id: `layout:${layoutRecord.addressHex}`,
-      });
+      if (layoutRecord.textSegment) {
+        entries.push({
+          source: layoutRecord.textSegment.text,
+          table: 'layout',
+          column: 'TEXT',
+          id: `layout:${layoutRecord.addressHex}`,
+        });
+      }
     } else if ('bodyBytes' in record) {
       // Try to extract text from other binary records
       const textSegment = parseTextSegment(record.bodyBytes);
