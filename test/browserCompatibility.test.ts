@@ -12,6 +12,7 @@ import {
   OpmlProcessor,
   ObfProcessor,
   GridsetProcessor,
+  NuVoiceProcessor,
   AstericsGridProcessor,
 } from '../src/index';
 import { AACTree } from '../src/core/treeStructure';
@@ -156,6 +157,9 @@ describe('Browser Compatibility', () => {
 
       const gridsetProcessor = getProcessor('.gridset');
       expect(gridsetProcessor).toBeInstanceOf(GridsetProcessor);
+
+      const nuvoiceProcessor = getProcessor('.mti');
+      expect(nuvoiceProcessor).toBeInstanceOf(NuVoiceProcessor);
     });
 
     it('getSupportedExtensions should return browser-supported extensions', async () => {
@@ -167,8 +171,34 @@ describe('Browser Compatibility', () => {
       expect(extensions).toContain('.obf');
       expect(extensions).toContain('.obz');
       expect(extensions).toContain('.gridset');
+      expect(extensions).toContain('.mti');
       expect(extensions).toContain('.plist');
       expect(extensions).toContain('.grd');
+    });
+  });
+
+  describe('NuVoiceProcessor with buffers', () => {
+    const sampleContent = [
+      'v390 1 NUVOICE',
+      'd042D4E2754086E65676174697665AA',
+      'm0003FFFE0B0B515549434B2050484F4E45D2',
+      '',
+    ].join('\r\n');
+
+    it('should load MTI content from Buffer', async () => {
+      const processor = new NuVoiceProcessor();
+      const tree: AACTree = await processor.loadIntoTree(Buffer.from(sampleContent, 'utf8'));
+
+      expect(tree.metadata.format).toBe('nuvoice');
+      expect(Object.keys(tree.pages).length).toBeGreaterThan(0);
+    });
+
+    it('should extract MTI texts from Uint8Array', async () => {
+      const processor = new NuVoiceProcessor();
+      const uint8Array = new Uint8Array(Buffer.from(sampleContent, 'utf8'));
+      const texts = await processor.extractTexts(uint8Array);
+
+      expect(texts).toEqual(expect.arrayContaining(["-N'T", 'negative', 'QUICK PHONE']));
     });
   });
 });

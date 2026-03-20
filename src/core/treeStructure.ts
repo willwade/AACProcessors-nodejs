@@ -6,6 +6,7 @@ import type {
   GridSetMetadata,
   AstericsGridMetadata,
   TouchChatMetadata,
+  NuVoiceMetadata,
   CellScanningOrder,
   ScanningSelectionMethod,
 } from '../types/aac';
@@ -18,6 +19,7 @@ export type {
   GridSetMetadata,
   AstericsGridMetadata,
   TouchChatMetadata,
+  NuVoiceMetadata,
   CellScanningOrder,
   ScanningSelectionMethod,
 };

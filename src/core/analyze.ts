@@ -2,6 +2,7 @@ import { OpmlProcessor } from '../processors/opmlProcessor';
 import { ObfProcessor } from '../processors/obfProcessor';
 import { TouchChatProcessor } from '../processors/touchchatProcessor';
 import { GridsetProcessor } from '../processors/gridsetProcessor';
+import { NuVoiceProcessor } from '../processors/nuvoiceProcessor';
 import { AstericsGridProcessor } from '../processors/astericsGridProcessor';
 import { SnapProcessor } from '../processors/snapProcessor';
 import { DotProcessor } from '../processors/dotProcessor';
@@ -30,6 +31,9 @@ export function getProcessor(format: string, options?: ProcessorOptions): BasePr
     case 'gridset':
     case 'gridsetx':
       return new GridsetProcessor(options); // Grid3 format
+    case 'nuvoice':
+    case 'mti':
+      return new NuVoiceProcessor(options);
     case 'grd': // Asterics Grid file extension
       return new AstericsGridProcessor(options);
     case 'snap':

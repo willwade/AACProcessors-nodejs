@@ -217,6 +217,16 @@ export interface TouchChatMetadata extends AACTreeMetadata {
   format: 'touchchat';
 }
 
+export interface NuVoiceMetadata extends AACTreeMetadata {
+  format: 'nuvoice';
+  recordCounts?: {
+    dictionary: number;
+    memory: number;
+    layout: number;
+  };
+  invalidChecksumCount?: number;
+}
+
 export interface AACTree {
   pages: { [key: string]: AACPage };
   metadata: AACTreeMetadata;

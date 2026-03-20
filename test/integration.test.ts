@@ -8,6 +8,7 @@ import { ExcelProcessor } from '../src/processors/excelProcessor';
 import { OpmlProcessor } from '../src/processors/opmlProcessor';
 import { ObfProcessor } from '../src/processors/obfProcessor';
 import { GridsetProcessor } from '../src/processors/gridsetProcessor';
+import { NuVoiceProcessor } from '../src/processors/nuvoiceProcessor';
 import { SnapProcessor } from '../src/processors/snapProcessor';
 import { TouchChatProcessor } from '../src/processors/touchchatProcessor';
 import { ApplePanelsProcessor } from '../src/processors/applePanelsProcessor';
@@ -116,6 +117,7 @@ describe('Integration Tests', () => {
         { ext: '.obz', expectedType: ObfProcessor },
         { ext: '.gridset', expectedType: GridsetProcessor },
         { ext: '.gridsetx', expectedType: GridsetProcessor },
+        { ext: '.mti', expectedType: NuVoiceProcessor },
         { ext: '.spb', expectedType: SnapProcessor },
         { ext: '.sps', expectedType: SnapProcessor },
         { ext: '.ce', expectedType: TouchChatProcessor },

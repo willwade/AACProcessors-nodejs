@@ -11,6 +11,7 @@ export { ApplePanelsProcessor } from './applePanelsProcessor';
 export { DotProcessor } from './dotProcessor';
 export { ExcelProcessor } from './excelProcessor';
 export { GridsetProcessor } from './gridsetProcessor';
+export { NuVoiceProcessor } from './nuvoiceProcessor';
 export { ObfProcessor } from './obfProcessor';
 export { OpmlProcessor } from './opmlProcessor';
 export { SnapProcessor } from './snapProcessor';

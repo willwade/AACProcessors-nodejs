@@ -5,6 +5,7 @@ import {
   ObfProcessor,
   SnapProcessor,
   GridsetProcessor,
+  NuVoiceProcessor,
   AstericsGridProcessor,
   TouchChatProcessor,
   ApplePanelsProcessor,
@@ -46,6 +47,11 @@ describe('analyze', () => {
 
     it('should return a GridsetProcessor for "gridsetx"', async () => {
       expect(getProcessor('gridsetx')).toBeInstanceOf(GridsetProcessor);
+    });
+
+    it('should return a NuVoiceProcessor for "nuvoice" and "mti"', async () => {
+      expect(getProcessor('nuvoice')).toBeInstanceOf(NuVoiceProcessor);
+      expect(getProcessor('mti')).toBeInstanceOf(NuVoiceProcessor);
     });
 
     it('should return an AstericsGridProcessor for "grd" extension', async () => {

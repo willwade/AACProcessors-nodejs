@@ -54,6 +54,7 @@ import { ExcelProcessor } from './processors/excelProcessor';
 import { OpmlProcessor } from './processors/opmlProcessor';
 import { ObfProcessor } from './processors/obfProcessor';
 import { GridsetProcessor } from './processors/gridsetProcessor';
+import { NuVoiceProcessor } from './processors/nuvoiceProcessor';
 import { SnapProcessor } from './processors/snapProcessor';
 import { TouchChatProcessor } from './processors/touchchatProcessor';
 import { ApplePanelsProcessor } from './processors/applePanelsProcessor';
@@ -94,6 +95,8 @@ export function getProcessor(
     case '.gridset':
     case '.gridsetx':
       return new GridsetProcessor(options);
+    case '.mti':
+      return new NuVoiceProcessor(options);
     case '.spb':
     case '.sps':
       return new SnapProcessor(options);
@@ -122,6 +125,7 @@ export function getSupportedExtensions(): string[] {
     '.obfset',
     '.gridset',
     '.gridsetx',
+    '.mti',
     '.spb',
     '.sps',
     '.ce',

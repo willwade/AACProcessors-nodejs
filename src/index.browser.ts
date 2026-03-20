@@ -26,6 +26,7 @@ export { DotProcessor } from './processors/dotProcessor';
 export { OpmlProcessor } from './processors/opmlProcessor';
 export { ObfProcessor } from './processors/obfProcessor';
 export { GridsetProcessor } from './processors/gridsetProcessor';
+export { NuVoiceProcessor } from './processors/nuvoiceProcessor';
 export { SnapProcessor } from './processors/snapProcessor';
 export { TouchChatProcessor } from './processors/touchchatProcessor';
 export { ApplePanelsProcessor } from './processors/applePanelsProcessor';
@@ -43,6 +44,7 @@ import { DotProcessor } from './processors/dotProcessor';
 import { OpmlProcessor } from './processors/opmlProcessor';
 import { ObfProcessor } from './processors/obfProcessor';
 import { GridsetProcessor } from './processors/gridsetProcessor';
+import { NuVoiceProcessor } from './processors/nuvoiceProcessor';
 import { SnapProcessor } from './processors/snapProcessor';
 import { TouchChatProcessor } from './processors/touchchatProcessor';
 import { ApplePanelsProcessor } from './processors/applePanelsProcessor';
@@ -73,6 +75,8 @@ export function getProcessor(
       return new ObfProcessor(options);
     case '.gridset':
       return new GridsetProcessor(options);
+    case '.mti':
+      return new NuVoiceProcessor(options);
     case '.spb':
     case '.sps':
       return new SnapProcessor(options);
@@ -92,7 +96,19 @@ export function getProcessor(
  * @returns Array of supported file extensions
  */
 export function getSupportedExtensions(): string[] {
-  return ['.dot', '.opml', '.obf', '.obz', '.gridset', '.spb', '.sps', '.ce', '.plist', '.grd'];
+  return [
+    '.dot',
+    '.opml',
+    '.obf',
+    '.obz',
+    '.gridset',
+    '.mti',
+    '.spb',
+    '.sps',
+    '.ce',
+    '.plist',
+    '.grd',
+  ];
 }
 
 /**
