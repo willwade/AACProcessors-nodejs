@@ -23,6 +23,7 @@ export function getProcessor(format: string, options?: ProcessorOptions): BasePr
     case 'opml':
       return new OpmlProcessor(options);
     case 'obf':
+    case 'obz':
     case 'obfset': // Obfset files use ObfProcessor
       return new ObfProcessor(options);
     case 'touchchat':
