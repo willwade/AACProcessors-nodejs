@@ -1,27 +1,27 @@
-import { inflate } from 'pako';
+import { inflate } from "pako";
 
 export type NuVoiceRecordType =
-  | 'v'
-  | 'd'
-  | 'm'
-  | 'x'
-  | 'X'
-  | 'P'
-  | 'H'
-  | 'A'
-  | 'n'
-  | 'N'
-  | 'S'
-  | 'E'
-  | 'G'
-  | 'a'
-  | 'C'
-  | 'D'
-  | 'U'
-  | 'V'
-  | 'p'
-  | 'k'
-  | 'q';
+  | "v"
+  | "d"
+  | "m"
+  | "x"
+  | "X"
+  | "P"
+  | "H"
+  | "A"
+  | "n"
+  | "N"
+  | "S"
+  | "E"
+  | "G"
+  | "a"
+  | "C"
+  | "D"
+  | "U"
+  | "V"
+  | "p"
+  | "k"
+  | "q";
 
 export interface NuVoiceBinaryRecordBase {
   type: NuVoiceRecordType;
@@ -31,7 +31,7 @@ export interface NuVoiceBinaryRecordBase {
   checksumValid: boolean;
 }
 
-export type NuVoiceTextEncoding = 'latin1' | 'utf16le' | 'utf16be';
+export type NuVoiceTextEncoding = "latin1" | "utf16le" | "utf16be";
 
 export interface NuVoiceTextSegment {
   text: string;
@@ -43,7 +43,7 @@ export interface NuVoiceTextSegment {
 }
 
 export interface NuVoiceHeaderRecord {
-  type: 'v';
+  type: "v";
   rawLine: string;
   version?: string;
   variant?: string;
@@ -51,14 +51,14 @@ export interface NuVoiceHeaderRecord {
 }
 
 export interface NuVoiceDictionaryRecord extends NuVoiceBinaryRecordBase {
-  type: 'd';
+  type: "d";
   word: string;
   pronunciation: string;
   trailingBytes: Uint8Array;
 }
 
 export interface NuVoiceMemoryRecord extends NuVoiceBinaryRecordBase {
-  type: 'm';
+  type: "m";
   addressHex: string;
   sequence: number;
   payloadBytes: Uint8Array;
@@ -67,14 +67,14 @@ export interface NuVoiceMemoryRecord extends NuVoiceBinaryRecordBase {
 }
 
 export interface NuVoiceLayoutRecord extends NuVoiceBinaryRecordBase {
-  type: 'x';
+  type: "x";
   addressHex: string;
   payloadBytes: Uint8Array;
   textSegment: NuVoiceTextSegment | null;
 }
 
 export interface NuVoicePointerRecord extends NuVoiceBinaryRecordBase {
-  type: 'X';
+  type: "X";
 }
 
 // Additional record types found in fuller MTI files (based on NuVoice Maps analysis)
@@ -91,7 +91,7 @@ export interface NuVoicePageCommand {
 }
 
 export interface NuVoicePageRecord extends NuVoiceBinaryRecordBase {
-  type: 'P';
+  type: "P";
   asciiText?: string;
   key?: string;
   value?: string;
@@ -102,42 +102,42 @@ export interface NuVoicePageRecord extends NuVoiceBinaryRecordBase {
 }
 
 export interface NuVoiceHeaderRecord2 extends NuVoiceBinaryRecordBase {
-  type: 'H'; // Additional header information
+  type: "H"; // Additional header information
 }
 
 export interface NuVoiceActionRecord extends NuVoiceBinaryRecordBase {
-  type: 'A'; // Action/button definitions
+  type: "A"; // Action/button definitions
 }
 
 export interface NuVoiceNavigationRecord extends NuVoiceBinaryRecordBase {
-  type: 'n'; // Navigation elements
+  type: "n"; // Navigation elements
 }
 
 export interface NuVoiceNodeRecord extends NuVoiceBinaryRecordBase {
-  type: 'N'; // Structural nodes
+  type: "N"; // Structural nodes
 }
 
 export interface NuVoiceSymbolRecord extends NuVoiceBinaryRecordBase {
-  type: 'S'; // Symbol/string data
+  type: "S"; // Symbol/string data
 }
 
 export interface NuVoiceElementRecord extends NuVoiceBinaryRecordBase {
-  type: 'E'; // UI elements
+  type: "E"; // UI elements
 }
 
 export interface NuVoiceGridRecord extends NuVoiceBinaryRecordBase {
-  type: 'G'; // Grid layouts
+  type: "G"; // Grid layouts
   gridId?: string;
   rows?: number;
   columns?: number;
 }
 
 export interface NuVoiceAudioRecord extends NuVoiceBinaryRecordBase {
-  type: 'a'; // Audio data
+  type: "a"; // Audio data
 }
 
 export interface NuVoiceCellRecord extends NuVoiceBinaryRecordBase {
-  type: 'C';
+  type: "C";
   asciiText?: string;
   key?: string;
   value?: string;
@@ -145,27 +145,27 @@ export interface NuVoiceCellRecord extends NuVoiceBinaryRecordBase {
 }
 
 export interface NuVoiceDataRecord extends NuVoiceBinaryRecordBase {
-  type: 'D'; // Data records
+  type: "D"; // Data records
 }
 
 export interface NuVoiceUIRecord extends NuVoiceBinaryRecordBase {
-  type: 'U'; // User interface elements
+  type: "U"; // User interface elements
 }
 
 export interface NuVoiceVoiceRecord extends NuVoiceBinaryRecordBase {
-  type: 'V'; // Voice data
+  type: "V"; // Voice data
 }
 
 export interface NuVoicePositionRecord extends NuVoiceBinaryRecordBase {
-  type: 'p'; // Position data
+  type: "p"; // Position data
 }
 
 export interface NuVoiceKeyRecord extends NuVoiceBinaryRecordBase {
-  type: 'k'; // Key definitions
+  type: "k"; // Key definitions
 }
 
 export interface NuVoiceQueryRecord extends NuVoiceBinaryRecordBase {
-  type: 'q'; // Query data
+  type: "q"; // Query data
 }
 
 export type NuVoiceRecord =
@@ -181,15 +181,15 @@ export type NuVoiceRecord =
   | NuVoiceBinaryRecordBase; // For unknown types
 
 export interface NuVoiceDocument {
-  lineEnding: '\n' | '\r\n';
+  lineEnding: "\n" | "\r\n";
   trailingNewline: boolean;
   records: NuVoiceRecord[];
 }
 
 export interface NuVoiceTextEntry {
   source: string;
-  table: 'dictionary' | 'memory' | 'layout' | 'other';
-  column: 'WORD' | 'PRONUNCIATION' | 'TEXT';
+  table: "dictionary" | "memory" | "layout" | "other";
+  column: "WORD" | "PRONUNCIATION" | "TEXT";
   id: string;
 }
 
@@ -200,7 +200,7 @@ function assertHex(input: string, context: string): void {
 }
 
 export function hexToBytes(hex: string): Uint8Array {
-  assertHex(hex, 'NuVoice record');
+  assertHex(hex, "NuVoice record");
   const bytes = new Uint8Array(hex.length / 2);
   for (let i = 0; i < hex.length; i += 2) {
     bytes[i / 2] = parseInt(hex.slice(i, i + 2), 16);
@@ -209,11 +209,13 @@ export function hexToBytes(hex: string): Uint8Array {
 }
 
 export function bytesToHex(bytes: Uint8Array): string {
-  return Array.from(bytes, (value) => value.toString(16).padStart(2, '0').toUpperCase()).join('');
+  return Array.from(bytes, (value) =>
+    value.toString(16).padStart(2, "0").toUpperCase(),
+  ).join("");
 }
 
 export function bytesToLatin1(bytes: Uint8Array): string {
-  let output = '';
+  let output = "";
   for (const value of bytes) {
     output += String.fromCharCode(value);
   }
@@ -225,7 +227,9 @@ export function latin1ToBytes(text: string): Uint8Array {
   for (let i = 0; i < text.length; i += 1) {
     const codePoint = text.charCodeAt(i);
     if (codePoint > 0xff) {
-      throw new Error(`NuVoice MTI only supports Latin-1 text; found code point ${codePoint}`);
+      throw new Error(
+        `NuVoice MTI only supports Latin-1 text; found code point ${codePoint}`,
+      );
     }
     bytes[i] = codePoint;
   }
@@ -239,32 +243,41 @@ export function computeNuVoiceChecksum(bodyBytes: Uint8Array): number {
 
 function isPrintableAscii(bytes: Uint8Array): boolean {
   return bytes.every(
-    (value) => value === 0x0a || value === 0x0d || (value >= 0x20 && value <= 0x7e)
+    (value) =>
+      value === 0x0a || value === 0x0d || (value >= 0x20 && value <= 0x7e),
   );
 }
 
-function decodeUtf16Bytes(bytes: Uint8Array, encoding: 'utf16le' | 'utf16be'): string {
-  if (typeof TextDecoder !== 'undefined') {
+function decodeUtf16Bytes(
+  bytes: Uint8Array,
+  encoding: "utf16le" | "utf16be",
+): string {
+  if (typeof TextDecoder !== "undefined") {
     try {
       return new TextDecoder(encoding).decode(bytes);
     } catch {
       // Fallback to manual decoding
     }
   }
-  let result = '';
+  let result = "";
   for (let i = 0; i + 1 < bytes.length; i += 2) {
     const codePoint =
-      encoding === 'utf16le' ? bytes[i] | (bytes[i + 1] << 8) : (bytes[i] << 8) | bytes[i + 1];
+      encoding === "utf16le"
+        ? bytes[i] | (bytes[i + 1] << 8)
+        : (bytes[i] << 8) | bytes[i + 1];
     result += String.fromCharCode(codePoint);
   }
   return result;
 }
 
-function encodeUtf16Bytes(text: string, encoding: 'utf16le' | 'utf16be'): Uint8Array {
+function encodeUtf16Bytes(
+  text: string,
+  encoding: "utf16le" | "utf16be",
+): Uint8Array {
   const bytes = new Uint8Array(text.length * 2);
   for (let i = 0; i < text.length; i += 1) {
     const codePoint = text.charCodeAt(i);
-    if (encoding === 'utf16le') {
+    if (encoding === "utf16le") {
       bytes[i * 2] = codePoint & 0xff;
       bytes[i * 2 + 1] = codePoint >> 8;
     } else {
@@ -276,11 +289,13 @@ function encodeUtf16Bytes(text: string, encoding: 'utf16le' | 'utf16be'): Uint8A
 }
 
 interface Utf16DetectionResult {
-  encoding: 'utf16le' | 'utf16be';
+  encoding: "utf16le" | "utf16be";
   textStart: number;
 }
 
-function detectUtf16Segment(payloadBytes: Uint8Array): Utf16DetectionResult | null {
+function detectUtf16Segment(
+  payloadBytes: Uint8Array,
+): Utf16DetectionResult | null {
   if (payloadBytes.length < 2) {
     return null;
   }
@@ -293,11 +308,11 @@ function detectUtf16Segment(payloadBytes: Uint8Array): Utf16DetectionResult | nu
     }
     if (payloadBytes[offset] === 0xff && next === 0xfe) {
       const textStart = offset + 2;
-      return { encoding: 'utf16le', textStart };
+      return { encoding: "utf16le", textStart };
     }
     if (payloadBytes[offset] === 0xfe && next === 0xff) {
       const textStart = offset + 2;
-      return { encoding: 'utf16be', textStart };
+      return { encoding: "utf16be", textStart };
     }
   }
 
@@ -325,17 +340,19 @@ function detectUtf16Segment(payloadBytes: Uint8Array): Utf16DetectionResult | nu
     }
 
     if (leScore >= Math.max(3, beScore * 2)) {
-      return { encoding: 'utf16le', textStart: start };
+      return { encoding: "utf16le", textStart: start };
     }
     if (beScore >= Math.max(3, leScore * 2)) {
-      return { encoding: 'utf16be', textStart: start };
+      return { encoding: "utf16be", textStart: start };
     }
   }
 
   return null;
 }
 
-function parseUtf16TextSegment(payloadBytes: Uint8Array): NuVoiceTextSegment | null {
+function parseUtf16TextSegment(
+  payloadBytes: Uint8Array,
+): NuVoiceTextSegment | null {
   const detection = detectUtf16Segment(payloadBytes);
   if (!detection) {
     return null;
@@ -372,8 +389,11 @@ function parseUtf16TextSegment(payloadBytes: Uint8Array): NuVoiceTextSegment | n
   }
 
   const hasNullTerminator = textEnd < payloadBytes.length;
-  const suffixStart = hasNullTerminator ? Math.min(textEnd + 2, payloadBytes.length) : textEnd;
-  const prefixBytes = textStart > 0 ? payloadBytes.slice(0, textStart) : new Uint8Array();
+  const suffixStart = hasNullTerminator
+    ? Math.min(textEnd + 2, payloadBytes.length)
+    : textEnd;
+  const prefixBytes =
+    textStart > 0 ? payloadBytes.slice(0, textStart) : new Uint8Array();
 
   return {
     text,
@@ -384,7 +404,9 @@ function parseUtf16TextSegment(payloadBytes: Uint8Array): NuVoiceTextSegment | n
   };
 }
 
-function parseLatin1TextSegment(payloadBytes: Uint8Array): NuVoiceTextSegment | null {
+function parseLatin1TextSegment(
+  payloadBytes: Uint8Array,
+): NuVoiceTextSegment | null {
   if (payloadBytes.length === 0) {
     return null;
   }
@@ -407,7 +429,7 @@ function parseLatin1TextSegment(payloadBytes: Uint8Array): NuVoiceTextSegment | 
     hasNullTerminator: nullIndex >= 0,
     suffixBytes: payloadBytes.slice(suffixStart),
     prefixBytes: new Uint8Array(),
-    encoding: 'latin1',
+    encoding: "latin1",
   };
 }
 
@@ -437,7 +459,9 @@ function extractPrintableAsciiSequences(payloadBytes: Uint8Array): string[] {
   return sequences;
 }
 
-function deriveMemoryTextSegmentFromAscii(payloadBytes: Uint8Array): NuVoiceTextSegment | null {
+function deriveMemoryTextSegmentFromAscii(
+  payloadBytes: Uint8Array,
+): NuVoiceTextSegment | null {
   const sequences = extractPrintableAsciiSequences(payloadBytes)
     .map((text) => text.trim())
     .filter((text) => text.length >= 2);
@@ -446,12 +470,12 @@ function deriveMemoryTextSegmentFromAscii(payloadBytes: Uint8Array): NuVoiceText
   }
 
   const containsLower = (text: string): boolean => /[a-z]/.test(text);
-  const containsSpace = (text: string): boolean => text.includes(' ');
+  const containsSpace = (text: string): boolean => text.includes(" ");
   const containsLetter = (text: string): boolean => /[A-Za-z]/.test(text);
 
   const candidate =
     sequences.find((text) => containsLower(text) || containsSpace(text)) ??
-    sequences.find((text) => containsLetter(text) && !text.includes('_')) ??
+    sequences.find((text) => containsLetter(text) && !text.includes("_")) ??
     sequences.find((text) => containsLetter(text)) ??
     sequences[0];
 
@@ -464,11 +488,13 @@ function deriveMemoryTextSegmentFromAscii(payloadBytes: Uint8Array): NuVoiceText
     hasNullTerminator: false,
     prefixBytes: new Uint8Array(),
     suffixBytes: new Uint8Array(),
-    encoding: 'latin1',
+    encoding: "latin1",
   };
 }
 
-function parseLengthPrefixedTextSegment(payloadBytes: Uint8Array): NuVoiceTextSegment | null {
+function parseLengthPrefixedTextSegment(
+  payloadBytes: Uint8Array,
+): NuVoiceTextSegment | null {
   if (payloadBytes.length < 2) {
     return null;
   }
@@ -495,14 +521,16 @@ function parseLengthPrefixedTextSegment(payloadBytes: Uint8Array): NuVoiceTextSe
       hasNullTerminator: false,
       prefixBytes: payloadBytes.slice(0, start),
       suffixBytes: payloadBytes.slice(end),
-      encoding: 'latin1',
+      encoding: "latin1",
       lengthPrefixed: true,
     };
   }
   return null;
 }
 
-export function parseTextSegment(payloadBytes: Uint8Array): NuVoiceTextSegment | null {
+export function parseTextSegment(
+  payloadBytes: Uint8Array,
+): NuVoiceTextSegment | null {
   return (
     parseLatin1TextSegment(payloadBytes) ??
     parseLengthPrefixedTextSegment(payloadBytes) ??
@@ -513,7 +541,7 @@ export function parseTextSegment(payloadBytes: Uint8Array): NuVoiceTextSegment |
 function parseHeaderRecord(line: string): NuVoiceHeaderRecord {
   const match = /^v(\d+)\s+(\S+)\s+(.+)$/.exec(line);
   return {
-    type: 'v',
+    type: "v",
     rawLine: line,
     version: match?.[1],
     variant: match?.[2],
@@ -528,8 +556,8 @@ function parseBinaryRecord(line: string): NuVoiceBinaryRecordBase {
 
   const bodyHex = line.slice(1, -2);
   const checksumHex = line.slice(-2);
-  assertHex(bodyHex, 'NuVoice record body');
-  assertHex(checksumHex, 'NuVoice record checksum');
+  assertHex(bodyHex, "NuVoice record body");
+  assertHex(checksumHex, "NuVoice record checksum");
 
   const bodyBytes = hexToBytes(bodyHex);
   const checksum = parseInt(checksumHex, 16);
@@ -567,9 +595,11 @@ function parseDictionaryRecord(line: string): NuVoiceDictionaryRecord {
 
   return {
     ...base,
-    type: 'd',
+    type: "d",
     word: bytesToLatin1(base.bodyBytes.slice(wordStart, wordEnd)),
-    pronunciation: bytesToLatin1(base.bodyBytes.slice(pronunciationStart, pronunciationEnd)),
+    pronunciation: bytesToLatin1(
+      base.bodyBytes.slice(pronunciationStart, pronunciationEnd),
+    ),
     trailingBytes: base.bodyBytes.slice(pronunciationEnd),
   };
 }
@@ -590,7 +620,7 @@ function parseMemoryRecord(line: string): NuVoiceMemoryRecord {
   const parsedButton = parseNuVoiceButtonPayload(fullBytes);
   return {
     ...base,
-    type: 'm',
+    type: "m",
     addressHex: bytesToHex(pageBytes),
     sequence,
     payloadBytes,
@@ -600,21 +630,27 @@ function parseMemoryRecord(line: string): NuVoiceMemoryRecord {
           hasNullTerminator: false,
           prefixBytes: new Uint8Array(),
           suffixBytes: new Uint8Array(),
-          encoding: 'latin1',
+          encoding: "latin1",
         }
-      : (parseTextSegment(payloadBytes) ?? deriveMemoryTextSegmentFromAscii(payloadBytes)),
+      : (parseTextSegment(payloadBytes) ??
+        deriveMemoryTextSegmentFromAscii(payloadBytes)),
     parsedButton,
   };
 }
 
-function textFromRecordBody(type: string, bodyBytes: Uint8Array): string | undefined {
+function textFromRecordBody(
+  type: string,
+  bodyBytes: Uint8Array,
+): string | undefined {
   if (bodyBytes.length === 0 || !isPrintableAscii(bodyBytes)) {
     return undefined;
   }
   return `${type}${bytesToLatin1(bodyBytes)}`;
 }
 
-function parseNuVoiceButtonPayload(fullBytes: Uint8Array): NuVoiceButtonData | undefined {
+function parseNuVoiceButtonPayload(
+  fullBytes: Uint8Array,
+): NuVoiceButtonData | undefined {
   if (fullBytes.length < 14 || fullBytes[0] !== 0x6d) {
     return undefined;
   }
@@ -631,7 +667,10 @@ function parseNuVoiceButtonPayload(fullBytes: Uint8Array): NuVoiceButtonData | u
   return undefined;
 }
 
-function parseNuVoiceFormat1(fullBytes: Uint8Array, nameLength: number): NuVoiceButtonData {
+function parseNuVoiceFormat1(
+  fullBytes: Uint8Array,
+  nameLength: number,
+): NuVoiceButtonData {
   let cursor = 10;
   const end = Math.min(cursor + nameLength, fullBytes.length);
   const name = bytesToLatin1(fullBytes.slice(cursor, end)).trim();
@@ -648,8 +687,13 @@ function parseNuVoiceFormat1(fullBytes: Uint8Array, nameLength: number): NuVoice
       cursor += iconLength;
     }
   }
-  const { speech, navigationType, navigationTarget, functions, randomChoiceTarget } =
-    parseNuVoiceFunctions(fullBytes.slice(cursor));
+  const {
+    speech,
+    navigationType,
+    navigationTarget,
+    functions,
+    randomChoiceTarget,
+  } = parseNuVoiceFunctions(fullBytes.slice(cursor));
   return {
     name,
     icon,
@@ -679,13 +723,17 @@ function parseNuVoiceFormat2(fullBytes: Uint8Array): NuVoiceButtonData {
   return { name: text, speech: text, functions: [] };
 }
 
-function parseNuVoiceFormat5(fullBytes: Uint8Array): NuVoiceButtonData | undefined {
+function parseNuVoiceFormat5(
+  fullBytes: Uint8Array,
+): NuVoiceButtonData | undefined {
   if (fullBytes.length < 14) {
     return undefined;
   }
   const nameLength = fullBytes[13];
   let cursor = 14;
-  const name = bytesToLatin1(fullBytes.slice(cursor, cursor + nameLength)).trim();
+  const name = bytesToLatin1(
+    fullBytes.slice(cursor, cursor + nameLength),
+  ).trim();
   cursor += nameLength;
   if (cursor < fullBytes.length && fullBytes[cursor] === 0) {
     cursor += 1;
@@ -697,8 +745,13 @@ function parseNuVoiceFormat5(fullBytes: Uint8Array): NuVoiceButtonData | undefin
     icon = bytesToLatin1(fullBytes.slice(cursor, cursor + iconLength)).trim();
     cursor += iconLength;
   }
-  const { speech, navigationType, navigationTarget, functions, randomChoiceTarget } =
-    parseNuVoiceFunctions(fullBytes.slice(cursor));
+  const {
+    speech,
+    navigationType,
+    navigationTarget,
+    functions,
+    randomChoiceTarget,
+  } = parseNuVoiceFunctions(fullBytes.slice(cursor));
   return {
     name,
     icon,
@@ -712,14 +765,14 @@ function parseNuVoiceFormat5(fullBytes: Uint8Array): NuVoiceButtonData | undefin
 
 function parseNuVoiceFunctions(payload: Uint8Array): {
   speech?: string;
-  navigationType?: 'PERMANENT' | 'TEMPORARY' | 'HOME' | 'BACK';
+  navigationType?: "PERMANENT" | "TEMPORARY" | "HOME" | "BACK";
   navigationTarget?: string;
   randomChoiceTarget?: string;
   functions: NuVoiceButtonFunction[];
 } {
   const functions: NuVoiceButtonFunction[] = [];
   let speech: string | undefined;
-  let navigationType: 'PERMANENT' | 'TEMPORARY' | 'HOME' | 'BACK' | undefined;
+  let navigationType: "PERMANENT" | "TEMPORARY" | "HOME" | "BACK" | undefined;
   let navigationTarget: string | undefined;
   let randomChoiceTarget: string | undefined;
   let cursor = 0;
@@ -736,13 +789,13 @@ function parseNuVoiceFunctions(payload: Uint8Array): {
         randomChoiceTarget = text;
         cursor = next;
       } else if (code === 0x8b) {
-        navigationType = 'HOME';
-        navigationTarget = '0400';
+        navigationType = "HOME";
+        navigationTarget = "0400";
       } else if (code === 0x85) {
-        navigationType = 'BACK';
+        navigationType = "BACK";
       } else if (code === 0x8c || code === 0x8d) {
         const { text, next } = extractParentheticalText(payload, cursor);
-        navigationType = code === 0x8c ? 'PERMANENT' : 'TEMPORARY';
+        navigationType = code === 0x8c ? "PERMANENT" : "TEMPORARY";
         navigationTarget = text;
         cursor = next;
       } else {
@@ -756,10 +809,10 @@ function parseNuVoiceFunctions(payload: Uint8Array): {
       const code = payload[cursor + 3];
       cursor += 4;
       if (code === 0x85) {
-        navigationType = 'BACK';
+        navigationType = "BACK";
       } else if (code === 0x8c || code === 0x8d) {
         const { text, next } = extractParentheticalText(payload, cursor);
-        navigationType = code === 0x8c ? 'PERMANENT' : 'TEMPORARY';
+        navigationType = code === 0x8c ? "PERMANENT" : "TEMPORARY";
         navigationTarget = text;
         cursor = next;
       }
@@ -779,7 +832,10 @@ function parseNuVoiceFunctions(payload: Uint8Array): {
 function findMarkerEnd(payload: Uint8Array, start: number): number {
   let cursor = start;
   while (cursor < payload.length) {
-    if (payload[cursor] === 0xa4 || (payload[cursor] === 0x0d && payload[cursor + 1] === 0x0a)) {
+    if (
+      payload[cursor] === 0xa4 ||
+      (payload[cursor] === 0x0d && payload[cursor + 1] === 0x0a)
+    ) {
       break;
     }
     cursor += 1;
@@ -789,10 +845,10 @@ function findMarkerEnd(payload: Uint8Array, start: number): number {
 
 function extractParentheticalText(
   payload: Uint8Array,
-  start: number
+  start: number,
 ): { text?: string; next: number } {
-  const openIndex = payload.indexOf('('.charCodeAt(0), start);
-  const closeIndex = payload.indexOf(')'.charCodeAt(0), openIndex + 1);
+  const openIndex = payload.indexOf("(".charCodeAt(0), start);
+  const closeIndex = payload.indexOf(")".charCodeAt(0), openIndex + 1);
   if (openIndex >= 0 && closeIndex > openIndex) {
     return {
       text: bytesToLatin1(payload.slice(openIndex + 1, closeIndex)).trim(),
@@ -855,7 +911,10 @@ function parsePageCommands(bytes: Uint8Array): NuVoicePageCommand[] {
       commands.push({
         opcode,
         payload,
-        text: asciiPayload.length > 0 ? bytesToLatin1(new Uint8Array(asciiPayload)) : undefined,
+        text:
+          asciiPayload.length > 0
+            ? bytesToLatin1(new Uint8Array(asciiPayload))
+            : undefined,
       });
       offset = end;
     } else {
@@ -875,9 +934,9 @@ function parsePageRecord(line: string): NuVoicePageRecord {
 
   const record: NuVoicePageRecord =
     base !== null
-      ? { ...base, type: 'P' }
+      ? { ...base, type: "P" }
       : {
-          type: 'P',
+          type: "P",
           rawLine: line,
           bodyBytes: new Uint8Array(),
           checksum: 0,
@@ -888,7 +947,7 @@ function parsePageRecord(line: string): NuVoicePageRecord {
     const asciiPayload = line.slice(1);
     if (asciiPayload.length > 0) {
       record.asciiText = `P${asciiPayload}`;
-      const equalsIndex = asciiPayload.indexOf('=');
+      const equalsIndex = asciiPayload.indexOf("=");
       if (equalsIndex >= 0) {
         record.key = asciiPayload.slice(0, equalsIndex);
         record.value = asciiPayload.slice(equalsIndex + 1);
@@ -897,10 +956,10 @@ function parsePageRecord(line: string): NuVoicePageRecord {
     return record;
   }
 
-  const asciiText = textFromRecordBody('P', base.bodyBytes);
+  const asciiText = textFromRecordBody("P", base.bodyBytes);
   if (asciiText) {
     record.asciiText = asciiText;
-    const equalsIndex = asciiText.indexOf('=');
+    const equalsIndex = asciiText.indexOf("=");
     if (equalsIndex >= 0) {
       record.key = asciiText.slice(0, equalsIndex);
       record.value = asciiText.slice(equalsIndex + 1);
@@ -936,9 +995,9 @@ function parseCellRecord(line: string): NuVoiceCellRecord {
 
   const record: NuVoiceCellRecord =
     base !== null
-      ? { ...base, type: 'C' }
+      ? { ...base, type: "C" }
       : {
-          type: 'C',
+          type: "C",
           rawLine: line,
           bodyBytes: new Uint8Array(),
           checksum: 0,
@@ -949,11 +1008,11 @@ function parseCellRecord(line: string): NuVoiceCellRecord {
     const asciiPayload = line.slice(1);
     if (asciiPayload.length > 0) {
       record.asciiText = `C${asciiPayload}`;
-      const equalsIndex = asciiPayload.indexOf('=');
+      const equalsIndex = asciiPayload.indexOf("=");
       if (equalsIndex >= 0) {
         record.key = asciiPayload.slice(0, equalsIndex);
         record.value = asciiPayload.slice(equalsIndex + 1);
-        if (record.key.toLowerCase().includes('color')) {
+        if (record.key.toLowerCase().includes("color")) {
           const numeric = Number(record.value);
           if (!Number.isNaN(numeric)) {
             record.colorValue = numeric;
@@ -964,14 +1023,14 @@ function parseCellRecord(line: string): NuVoiceCellRecord {
     return record;
   }
 
-  const asciiText = textFromRecordBody('C', base.bodyBytes);
+  const asciiText = textFromRecordBody("C", base.bodyBytes);
   if (asciiText) {
     record.asciiText = asciiText;
-    const equalsIndex = asciiText.indexOf('=');
+    const equalsIndex = asciiText.indexOf("=");
     if (equalsIndex >= 0) {
       record.key = asciiText.slice(0, equalsIndex);
       record.value = asciiText.slice(equalsIndex + 1);
-      if (record.key.toLowerCase().includes('color')) {
+      if (record.key.toLowerCase().includes("color")) {
         const numeric = Number(record.value);
         if (!Number.isNaN(numeric)) {
           record.colorValue = numeric;
@@ -991,7 +1050,7 @@ function parseLayoutRecord(line: string): NuVoiceLayoutRecord {
 
   return {
     ...base,
-    type: 'x',
+    type: "x",
     addressHex: bytesToHex(base.bodyBytes.slice(0, 3)),
     payloadBytes: base.bodyBytes.slice(3),
     textSegment: parseTextSegment(base.bodyBytes.slice(3)),
@@ -1002,11 +1061,14 @@ function parsePointerRecord(line: string): NuVoicePointerRecord {
   const base = parseBinaryRecord(line);
   return {
     ...base,
-    type: 'X',
+    type: "X",
   };
 }
 
-function parseGenericRecord(line: string, type: NuVoiceRecordType): NuVoiceBinaryRecordBase {
+function parseGenericRecord(
+  line: string,
+  type: NuVoiceRecordType,
+): NuVoiceBinaryRecordBase {
   try {
     return parseBinaryRecord(line);
   } catch (error) {
@@ -1022,7 +1084,7 @@ function parseGenericRecord(line: string, type: NuVoiceRecordType): NuVoiceBinar
 }
 
 export function parseNuVoiceDocument(content: string): NuVoiceDocument {
-  const lineEnding = content.includes('\r\n') ? '\r\n' : '\n';
+  const lineEnding = content.includes("\r\n") ? "\r\n" : "\n";
   const trailingNewline = /\r?\n$/.test(content);
   const lines = content.split(/\r?\n/).filter((line) => line.length > 0);
 
@@ -1032,41 +1094,41 @@ export function parseNuVoiceDocument(content: string): NuVoiceDocument {
 
     try {
       switch (line[0]) {
-        case 'v':
+        case "v":
           records.push(parseHeaderRecord(line));
           break;
-        case 'd':
+        case "d":
           records.push(parseDictionaryRecord(line));
           break;
-        case 'm':
+        case "m":
           records.push(parseMemoryRecord(line));
           break;
-        case 'x':
+        case "x":
           records.push(parseLayoutRecord(line));
           break;
-        case 'X':
+        case "X":
           records.push(parsePointerRecord(line));
           break;
-        case 'P':
+        case "P":
           records.push(parsePageRecord(line));
           break;
-        case 'C':
+        case "C":
           records.push(parseCellRecord(line));
           break;
-        case 'H':
-        case 'A':
-        case 'n':
-        case 'N':
-        case 'S':
-        case 'E':
-        case 'G':
-        case 'a':
-        case 'D':
-        case 'U':
-        case 'V':
-        case 'p':
-        case 'k':
-        case 'q':
+        case "H":
+        case "A":
+        case "n":
+        case "N":
+        case "S":
+        case "E":
+        case "G":
+        case "a":
+        case "D":
+        case "U":
+        case "V":
+        case "p":
+        case "k":
+        case "q":
           records.push(parseGenericRecord(line, line[0] as NuVoiceRecordType));
           break;
         default:
@@ -1075,7 +1137,7 @@ export function parseNuVoiceDocument(content: string): NuVoiceDocument {
       }
     } catch (error) {
       console.warn(
-        `Error parsing NuVoice record: ${(error as Error).message}, line: ${line.slice(0, 50)}...`
+        `Error parsing NuVoice record: ${(error as Error).message}, line: ${line.slice(0, 50)}...`,
       );
     }
   }
@@ -1091,25 +1153,32 @@ function serializeDictionaryRecord(record: NuVoiceDictionaryRecord): string {
   const wordBytes = latin1ToBytes(record.word);
   const pronunciationBytes = latin1ToBytes(record.pronunciation);
   if (wordBytes.length > 0xff || pronunciationBytes.length > 0xff) {
-    throw new Error('NuVoice dictionary fields cannot exceed 255 bytes');
+    throw new Error("NuVoice dictionary fields cannot exceed 255 bytes");
   }
 
   const bodyBytes = new Uint8Array(
-    1 + wordBytes.length + 1 + pronunciationBytes.length + record.trailingBytes.length
+    1 +
+      wordBytes.length +
+      1 +
+      pronunciationBytes.length +
+      record.trailingBytes.length,
   );
   bodyBytes[0] = wordBytes.length;
   bodyBytes.set(wordBytes, 1);
   bodyBytes[1 + wordBytes.length] = pronunciationBytes.length;
   bodyBytes.set(pronunciationBytes, 1 + wordBytes.length + 1);
-  bodyBytes.set(record.trailingBytes, 1 + wordBytes.length + 1 + pronunciationBytes.length);
+  bodyBytes.set(
+    record.trailingBytes,
+    1 + wordBytes.length + 1 + pronunciationBytes.length,
+  );
 
   const checksum = computeNuVoiceChecksum(bodyBytes);
-  return `d${bytesToHex(bodyBytes)}${checksum.toString(16).padStart(2, '0').toUpperCase()}`;
+  return `d${bytesToHex(bodyBytes)}${checksum.toString(16).padStart(2, "0").toUpperCase()}`;
 }
 
 function serializeMemoryRecord(record: NuVoiceMemoryRecord): string {
   if (record.payloadBytes.length > 0xff) {
-    throw new Error('NuVoice memory record payload cannot exceed 255 bytes');
+    throw new Error("NuVoice memory record payload cannot exceed 255 bytes");
   }
 
   const addressBytes = hexToBytes(record.addressHex);
@@ -1123,7 +1192,7 @@ function serializeMemoryRecord(record: NuVoiceMemoryRecord): string {
   bodyBytes.set(record.payloadBytes, 6);
 
   const checksum = computeNuVoiceChecksum(bodyBytes);
-  return `m${bytesToHex(bodyBytes)}${checksum.toString(16).padStart(2, '0').toUpperCase()}`;
+  return `m${bytesToHex(bodyBytes)}${checksum.toString(16).padStart(2, "0").toUpperCase()}`;
 }
 
 function serializeLayoutRecord(record: NuVoiceLayoutRecord): string {
@@ -1137,26 +1206,26 @@ function serializeLayoutRecord(record: NuVoiceLayoutRecord): string {
   bodyBytes.set(record.payloadBytes, 3);
 
   const checksum = computeNuVoiceChecksum(bodyBytes);
-  return `x${bytesToHex(bodyBytes)}${checksum.toString(16).padStart(2, '0').toUpperCase()}`;
+  return `x${bytesToHex(bodyBytes)}${checksum.toString(16).padStart(2, "0").toUpperCase()}`;
 }
 
 function serializePointerRecord(record: NuVoicePointerRecord): string {
   const checksum = computeNuVoiceChecksum(record.bodyBytes);
-  return `X${bytesToHex(record.bodyBytes)}${checksum.toString(16).padStart(2, '0').toUpperCase()}`;
+  return `X${bytesToHex(record.bodyBytes)}${checksum.toString(16).padStart(2, "0").toUpperCase()}`;
 }
 
 export function serializeNuVoiceDocument(document: NuVoiceDocument): string {
   const lines = document.records.map((record) => {
     switch (record.type) {
-      case 'v':
+      case "v":
         return record.rawLine;
-      case 'd':
+      case "d":
         return serializeDictionaryRecord(record as NuVoiceDictionaryRecord);
-      case 'm':
+      case "m":
         return serializeMemoryRecord(record as NuVoiceMemoryRecord);
-      case 'x':
+      case "x":
         return serializeLayoutRecord(record as NuVoiceLayoutRecord);
-      case 'X':
+      case "X":
         return serializePointerRecord(record as NuVoicePointerRecord);
       default:
         // For unknown record types, return the raw line as-is
@@ -1165,19 +1234,26 @@ export function serializeNuVoiceDocument(document: NuVoiceDocument): string {
   });
 
   const serialized = lines.join(document.lineEnding);
-  return document.trailingNewline ? `${serialized}${document.lineEnding}` : serialized;
+  return document.trailingNewline
+    ? `${serialized}${document.lineEnding}`
+    : serialized;
 }
 
-export function setNuVoiceMemoryText(record: NuVoiceMemoryRecord, nextText: string): void {
+export function setNuVoiceMemoryText(
+  record: NuVoiceMemoryRecord,
+  nextText: string,
+): void {
   const segment = record.textSegment;
   if (!segment) {
     return;
   }
 
-  const encoding = segment.encoding ?? 'latin1';
+  const encoding = segment.encoding ?? "latin1";
   const prefixBytes = segment.prefixBytes ?? new Uint8Array();
   const textBytes =
-    encoding === 'latin1' ? latin1ToBytes(nextText) : encodeUtf16Bytes(nextText, encoding);
+    encoding === "latin1"
+      ? latin1ToBytes(nextText)
+      : encodeUtf16Bytes(nextText, encoding);
   const payloadParts: Uint8Array[] = [];
   let updatedPrefix = prefixBytes;
   if (prefixBytes.length > 0) {
@@ -1190,13 +1266,18 @@ export function setNuVoiceMemoryText(record: NuVoiceMemoryRecord, nextText: stri
   }
   payloadParts.push(textBytes);
   if (segment.hasNullTerminator) {
-    payloadParts.push(encoding === 'latin1' ? Uint8Array.from([0]) : Uint8Array.from([0, 0]));
+    payloadParts.push(
+      encoding === "latin1" ? Uint8Array.from([0]) : Uint8Array.from([0, 0]),
+    );
   }
   if (segment.suffixBytes.length > 0) {
     payloadParts.push(segment.suffixBytes);
   }
 
-  const payloadLength = payloadParts.reduce((total, bytes) => total + bytes.length, 0);
+  const payloadLength = payloadParts.reduce(
+    (total, bytes) => total + bytes.length,
+    0,
+  );
   const payloadBytes = new Uint8Array(payloadLength);
   let offset = 0;
   for (const part of payloadParts) {
@@ -1216,29 +1297,39 @@ export function setNuVoiceMemoryText(record: NuVoiceMemoryRecord, nextText: stri
   };
 }
 
-export function setNuVoiceLayoutText(record: NuVoiceLayoutRecord, nextText: string): void {
+export function setNuVoiceLayoutText(
+  record: NuVoiceLayoutRecord,
+  nextText: string,
+): void {
   const segment = record.textSegment;
   if (!segment) {
     return;
   }
 
-  const encoding = segment.encoding ?? 'latin1';
+  const encoding = segment.encoding ?? "latin1";
   const prefixBytes = segment.prefixBytes ?? new Uint8Array();
   const textBytes =
-    encoding === 'latin1' ? latin1ToBytes(nextText) : encodeUtf16Bytes(nextText, encoding);
+    encoding === "latin1"
+      ? latin1ToBytes(nextText)
+      : encodeUtf16Bytes(nextText, encoding);
   const payloadParts: Uint8Array[] = [];
   if (prefixBytes.length > 0) {
     payloadParts.push(prefixBytes);
   }
   payloadParts.push(textBytes);
   if (segment.hasNullTerminator) {
-    payloadParts.push(encoding === 'latin1' ? Uint8Array.from([0]) : Uint8Array.from([0, 0]));
+    payloadParts.push(
+      encoding === "latin1" ? Uint8Array.from([0]) : Uint8Array.from([0, 0]),
+    );
   }
   if (segment.suffixBytes.length > 0) {
     payloadParts.push(segment.suffixBytes);
   }
 
-  const payloadLength = payloadParts.reduce((total, bytes) => total + bytes.length, 0);
+  const payloadLength = payloadParts.reduce(
+    (total, bytes) => total + bytes.length,
+    0,
+  );
   const payloadBytes = new Uint8Array(payloadLength);
   let offset = 0;
   for (const part of payloadParts) {
@@ -1256,56 +1347,58 @@ export function setNuVoiceLayoutText(record: NuVoiceLayoutRecord, nextText: stri
   };
 }
 
-export function listNuVoiceTextEntries(document: NuVoiceDocument): NuVoiceTextEntry[] {
+export function listNuVoiceTextEntries(
+  document: NuVoiceDocument,
+): NuVoiceTextEntry[] {
   const entries: NuVoiceTextEntry[] = [];
   let dictionaryIndex = 0;
 
   for (const record of document.records) {
-    if (record.type === 'd') {
+    if (record.type === "d") {
       const dictRecord = record as NuVoiceDictionaryRecord;
       entries.push({
         source: dictRecord.word,
-        table: 'dictionary',
-        column: 'WORD',
+        table: "dictionary",
+        column: "WORD",
         id: `dictionary:${dictionaryIndex}:word`,
       });
       if (dictRecord.pronunciation.length > 0) {
         entries.push({
           source: dictRecord.pronunciation,
-          table: 'dictionary',
-          column: 'PRONUNCIATION',
+          table: "dictionary",
+          column: "PRONUNCIATION",
           id: `dictionary:${dictionaryIndex}:pronunciation`,
         });
       }
       dictionaryIndex += 1;
-    } else if (record.type === 'm') {
+    } else if (record.type === "m") {
       const memRecord = record as NuVoiceMemoryRecord;
       if (memRecord.textSegment) {
         entries.push({
           source: memRecord.textSegment.text,
-          table: 'memory',
-          column: 'TEXT',
+          table: "memory",
+          column: "TEXT",
           id: `memory:${memRecord.addressHex}`,
         });
       }
-    } else if (record.type === 'x') {
+    } else if (record.type === "x") {
       const layoutRecord = record as NuVoiceLayoutRecord;
       if (layoutRecord.textSegment) {
         entries.push({
           source: layoutRecord.textSegment.text,
-          table: 'layout',
-          column: 'TEXT',
+          table: "layout",
+          column: "TEXT",
           id: `layout:${layoutRecord.addressHex}`,
         });
       }
-    } else if ('bodyBytes' in record) {
+    } else if ("bodyBytes" in record) {
       // Try to extract text from other binary records
       const textSegment = parseTextSegment(record.bodyBytes);
       if (textSegment) {
         entries.push({
           source: textSegment.text,
-          table: 'other',
-          column: 'TEXT',
+          table: "other",
+          column: "TEXT",
           id: `${record.type}:${record.rawLine.slice(1, 9)}`, // Use first 8 chars of body as ID
         });
       }
@@ -1316,10 +1409,10 @@ export function listNuVoiceTextEntries(document: NuVoiceDocument): NuVoiceTextEn
 }
 
 function bytesToLatin1String(bytes: Uint8Array): string {
-  if (typeof TextDecoder !== 'undefined') {
-    return new TextDecoder('latin1').decode(bytes);
+  if (typeof TextDecoder !== "undefined") {
+    return new TextDecoder("latin1").decode(bytes);
   }
-  let result = '';
+  let result = "";
   for (const value of bytes) {
     result += String.fromCharCode(value);
   }
@@ -1366,7 +1459,7 @@ function splitBinaryLines(data: Uint8Array): Uint8Array[] {
 
 function convertBinaryLineToHexString(line: Uint8Array): string {
   if (line.length === 0) {
-    return '';
+    return "";
   }
   const typeChar = String.fromCharCode(line[0]);
   if (line.length === 1) {
@@ -1374,22 +1467,26 @@ function convertBinaryLineToHexString(line: Uint8Array): string {
   }
   const checksum = line[line.length - 1];
   const bodyBytes = line.slice(1, -1);
-  return `${typeChar}${bytesToHex(bodyBytes)}${checksum.toString(16).padStart(2, '0').toUpperCase()}`;
+  return `${typeChar}${bytesToHex(bodyBytes)}${checksum.toString(16).padStart(2, "0").toUpperCase()}`;
 }
 
 function convertBinaryPayloadToText(payload: Uint8Array): string {
   return splitBinaryLines(payload)
     .map((line) => convertBinaryLineToHexString(line))
     .filter((line) => line.length > 0)
-    .join('\n');
+    .join("\n");
 }
 
 function convertCompressedPayloadToText(payload: Uint8Array): string {
   if (payload.length < 4) {
-    throw new Error('Invalid compressed NuVoice payload');
+    throw new Error("Invalid compressed NuVoice payload");
   }
   let offset = 0;
-  const dataView = new DataView(payload.buffer, payload.byteOffset, payload.byteLength);
+  const dataView = new DataView(
+    payload.buffer,
+    payload.byteOffset,
+    payload.byteLength,
+  );
   const declaredLength = dataView.getUint32(0, true);
   offset += 4;
   if (payload[offset] === 0x0d && payload[offset + 1] === 0x0a) {
@@ -1403,30 +1500,61 @@ function convertCompressedPayloadToText(payload: Uint8Array): string {
   return convertBinaryPayloadToText(inflated);
 }
 
-export function normalizeNuVoiceContent(data: Uint8Array): string {
+function stripAsciiHeader(data: Uint8Array): Uint8Array {
   if (data.length === 0) {
-    return '';
+    return data;
   }
   const newlineIndex = data.indexOf(0x0a);
-  const headerEnd = newlineIndex >= 0 ? newlineIndex : data.length;
-  let header = bytesToLatin1String(data.slice(0, headerEnd));
-  if (header.endsWith('\r')) {
-    header = header.slice(0, -1);
+  if (newlineIndex === -1) {
+    return data;
   }
-  let payload = newlineIndex >= 0 ? data.slice(newlineIndex + 1) : new Uint8Array();
-  if (payload.length > 0 && payload[0] === 0x0d) {
-    payload = payload.slice(1);
+  const header = bytesToLatin1String(data.slice(0, newlineIndex)).trim();
+  if (/^v\d+/i.test(header) || header.startsWith("unity")) {
+    let payloadStart = newlineIndex + 1;
+    if (payloadStart < data.length && data[payloadStart] === 0x0d) {
+      payloadStart += 1;
+    }
+    return data.slice(payloadStart);
   }
+  return data;
+}
+
+function tryInflatePayload(payload: Uint8Array): Uint8Array | null {
+  let index = payload.indexOf(0x78); // zlib header
+  while (index >= 0) {
+    try {
+      return inflate(payload.slice(index));
+    } catch (error) {
+      index = payload.indexOf(0x78, index + 1);
+    }
+  }
+  return null;
+}
+
+export function normalizeNuVoiceContent(data: Uint8Array): string {
+  if (data.length === 0) {
+    return "";
+  }
+
+  const payload = stripAsciiHeader(data);
   if (payload.length === 0) {
-    return header;
+    return "";
   }
+
   if (looksLikeTextualRecords(payload)) {
-    return `${header}\n${bytesToLatin1String(payload)}`;
+    return bytesToLatin1String(payload);
   }
+
   if (looksCompressedBinary(payload)) {
-    return `${header}\n${convertCompressedPayloadToText(payload)}`;
+    return convertCompressedPayloadToText(payload);
   }
-  return `${header}\n${convertBinaryPayloadToText(payload)}`;
+
+  const inflated = tryInflatePayload(payload);
+  if (inflated) {
+    return convertBinaryPayloadToText(inflated);
+  }
+
+  return convertBinaryPayloadToText(payload);
 }
 export interface NuVoiceButtonFunction {
   type: string;
@@ -1437,7 +1565,7 @@ export interface NuVoiceButtonData {
   name?: string;
   speech?: string;
   icon?: string;
-  navigationType?: 'PERMANENT' | 'TEMPORARY' | 'HOME' | 'BACK' | null;
+  navigationType?: "PERMANENT" | "TEMPORARY" | "HOME" | "BACK" | null;
   navigationTarget?: string | null;
   randomChoiceTarget?: string | null;
   functions: NuVoiceButtonFunction[];
