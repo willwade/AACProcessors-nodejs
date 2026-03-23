@@ -580,11 +580,14 @@ function parseMemoryRecord(line: string): NuVoiceMemoryRecord {
     throw new Error(`Invalid NuVoice memory record: ${line}`);
   }
 
-  const markerLength = 4;
-  const pageBytes = base.bodyBytes.slice(1, 3);
-  const sequence = base.bodyBytes[3];
-  const payloadBytes = base.bodyBytes.slice(markerLength);
-  const parsedButton = parseNuVoiceButtonPayload(base.bodyBytes);
+  const fullBytes = new Uint8Array(base.bodyBytes.length + 1);
+  fullBytes[0] = 0x6d;
+  fullBytes.set(base.bodyBytes, 1);
+
+  const pageBytes = fullBytes.slice(4, 6);
+  const sequence = fullBytes[6];
+  const payloadBytes = base.bodyBytes.slice(6);
+  const parsedButton = parseNuVoiceButtonPayload(fullBytes);
   return {
     ...base,
     type: 'm',
@@ -611,40 +614,42 @@ function textFromRecordBody(type: string, bodyBytes: Uint8Array): string | undef
   return `${type}${bytesToLatin1(bodyBytes)}`;
 }
 
-function parseNuVoiceButtonPayload(bodyBytes: Uint8Array): NuVoiceButtonData | undefined {
-  if (bodyBytes.length < 14) {
+function parseNuVoiceButtonPayload(fullBytes: Uint8Array): NuVoiceButtonData | undefined {
+  if (fullBytes.length < 14 || fullBytes[0] !== 0x6d) {
     return undefined;
   }
-  const formatMarker = bodyBytes[9];
+  const formatMarker = fullBytes[9];
   if (formatMarker >= 1 && formatMarker <= 49) {
-    return parseNuVoiceFormat1(bodyBytes, formatMarker);
+    return parseNuVoiceFormat1(fullBytes, formatMarker);
   }
   if (formatMarker === 0) {
-    return parseNuVoiceFormat2(bodyBytes);
+    return parseNuVoiceFormat2(fullBytes);
   }
-  if ([0x87, 0xaf, 0xcc, 0xff, 0xf5, 0xf0].includes(formatMarker)) {
-    return parseNuVoiceFormat5(bodyBytes);
+  if ([0x87, 0xaf, 0xcc, 0xff].includes(formatMarker)) {
+    return parseNuVoiceFormat5(fullBytes);
   }
   return undefined;
 }
 
-function parseNuVoiceFormat1(bodyBytes: Uint8Array, nameLength: number): NuVoiceButtonData {
+function parseNuVoiceFormat1(fullBytes: Uint8Array, nameLength: number): NuVoiceButtonData {
   let cursor = 10;
-  const end = Math.min(cursor + nameLength, bodyBytes.length);
-  const name = bytesToLatin1(bodyBytes.slice(cursor, end)).trim();
+  const end = Math.min(cursor + nameLength, fullBytes.length);
+  const name = bytesToLatin1(fullBytes.slice(cursor, end)).trim();
   cursor = end;
-  if (cursor < bodyBytes.length && bodyBytes[cursor] === 0) {
+  if (cursor < fullBytes.length && fullBytes[cursor] === 0) {
     cursor += 1;
   }
-  let icon = undefined;
-  if (cursor < bodyBytes.length) {
-    const iconLength = bodyBytes[cursor];
+  let icon: string | undefined;
+  if (cursor < fullBytes.length) {
+    const iconLength = fullBytes[cursor];
     cursor += 1;
-    icon = bytesToLatin1(bodyBytes.slice(cursor, cursor + iconLength)).trim();
-    cursor += iconLength;
+    if (iconLength > 0 && cursor + iconLength <= fullBytes.length) {
+      icon = bytesToLatin1(fullBytes.slice(cursor, cursor + iconLength)).trim();
+      cursor += iconLength;
+    }
   }
   const { speech, navigationType, navigationTarget, functions, randomChoiceTarget } =
-    parseNuVoiceFunctions(bodyBytes.slice(cursor));
+    parseNuVoiceFunctions(fullBytes.slice(cursor));
   return {
     name,
     icon,
@@ -656,32 +661,44 @@ function parseNuVoiceFormat1(bodyBytes: Uint8Array, nameLength: number): NuVoice
   };
 }
 
-function parseNuVoiceFormat2(bodyBytes: Uint8Array): NuVoiceButtonData {
-  let text = bytesToLatin1(bodyBytes.slice(11));
-  while (text.endsWith('\u0000')) {
-    text = text.slice(0, -1);
+function parseNuVoiceFormat2(fullBytes: Uint8Array): NuVoiceButtonData {
+  let cursor = 10;
+  while (cursor < fullBytes.length && fullBytes[cursor] === 0) {
+    cursor += 1;
   }
-  text = text.trim();
+  let end = cursor;
+  while (end + 1 < fullBytes.length) {
+    if (fullBytes[end] === 0x0d && fullBytes[end + 1] === 0x0a) {
+      break;
+    }
+    end += 1;
+  }
+  let textBytes = fullBytes.slice(cursor, end);
+  textBytes = textBytes.filter((value) => value >= 0x20);
+  const text = bytesToLatin1(textBytes).trim();
   return { name: text, speech: text, functions: [] };
 }
 
-function parseNuVoiceFormat5(bodyBytes: Uint8Array): NuVoiceButtonData | undefined {
-  if (bodyBytes.length < 14) {
+function parseNuVoiceFormat5(fullBytes: Uint8Array): NuVoiceButtonData | undefined {
+  if (fullBytes.length < 14) {
     return undefined;
   }
-  const nameLength = bodyBytes[13];
+  const nameLength = fullBytes[13];
   let cursor = 14;
-  const name = bytesToLatin1(bodyBytes.slice(cursor, cursor + nameLength)).trim();
+  const name = bytesToLatin1(fullBytes.slice(cursor, cursor + nameLength)).trim();
   cursor += nameLength;
-  if (cursor < bodyBytes.length && bodyBytes[cursor] === 0) {
+  if (cursor < fullBytes.length && fullBytes[cursor] === 0) {
     cursor += 1;
   }
-  const iconLength = bodyBytes[cursor] ?? 0;
-  cursor += 1;
-  const icon = bytesToLatin1(bodyBytes.slice(cursor, cursor + iconLength)).trim();
-  cursor += iconLength;
+  let icon: string | undefined;
+  if (cursor < fullBytes.length) {
+    const iconLength = fullBytes[cursor] ?? 0;
+    cursor += 1;
+    icon = bytesToLatin1(fullBytes.slice(cursor, cursor + iconLength)).trim();
+    cursor += iconLength;
+  }
   const { speech, navigationType, navigationTarget, functions, randomChoiceTarget } =
-    parseNuVoiceFunctions(bodyBytes.slice(cursor));
+    parseNuVoiceFunctions(fullBytes.slice(cursor));
   return {
     name,
     icon,
