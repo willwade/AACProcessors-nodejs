@@ -5,16 +5,16 @@ import {
   SourceString,
   TranslatedString,
   VocabLocation,
-} from "../core/baseProcessor";
+} from '../core/baseProcessor';
 import {
   AACTree,
   AACButton,
   AACPage,
   AACSemanticCategory,
   AACSemanticIntent,
-} from "../core/treeStructure";
-import { detectCasing } from "../core/stringCasing";
-import { encodeText, ProcessorInput } from "../utils/io";
+} from '../core/treeStructure';
+import { detectCasing } from '../core/stringCasing';
+import { encodeText, ProcessorInput } from '../utils/io';
 import {
   listNuVoiceTextEntries,
   NuVoiceBinaryRecordBase,
@@ -31,7 +31,7 @@ import {
   setNuVoiceMemoryText,
   latin1ToBytes,
   normalizeNuVoiceContent,
-} from "./nuvoice/helpers";
+} from './nuvoice/helpers';
 
 type NuVoiceButtonAddress = {
   pageHex: string;
@@ -65,45 +65,39 @@ type NuVoiceMetadataSummary = {
   }>;
 };
 
-function decodeMemoryAddress(
-  record: NuVoiceMemoryRecord,
-): NuVoiceButtonAddress | null {
+function decodeMemoryAddress(record: NuVoiceMemoryRecord): NuVoiceButtonAddress | null {
   if (!record.bodyBytes || record.bodyBytes.length < 3) {
     return null;
   }
 
   const pageId = (record.bodyBytes[1] << 8) | record.bodyBytes[0];
-  const pageHex = pageId.toString(16).padStart(4, "0");
+  const pageHex = pageId.toString(16).padStart(4, '0');
   const sequence = record.bodyBytes[2];
   return { pageHex, sequence };
 }
 
 const KNOWN_PAGE_NAMES: Record<string, string> = {
-  "0400": "Main Page (0x0400)",
-  "0100": "Grammar Page (0x0100)",
-  "0200": "System Page (0x0200)",
-  "0300": "Computer Access (0x0300)",
-  "0500": "Vocabulary Builder (0x0500)",
+  '0400': 'Main Page (0x0400)',
+  '0100': 'Grammar Page (0x0100)',
+  '0200': 'System Page (0x0200)',
+  '0300': 'Computer Access (0x0300)',
+  '0500': 'Vocabulary Builder (0x0500)',
 };
 
 function formatNuVoiceColor(value: number): string {
   const rgb = value & 0xffffff;
-  return `#${rgb.toString(16).padStart(6, "0")}`;
+  return `#${rgb.toString(16).padStart(6, '0')}`;
 }
 
 function buildNuVoiceMetadata(
   pageRecords: NuVoicePageRecord[],
-  cellRecords: NuVoiceCellRecord[],
+  cellRecords: NuVoiceCellRecord[]
 ): NuVoiceMetadataSummary {
   const customColors: Record<string, number> = {};
   const pageColors: Record<string, number[]> = {};
   let currentPageHex: string | null = null;
   const cellSummaries = cellRecords.map((record) => {
-    if (
-      record.key &&
-      record.value &&
-      record.key.toLowerCase().startsWith("customcolor")
-    ) {
+    if (record.key && record.value && record.key.toLowerCase().startsWith('customcolor')) {
       const match = record.key.match(/customcolor(\d+)/i);
       if (match) {
         const paletteIndex = match[1];
@@ -114,17 +108,17 @@ function buildNuVoiceMetadata(
       }
     }
 
-    if (record.key && record.key.toLowerCase() === "crntpage") {
-      const rawValue = record.value ?? record.asciiText?.split("=")[1];
+    if (record.key && record.key.toLowerCase() === 'crntpage') {
+      const rawValue = record.value ?? record.asciiText?.split('=')[1];
       const numericValue = rawValue ? Number(rawValue) : Number.NaN;
       if (!Number.isNaN(numericValue)) {
-        currentPageHex = numericValue.toString(16).padStart(4, "0");
+        currentPageHex = numericValue.toString(16).padStart(4, '0');
       } else {
         currentPageHex = null;
       }
     } else if (
       record.key &&
-      record.key.toLowerCase() === "color" &&
+      record.key.toLowerCase() === 'color' &&
       currentPageHex &&
       (record.colorValue !== undefined || record.value !== undefined)
     ) {
@@ -165,7 +159,7 @@ function buildNuVoiceMetadata(
             sourceRecord: index,
             opcode: command.opcode,
             text: command.text,
-            targetPageHex: menuMatch[1].padStart(4, "0").toUpperCase(),
+            targetPageHex: menuMatch[1].padStart(4, '0').toUpperCase(),
             argument: menuMatch[2],
           });
         }
@@ -198,6 +192,47 @@ function buildNuVoiceMetadata(
   };
 }
 
+function applyNuVoicePageMetadata(
+  pageHex: string,
+  page: AACPage,
+  metadataSummary: NuVoiceMetadataSummary
+): void {
+  const metadataPayload: Record<string, unknown> = {};
+  const paletteValues = metadataSummary.pageColors[pageHex];
+  if (paletteValues?.length) {
+    const palette = Array.from(new Set(paletteValues))
+      .filter((value) => typeof value === 'number' && Number.isFinite(value))
+      .map((value) => formatNuVoiceColor(value));
+    if (palette.length > 0) {
+      page.style = { ...(page.style ?? {}), backgroundColor: palette[0] };
+      metadataPayload.colors = palette;
+    }
+  }
+
+  const menus = metadataSummary.navigation.filter(
+    (entry) => entry.targetPageHex?.toLowerCase() === pageHex.toLowerCase()
+  );
+  if (menus.length > 0) {
+    metadataPayload.menuCommands = menus.map((entry) => ({
+      opcode: entry.opcode,
+      text: entry.text,
+      argument: entry.argument,
+    }));
+  }
+
+  if (Object.keys(metadataPayload).length > 0) {
+    const priorNuVoiceMeta = (page.metadata as { nuvoice?: Record<string, unknown> } | undefined)
+      ?.nuvoice;
+    page.metadata = {
+      ...(page.metadata ?? {}),
+      nuvoice: {
+        ...(priorNuVoiceMeta ?? {}),
+        ...metadataPayload,
+      },
+    };
+  }
+}
+
 class NuVoiceProcessor extends BaseProcessor {
   async extractTexts(filePathOrBuffer: ProcessorInput): Promise<string[]> {
     const document = await this.readDocument(filePathOrBuffer);
@@ -215,50 +250,39 @@ class NuVoiceProcessor extends BaseProcessor {
     }
 
     tree.metadata = {
-      format: "nuvoice",
-      version: (
-        document.records.find(
-          (record) => record.type === "v",
-        ) as NuVoiceHeaderRecord
-      )?.version,
+      format: 'nuvoice',
+      version: (document.records.find((record) => record.type === 'v') as NuVoiceHeaderRecord)
+        ?.version,
       name:
-        (
-          document.records.find(
-            (record) => record.type === "v",
-          ) as NuVoiceHeaderRecord
-        )?.product || "NuVoice MTI",
+        (document.records.find((record) => record.type === 'v') as NuVoiceHeaderRecord)?.product ||
+        'NuVoice MTI',
       recordCounts,
       invalidChecksumCount: document.records.filter(
-        (record) =>
-          record.type !== "v" &&
-          "checksumValid" in record &&
-          !record.checksumValid,
+        (record) => record.type !== 'v' && 'checksumValid' in record && !record.checksumValid
       ).length,
     };
 
     // Create content pages
     const dictionaryRecords = document.records.filter(
-      (record): record is NuVoiceDictionaryRecord => record.type === "d",
+      (record): record is NuVoiceDictionaryRecord => record.type === 'd'
     );
     const memoryRecords = document.records.filter(
       (record): record is NuVoiceMemoryRecord =>
-        record.type === "m" &&
-        "textSegment" in record &&
-        record.textSegment !== null,
+        record.type === 'm' && 'textSegment' in record && record.textSegment !== null
     );
     const pageRecords = document.records.filter(
-      (record): record is NuVoicePageRecord => record.type === "P",
+      (record): record is NuVoicePageRecord => record.type === 'P'
     );
     const cellRecords = document.records.filter(
-      (record): record is NuVoiceCellRecord => record.type === "C",
+      (record): record is NuVoiceCellRecord => record.type === 'C'
     );
     const nuvoiceMetadata = buildNuVoiceMetadata(pageRecords, cellRecords);
 
     // Dictionary page
     if (dictionaryRecords.length > 0) {
       const dictPage = new AACPage({
-        id: "dictionary",
-        name: "Pronunciation Dictionary",
+        id: 'dictionary',
+        name: 'Pronunciation Dictionary',
         buttons: [],
       });
 
@@ -268,13 +292,13 @@ class NuVoiceProcessor extends BaseProcessor {
             id: `dict:${index}`,
             label: record.word,
             message: record.pronunciation,
-            type: "SPEAK",
+            type: 'SPEAK',
             semanticAction: {
               category: AACSemanticCategory.COMMUNICATION,
               intent: AACSemanticIntent.SPEAK_TEXT,
               parameters: { text: record.word },
             },
-          }),
+          })
         );
       });
 
@@ -299,9 +323,7 @@ class NuVoiceProcessor extends BaseProcessor {
       }
 
       const pageId = `page-${address.pageHex}`;
-      const pageName =
-        KNOWN_PAGE_NAMES[address.pageHex] ||
-        `Page ${address.pageHex.toUpperCase()}`;
+      const pageName = KNOWN_PAGE_NAMES[address.pageHex] || `Page ${address.pageHex.toUpperCase()}`;
       let data = pageMap.get(address.pageHex);
       if (!data) {
         data = {
@@ -317,14 +339,14 @@ class NuVoiceProcessor extends BaseProcessor {
         id: `${pageId}:${sequence}:${index}`,
         label: text,
         message: parsed?.speech || text,
-        type: parsed?.navigationType ? "NAVIGATE" : "SPEAK",
+        type: parsed?.navigationType ? 'NAVIGATE' : 'SPEAK',
         semanticAction: parsed?.navigationType
           ? {
               category: AACSemanticCategory.NAVIGATION,
               intent:
-                parsed.navigationType === "HOME"
+                parsed.navigationType === 'HOME'
                   ? AACSemanticIntent.GO_HOME
-                  : parsed.navigationType === "BACK"
+                  : parsed.navigationType === 'BACK'
                     ? AACSemanticIntent.GO_BACK
                     : AACSemanticIntent.NAVIGATE_TO,
               parameters: { pageId: parsed.navigationTarget },
@@ -348,15 +370,12 @@ class NuVoiceProcessor extends BaseProcessor {
         return;
       }
 
-      const idealColumns = Math.min(
-        16,
-        Math.max(4, Math.ceil(Math.sqrt(data.entries.length))),
-      );
+      const idealColumns = Math.min(16, Math.max(4, Math.ceil(Math.sqrt(data.entries.length))));
       const totalColumns = idealColumns;
       const totalRows = Math.ceil(data.entries.length / totalColumns);
 
       data.page.grid = Array.from({ length: totalRows }, () =>
-        Array.from({ length: totalColumns }, () => null),
+        Array.from({ length: totalColumns }, () => null)
       );
 
       data.entries.forEach(({ button, order }) => {
@@ -375,12 +394,11 @@ class NuVoiceProcessor extends BaseProcessor {
         }
       });
 
+      applyNuVoicePageMetadata(data.pageHex, data.page, nuvoiceMetadata);
       tree.addPage(data.page);
     });
 
-    const preferredRoot = tree.pages["page-0400"]
-      ? "page-0400"
-      : Object.keys(tree.pages)[0];
+    const preferredRoot = tree.pages['page-0400'] ? 'page-0400' : Object.keys(tree.pages)[0];
     if (preferredRoot) {
       tree.rootId = preferredRoot;
     }
@@ -396,36 +414,27 @@ class NuVoiceProcessor extends BaseProcessor {
   async processTexts(
     filePathOrBuffer: ProcessorInput,
     translations: Map<string, string>,
-    outputPath: string,
+    outputPath: string
   ): Promise<Uint8Array | Buffer> {
     const document = await this.readDocument(filePathOrBuffer);
 
     for (const record of document.records) {
-      if (record.type === "d") {
+      if (record.type === 'd') {
         const dictRecord = record as NuVoiceDictionaryRecord;
         dictRecord.word = translations.get(dictRecord.word) ?? dictRecord.word;
         dictRecord.pronunciation =
-          translations.get(dictRecord.pronunciation) ??
-          dictRecord.pronunciation;
-      } else if (
-        record.type === "m" &&
-        "textSegment" in record &&
-        record.textSegment
-      ) {
+          translations.get(dictRecord.pronunciation) ?? dictRecord.pronunciation;
+      } else if (record.type === 'm' && 'textSegment' in record && record.textSegment) {
         const nextText = translations.get(record.textSegment.text);
         if (nextText !== undefined) {
           setNuVoiceMemoryText(record, nextText);
         }
-      } else if (
-        record.type === "x" &&
-        "textSegment" in record &&
-        record.textSegment
-      ) {
+      } else if (record.type === 'x' && 'textSegment' in record && record.textSegment) {
         const nextText = translations.get(record.textSegment.text);
         if (nextText !== undefined) {
           setNuVoiceLayoutText(record, nextText);
         }
-      } else if ("bodyBytes" in record) {
+      } else if ('bodyBytes' in record) {
         // Try to update text in other binary records (P, A, n, C, etc.)
         const binaryRecord = record as NuVoiceBinaryRecordBase;
         const textSegment = parseTextSegment(binaryRecord.bodyBytes);
@@ -457,20 +466,15 @@ class NuVoiceProcessor extends BaseProcessor {
   saveFromTree(_tree: AACTree, _outputPath: string): Promise<void> {
     return Promise.reject(
       new Error(
-        "NuVoice MTI saveFromTree is not supported yet; use processTexts on an existing .mti file.",
-      ),
+        'NuVoice MTI saveFromTree is not supported yet; use processTexts on an existing .mti file.'
+      )
     );
   }
 
-  async extractStringsWithMetadata(
-    filePath: string,
-  ): Promise<ExtractStringsResult> {
+  async extractStringsWithMetadata(filePath: string): Promise<ExtractStringsResult> {
     try {
       const document = await this.readDocument(filePath);
-      const extractedMap = new Map<
-        string,
-        ReturnType<typeof this.buildExtractedEntry>
-      >();
+      const extractedMap = new Map<string, ReturnType<typeof this.buildExtractedEntry>>();
 
       for (const entry of listNuVoiceTextEntries(document)) {
         const key = entry.source.toLowerCase();
@@ -485,10 +489,7 @@ class NuVoiceProcessor extends BaseProcessor {
         if (existing) {
           existing.vocabPlacementMeta.vocabLocations.push(vocabLocation);
         } else {
-          extractedMap.set(
-            key,
-            this.buildExtractedEntry(entry.source, vocabLocation),
-          );
+          extractedMap.set(key, this.buildExtractedEntry(entry.source, vocabLocation));
         }
       }
 
@@ -500,11 +501,8 @@ class NuVoiceProcessor extends BaseProcessor {
       return {
         errors: [
           {
-            message:
-              error instanceof Error
-                ? error.message
-                : "Unknown extraction error",
-            step: "EXTRACT",
+            message: error instanceof Error ? error.message : 'Unknown extraction error',
+            step: 'EXTRACT',
           },
         ],
         extractedStrings: [],
@@ -515,19 +513,12 @@ class NuVoiceProcessor extends BaseProcessor {
   async generateTranslatedDownload(
     filePath: string,
     translatedStrings: TranslatedString[],
-    sourceStrings: SourceString[],
+    sourceStrings: SourceString[]
   ): Promise<string> {
-    return this.generateTranslatedDownloadGeneric(
-      filePath,
-      translatedStrings,
-      sourceStrings,
-    );
+    return this.generateTranslatedDownloadGeneric(filePath, translatedStrings, sourceStrings);
   }
 
-  private buildExtractedEntry(
-    source: string,
-    vocabLocation: VocabLocation,
-  ): ExtractedString {
+  private buildExtractedEntry(source: string, vocabLocation: VocabLocation): ExtractedString {
     return {
       string: source,
       vocabPlacementMeta: {
@@ -536,11 +527,8 @@ class NuVoiceProcessor extends BaseProcessor {
     };
   }
 
-  private async readDocument(
-    filePathOrBuffer: ProcessorInput,
-  ): Promise<NuVoiceDocument> {
-    const binary =
-      await this.options.fileAdapter.readBinaryFromInput(filePathOrBuffer);
+  private async readDocument(filePathOrBuffer: ProcessorInput): Promise<NuVoiceDocument> {
+    const binary = await this.options.fileAdapter.readBinaryFromInput(filePathOrBuffer);
     const content = normalizeNuVoiceContent(binary);
     return parseNuVoiceDocument(content);
   }

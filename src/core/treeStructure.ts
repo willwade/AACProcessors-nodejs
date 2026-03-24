@@ -395,6 +395,7 @@ export class AACPage {
   // Scanning support
   scanType?: AACScanType;
   scanBlocksConfig?: AACScanBlock[];
+  metadata?: Record<string, unknown>;
 
   constructor({
     id,
@@ -412,6 +413,7 @@ export class AACPage {
     scanningConfig,
     scanBlocksConfig,
     scanType,
+    metadata,
   }: {
     id: string;
     name?: string;
@@ -428,6 +430,7 @@ export class AACPage {
     scanningConfig?: import('../types/aac').ScanningConfig;
     scanBlocksConfig?: AACScanBlock[];
     scanType?: AACScanType;
+    metadata?: Record<string, unknown>;
   }) {
     this.id = id;
     this.name = name;
@@ -452,6 +455,7 @@ export class AACPage {
     this.scanningConfig = scanningConfig;
     this.scanBlocksConfig = scanBlocksConfig;
     this.scanType = scanType;
+    this.metadata = metadata;
   }
 
   addButton(button: AACButton): void {
