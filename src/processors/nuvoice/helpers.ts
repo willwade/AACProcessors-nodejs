@@ -574,12 +574,12 @@ function parseDictionaryRecord(line: string): NuVoiceDictionaryRecord {
   };
 }
 
-function parseMemoryRecord(line: string): NuVoiceMemoryRecord {
+function parseMemoryRecord(line: string): NuVoiceMemoryRecord | null {
   const base = parseBinaryRecord(line);
   const MIN_MEMORY_LENGTH = 10;
   if (base.bodyBytes.length < MIN_MEMORY_LENGTH) {
     console.warn(`Skipping truncated NuVoice memory record: ${line}`);
-    throw new Error(`Invalid NuVoice memory record: ${line}`);
+    return null;
   }
 
   const fullBytes = new Uint8Array(base.bodyBytes.length + 1);
@@ -1072,9 +1072,13 @@ export function parseNuVoiceDocument(content: string): NuVoiceDocument {
         case 'd':
           records.push(parseDictionaryRecord(line));
           break;
-        case 'm':
-          records.push(parseMemoryRecord(line));
+        case 'm': {
+          const memRecord = parseMemoryRecord(line);
+          if (memRecord) {
+            records.push(memRecord);
+          }
           break;
+        }
         case 'x':
           records.push(parseLayoutRecord(line));
           break;
