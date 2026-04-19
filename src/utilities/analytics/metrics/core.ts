@@ -828,14 +828,79 @@ export class MetricsCalculator {
     const existingLabels = new Map<string, ButtonMetrics>();
     buttons.forEach((btn) => existingLabels.set(btn.label.toLowerCase(), btn));
 
+    // Build a map of POS tags from ALL tree buttons, keyed by lowercase label.
+    // This ensures words on BFS-unreachable pages still contribute POS data.
+    const treePosMap = new Map<string, string>();
+    const treePredictionsMap = new Map<string, string[]>();
+    Object.values(tree.pages).forEach((page: AACPage) => {
+      page.grid.forEach((row: (AACButton | null)[]) => {
+        row.forEach((btn: AACButton | null) => {
+          if (!btn || !btn.label) return;
+          const lower = btn.label.toLowerCase();
+          if (btn.pos && btn.pos !== 'Unknown' && btn.pos !== 'Ignore') {
+            treePosMap.set(lower, btn.pos);
+          }
+          if (btn.predictions && btn.predictions.length > 0) {
+            const existing = treePredictionsMap.get(lower);
+            if (!existing || btn.predictions.length > existing.length) {
+              treePredictionsMap.set(lower, btn.predictions);
+            }
+          }
+        });
+      });
+    });
+
+    // For metrics buttons that lack POS but have a tree counterpart with POS,
+    // propagate the POS tag so it's available in the output.
+    buttons.forEach((btn) => {
+      const lower = btn.label.toLowerCase();
+      if (!btn.pos || btn.pos === 'Unknown' || btn.pos === 'Ignore') {
+        const treePos = treePosMap.get(lower);
+        if (treePos) btn.pos = treePos;
+      }
+    });
+
+    // For POS-tagged tree buttons that have predictions but are NOT in the
+    // BFS-reachable metrics set, create synthetic metrics entries so their
+    // word forms can still be generated. This handles words like "run" that
+    // exist only on topic pages the BFS doesn't reach.
+    const processedPredictionLabels = new Set<string>();
+    Object.values(tree.pages).forEach((page: AACPage) => {
+      page.grid.forEach((row: (AACButton | null)[]) => {
+        row.forEach((btn: AACButton | null) => {
+          if (!btn || !btn.label || !btn.predictions || btn.predictions.length === 0) return;
+          const lower = btn.label.toLowerCase();
+          if (existingLabels.has(lower)) return; // Already in metrics
+          if (processedPredictionLabels.has(lower)) return; // Already synthesized
+          processedPredictionLabels.add(lower);
+
+          // Create a synthetic metrics entry using a high effort estimate
+          // (the user would need to navigate to this page to access the button)
+          const syntheticMetrics: ButtonMetrics = {
+            id: btn.id || `synthetic_${lower}`,
+            label: btn.label,
+            level: 3, // Approximate depth for unreachable pages
+            effort: 20, // High effort — deep navigation required
+            count: 1,
+            pos: btn.pos,
+          };
+          buttons.push(syntheticMetrics);
+          existingLabels.set(lower, syntheticMetrics);
+        });
+      });
+    });
+
     // Iterate through all pages to find buttons with predictions
     Object.values(tree.pages).forEach((page: AACPage) => {
       page.grid.forEach((row: (AACButton | null)[]) => {
         row.forEach((btn: AACButton | null) => {
           if (!btn || !btn.predictions || btn.predictions.length === 0) return;
 
-          // Find the parent button's metrics
-          const parentMetrics = buttons.find((b) => b.id === btn.id);
+          // Find the parent button's metrics (by id first, then by label)
+          let parentMetrics = buttons.find((b) => b.id === btn.id);
+          if (!parentMetrics && btn.label) {
+            parentMetrics = existingLabels.get(btn.label.toLowerCase());
+          }
           if (!parentMetrics) return;
 
           // Calculate effort for each word form
