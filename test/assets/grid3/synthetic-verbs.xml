@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<verbdata version="2" locale="test-XX">
+  <config>
+    <options>
+      <FilterAllForms>false</FilterAllForms>
+    </options>
+    <suggestconjugations>
+      <persons>
+        <person>first</person>
+        <person>second</person>
+        <person>third</person>
+      </persons>
+      <numbers>
+        <number>singular</number>
+        <number>plural</number>
+      </numbers>
+      <times>
+        <time>present</time>
+        <time>past</time>
+      </times>
+    </suggestconjugations>
+    <defaults time="present" number="singular" person="first" aspect="simple" mood="indicative" part="infinitive" />
+    <participleTypes>
+      <participleType>infinitive</participleType>
+      <participleType>presentparticiple</participleType>
+      <participleType>pastparticiple</participleType>
+    </participleTypes>
+  </config>
+  <verbruleslist>
+    <verbrules>
+      <Id>Regular</Id>
+      <placeholders>
+        <placeholder>{root}</placeholder>
+      </placeholders>
+      <participlerules>
+        <participlerule type="infinitive" value="{root}" />
+        <participlerule type="presentparticiple" value="{root}ing" />
+        <participlerule type="pastparticiple" value="{root}ed" />
+      </participlerules>
+      <conjugationrules>
+        <conjugationrule time="present" number="singular" person="third" aspect="simple" mood="indicative" value="{root}s" />
+        <conjugationrule time="past" number="*" person="*" aspect="simple" mood="indicative" value="{root}ed" />
+        <conjugationrule time="present" number="*" person="*" aspect="simple" mood="indicative" value="{root}" />
+      </conjugationrules>
+    </verbrules>
+    <verbrules>
+      <Id>Irregular</Id>
+      <placeholders>
+        <placeholder>{root}</placeholder>
+        <placeholder>{pres}</placeholder>
+        <placeholder>{past}</placeholder>
+      </placeholders>
+      <participlerules>
+        <participlerule type="infinitive" value="{root}" />
+        <participlerule type="presentparticiple" value="{pres}ing" />
+        <participlerule type="pastparticiple" value="{past}" />
+      </participlerules>
+      <conjugationrules>
+        <conjugationrule time="present" number="singular" person="third" aspect="simple" mood="indicative" value="{pres}es" />
+        <conjugationrule time="past" number="*" person="*" aspect="simple" mood="indicative" value="{past}" />
+        <conjugationrule time="present" number="*" person="*" aspect="simple" mood="indicative" value="{root}" />
+      </conjugationrules>
+    </verbrules>
+  </verbruleslist>
+  <verbs>
+    <verb root="walk" ruleid="Regular" />
+    <verb root="go" ruleid="Irregular">
+      <ruleplaceholdervalues>
+        <ruleplaceholdervalue placeholder="{pres}" value="go" />
+        <ruleplaceholdervalue placeholder="{past}" value="went" />
+      </ruleplaceholdervalues>
+      <participles>
+        <participle type="pastparticiple" value="gone" />
+      </participles>
+    </verb>
+    <verb root="jump" />
+  </verbs>
+</verbdata>

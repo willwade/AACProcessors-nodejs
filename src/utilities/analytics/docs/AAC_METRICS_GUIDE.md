@@ -25,6 +25,7 @@ The algorithm rewards systems that support motor planning. If a button appears i
 ### Switch Scanning Support
 
 For users who use scanning access methods, the implementation supports evaluating scanning effort. Instead of movement distance, the algorithm calculates:
+
 1.  **Scan Steps**: The number of highlight movements (items or groups) to reach the target.
 2.  **Selections**: The number of switch activations required.
 
@@ -41,38 +42,42 @@ Supported scanning types include `linear`, `row-column`, `column-row`, and `bloc
 The `MetricsCalculator` is format-agnostic. You can use any processor to load a pageset into an `AACTree`, then pass that tree to the calculator.
 
 #### Loading an OBFSET
+
 ```typescript
-import { ObfsetProcessor, Analytics } from '@willwade/aac-processors';
+import { ObfsetProcessor, Analytics } from "@willwade/aac-processors";
 
 const processor = new ObfsetProcessor();
-const tree = await processor.loadIntoTree('set.obfset');
+const tree = await processor.loadIntoTree("set.obfset");
 const result = new Analytics.MetricsCalculator().analyze(tree);
 ```
 
 #### Loading Grid 3 (.gridset)
+
 ```typescript
-import { GridsetProcessor, Analytics } from '@willwade/aac-processors';
+import { GridsetProcessor, Analytics } from "@willwade/aac-processors";
 
 const processor = new GridsetProcessor();
-const tree = await processor.loadIntoTree('my_file.gridset');
+const tree = await processor.loadIntoTree("my_file.gridset");
 const result = new Analytics.MetricsCalculator().analyze(tree);
 ```
 
 #### Loading Snap (.pageSet / .spb)
+
 ```typescript
-import { SnapProcessor, Analytics } from '@willwade/aac-processors';
+import { SnapProcessor, Analytics } from "@willwade/aac-processors";
 
 const processor = new SnapProcessor();
-const tree = await processor.loadIntoTree('SnapBackup.pageSet');
+const tree = await processor.loadIntoTree("SnapBackup.pageSet");
 const result = new Analytics.MetricsCalculator().analyze(tree);
 ```
 
 #### Loading TouchChat (.zip)
+
 ```typescript
-import { TouchChatProcessor, Analytics } from '@willwade/aac-processors';
+import { TouchChatProcessor, Analytics } from "@willwade/aac-processors";
 
 const processor = new TouchChatProcessor();
-const tree = await processor.loadIntoTree('TouchChatBackup.zip');
+const tree = await processor.loadIntoTree("TouchChatBackup.zip");
 const result = new Analytics.MetricsCalculator().analyze(tree);
 ```
 
@@ -95,25 +100,26 @@ The `analyze` function returns:
 You can evaluate scanning efficiency by setting the `scanType` on `AACPage` objects:
 
 ```typescript
-import { AACScanType } from '@willwade/aac-processors';
+import { AACScanType } from "@willwade/aac-processors";
 
 // Set scanning behavior for a page
-page.scanType = AACScanType.ROW_COLUMN; 
+page.scanType = AACScanType.ROW_COLUMN;
 
 // Or using blocks
 page.scanType = AACScanType.BLOCK_ROW_COLUMN;
 page.scanBlocksConfig = [
-  { id: 1, name: 'Main', order: 1 },
-  { id: 2, name: 'Numbers', order: 2 }
+  { id: 1, name: "Main", order: 1 },
+  { id: 2, name: "Numbers", order: 2 },
 ];
 
 // Assign buttons to blocks
-button.scanBlocks = [2]; 
+button.scanBlocks = [2];
 ```
 
 ### 5. Unified History & OBL Support
 
 This implementation supports gathering and analyzing historical usage data from multiple sources:
+
 - **Local History**: Automatically discover and read logs from Grid 3 and TD Snap on the local machine.
 - **OBL Format**: Support for the [Open Board Logging (OBL)](./OBL_SUPPORT_GUIDE.md) standard for cross-platform log sharing.
 
@@ -151,3 +157,69 @@ This version is optimized for Node.js and adheres strictly to the **v0.2 Algorit
 - **Improved Logic**: Resolves "double-discounting" issues present in legacy implementations, favoring a more realistic motor-planning model.
 
 For detailed technical notes on implementation decisions, see [ALGORITHM_IMPLEMENTATION_NOTES.md](./ALGORITHM_IMPLEMENTATION_NOTES.md).
+
+---
+
+## 🔤 Smart Grammar / Morphological Expansion
+
+Grid 3's Super Core vocabulary sets tag word buttons with a `pos` (part-of-speech) parameter (e.g., `Verb`, `Pronoun`). At runtime, Grid 3 uses this to offer morphological inflections — pressing "go" (tagged `Verb`) offers "going", "goes", "gone", "went" as one-tap predictions.
+
+### How it works in `aac-processors`
+
+1. **POS extraction** — The GridsetProcessor extracts the `pos` parameter from `Action.InsertText` commands and stores it as `button.pos`.
+
+2. **Auto-detection** — `MetricsCalculator.analyze()` automatically detects whether any button has POS tags. For Grid 3 trees, smart grammar is enabled automatically. For TD Snap, TouchChat, and OBF trees, it's automatically disabled with zero overhead.
+
+3. **Morphological expansion** — The `MorphologyEngine` generates inflected word forms from POS tags using:
+   - Built-in English rules (~120 irregular verbs, 90+ irregular nouns, pronouns, adjectives, plus regex-based regular rules)
+   - Grid 3's native verb data via `Grid3VerbsParser` (reads `verbs.zip` from Grid 3's locale directories for 24+ languages)
+
+4. **Word form metrics** — Generated forms are assigned effort scores and included in vocabulary coverage analysis.
+
+### API
+
+```typescript
+import {
+  Metrics,
+  Grid3VerbsParser,
+  WordFormGenerator,
+} from "@willwade/aac-processors";
+
+// MorphologyEngine with built-in English rules
+const engine = new Metrics.MorphologyEngine("en-gb");
+engine.inflect("go", "Verb"); // → ['goes', 'going', 'gone', 'went']
+
+// Grid 3 verbs parser (reads from Grid 3 installation)
+const parser = new Grid3VerbsParser();
+const enVerbs = parser.parseZip("C:\\...\\Locale\\en-GB\\verbs\\verbs.zip");
+
+// Word form generator (bridges POS → AsTeRICS Grid tag format)
+const generator = new Metrics.WordFormGenerator();
+generator.generateFromEngineSlots("go", "Verb", engine, "en");
+// → [{tags:['BASE'], value:'go'}, {tags:['3.PERS'], value:'goes'}, ...]
+```
+
+### Multi-language support
+
+The `Grid3VerbsParser` reads Grid 3's native morphology data for 24+ locales including English, Norwegian, Swedish, German, French, Spanish, and more. Each language has its own conjugation rule sets stored in `verbs.zip`.
+
+```typescript
+// Parse any installed locale
+const nbVerbs = await parser.parseLocale("nb-NO");
+const svVerbs = await parser.parseLocale("sv-SE");
+
+// Or scan all installed locales
+const all = await parser.parseInstalledLocales();
+```
+
+### AsTeRICS Grid word forms
+
+AsTeRICS Grid (`.grd` files) stores word forms per-element with tagged tuples:
+
+```json
+{ "value": "were", "tags": ["2.PERS", "PAST"], "lang": "en" }
+```
+
+The `WordFormGenerator` converts Grid 3 POS data to this format for cross-platform conversion. The Asterics Grid processor now preserves word forms on import and writes them on export — enabling `.gridset` → `.grd` conversion with morphology intact.
+
+**Note:** Word forms on individual buttons are generated automatically, but grammar control buttons (e.g., "You" → `2.PERS`, "Past" → `PAST`) are vocabulary layout decisions that are not auto-generated.

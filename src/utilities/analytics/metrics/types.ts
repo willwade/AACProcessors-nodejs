@@ -26,6 +26,7 @@ export interface ButtonMetrics {
   is_word_form?: boolean; // True if this is a word form from predictions
   parent_button_id?: string; // ID of parent button that has these predictions
   parent_button_label?: string; // Label of parent button
+  pos?: string; // Part-of-speech tag from gridset (e.g., 'Verb', 'Noun')
 }
 
 /**
@@ -128,17 +129,32 @@ export interface MetricsOptions {
   /**
    * Whether to include smart grammar word forms in metrics
    *
-   * When true (default): Word forms from smart grammar predictions are included
+   * When true: Word forms from smart grammar predictions are included
    * in the metrics. If a word exists as both a regular button and a word form,
    * the version with lower effort is used.
    *
    * When false: Smart grammar word forms are excluded from metrics. Only actual
    * buttons in the tree are analyzed.
    *
-   * Only applicable to systems that support smart grammar (e.g., Grid 3).
-   * Default is true.
+   * Auto-detected by default: if any button in the tree has a POS tag (e.g.,
+   * from Grid 3's Action.InsertText), smart grammar is enabled automatically.
+   * For non-Grid-3 formats (TD Snap, TouchChat, OBF), no buttons have POS tags,
+   * so smart grammar is automatically disabled with zero overhead.
+   *
+   * Set explicitly to `true` to force-enable, or `false` to force-disable.
    */
   useSmartGrammar?: boolean;
+
+  /**
+   * Locale for morphological inflection rules
+   *
+   * When provided, the MorphologyEngine will generate inflected word forms
+   * (e.g., "going", "went" for "go") based on the POS tags extracted from
+   * the gridset. Defaults to 'en-gb'.
+   *
+   * Only used when useSmartGrammar is true.
+   */
+  morphologyLocale?: string;
 }
 
 /**
