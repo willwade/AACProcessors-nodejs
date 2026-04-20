@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { WordFormGenerator } from '../src/utilities/analytics/morphology/wordFormGenerator';
 import { MorphologyEngine } from '../src/utilities/analytics/morphology/engine';
 import { Grid3VerbsParser } from '../src/utilities/analytics/morphology/grid3VerbsParser';

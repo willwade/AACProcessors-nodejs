@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { Grid3VerbsParser } from '../src/utilities/analytics/morphology/grid3VerbsParser';
 import { join } from 'path';
 

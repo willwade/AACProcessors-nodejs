@@ -1072,7 +1072,7 @@ class GridsetProcessor extends BaseProcessor {
 
             // Parse all command types from Grid3 and create semantic actions
             let semanticAction: AACSemanticAction | undefined;
-            let legacyAction: any = null;
+            let _legacyAction: any = null;
             // infer action type implicitly from commands; no explicit enum needed
             let navigationTarget: string | undefined;
             let detectedCommands: any[] = []; // Store detected command metadata
@@ -1215,118 +1215,128 @@ class GridsetProcessor extends BaseProcessor {
                     if (gridTarget) {
                       // Resolve grid name to grid ID for navigation
                       const targetGridId = gridNameToIdMap.get(gridTarget) || gridTarget;
+                      // Always set navigationTarget even if another command already
+                      // set semanticAction (e.g. Jump.SetBookmark + Jump.To).
                       navigationTarget = targetGridId;
-                      // navigate action
-                      semanticAction = {
-                        category: AACSemanticCategory.NAVIGATION,
-                        intent: AACSemanticIntent.NAVIGATE_TO,
-                        targetId: targetGridId,
-                        platformData: {
-                          grid3: {
-                            commandId,
-                            parameters: { grid: gridTarget },
+                      // Only set semanticAction if not already set by a prior command
+                      if (!semanticAction) {
+                        semanticAction = {
+                          category: AACSemanticCategory.NAVIGATION,
+                          intent: AACSemanticIntent.NAVIGATE_TO,
+                          targetId: targetGridId,
+                          platformData: {
+                            grid3: {
+                              commandId,
+                              parameters: { grid: gridTarget },
+                            },
                           },
-                        },
-                        fallback: {
+                          fallback: {
+                            type: 'NAVIGATE',
+                            targetPageId: targetGridId,
+                          },
+                        };
+                        _legacyAction = {
                           type: 'NAVIGATE',
                           targetPageId: targetGridId,
-                        },
-                      };
-                      legacyAction = {
-                        type: 'NAVIGATE',
-                        targetPageId: targetGridId,
-                      };
+                        };
+                      }
                     }
                     break;
                   }
 
                   case 'Jump.Back':
-                    // action
-                    semanticAction = {
-                      category: AACSemanticCategory.NAVIGATION,
-                      intent: AACSemanticIntent.GO_BACK,
-                      platformData: {
-                        grid3: {
-                          commandId,
-                          parameters: {},
+                    if (!semanticAction) {
+                      semanticAction = {
+                        category: AACSemanticCategory.NAVIGATION,
+                        intent: AACSemanticIntent.GO_BACK,
+                        platformData: {
+                          grid3: {
+                            commandId,
+                            parameters: {},
+                          },
                         },
-                      },
-                      fallback: {
-                        type: 'ACTION',
-                        message: 'Go back',
-                      },
-                    };
-                    legacyAction = {
-                      type: 'GO_BACK',
-                    };
+                        fallback: {
+                          type: 'ACTION',
+                          message: 'Go back',
+                        },
+                      };
+                      _legacyAction = {
+                        type: 'GO_BACK',
+                      };
+                    }
                     break;
 
                   case 'Jump.Home':
                   case 'Jump.SetHome':
-                    // action
-                    navigationTarget = tree.rootId || undefined;
-                    semanticAction = {
-                      category: AACSemanticCategory.NAVIGATION,
-                      intent: AACSemanticIntent.GO_HOME,
-                      targetId: tree.rootId || undefined,
-                      platformData: {
-                        grid3: {
-                          commandId,
-                          parameters: {},
+                    if (!navigationTarget) navigationTarget = tree.rootId || undefined;
+                    if (!semanticAction) {
+                      semanticAction = {
+                        category: AACSemanticCategory.NAVIGATION,
+                        intent: AACSemanticIntent.GO_HOME,
+                        targetId: tree.rootId || undefined,
+                        platformData: {
+                          grid3: {
+                            commandId,
+                            parameters: {},
+                          },
                         },
-                      },
-                      fallback: {
-                        type: 'ACTION',
-                        message: 'Go home',
-                      },
-                    };
-                    legacyAction = {
-                      type: 'GO_HOME',
-                    };
+                        fallback: {
+                          type: 'ACTION',
+                          message: 'Go home',
+                        },
+                      };
+                      _legacyAction = {
+                        type: 'GO_HOME',
+                      };
+                    }
                     break;
 
                   case 'Jump.ToKeyboard': {
                     // Navigate to the set keyboard if we found one in settings
                     const keyboardGridName = (tree as any).keyboardGridName as string;
                     const keyboardPageId = gridNameToIdMap.get(keyboardGridName);
-                    if (keyboardPageId) {
+                    if (keyboardPageId && !navigationTarget) {
                       navigationTarget = keyboardPageId;
                     }
-                    semanticAction = {
-                      category: AACSemanticCategory.NAVIGATION,
-                      intent: AACSemanticIntent.GO_HOME, // Close enough to 'navigation to keyboard'
-                      targetId: keyboardPageId,
-                      platformData: {
-                        grid3: {
-                          commandId,
-                          parameters: {},
+                    if (!semanticAction) {
+                      semanticAction = {
+                        category: AACSemanticCategory.NAVIGATION,
+                        intent: AACSemanticIntent.GO_HOME, // Close enough to 'navigation to keyboard'
+                        targetId: keyboardPageId,
+                        platformData: {
+                          grid3: {
+                            commandId,
+                            parameters: {},
+                          },
                         },
-                      },
-                      fallback: {
-                        type: 'NAVIGATE',
-                        targetPageId: keyboardPageId,
-                      },
-                    };
+                        fallback: {
+                          type: 'NAVIGATE',
+                          targetPageId: keyboardPageId,
+                        },
+                      };
+                    }
                     break;
                   }
 
                   case 'Action.InsertTextAndSpeak': {
-                    const insertText = getParam('text');
-                    semanticAction = {
-                      category: AACSemanticCategory.COMMUNICATION,
-                      intent: AACSemanticIntent.SPEAK_IMMEDIATE,
-                      text: insertText,
-                      platformData: {
-                        grid3: {
-                          commandId,
-                          parameters: { text: insertText },
+                    if (!semanticAction) {
+                      const insertText = getParam('text');
+                      semanticAction = {
+                        category: AACSemanticCategory.COMMUNICATION,
+                        intent: AACSemanticIntent.SPEAK_IMMEDIATE,
+                        text: insertText,
+                        platformData: {
+                          grid3: {
+                            commandId,
+                            parameters: { text: insertText },
+                          },
                         },
-                      },
-                      fallback: {
-                        type: 'SPEAK',
-                        message: insertText,
-                      },
-                    };
+                        fallback: {
+                          type: 'SPEAK',
+                          message: insertText,
+                        },
+                      };
+                    }
                     break;
                   }
 
@@ -1361,201 +1371,215 @@ class GridsetProcessor extends BaseProcessor {
                     // speak
                     const speakUnit = getParam('unit');
                     const moveCaret = getParam('movecaret');
-                    semanticAction = {
-                      category: AACSemanticCategory.COMMUNICATION,
-                      intent: AACSemanticIntent.SPEAK_TEXT,
-                      platformData: {
-                        grid3: {
-                          commandId,
-                          parameters: {
-                            unit: speakUnit,
-                            movecaret: moveCaret,
+                    if (!semanticAction) {
+                      semanticAction = {
+                        category: AACSemanticCategory.COMMUNICATION,
+                        intent: AACSemanticIntent.SPEAK_TEXT,
+                        platformData: {
+                          grid3: {
+                            commandId,
+                            parameters: {
+                              unit: speakUnit,
+                              movecaret: moveCaret,
+                            },
                           },
                         },
-                      },
-                      fallback: {
+                        fallback: {
+                          type: 'SPEAK',
+                          message: 'Speak text',
+                        },
+                      };
+                      _legacyAction = {
                         type: 'SPEAK',
-                        message: 'Speak text',
-                      },
-                    };
-                    legacyAction = {
-                      type: 'SPEAK',
-                      unit: speakUnit,
-                      moveCaret: moveCaret ? parseInt(String(moveCaret)) : undefined,
-                    };
+                        unit: speakUnit,
+                        moveCaret: moveCaret ? parseInt(String(moveCaret)) : undefined,
+                      };
+                    }
                     break;
                   }
 
                   case 'Action.InsertText': {
                     const insertText = getParam('text');
                     const posParam = getParam('pos');
+                    // Always extract POS even if semanticAction is already set
                     if (posParam) {
                       buttonPos = posParam;
                     }
-                    semanticAction = {
-                      category: AACSemanticCategory.COMMUNICATION,
-                      intent: AACSemanticIntent.INSERT_TEXT,
-                      text: insertText,
-                      platformData: {
-                        grid3: {
-                          commandId,
-                          parameters: { text: insertText, pos: posParam },
+                    if (!semanticAction) {
+                      semanticAction = {
+                        category: AACSemanticCategory.COMMUNICATION,
+                        intent: AACSemanticIntent.INSERT_TEXT,
+                        text: insertText,
+                        platformData: {
+                          grid3: {
+                            commandId,
+                            parameters: { text: insertText, pos: posParam },
+                          },
                         },
-                      },
-                      fallback: {
-                        type: 'SPEAK',
-                        message: insertText,
-                      },
-                    };
-                    legacyAction = {
-                      type: 'INSERT_TEXT',
-                      text: insertText,
-                    };
+                        fallback: {
+                          type: 'SPEAK',
+                          message: insertText,
+                        },
+                      };
+                      _legacyAction = {
+                        type: 'INSERT_TEXT',
+                        text: insertText,
+                      };
+                    }
                     break;
                   }
 
                   case 'Action.DeleteWord':
-                    // action
-                    semanticAction = {
-                      category: AACSemanticCategory.TEXT_EDITING,
-                      intent: AACSemanticIntent.DELETE_WORD,
-                      platformData: {
-                        grid3: {
-                          commandId,
-                          parameters: {},
+                    if (!semanticAction) {
+                      semanticAction = {
+                        category: AACSemanticCategory.TEXT_EDITING,
+                        intent: AACSemanticIntent.DELETE_WORD,
+                        platformData: {
+                          grid3: {
+                            commandId,
+                            parameters: {},
+                          },
                         },
-                      },
-                      fallback: {
-                        type: 'ACTION',
-                        message: 'Delete word',
-                      },
-                    };
-                    legacyAction = {
-                      type: 'DELETE_WORD',
-                    };
+                        fallback: {
+                          type: 'ACTION',
+                          message: 'Delete word',
+                        },
+                      };
+                      _legacyAction = {
+                        type: 'DELETE_WORD',
+                      };
+                    }
                     break;
 
                   case 'Action.DeleteLetter':
-                    // action
-                    semanticAction = {
-                      category: AACSemanticCategory.TEXT_EDITING,
-                      intent: AACSemanticIntent.DELETE_CHARACTER,
-                      platformData: {
-                        grid3: {
-                          commandId,
-                          parameters: {},
+                    if (!semanticAction) {
+                      semanticAction = {
+                        category: AACSemanticCategory.TEXT_EDITING,
+                        intent: AACSemanticIntent.DELETE_CHARACTER,
+                        platformData: {
+                          grid3: {
+                            commandId,
+                            parameters: {},
+                          },
                         },
-                      },
-                      fallback: {
-                        type: 'ACTION',
-                        message: 'Delete character',
-                      },
-                    };
-                    legacyAction = {
-                      type: 'DELETE_CHARACTER',
-                    };
+                        fallback: {
+                          type: 'ACTION',
+                          message: 'Delete character',
+                        },
+                      };
+                      _legacyAction = {
+                        type: 'DELETE_CHARACTER',
+                      };
+                    }
                     break;
 
                   case 'Action.Clear':
                     // action
-                    semanticAction = {
-                      category: AACSemanticCategory.TEXT_EDITING,
-                      intent: AACSemanticIntent.CLEAR_TEXT,
-                      platformData: {
-                        grid3: {
-                          commandId,
-                          parameters: {},
+                    if (!semanticAction) {
+                      semanticAction = {
+                        category: AACSemanticCategory.TEXT_EDITING,
+                        intent: AACSemanticIntent.CLEAR_TEXT,
+                        platformData: {
+                          grid3: {
+                            commandId,
+                            parameters: {},
+                          },
                         },
-                      },
-                      fallback: {
-                        type: 'ACTION',
-                        message: 'Clear text',
-                      },
-                    };
-                    legacyAction = {
-                      type: 'CLEAR_TEXT',
-                    };
+                        fallback: {
+                          type: 'ACTION',
+                          message: 'Clear text',
+                        },
+                      };
+                      _legacyAction = {
+                        type: 'CLEAR_TEXT',
+                      };
+                    }
                     break;
 
                   case 'Action.Letter': {
                     // action
                     const letter = getParam('letter');
-                    semanticAction = {
-                      category: AACSemanticCategory.TEXT_EDITING,
-                      intent: AACSemanticIntent.INSERT_TEXT,
-                      text: letter,
-                      platformData: {
-                        grid3: {
-                          commandId,
-                          parameters: { letter },
+                    if (!semanticAction) {
+                      semanticAction = {
+                        category: AACSemanticCategory.TEXT_EDITING,
+                        intent: AACSemanticIntent.INSERT_TEXT,
+                        text: letter,
+                        platformData: {
+                          grid3: {
+                            commandId,
+                            parameters: { letter },
+                          },
                         },
-                      },
-                      fallback: {
-                        type: 'ACTION',
-                        message: letter,
-                      },
-                    };
-                    legacyAction = {
-                      type: 'INSERT_LETTER',
-                      letter,
-                    };
+                        fallback: {
+                          type: 'ACTION',
+                          message: letter,
+                        },
+                      };
+                      _legacyAction = {
+                        type: 'INSERT_LETTER',
+                        letter,
+                      };
+                    }
                     break;
                   }
 
                   case 'Settings.RestAll':
                     // action
-                    semanticAction = {
-                      category: AACSemanticCategory.CUSTOM,
-                      intent: AACSemanticIntent.PLATFORM_SPECIFIC,
-                      platformData: {
-                        grid3: {
-                          commandId,
-                          parameters: {
-                            indicatorenabled: getParam('indicatorenabled'),
-                            action: getParam('action'),
+                    if (!semanticAction) {
+                      semanticAction = {
+                        category: AACSemanticCategory.CUSTOM,
+                        intent: AACSemanticIntent.PLATFORM_SPECIFIC,
+                        platformData: {
+                          grid3: {
+                            commandId,
+                            parameters: {
+                              indicatorenabled: getParam('indicatorenabled'),
+                              action: getParam('action'),
+                            },
                           },
                         },
-                      },
-                      fallback: {
-                        type: 'ACTION',
-                        message: 'Settings action',
-                      },
-                    };
-                    legacyAction = {
-                      type: 'SETTINGS',
-                      indicatorEnabled: getParam('indicatorenabled') === '1',
-                      settingsAction: getParam('action'),
-                    };
+                        fallback: {
+                          type: 'ACTION',
+                          message: 'Settings action',
+                        },
+                      };
+                      _legacyAction = {
+                        type: 'SETTINGS',
+                        indicatorEnabled: getParam('indicatorenabled') === '1',
+                        settingsAction: getParam('action'),
+                      };
+                    }
                     break;
 
                   case 'AutoContent.Activate':
                     // action
-                    semanticAction = {
-                      category: AACSemanticCategory.CUSTOM,
-                      intent: AACSemanticIntent.PLATFORM_SPECIFIC,
-                      platformData: {
-                        grid3: {
-                          commandId,
-                          parameters: {
-                            autocontenttype: getParam('autocontenttype'),
+                    if (!semanticAction) {
+                      semanticAction = {
+                        category: AACSemanticCategory.CUSTOM,
+                        intent: AACSemanticIntent.PLATFORM_SPECIFIC,
+                        platformData: {
+                          grid3: {
+                            commandId,
+                            parameters: {
+                              autocontenttype: getParam('autocontenttype'),
+                            },
                           },
                         },
-                      },
-                      fallback: {
-                        type: 'ACTION',
-                        message: 'Auto content',
-                      },
-                    };
-                    legacyAction = {
-                      type: 'AUTO_CONTENT',
-                      autoContentType: getParam('autocontenttype'),
-                    };
+                        fallback: {
+                          type: 'ACTION',
+                          message: 'Auto content',
+                        },
+                      };
+                      _legacyAction = {
+                        type: 'AUTO_CONTENT',
+                        autoContentType: getParam('autocontenttype'),
+                      };
+                    }
                     break;
 
                   default:
                     // Unknown command - preserve as generic action
-                    if (commandId) {
-                      // action
+                    if (commandId && !semanticAction) {
                       const allParams = Object.fromEntries(
                         paramArr.map((p) => [p.Key || p.key, p['#text']])
                       );
@@ -1573,16 +1597,14 @@ class GridsetProcessor extends BaseProcessor {
                           message: 'Unknown command',
                         },
                       };
-                      legacyAction = {
-                        type: 'SPEAK',
-                        parameters: { commandId, ...allParams },
-                      };
+                      // legacy action not needed for unknown commands
                     }
                     break;
                 }
 
-                // Use first recognized command
-                if (semanticAction || legacyAction) break;
+                // Continue processing remaining commands so that navigation
+                // targets (Jump.To) are discovered even when a non-navigation
+                // command (e.g. Jump.SetBookmark, Action.InsertText) appears first.
               }
             }
 
