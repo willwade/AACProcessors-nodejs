@@ -989,6 +989,13 @@ export class MetricsCalculator {
           }
           if (!parentMetrics) return;
 
+          // Build set of original Suggest Words predictions (from Prediction.PredictThis).
+          // These require an extra confirmation tap from the user. Smart grammar
+          // morphology outcomes are generated automatically and need no extra tap.
+          const suggestWordsSet = new Set<string>(
+            ((btn.parameters?.predictions || []) as string[]).map((w) => w.toLowerCase())
+          );
+
           // Calculate effort for each word form
           btn.predictions.forEach((wordForm: string, index: number) => {
             const wordFormLower = wordForm.toLowerCase();
@@ -1005,8 +1012,16 @@ export class MetricsCalculator {
               predictionRowIndex * predictionsGridCols + predictionColIndex;
             const predictionSelectionEffort = visualScanEffort(predictionPriorItems);
 
-            // Word form effort = parent button's cumulative effort + selection effort
-            const wordFormEffort = parentMetrics.effort + predictionSelectionEffort;
+            // Add confirmation cost for Suggest Words outcomes only.
+            // Suggest Words requires an explicit tap on the prediction bar,
+            // while smart grammar morphology forms are auto-generated (no extra tap).
+            const suggestWordsConfirmation = suggestWordsSet.has(wordFormLower)
+              ? EFFORT_CONSTANTS.SUGGEST_WORDS_SELECTION_EFFORT
+              : 0;
+
+            // Word form effort = parent button's cumulative effort + selection effort + confirmation
+            const wordFormEffort =
+              parentMetrics.effort + predictionSelectionEffort + suggestWordsConfirmation;
 
             // Check if this word already exists as a regular button
             const existingBtn = existingLabels.get(wordFormLower);
@@ -1031,9 +1046,10 @@ export class MetricsCalculator {
               semantic_id: parentMetrics.semantic_id,
               clone_id: parentMetrics.clone_id,
               temporary_home_id: parentMetrics.temporary_home_id,
-              is_word_form: true, // Mark this as a word form metric
-              parent_button_id: btn.id, // Track parent button
-              parent_button_label: parentMetrics.label, // Track parent label
+              is_word_form: true,
+              is_suggest_words: suggestWordsSet.has(wordFormLower) || undefined,
+              parent_button_id: btn.id,
+              parent_button_label: parentMetrics.label,
             };
 
             wordFormMetrics.push(wordFormBtn);

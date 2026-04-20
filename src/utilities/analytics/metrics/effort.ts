@@ -32,6 +32,7 @@ export const EFFORT_CONSTANTS = {
   SCAN_SELECTION_COST: 0.1, // Cost of a switch selection
   DEFAULT_SCAN_ERROR_RATE: 0.1, // 10% chance of missing a selection
   SCAN_RETRY_PENALTY: 1.0, // Cost multiplier for a full loop retry
+  SUGGEST_WORDS_SELECTION_EFFORT: 0.5, // Extra tap to confirm a Suggest Words prediction
 } as const;
 
 /**

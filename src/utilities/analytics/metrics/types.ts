@@ -24,6 +24,7 @@ export interface ButtonMetrics {
   comp_effort?: number; // Comparison: effort in comparison set
   // Word form metrics (for smart grammar predictions)
   is_word_form?: boolean; // True if this is a word form from predictions
+  is_suggest_words?: boolean; // True if produced via Suggest Words (requires extra tap)
   parent_button_id?: string; // ID of parent button that has these predictions
   parent_button_label?: string; // Label of parent button
   pos?: string; // Part-of-speech tag from gridset (e.g., 'Verb', 'Noun')
