@@ -971,35 +971,10 @@ export class MetricsCalculator {
       }
     });
 
-    // For POS-tagged tree buttons that have predictions but are NOT in the
-    // BFS-reachable metrics set, create synthetic metrics entries so their
-    // word forms can still be generated. This handles words like "run" that
-    // exist only on topic pages the BFS doesn't reach.
-    const processedPredictionLabels = new Set<string>();
-    Object.values(tree.pages).forEach((page: AACPage) => {
-      page.grid.forEach((row: (AACButton | null)[]) => {
-        row.forEach((btn: AACButton | null) => {
-          if (!btn || !btn.label || !btn.predictions || btn.predictions.length === 0) return;
-          const lower = btn.label.toLowerCase();
-          if (existingLabels.has(lower)) return; // Already in metrics
-          if (processedPredictionLabels.has(lower)) return; // Already synthesized
-          processedPredictionLabels.add(lower);
-
-          // Create a synthetic metrics entry using a high effort estimate
-          // (the user would need to navigate to this page to access the button)
-          const syntheticMetrics: ButtonMetrics = {
-            id: btn.id || `synthetic_${lower}`,
-            label: btn.label,
-            level: 3, // Approximate depth for unreachable pages
-            effort: 20, // High effort — deep navigation required
-            count: 1,
-            pos: btn.pos,
-          };
-          buttons.push(syntheticMetrics);
-          existingLabels.set(lower, syntheticMetrics);
-        });
-      });
-    });
+    // Note: buttons on pages unreachable via BFS from the root page are
+    // intentionally excluded. If there is no navigation path to a page,
+    // those buttons are not accessible to the user and should not count
+    // as available vocabulary.
 
     // Iterate through all pages to find buttons with predictions
     Object.values(tree.pages).forEach((page: AACPage) => {
