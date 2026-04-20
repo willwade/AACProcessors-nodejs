@@ -1072,7 +1072,7 @@ class GridsetProcessor extends BaseProcessor {
 
             // Parse all command types from Grid3 and create semantic actions
             let semanticAction: AACSemanticAction | undefined;
-            let legacyAction: any = null;
+            let _legacyAction: any = null;
             // infer action type implicitly from commands; no explicit enum needed
             let navigationTarget: string | undefined;
             let detectedCommands: any[] = []; // Store detected command metadata
@@ -1235,7 +1235,7 @@ class GridsetProcessor extends BaseProcessor {
                             targetPageId: targetGridId,
                           },
                         };
-                        legacyAction = {
+                        _legacyAction = {
                           type: 'NAVIGATE',
                           targetPageId: targetGridId,
                         };
@@ -1260,7 +1260,7 @@ class GridsetProcessor extends BaseProcessor {
                           message: 'Go back',
                         },
                       };
-                      legacyAction = {
+                      _legacyAction = {
                         type: 'GO_BACK',
                       };
                     }
@@ -1285,7 +1285,7 @@ class GridsetProcessor extends BaseProcessor {
                           message: 'Go home',
                         },
                       };
-                      legacyAction = {
+                      _legacyAction = {
                         type: 'GO_HOME',
                       };
                     }
@@ -1389,7 +1389,7 @@ class GridsetProcessor extends BaseProcessor {
                           message: 'Speak text',
                         },
                       };
-                      legacyAction = {
+                      _legacyAction = {
                         type: 'SPEAK',
                         unit: speakUnit,
                         moveCaret: moveCaret ? parseInt(String(moveCaret)) : undefined,
@@ -1421,7 +1421,7 @@ class GridsetProcessor extends BaseProcessor {
                           message: insertText,
                         },
                       };
-                      legacyAction = {
+                      _legacyAction = {
                         type: 'INSERT_TEXT',
                         text: insertText,
                       };
@@ -1445,7 +1445,7 @@ class GridsetProcessor extends BaseProcessor {
                           message: 'Delete word',
                         },
                       };
-                      legacyAction = {
+                      _legacyAction = {
                         type: 'DELETE_WORD',
                       };
                     }
@@ -1467,7 +1467,7 @@ class GridsetProcessor extends BaseProcessor {
                           message: 'Delete character',
                         },
                       };
-                      legacyAction = {
+                      _legacyAction = {
                         type: 'DELETE_CHARACTER',
                       };
                     }
@@ -1490,7 +1490,7 @@ class GridsetProcessor extends BaseProcessor {
                           message: 'Clear text',
                         },
                       };
-                      legacyAction = {
+                      _legacyAction = {
                         type: 'CLEAR_TEXT',
                       };
                     }
@@ -1515,7 +1515,7 @@ class GridsetProcessor extends BaseProcessor {
                           message: letter,
                         },
                       };
-                      legacyAction = {
+                      _legacyAction = {
                         type: 'INSERT_LETTER',
                         letter,
                       };
@@ -1543,7 +1543,7 @@ class GridsetProcessor extends BaseProcessor {
                           message: 'Settings action',
                         },
                       };
-                      legacyAction = {
+                      _legacyAction = {
                         type: 'SETTINGS',
                         indicatorEnabled: getParam('indicatorenabled') === '1',
                         settingsAction: getParam('action'),
@@ -1570,7 +1570,7 @@ class GridsetProcessor extends BaseProcessor {
                           message: 'Auto content',
                         },
                       };
-                      legacyAction = {
+                      _legacyAction = {
                         type: 'AUTO_CONTENT',
                         autoContentType: getParam('autocontenttype'),
                       };
@@ -1597,10 +1597,7 @@ class GridsetProcessor extends BaseProcessor {
                           message: 'Unknown command',
                         },
                       };
-                      legacyAction = {
-                        type: 'SPEAK',
-                        parameters: { commandId, ...allParams },
-                      };
+                      // legacy action not needed for unknown commands
                     }
                     break;
                 }

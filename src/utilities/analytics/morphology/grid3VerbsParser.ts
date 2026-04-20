@@ -391,7 +391,7 @@ export class Grid3VerbsParser {
     let appliedRule: ParsedRuleSet | undefined;
 
     if (verb.ruleId && ruleSets.has(verb.ruleId)) {
-      appliedRule = ruleSets.get(verb.ruleId)!;
+      appliedRule = ruleSets.get(verb.ruleId) as ParsedRuleSet;
     } else if (ruleSets.size > 0) {
       appliedRule = ruleSets.values().next().value;
     }
@@ -442,7 +442,7 @@ export class Grid3VerbsParser {
     let appliedRule: ParsedRuleSet | undefined;
 
     if (verb.ruleId && ruleSets.has(verb.ruleId)) {
-      appliedRule = ruleSets.get(verb.ruleId)!;
+      appliedRule = ruleSets.get(verb.ruleId) as ParsedRuleSet;
     } else if (ruleSets.size > 0) {
       appliedRule = ruleSets.values().next().value;
     }
