@@ -508,7 +508,7 @@ class GridsetProcessor extends BaseProcessor {
           }
         }
       }
-    } catch (e) {
+    } catch (_e) {
       /* ignore: optional FileMap.xml may be missing or malformed */
     }
 
@@ -588,7 +588,7 @@ class GridsetProcessor extends BaseProcessor {
           : Buffer.from(raw);
         const normalizedEntry = imageEntry.entryName.replace(/\\/g, '/');
         imageDataCache.set(normalizedEntry, data);
-      } catch (err) {
+      } catch (_err) {
         // Silently fail - individual image loading failures shouldn't break the entire load
       }
     }
@@ -625,7 +625,7 @@ class GridsetProcessor extends BaseProcessor {
               }
             }
           }
-        } catch (e) {
+        } catch (_e) {
           // Skip errors in first pass
         }
       }
@@ -643,7 +643,7 @@ class GridsetProcessor extends BaseProcessor {
             `[Gridset] Raw XML content (first 200 chars) for ${entry.entryName}:`,
             xmlContent.substring(0, 200)
           );
-        } catch (e) {
+        } catch (_e) {
           // Skip unreadable files
           continue;
         }
@@ -1076,6 +1076,7 @@ class GridsetProcessor extends BaseProcessor {
             // infer action type implicitly from commands; no explicit enum needed
             let navigationTarget: string | undefined;
             let detectedCommands: any[] = []; // Store detected command metadata
+            let buttonPos: string | undefined; // Part-of-speech from Action.InsertText
 
             const commands = content.Commands?.Command || content.commands?.command;
             let predictionWords: string[] | undefined;
@@ -1386,8 +1387,11 @@ class GridsetProcessor extends BaseProcessor {
                   }
 
                   case 'Action.InsertText': {
-                    // speak
                     const insertText = getParam('text');
+                    const posParam = getParam('pos');
+                    if (posParam) {
+                      buttonPos = posParam;
+                    }
                     semanticAction = {
                       category: AACSemanticCategory.COMMUNICATION,
                       intent: AACSemanticIntent.INSERT_TEXT,
@@ -1395,7 +1399,7 @@ class GridsetProcessor extends BaseProcessor {
                       platformData: {
                         grid3: {
                           commandId,
-                          parameters: { text: insertText },
+                          parameters: { text: insertText, pos: posParam },
                         },
                       },
                       fallback: {
@@ -1626,13 +1630,15 @@ class GridsetProcessor extends BaseProcessor {
 
             // Extract grammar tags from commands (Smart Grammar)
             const grammar: Record<string, string> = {};
+            if (buttonPos) grammar.pos = buttonPos;
             detectedCommands.forEach((cmd) => {
-              if (cmd.parameters.pos) grammar.pos = cmd.parameters.pos;
+              if (!grammar.pos && cmd.parameters.pos) grammar.pos = cmd.parameters.pos;
               if (cmd.parameters.person) grammar.person = cmd.parameters.person;
               if (cmd.parameters.number) grammar.number = cmd.parameters.number;
               if (cmd.parameters.feature) grammar.feature = cmd.parameters.feature;
             });
             const isSmartGrammarCell = Object.keys(grammar).length > 0;
+            const effectivePos = buttonPos || grammar.pos || undefined;
 
             const button = new AACButton({
               id: `${gridId}_btn_${idx}`,
@@ -1673,6 +1679,7 @@ class GridsetProcessor extends BaseProcessor {
                 : gridPredictionWords.length > 0
                   ? [...gridPredictionWords]
                   : undefined,
+              pos: effectivePos,
               parameters: {
                 pluginMetadata: pluginMetadata, // Store full plugin metadata for future use
                 grid3Commands: detectedCommands, // Store detected command metadata
@@ -1874,7 +1881,7 @@ class GridsetProcessor extends BaseProcessor {
           metadata.defaultKeyboardPageId = gridNameToIdMap.get(keyboardGridName);
         }
       }
-    } catch (e) {
+    } catch (_e) {
       // If settings.xml parsing fails, tree.rootId will default to first page
     }
 

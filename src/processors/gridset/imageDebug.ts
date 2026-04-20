@@ -117,7 +117,7 @@ export async function auditGridsetImages(
                 dynamicFilesMap.set(staticFile, list);
               }
             }
-          } catch (e) {
+          } catch (_e) {
             // FileMap parsing failed, continue without it
           }
         }
@@ -206,7 +206,7 @@ export async function auditGridsetImages(
             });
           }
         }
-      } catch (e) {
+      } catch (_e) {
         // Skip grids that can't be processed
         continue;
       }

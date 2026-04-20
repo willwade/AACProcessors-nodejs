@@ -17,7 +17,7 @@ describe('History analytics', () => {
   afterAll(async () => {
     try {
       fs.rmSync(tempDir, { recursive: true, force: true });
-    } catch (error) {
+    } catch (_error) {
       // Ignore cleanup issues on platforms that briefly lock the file
     }
   });

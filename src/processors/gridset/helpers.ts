@@ -84,7 +84,7 @@ export async function openImage(
       return Buffer.from(data);
     }
     return data;
-  } catch (error) {
+  } catch (_error) {
     return null;
   }
 }
@@ -226,7 +226,7 @@ export function getCommonDocumentsPath(): string {
     if (match && match[1]) {
       return match[1].trim();
     }
-  } catch (error) {
+  } catch (_error) {
     // Registry access failed, fall back to default
   }
 
@@ -293,7 +293,7 @@ export async function findGrid3UserPaths(
         }
       }
     }
-  } catch (error) {
+  } catch (_error) {
     // Silently fail if directory access fails
   }
 

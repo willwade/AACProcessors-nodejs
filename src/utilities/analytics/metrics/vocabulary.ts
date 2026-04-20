@@ -198,8 +198,18 @@ export class VocabularyAnalyzer {
 
   /**
    * Check if a word is in the board set
+   *
+   * Checks both direct button labels and smart grammar word forms
+   * (morphological inflections stored as predictions).
    */
   hasWord(word: string, metrics: MetricsResult): boolean {
-    return metrics.buttons.some((b) => b.label.toLowerCase() === word.toLowerCase());
+    const lower = word.toLowerCase();
+    return metrics.buttons.some((b) => {
+      if (b.label.toLowerCase() === lower) return true;
+      if (b.is_word_form && b.parent_button_label) {
+        if (b.label.toLowerCase() === lower) return true;
+      }
+      return false;
+    });
   }
 }

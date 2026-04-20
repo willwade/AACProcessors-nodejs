@@ -790,7 +790,7 @@ class AstericsGridProcessor extends BaseProcessor {
           });
         });
       });
-    } catch (error) {
+    } catch (_error) {
       // If JSON parsing fails, return empty array
     }
 
@@ -1269,7 +1269,7 @@ class AstericsGridProcessor extends BaseProcessor {
 
         // Use detected format for filename
         imageName = element.image.id || `image.${imageFormat}`;
-      } catch (e) {
+      } catch (_e) {
         // Invalid base64 data, skip image
       }
     }
@@ -1285,18 +1285,24 @@ class AstericsGridProcessor extends BaseProcessor {
       audioRecording: audioRecording,
       visibility: mapAstericsVisibility(element.hidden),
       image: imageName, // Store image filename/reference
-      parameters: imageData
-        ? {
-            ...{ imageData: imageData }, // Store actual image data in parameters for conversion
-          }
-        : undefined,
       style: {
         backgroundColor: finalBackgroundColor,
         borderColor: colorStyles.borderColor || colorConfig?.elementBorderColor || '#CCCCCC',
         borderWidth: colorConfig?.borderWidth || 1,
         fontFamily: colorConfig?.fontFamily || 'Arial',
-        fontSize: colorConfig?.fontSizePct ? colorConfig.fontSizePct * 16 : 16, // Default to 16px
+        fontSize: colorConfig?.fontSizePct ? colorConfig.fontSizePct * 16 : 16,
         fontColor: fontColor,
+      },
+      wordForms: element.wordForms && element.wordForms.length > 0 ? element.wordForms : undefined,
+      parameters: {
+        ...(imageData ? { imageData: imageData } : {}),
+        ...(element.actions?.some((a: GridAction) => a.modelName === 'GridActionWordForm')
+          ? {
+              wordFormActions: element.actions.filter(
+                (a: GridAction) => a.modelName === 'GridActionWordForm'
+              ),
+            }
+          : {}),
       },
     });
   }
@@ -1584,6 +1590,14 @@ class AstericsGridProcessor extends BaseProcessor {
 
         const locale = tree.metadata?.locale || 'en';
 
+        if (
+          button.parameters?.wordFormActions &&
+          Array.isArray(button.parameters.wordFormActions)
+        ) {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+          actions.push(...button.parameters.wordFormActions);
+        }
+
         return {
           id: button.id,
           modelName: 'GridElement',
@@ -1593,7 +1607,7 @@ class AstericsGridProcessor extends BaseProcessor {
           x: calculatedX,
           y: calculatedY,
           label: { [locale]: button.label },
-          wordForms: [],
+          wordForms: button.wordForms || [],
           image: {
             data: null,
             author: undefined,
@@ -1702,7 +1716,7 @@ class AstericsGridProcessor extends BaseProcessor {
               audioAction.mimeType = parsedMetadata.mimeType || audioAction.mimeType;
               audioAction.durationMs = parsedMetadata.durationMs || audioAction.durationMs;
               audioAction.filename = parsedMetadata.filename || audioAction.filename;
-            } catch (e) {
+            } catch (_e) {
               // Use defaults if metadata parsing fails
             }
           }
@@ -1773,7 +1787,7 @@ class AstericsGridProcessor extends BaseProcessor {
           elementIds.push(element.id);
         });
       });
-    } catch (error) {
+    } catch (_error) {
       // If JSON parsing fails, return empty array
     }
 
@@ -1802,7 +1816,7 @@ class AstericsGridProcessor extends BaseProcessor {
           }
         }
       }
-    } catch (error) {
+    } catch (_error) {
       // If JSON parsing fails, return false
     }
 

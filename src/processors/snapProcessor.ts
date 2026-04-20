@@ -302,7 +302,7 @@ class SnapProcessor extends BaseProcessor {
               let positions: Array<{ Column: number; Row: number }> = [];
               try {
                 positions = JSON.parse(sg.SerializedGridPositions as string);
-              } catch (e) {
+              } catch (_e) {
                 // Invalid JSON, skip this group
                 return;
               }
@@ -539,7 +539,7 @@ class SnapProcessor extends BaseProcessor {
                   targetPageUniqueId = dashboardPageId;
                 }
               }
-            } catch (e) {
+            } catch (_e) {
               // Ignore JSON parse errors in commands
             }
           }

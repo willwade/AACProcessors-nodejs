@@ -20,11 +20,11 @@ Analyzes how well a board set covers core vocabulary lists and identifies gaps.
 **Usage:**
 
 ```typescript
-import { ObfsetProcessor, Analytics } from '@willwade/aac-processors';
+import { ObfsetProcessor, Analytics } from "@willwade/aac-processors";
 
 // Load board set
 const processor = new ObfsetProcessor();
-const tree = await processor.loadIntoTree('path/to/boardset.obfset');
+const tree = await processor.loadIntoTree("path/to/boardset.obfset");
 
 // Calculate metrics
 const metrics = new Analytics.MetricsCalculator().analyze(tree);
@@ -75,7 +75,7 @@ Calculates the effort required to construct test sentences from the board set.
 **Usage:**
 
 ```typescript
-import { Analytics } from '@willwade/aac-processors';
+import { Analytics } from "@willwade/aac-processors";
 
 const sentenceAnalyzer = new Analytics.SentenceAnalyzer();
 const refLoader = new Analytics.ReferenceLoader();
@@ -124,7 +124,7 @@ Compares two board sets to identify differences and generate CARE component scor
 **Usage:**
 
 ```typescript
-import { Analytics } from '@willwade/aac-processors';
+import { Analytics } from "@willwade/aac-processors";
 
 // Load two board sets
 const targetResult = calculator.analyze(targetTree);
@@ -132,9 +132,13 @@ const compareResult = calculator.analyze(compareTree);
 
 // Compare
 const comparisonAnalyzer = new Analytics.ComparisonAnalyzer();
-const comparison = await comparisonAnalyzer.compare(targetResult, compareResult, {
-  includeSentences: true,
-});
+const comparison = await comparisonAnalyzer.compare(
+  targetResult,
+  compareResult,
+  {
+    includeSentences: true,
+  },
+);
 
 console.log("Missing words:", comparison.missing_words);
 console.log("CARE components:", comparison.care_components);
@@ -227,10 +231,10 @@ npx ts-node test-comparison-analysis.ts
 All processors can now use these analysis features:
 
 ```typescript
-import { ObfProcessor, Analytics } from '@willwade/aac-processors';
+import { ObfProcessor, Analytics } from "@willwade/aac-processors";
 
 const processor = new ObfProcessor();
-const tree = await processor.loadIntoTree('my-board.obf');
+const tree = await processor.loadIntoTree("my-board.obf");
 
 const metrics = new Analytics.MetricsCalculator().analyze(tree);
 
@@ -285,3 +289,41 @@ aac-processors coverage my-boardset.obf --core-lists default,unc --format markdo
 - `src/optional/analytics/reference/index.ts` - Reference data loader
 - `test-vocabulary-analysis.ts` - Vocabulary analysis demo
 - `test-comparison-analysis.ts` - Comparative analysis demo
+
+## Morphological Vocabulary Coverage
+
+### Problem
+
+Standard vocabulary coverage analysis only checks exact button label matches. For Grid 3 users, morphological inflections like "going", "went", "things", "books" are one tap away from their base form but reported as missing.
+
+### Solution
+
+`hasWord()` now checks both direct button labels AND smart grammar word forms:
+
+```typescript
+const analyzer = new VocabularyAnalyzer();
+analyzer.hasWord("went", metrics); // true — found as inflection of "go"
+analyzer.hasWord("books", metrics); // true — found as plural of "book"
+```
+
+This is auto-detected: only Grid 3 gridsets have POS tags, so for other formats the check degrades gracefully to exact-match only.
+
+### Impact
+
+In children's shared-reading transcript analysis against Super Core 50:
+
+- **Regular inflections** move from "missing" to "smart_grammar": going/go, things/thing, books/book, flying/fly, watching/watch
+- **Irregular forms** need the irregular table: went/go, got/get, came/come
+- Words where the base itself is missing remain genuinely missing
+
+### Cross-platform morphology
+
+Different AAC platforms handle morphology differently:
+
+| Platform                | Approach                                      | POS data                                       |
+| ----------------------- | --------------------------------------------- | ---------------------------------------------- |
+| **Grid 3**              | Runtime POS-based inflection from `verbs.zip` | `pos` parameter on buttons                     |
+| **AsTeRICS Grid**       | Per-element tagged word forms                 | `{value, tags[], lang}` stored on each element |
+| **TD Snap / TouchChat** | Static buttons (no morphology)                | None                                           |
+
+The `WordFormGenerator` bridges these approaches, enabling cross-format conversion with morphology preserved. For future work, AsTeRICS Grid's tag-based approach could enable direct word-form lookups in vocabulary coverage analysis for `.grd` files.

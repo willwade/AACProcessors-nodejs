@@ -49,14 +49,14 @@ describe('Error Handling', () => {
 
         const processor = new DotProcessor();
         await expect(processor.loadIntoTree(restrictedFile)).rejects.toThrow();
-      } catch (e) {
+      } catch (_e) {
         // chmod might not work on all systems, skip this test
         console.log('Skipping permission test - chmod not supported');
       } finally {
         try {
           fs.chmodSync(restrictedFile, 0o644); // Restore permissions for cleanup
           fs.unlinkSync(restrictedFile);
-        } catch (e) {
+        } catch (_e) {
           // Cleanup failed, but that's ok
         }
       }
@@ -197,14 +197,14 @@ describe('Error Handling', () => {
         const outputPath = path.join(readOnlyDir, 'output.dot');
 
         await expect(processor.saveFromTree(tree, outputPath)).rejects.toThrow();
-      } catch (e) {
+      } catch (_e) {
         // chmod might not work on all systems
         console.log('Skipping read-only directory test - chmod not supported');
       } finally {
         try {
           fs.chmodSync(readOnlyDir, 0o755); // Restore permissions
           fs.rmSync(readOnlyDir, { recursive: true, force: true });
-        } catch (e) {
+        } catch (_e) {
           // Cleanup failed
         }
       }

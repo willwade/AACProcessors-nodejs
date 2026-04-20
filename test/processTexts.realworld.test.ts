@@ -24,7 +24,7 @@ describe('ProcessTexts with Real-World Data', () => {
     if (fs.existsSync(tempDir)) {
       try {
         fs.rmSync(tempDir, { recursive: true, force: true });
-      } catch (error) {
+      } catch (_error) {
         // On Windows the file can be locked briefly; ignore cleanup failure in tests
       }
     }

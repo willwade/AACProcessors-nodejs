@@ -178,7 +178,7 @@ describe('SnapProcessor Audio Support', () => {
             if (metadata.PunjabiText) {
               expect(metadata.PunjabiText).toMatch(/[\u0A00-\u0A7F]/); // Gurmukhi script
             }
-          } catch (e) {
+          } catch (_e) {
             // Metadata might not be JSON
           }
         }

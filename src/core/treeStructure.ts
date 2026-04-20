@@ -193,7 +193,15 @@ export class AACButton {
   parameters?: { [key: string]: any };
   // Predictions: Array of predicted word forms for smart grammar
   predictions?: string[];
-  // Metrics support: Motor planning identifiers
+  // Part-of-speech tag from gridset (e.g., 'Verb', 'Noun', 'Pronoun', 'Unknown')
+  pos?: string;
+  wordForms?: Array<{
+    lang?: string;
+    tags: string[];
+    value: string;
+    pronunciation?: string;
+    base?: string;
+  }>;
   semantic_id?: string; // Unique ID for buttons with same semantic meaning across boards
   clone_id?: string; // Unique ID for buttons with same label+location across boards
 
@@ -221,6 +229,8 @@ export class AACButton {
     directActivate,
     parameters,
     predictions,
+    pos,
+    wordForms,
     semantic_id,
     clone_id,
     // Legacy input support
@@ -255,6 +265,14 @@ export class AACButton {
     directActivate?: boolean;
     parameters?: { [key: string]: any };
     predictions?: string[];
+    pos?: string;
+    wordForms?: Array<{
+      lang?: string;
+      tags: string[];
+      value: string;
+      pronunciation?: string;
+      base?: string;
+    }>;
     semantic_id?: string;
     clone_id?: string;
     // Legacy constructor properties for backward compatibility
@@ -288,6 +306,8 @@ export class AACButton {
     this.directActivate = directActivate;
     this.parameters = parameters;
     this.predictions = predictions;
+    this.pos = pos;
+    this.wordForms = wordForms;
     this.semantic_id = semantic_id;
     this.clone_id = clone_id;
 

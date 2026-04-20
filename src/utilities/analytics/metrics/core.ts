@@ -24,6 +24,7 @@ import {
   localScanEffort,
   scanningEffort,
 } from './effort';
+import { MorphologyEngine } from '../morphology';
 
 interface ToVisitItem {
   board: AACPage;
@@ -118,9 +119,12 @@ export class MetricsCalculator {
     // Update buttons using dynamic spelling effort if applicable
     const buttons = Array.from(knownButtons.values()).sort((a, b) => a.effort - b.effort);
 
-    // Calculate metrics for word forms (smart grammar predictions) if enabled
-    // Default to true if not specified
-    const useSmartGrammar = options.useSmartGrammar !== false;
+    // Expand morphological predictions from POS tags if enabled or auto-detected
+    const useSmartGrammar = options.useSmartGrammar === true || this.treeHasPosTags(tree);
+    if (useSmartGrammar) {
+      this.expandMorphologicalPredictions(tree, options);
+    }
+
     if (useSmartGrammar) {
       const { wordFormMetrics, replacedLabels } = this.calculateWordFormMetrics(
         tree,
@@ -215,14 +219,23 @@ export class MetricsCalculator {
     }
 
     if (!spellingPage)
-      return { spellingPage: null, spellingBaseEffort: 10, spellingAvgLetterEffort: 2.5 };
+      return {
+        spellingPage: null,
+        spellingBaseEffort: 10,
+        spellingAvgLetterEffort: 2.5,
+      };
 
     // Calculate effort to reach this page from root
     const rootBoard = tree.rootId
       ? tree.pages[tree.rootId]
       : Object.values(tree.pages).find((p) => !p.parentId);
 
-    if (!rootBoard) return { spellingPage, spellingBaseEffort: 10, spellingAvgLetterEffort: 2.5 };
+    if (!rootBoard)
+      return {
+        spellingPage,
+        spellingBaseEffort: 10,
+        spellingAvgLetterEffort: 2.5,
+      };
 
     // Analyze specifically to find the lowest effort path to the spelling page
     const result = this.analyzeFrom(tree, rootBoard, setPcts, true, options);
@@ -742,6 +755,163 @@ export class MetricsCalculator {
   }
 
   /**
+   * Quick check whether any button in the tree has a POS tag.
+   * Used to auto-enable smart grammar without requiring explicit opt-in.
+   */
+  private treeHasPosTags(tree: AACTree): boolean {
+    for (const page of Object.values(tree.pages)) {
+      for (const row of page.grid) {
+        for (const btn of row) {
+          if (btn?.pos && btn.pos !== 'Unknown' && btn.pos !== 'Ignore') {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Expand morphological predictions from POS tags on buttons
+   *
+   * For each button that has a POS tag (e.g., 'Verb', 'Noun'), use the
+   * MorphologyEngine to generate inflected word forms and populate the
+   * button's predictions array. This is done as a pre-processing step
+   * before calculateWordFormMetrics assigns effort to each form.
+   */
+  private expandMorphologicalPredictions(tree: AACTree, options: MetricsOptions): void {
+    const locale = options.morphologyLocale || 'en-gb';
+    const morph = new MorphologyEngine(locale);
+
+    // Words that should never be POS-inferred (function words, determiners, etc.)
+    const skipInference = new Set([
+      'a',
+      'an',
+      'the',
+      'to',
+      'in',
+      'on',
+      'at',
+      'of',
+      'for',
+      'and',
+      'or',
+      'but',
+      'not',
+      'no',
+      'yes',
+      'is',
+      'am',
+      'are',
+      'was',
+      'were',
+      'be',
+      'been',
+      'being',
+      'has',
+      'have',
+      'had',
+      'do',
+      'does',
+      'did',
+      'will',
+      'would',
+      'could',
+      'should',
+      'shall',
+      'may',
+      'might',
+      'can',
+      'must',
+      'with',
+      'from',
+      'by',
+      'up',
+      'down',
+      'out',
+      'off',
+      'over',
+      'under',
+      'again',
+      'then',
+      'than',
+      'so',
+      'if',
+      'when',
+      'where',
+      'how',
+      'what',
+      'who',
+      'which',
+      'that',
+      'this',
+      'these',
+      'those',
+      'here',
+      'there',
+      'now',
+      'very',
+      'just',
+      'more',
+      'also',
+      'too',
+      'please',
+      'thank',
+      'hi',
+      'hello',
+      'bye',
+      'goodbye',
+      'okay',
+      'oh',
+      'wow',
+      'sorry',
+    ]);
+
+    for (const page of Object.values(tree.pages)) {
+      for (const row of page.grid) {
+        for (const btn of row) {
+          if (!btn || !btn.label) continue;
+
+          let pos = btn.pos;
+
+          // If no POS tag (or Unknown/Ignore), attempt POS inference.
+          // Many content words on topic pages lack POS tags even though
+          // they are clearly nouns (e.g., "bird", "tree", "cloud").
+          // Strategy: check irregular tables first for confident POS,
+          // then fall back to Noun for single-word content labels.
+          if (!pos || pos === 'Unknown' || pos === 'Ignore') {
+            const lower = btn.label.toLowerCase();
+
+            // Skip function words and multi-word labels
+            if (!skipInference.has(lower) && !lower.includes(' ') && lower.length > 1) {
+              // Check irregular tables for confident POS assignment
+              const inferredPOS = morph.inferPOS(lower);
+              if (inferredPOS) {
+                pos = inferredPOS;
+                btn.pos = inferredPOS;
+              } else {
+                // Default to Noun for untagged content words.
+                // This generates plurals (e.g., bird → birds, tree → trees).
+                pos = 'Noun';
+                btn.pos = 'Noun';
+              }
+            }
+          }
+
+          if (!pos || pos === 'Unknown' || pos === 'Ignore') continue;
+
+          const forms = morph.inflect(btn.label, pos);
+          if (forms.length > 0) {
+            const existing = btn.predictions || [];
+            const merged = new Set([...existing, ...forms]);
+            btn.predictions = Array.from(merged);
+          }
+        }
+      }
+    }
+  }
+
+  /**
    * Calculate metrics for word forms (smart grammar predictions)
    *
    * Word forms are dynamically generated and not part of the tree structure.
@@ -769,14 +939,54 @@ export class MetricsCalculator {
     const existingLabels = new Map<string, ButtonMetrics>();
     buttons.forEach((btn) => existingLabels.set(btn.label.toLowerCase(), btn));
 
+    // Build a map of POS tags from ALL tree buttons, keyed by lowercase label.
+    // This ensures words on BFS-unreachable pages still contribute POS data.
+    const treePosMap = new Map<string, string>();
+    const treePredictionsMap = new Map<string, string[]>();
+    Object.values(tree.pages).forEach((page: AACPage) => {
+      page.grid.forEach((row: (AACButton | null)[]) => {
+        row.forEach((btn: AACButton | null) => {
+          if (!btn || !btn.label) return;
+          const lower = btn.label.toLowerCase();
+          if (btn.pos && btn.pos !== 'Unknown' && btn.pos !== 'Ignore') {
+            treePosMap.set(lower, btn.pos);
+          }
+          if (btn.predictions && btn.predictions.length > 0) {
+            const existing = treePredictionsMap.get(lower);
+            if (!existing || btn.predictions.length > existing.length) {
+              treePredictionsMap.set(lower, btn.predictions);
+            }
+          }
+        });
+      });
+    });
+
+    // For metrics buttons that lack POS but have a tree counterpart with POS,
+    // propagate the POS tag so it's available in the output.
+    buttons.forEach((btn) => {
+      const lower = btn.label.toLowerCase();
+      if (!btn.pos || btn.pos === 'Unknown' || btn.pos === 'Ignore') {
+        const treePos = treePosMap.get(lower);
+        if (treePos) btn.pos = treePos;
+      }
+    });
+
+    // Note: buttons on pages unreachable via BFS from the root page are
+    // intentionally excluded. If there is no navigation path to a page,
+    // those buttons are not accessible to the user and should not count
+    // as available vocabulary.
+
     // Iterate through all pages to find buttons with predictions
     Object.values(tree.pages).forEach((page: AACPage) => {
       page.grid.forEach((row: (AACButton | null)[]) => {
         row.forEach((btn: AACButton | null) => {
           if (!btn || !btn.predictions || btn.predictions.length === 0) return;
 
-          // Find the parent button's metrics
-          const parentMetrics = buttons.find((b) => b.id === btn.id);
+          // Find the parent button's metrics (by id first, then by label)
+          let parentMetrics = buttons.find((b) => b.id === btn.id);
+          if (!parentMetrics && btn.label) {
+            parentMetrics = existingLabels.get(btn.label.toLowerCase());
+          }
           if (!parentMetrics) return;
 
           // Calculate effort for each word form
@@ -901,7 +1111,11 @@ export class MetricsCalculator {
       // If no block assigned, treat as its own block at the end (fallback)
       if (blockId === null) {
         const loop = board.grid.length + (board.grid[0]?.length || 0);
-        return { steps: rowIndex + colIndex + 1, selections: 1, loopSteps: loop };
+        return {
+          steps: rowIndex + colIndex + 1,
+          selections: 1,
+          loopSteps: loop,
+        };
       }
 
       const blockConfig = board.scanBlocksConfig?.find((c) => c.id === blockId);

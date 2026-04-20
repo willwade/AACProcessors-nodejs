@@ -13,6 +13,17 @@ export { MetricsCalculator } from './utilities/analytics/metrics/core';
 export { VocabularyAnalyzer } from './utilities/analytics/metrics/vocabulary';
 export { SentenceAnalyzer } from './utilities/analytics/metrics/sentence';
 export { ComparisonAnalyzer } from './utilities/analytics/metrics/comparison';
+export { MorphologyEngine } from './utilities/analytics/morphology';
+export { WordFormGenerator } from './utilities/analytics/morphology';
+export type {
+  MorphRuleSet,
+  MorphRule,
+  MorphWordForms,
+  Grid3VerbForms,
+  AstericsWordForm,
+  VerbFormWithConditions,
+  Grid3VerbFormsDetailed,
+} from './utilities/analytics/morphology';
 export { ReferenceLoader } from './utilities/analytics/reference';
 export {
   InMemoryReferenceLoader,

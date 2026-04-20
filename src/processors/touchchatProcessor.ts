@@ -190,7 +190,7 @@ class TouchChatProcessor extends BaseProcessor {
         mappings.forEach((mapping) => {
           idMappings.set(mapping.numeric_id, mapping.string_id);
         });
-      } catch (e) {
+      } catch (_e) {
         // No mapping table, use numeric IDs as strings
       }
 
@@ -208,7 +208,7 @@ class TouchChatProcessor extends BaseProcessor {
         pageStyleRows.forEach((style) => {
           pageStyles.set(style.id, style);
         });
-      } catch (e) {
+      } catch (_e) {
         // console.log('No styles found:', e);
       }
 
@@ -451,7 +451,7 @@ class TouchChatProcessor extends BaseProcessor {
             }
           }
         });
-      } catch (e) {
+      } catch (_e) {
         // console.log('No button box cells found:', e);
       }
 
@@ -514,7 +514,7 @@ class TouchChatProcessor extends BaseProcessor {
           );
           if (page) page.addButton(button);
         });
-      } catch (e) {
+      } catch (_e) {
         // console.log('No direct page buttons found:', e);
       }
 
@@ -568,7 +568,7 @@ class TouchChatProcessor extends BaseProcessor {
             }
           }
         });
-      } catch (e) {
+      } catch (_e) {
         // console.log('No navigation actions found:', e);
       }
 
@@ -618,7 +618,7 @@ class TouchChatProcessor extends BaseProcessor {
           tree.rootId = rootPageId;
           tree.metadata.defaultHomePageId = rootPageId;
         }
-      } catch (e) {
+      } catch (_e) {
         // No metadata table or other error, use first page as root
         if (rootPageId) {
           tree.rootId = rootPageId;
