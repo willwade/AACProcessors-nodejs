@@ -218,7 +218,7 @@ export class FileSystemHelper {
   static getFileStats(filePath: string): fs.Stats | null {
     try {
       return fs.statSync(filePath);
-    } catch (error) {
+    } catch (_error) {
       return null;
     }
   }
@@ -228,7 +228,7 @@ export class FileSystemHelper {
       const content1 = fs.readFileSync(filePath1);
       const content2 = fs.readFileSync(filePath2);
       return content1.equals(content2);
-    } catch (error) {
+    } catch (_error) {
       return false;
     }
   }

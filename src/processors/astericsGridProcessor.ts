@@ -790,7 +790,7 @@ class AstericsGridProcessor extends BaseProcessor {
           });
         });
       });
-    } catch (error) {
+    } catch (_error) {
       // If JSON parsing fails, return empty array
     }
 
@@ -1269,7 +1269,7 @@ class AstericsGridProcessor extends BaseProcessor {
 
         // Use detected format for filename
         imageName = element.image.id || `image.${imageFormat}`;
-      } catch (e) {
+      } catch (_e) {
         // Invalid base64 data, skip image
       }
     }
@@ -1716,7 +1716,7 @@ class AstericsGridProcessor extends BaseProcessor {
               audioAction.mimeType = parsedMetadata.mimeType || audioAction.mimeType;
               audioAction.durationMs = parsedMetadata.durationMs || audioAction.durationMs;
               audioAction.filename = parsedMetadata.filename || audioAction.filename;
-            } catch (e) {
+            } catch (_e) {
               // Use defaults if metadata parsing fails
             }
           }
@@ -1787,7 +1787,7 @@ class AstericsGridProcessor extends BaseProcessor {
           elementIds.push(element.id);
         });
       });
-    } catch (error) {
+    } catch (_error) {
       // If JSON parsing fails, return empty array
     }
 
@@ -1816,7 +1816,7 @@ class AstericsGridProcessor extends BaseProcessor {
           }
         }
       }
-    } catch (error) {
+    } catch (_error) {
       // If JSON parsing fails, return false
     }
 

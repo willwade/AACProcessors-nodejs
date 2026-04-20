@@ -508,7 +508,7 @@ class GridsetProcessor extends BaseProcessor {
           }
         }
       }
-    } catch (e) {
+    } catch (_e) {
       /* ignore: optional FileMap.xml may be missing or malformed */
     }
 
@@ -588,7 +588,7 @@ class GridsetProcessor extends BaseProcessor {
           : Buffer.from(raw);
         const normalizedEntry = imageEntry.entryName.replace(/\\/g, '/');
         imageDataCache.set(normalizedEntry, data);
-      } catch (err) {
+      } catch (_err) {
         // Silently fail - individual image loading failures shouldn't break the entire load
       }
     }
@@ -625,7 +625,7 @@ class GridsetProcessor extends BaseProcessor {
               }
             }
           }
-        } catch (e) {
+        } catch (_e) {
           // Skip errors in first pass
         }
       }
@@ -643,7 +643,7 @@ class GridsetProcessor extends BaseProcessor {
             `[Gridset] Raw XML content (first 200 chars) for ${entry.entryName}:`,
             xmlContent.substring(0, 200)
           );
-        } catch (e) {
+        } catch (_e) {
           // Skip unreadable files
           continue;
         }
@@ -1881,7 +1881,7 @@ class GridsetProcessor extends BaseProcessor {
           metadata.defaultKeyboardPageId = gridNameToIdMap.get(keyboardGridName);
         }
       }
-    } catch (e) {
+    } catch (_e) {
       // If settings.xml parsing fails, tree.rootId will default to first page
     }
 

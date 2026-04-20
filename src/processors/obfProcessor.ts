@@ -121,7 +121,7 @@ class ObfProcessor extends BaseProcessor {
           }
           return null;
         }
-      } catch (err) {
+      } catch (_err) {
         continue;
       }
     }
@@ -173,7 +173,7 @@ class ObfProcessor extends BaseProcessor {
             this.imageCache.set(imageId, dataUrl);
             return dataUrl;
           }
-        } catch (err) {
+        } catch (_err) {
           // Continue to next path
           continue;
         }
@@ -431,7 +431,7 @@ class ObfProcessor extends BaseProcessor {
           }
           return obj as ObfBoard;
         }
-      } catch (error: any) {
+      } catch (_error: any) {
         // Log parsing errors for debugging but don't throw
       }
       return null;
@@ -899,7 +899,7 @@ class ObfProcessor extends BaseProcessor {
     try {
       // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-unsafe-return
       return require('../validation/obfValidator').ObfValidator;
-    } catch (error) {
+    } catch (_error) {
       throw new Error('Validation utilities are not available in this environment.');
     }
   }

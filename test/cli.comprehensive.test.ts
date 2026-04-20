@@ -389,14 +389,14 @@ describe('CLI Comprehensive Tests', () => {
         } catch (error: any) {
           expect(error.message).toContain('Command failed');
         }
-      } catch (permissionError) {
+      } catch (_permissionError) {
         // If we can't change permissions, skip this test
         console.log('Skipping permission test - unable to change file permissions');
       } finally {
         // Restore permissions for cleanup
         try {
           fs.chmodSync(restrictedFile, 0o644);
-        } catch (e) {
+        } catch (_e) {
           // Ignore cleanup errors
         }
       }

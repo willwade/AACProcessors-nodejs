@@ -356,7 +356,12 @@ export class ExcelProcessor extends BaseProcessor {
     // Create internal link to another worksheet
     const sanitizedTargetName = this.sanitizeWorksheetName(targetPageId);
     cell.value = {
-      text: cell.value?.toString() || '',
+      text:
+        typeof cell.value === 'string'
+          ? cell.value
+          : typeof cell.value === 'number' || typeof cell.value === 'boolean'
+            ? String(cell.value)
+            : '',
       hyperlink: `#'${sanitizedTargetName}'!A1`,
     };
   }

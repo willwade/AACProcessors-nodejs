@@ -41,7 +41,7 @@ async function collectFiles(
     let entries: string[];
     try {
       entries = await listDir(current.dir);
-    } catch (error) {
+    } catch (_error) {
       continue;
     }
 
@@ -153,7 +153,7 @@ export async function openImage(
         await removePath(dbPath);
         const dir = dirname(dbPath);
         await removePath(dir);
-      } catch (e) {
+      } catch (_e) {
         // Ignore cleanup errors
       }
     }
@@ -240,7 +240,7 @@ export async function findSnapPackages(
         });
       }
     }
-  } catch (error) {
+  } catch (_error) {
     // Silently fail if directory access fails
   }
 

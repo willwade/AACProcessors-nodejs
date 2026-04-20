@@ -25,7 +25,8 @@
       "error",
       {
         "argsIgnorePattern": "^_",
-        "varsIgnorePattern": "^_"
+        "varsIgnorePattern": "^_",
+        "caughtErrorsIgnorePattern": "^_"
       }
     ],
     "@typescript-eslint/no-non-null-assertion": "warn",
@@ -64,13 +65,15 @@
           "error",
           {
             "argsIgnorePattern": "^_",
-            "varsIgnorePattern": "^_"
+            "varsIgnorePattern": "^_",
+            "caughtErrorsIgnorePattern": "^_"
           }
         ],
         "@typescript-eslint/no-unsafe-assignment": "off",
         "@typescript-eslint/no-unsafe-call": "off",
         "@typescript-eslint/no-unsafe-member-access": "off",
-        "@typescript-eslint/no-redundant-type-constituents": "off"
+        "@typescript-eslint/no-redundant-type-constituents": "off",
+        "@typescript-eslint/no-require-imports": "off"
       }
     },
     {
@@ -90,14 +93,16 @@
           "error",
           {
             "argsIgnorePattern": "^_",
-            "varsIgnorePattern": "^_"
+            "varsIgnorePattern": "^_",
+            "caughtErrorsIgnorePattern": "^_"
           }
         ],
         "@typescript-eslint/no-unsafe-assignment": "off",
         "@typescript-eslint/no-unsafe-call": "off",
         "@typescript-eslint/no-unsafe-member-access": "off",
         "@typescript-eslint/no-unsafe-return": "off",
-        "@typescript-eslint/no-unsafe-argument": "off"
+        "@typescript-eslint/no-unsafe-argument": "off",
+        "@typescript-eslint/no-require-imports": "off"
       }
     },
     {
