@@ -397,7 +397,7 @@ class ObfProcessor extends BaseProcessor {
   }
 
   async loadIntoTree(filePathOrBuffer: ProcessorInput): Promise<AACTree> {
-    const { readBinaryFromInput, readTextFromInput, listDir, join, isDirectory, pathExists } =
+    const { readBinaryFromInput, readTextFromInput, listDir, join, isDirectory } =
       this.options.fileAdapter;
     // Detailed logging for debugging input
     const bufferLength =
@@ -509,7 +509,7 @@ class ObfProcessor extends BaseProcessor {
       listFiles: async (): Promise<string[]> => {
         return await listDir(filePathOrBuffer as string);
       },
-      readFile: async (name: string) => {
+      readFile: async (name: string): Promise<Uint8Array> => {
         return await readBinaryFromInput(join(filePathOrBuffer as string, name));
       },
     };
