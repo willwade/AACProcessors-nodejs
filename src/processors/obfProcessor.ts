@@ -397,7 +397,8 @@ class ObfProcessor extends BaseProcessor {
   }
 
   async loadIntoTree(filePathOrBuffer: ProcessorInput): Promise<AACTree> {
-    const { readBinaryFromInput, readTextFromInput } = this.options.fileAdapter;
+    const { readBinaryFromInput, readTextFromInput, listDir, join, isDirectory } =
+      this.options.fileAdapter;
     // Detailed logging for debugging input
     const bufferLength =
       typeof filePathOrBuffer === 'string'
@@ -467,18 +468,22 @@ class ObfProcessor extends BaseProcessor {
       }
     }
 
-    // Detect likely zip signature first
-    async function isLikelyZip(input: ProcessorInput): Promise<boolean> {
-      if (typeof input === 'string') {
-        const lowered = input.toLowerCase();
-        return lowered.endsWith('.zip') || lowered.endsWith('.obz');
+    // Determine if input is ZIP, directory, or OBF JSON string/buffer
+    let fileType: 'obf' | 'zip' | 'dir' = 'obf';
+    if (typeof filePathOrBuffer !== 'string') {
+      const bytes = await readBinaryFromInput(filePathOrBuffer);
+      if (bytes.length >= 2 && bytes[0] === 0x50 && bytes[1] === 0x4b) fileType = 'zip';
+    } else {
+      if (await isDirectory(filePathOrBuffer)) {
+        fileType = 'dir';
+      } else {
+        const lowered = filePathOrBuffer.toLowerCase();
+        if (lowered.endsWith('.zip') || lowered.endsWith('.obz')) fileType = 'zip';
       }
-      const bytes = await readBinaryFromInput(input);
-      return bytes.length >= 2 && bytes[0] === 0x50 && bytes[1] === 0x4b;
     }
 
     // Check if input is a buffer or string that parses as OBF JSON; throw if neither JSON nor ZIP
-    if (!(await isLikelyZip(filePathOrBuffer))) {
+    if (fileType === 'obf') {
       const asJson = await tryParseObfJson(filePathOrBuffer);
       if (!asJson) throw new Error('Invalid OBF content: not JSON and not ZIP');
       console.log('[OBF] Detected buffer/string as OBF JSON');
@@ -500,11 +505,25 @@ class ObfProcessor extends BaseProcessor {
       return tree;
     }
 
-    try {
-      this.zipFile = await this.options.zipAdapter(filePathOrBuffer);
-    } catch (err) {
-      console.error('[OBF] Error loading ZIP:', err);
-      throw err;
+    let adapter = {
+      listFiles: async (): Promise<string[]> => {
+        return await listDir(filePathOrBuffer as string);
+      },
+      readFile: async (name: string) => {
+        return await readBinaryFromInput(join(filePathOrBuffer as string, name));
+      },
+    };
+    if (fileType === 'zip') {
+      try {
+        const zipAdapter = await this.options.zipAdapter(filePathOrBuffer);
+        adapter = {
+          ...zipAdapter,
+          listFiles: async () => Promise.resolve(zipAdapter.listFiles()),
+        };
+      } catch (err) {
+        console.error('[OBF] Error loading ZIP:', err);
+        throw err;
+      }
     }
 
     // Store the ZIP file reference for image extraction
@@ -513,14 +532,14 @@ class ObfProcessor extends BaseProcessor {
     console.log('[OBF] Detected zip archive, extracting .obf files');
 
     // List manifest and OBF files
-    const filesInZip = this.zipFile.listFiles();
+    const filesInZip = await adapter.listFiles();
     const manifestFile = filesInZip.filter((name) => name.toLowerCase() === 'manifest.json');
     let obfEntries = filesInZip.filter((name) => name.toLowerCase().endsWith('.obf'));
 
     // Attempt to read manifest
     if (manifestFile && manifestFile.length === 1) {
       try {
-        const content = await this.zipFile.readFile(manifestFile[0]);
+        const content = await adapter.readFile(manifestFile[0]);
         const data = decodeText(content);
         const str = typeof data === 'string' ? data : await readTextFromInput(data);
         if (!str.trim()) throw new Error('Manifest object missing');
@@ -545,7 +564,7 @@ class ObfProcessor extends BaseProcessor {
     // Process each .obf entry
     for (const entryName of obfEntries) {
       try {
-        const content = await this.zipFile.readFile(entryName);
+        const content = await adapter.readFile(entryName);
         const boardData = await tryParseObfJson(decodeText(content));
         if (boardData) {
           const page = await this.processBoard(boardData, entryName, true);
