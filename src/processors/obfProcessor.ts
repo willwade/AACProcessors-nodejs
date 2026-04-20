@@ -397,7 +397,7 @@ class ObfProcessor extends BaseProcessor {
   }
 
   async loadIntoTree(filePathOrBuffer: ProcessorInput): Promise<AACTree> {
-    const { readBinaryFromInput, readTextFromInput, listDir, join, isDirectory } =
+    const { readBinaryFromInput, readTextFromInput, listDir, join, isDirectory, pathExists } =
       this.options.fileAdapter;
     // Detailed logging for debugging input
     const bufferLength =
@@ -741,7 +741,7 @@ class ObfProcessor extends BaseProcessor {
   }
 
   async saveFromTree(tree: AACTree, outputPath: string): Promise<void> {
-    const { writeTextToPath, writeBinaryToPath, pathExists, isDirectory, join } =
+    const { writeTextToPath, writeBinaryToPath, pathExists, mkDir, join } =
       this.options.fileAdapter;
     if (outputPath.endsWith('.obf')) {
       // Save as single OBF JSON file
@@ -779,11 +779,8 @@ class ObfProcessor extends BaseProcessor {
         data: new TextEncoder().encode(JSON.stringify(manifest)),
       });
 
-      if (await isDirectory(outputPath)) {
-        await Promise.all(
-          files.map((file) => writeBinaryToPath(join(outputPath, file.name), file.data))
-        );
-      } else {
+      if (outputPath.endsWith('.obz') || outputPath.endsWith('.zip')) {
+        console.log('[OBF] Saving to ZIP file:', outputPath);
         const fileExists = await pathExists(outputPath);
         this.zipFile = await this.options.zipAdapter(
           fileExists ? outputPath : undefined,
@@ -791,6 +788,12 @@ class ObfProcessor extends BaseProcessor {
         );
         const zipData = await this.zipFile.writeFiles(files);
         await writeBinaryToPath(outputPath, zipData);
+      } else {
+        console.log('[OBF] Saving to directory:', outputPath);
+        if (!(await pathExists(outputPath))) await mkDir(outputPath)
+        await Promise.all(
+          files.map((file) => writeBinaryToPath(join(outputPath, file.name), file.data))
+        );
       }
     }
   }
