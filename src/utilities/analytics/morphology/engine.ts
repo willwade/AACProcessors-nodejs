@@ -179,6 +179,21 @@ export class MorphologyEngine {
     return undefined;
   }
 
+  /**
+   * Infer the most likely POS for a word by checking the irregular tables.
+   * Returns the POS if found in any irregular table, or null if not found.
+   * Priority: Verb > Noun > Adjective > Pronoun
+   */
+  inferPOS(word: string): string | null {
+    const lower = word.toLowerCase();
+    for (const pos of ['Verb', 'Noun', 'Adjective', 'Pronoun']) {
+      if (this.ruleSet.irregular[pos]?.[lower]) {
+        return pos;
+      }
+    }
+    return null;
+  }
+
   private loadBundled(locale: string): MorphRuleSet {
     const normalized = locale.toLowerCase().replace('_', '-');
     switch (normalized) {

@@ -783,13 +783,124 @@ export class MetricsCalculator {
     const locale = options.morphologyLocale || 'en-gb';
     const morph = new MorphologyEngine(locale);
 
+    // Words that should never be POS-inferred (function words, determiners, etc.)
+    const skipInference = new Set([
+      'a',
+      'an',
+      'the',
+      'to',
+      'in',
+      'on',
+      'at',
+      'of',
+      'for',
+      'and',
+      'or',
+      'but',
+      'not',
+      'no',
+      'yes',
+      'is',
+      'am',
+      'are',
+      'was',
+      'were',
+      'be',
+      'been',
+      'being',
+      'has',
+      'have',
+      'had',
+      'do',
+      'does',
+      'did',
+      'will',
+      'would',
+      'could',
+      'should',
+      'shall',
+      'may',
+      'might',
+      'can',
+      'must',
+      'with',
+      'from',
+      'by',
+      'up',
+      'down',
+      'out',
+      'off',
+      'over',
+      'under',
+      'again',
+      'then',
+      'than',
+      'so',
+      'if',
+      'when',
+      'where',
+      'how',
+      'what',
+      'who',
+      'which',
+      'that',
+      'this',
+      'these',
+      'those',
+      'here',
+      'there',
+      'now',
+      'very',
+      'just',
+      'more',
+      'also',
+      'too',
+      'please',
+      'thank',
+      'hi',
+      'hello',
+      'bye',
+      'goodbye',
+      'okay',
+      'oh',
+      'wow',
+      'sorry',
+    ]);
+
     for (const page of Object.values(tree.pages)) {
       for (const row of page.grid) {
         for (const btn of row) {
-          if (!btn || !btn.pos || btn.pos === 'Unknown' || btn.pos === 'Ignore') continue;
-          if (!btn.label) continue;
+          if (!btn || !btn.label) continue;
 
-          const forms = morph.inflect(btn.label, btn.pos);
+          let pos = btn.pos;
+
+          // If no POS tag (or Unknown/Ignore), attempt POS inference.
+          // Many content words on topic pages lack POS tags even though
+          // they are clearly nouns (e.g., "bird", "tree", "cloud").
+          // Strategy: check irregular tables first for confident POS,
+          // then fall back to Noun for single-word content labels.
+          if (!pos || pos === 'Unknown' || pos === 'Ignore') {
+            const lower = btn.label.toLowerCase();
+
+            // Skip function words and multi-word labels
+            if (!skipInference.has(lower) && !lower.includes(' ') && lower.length > 1) {
+              // Check irregular tables for confident POS assignment
+              const inferredPOS = morph.inferPOS(lower);
+              if (inferredPOS) {
+                pos = inferredPOS;
+                btn.pos = inferredPOS;
+              } else {
+                // Default to Noun for untagged content words.
+                // This generates plurals (e.g., bird → birds, tree → trees).
+                pos = 'Noun';
+                btn.pos = 'Noun';
+              }
+            }
+          }
+
+          if (!pos || pos === 'Unknown' || pos === 'Ignore') continue;
+
+          const forms = morph.inflect(btn.label, pos);
           if (forms.length > 0) {
             const existing = btn.predictions || [];
             const merged = new Set([...existing, ...forms]);
