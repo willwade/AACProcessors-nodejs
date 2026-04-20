@@ -156,6 +156,7 @@
     "@types/exceljs": "^0.5.3",
     "@types/jest": "^30.0.0",
     "@types/node": "^22.19.17",
+    "@types/pako": "^2.0.4",
     "@types/plist": "^3.0.5",
     "@types/sql.js": "^1.4.9",
     "@typescript-eslint/eslint-plugin": "^8.58.2",
