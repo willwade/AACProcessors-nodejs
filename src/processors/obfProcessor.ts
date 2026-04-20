@@ -505,21 +505,20 @@ class ObfProcessor extends BaseProcessor {
       return tree;
     }
 
-    let adapter = {
-      listFiles: async (): Promise<string[]> => {
-        return await listDir(filePathOrBuffer as string);
-      },
+    this.zipFile = {
       readFile: async (name: string): Promise<Uint8Array> => {
         return await readBinaryFromInput(join(filePathOrBuffer as string, name));
+      },
+      listFiles: () => {
+        throw new Error('Not implemented for directory input');
+      },
+      writeFiles: () => {
+        throw new Error('Not implemented for directory input');
       },
     };
     if (fileType === 'zip') {
       try {
-        const zipAdapter = await this.options.zipAdapter(filePathOrBuffer);
-        adapter = {
-          ...zipAdapter,
-          listFiles: async () => Promise.resolve(zipAdapter.listFiles()),
-        };
+        this.zipFile = await this.options.zipAdapter(filePathOrBuffer);
       } catch (err) {
         console.error('[OBF] Error loading ZIP:', err);
         throw err;
@@ -532,14 +531,15 @@ class ObfProcessor extends BaseProcessor {
     console.log('[OBF] Detected zip archive, extracting .obf files');
 
     // List manifest and OBF files
-    const filesInZip = await adapter.listFiles();
+    const filesInZip =
+      fileType === 'zip' ? this.zipFile.listFiles() : await listDir(filePathOrBuffer as string);
     const manifestFile = filesInZip.filter((name) => name.toLowerCase() === 'manifest.json');
     let obfEntries = filesInZip.filter((name) => name.toLowerCase().endsWith('.obf'));
 
     // Attempt to read manifest
     if (manifestFile && manifestFile.length === 1) {
       try {
-        const content = await adapter.readFile(manifestFile[0]);
+        const content = await this.zipFile.readFile(manifestFile[0]);
         const data = decodeText(content);
         const str = typeof data === 'string' ? data : await readTextFromInput(data);
         if (!str.trim()) throw new Error('Manifest object missing');
@@ -564,7 +564,7 @@ class ObfProcessor extends BaseProcessor {
     // Process each .obf entry
     for (const entryName of obfEntries) {
       try {
-        const content = await adapter.readFile(entryName);
+        const content = await this.zipFile.readFile(entryName);
         const boardData = await tryParseObfJson(decodeText(content));
         if (boardData) {
           const page = await this.processBoard(boardData, entryName, true);
@@ -790,7 +790,7 @@ class ObfProcessor extends BaseProcessor {
         await writeBinaryToPath(outputPath, zipData);
       } else {
         console.log('[OBF] Saving to directory:', outputPath);
-        if (!(await pathExists(outputPath))) await mkDir(outputPath)
+        if (!(await pathExists(outputPath))) await mkDir(outputPath);
         await Promise.all(
           files.map((file) => writeBinaryToPath(join(outputPath, file.name), file.data))
         );
