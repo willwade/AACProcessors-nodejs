@@ -1,5 +1,4 @@
 export { MorphologyEngine } from './engine';
-export { Grid3VerbsParser } from './grid3VerbsParser';
 export { WordFormGenerator } from './wordFormGenerator';
 export type {
   MorphRuleSet,
