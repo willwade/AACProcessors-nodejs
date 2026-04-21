@@ -223,6 +223,8 @@ class ObfProcessor extends BaseProcessor {
         ? String(boardData.id)
         : _boardPath?.split(/[/\\]/).pop() || '';
 
+    const images = boardData.images;
+
     const buttons: AACButton[] = await Promise.all(
       sourceButtons.map(async (btn: ObfButton): Promise<AACButton> => {
         const semanticAction: AACSemanticAction = btn.load_board
@@ -248,11 +250,17 @@ class ObfProcessor extends BaseProcessor {
         // Resolve image if image_id is present
         let resolvedImage: string | undefined;
         let imageBuffer: Buffer | undefined;
-        if (btn.image_id && boardData.images) {
-          resolvedImage =
-            (await this.extractImageAsDataUrl(btn.image_id, boardData.images)) || undefined;
-          imageBuffer =
-            (await this.extractImageAsBuffer(btn.image_id, boardData.images)) || undefined;
+        if (btn.image_id && images) {
+          resolvedImage = (await this.extractImageAsDataUrl(btn.image_id, images)) || undefined;
+          imageBuffer = (await this.extractImageAsBuffer(btn.image_id, images)) || undefined;
+
+          // save image data
+          if (images) {
+            const imageIndex = images?.findIndex((img: any) => img.id === btn.image_id);
+            if (imageIndex !== -1) {
+              images[imageIndex].data = resolvedImage;
+            }
+          }
         }
 
         // Build parameters object for Grid3 export compatibility
@@ -294,7 +302,7 @@ class ObfProcessor extends BaseProcessor {
       parentId: null,
       locale: boardData.locale,
       descriptionHtml: boardData.description_html,
-      images: boardData.images,
+      images,
       sounds: boardData.sounds,
     });
 
