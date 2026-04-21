@@ -528,7 +528,7 @@ class ObfProcessor extends BaseProcessor {
     // Store the ZIP file reference for image extraction
     this.imageCache.clear(); // Clear cache for new file
 
-    console.log('[OBF] Detected zip archive, extracting .obf files');
+    console.log('[OBF] Detected zip archive or directory, extracting .obf files');
 
     // List manifest and OBF files
     const filesInZip =
@@ -791,9 +791,10 @@ class ObfProcessor extends BaseProcessor {
       } else {
         console.log('[OBF] Saving to directory:', outputPath);
         if (!(await pathExists(outputPath))) await mkDir(outputPath);
-        await Promise.all(
-          files.map((file) => writeBinaryToPath(join(outputPath, file.name), file.data))
-        );
+        for (const file of files) {
+          const filePath = join(outputPath, file.name);
+          await writeBinaryToPath(filePath, file.data);
+        }
       }
     }
   }
