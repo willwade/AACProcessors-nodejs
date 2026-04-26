@@ -77,7 +77,6 @@ describe('OBFProcessor', () => {
 
     it('should produce a valid loadable OBZ file', async () => {
       const processor = new ObfProcessor();
-      const fs = await import('fs');
 
       // Load the original file
       const tree = await processor.loadIntoTree(obzPath);
