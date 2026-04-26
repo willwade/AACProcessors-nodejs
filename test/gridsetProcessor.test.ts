@@ -83,4 +83,91 @@ describe('GridsetProcessor', () => {
       }
     });
   });
+
+  describe('saveModifiedTree', () => {
+    const tempOutputPath = path.join(__dirname, 'temp_gridset_modified.gridset');
+    const tempSaveFromTreePath = path.join(__dirname, 'temp_gridset_saveFromTree.gridset');
+
+    afterEach(async () => {
+      if (fs.existsSync(tempOutputPath)) {
+        fs.unlinkSync(tempOutputPath);
+      }
+      if (fs.existsSync(tempSaveFromTreePath)) {
+        fs.unlinkSync(tempSaveFromTreePath);
+      }
+    });
+
+    it('should preserve original file size better than saveFromTree', async () => {
+      const processor = new GridsetProcessor();
+
+      // Load the original file
+      const fileBuffer = fs.readFileSync(exampleFile);
+      const tree = await processor.loadIntoTree(fileBuffer);
+      const originalSize = fileBuffer.length;
+
+      // Save using saveModifiedTree
+      await processor.saveModifiedTree(exampleFile, tree, tempOutputPath);
+      const modifiedSize = fs.statSync(tempOutputPath).size;
+
+      // Save using saveFromTree for comparison
+      await processor.saveFromTree(tree, tempSaveFromTreePath);
+      const saveFromTreeSize = fs.statSync(tempSaveFromTreePath).size;
+
+      // saveModifiedTree should preserve file size much better than saveFromTree
+      expect(modifiedSize).toBeGreaterThan(saveFromTreeSize);
+
+      // saveModifiedTree should be at least 80% of original size (preserves most assets)
+      expect(modifiedSize / originalSize).toBeGreaterThan(0.8);
+    });
+
+    it('should produce a valid loadable gridset', async () => {
+      const processor = new GridsetProcessor();
+
+      // Load the original file
+      const fileBuffer = fs.readFileSync(exampleFile);
+      const tree = await processor.loadIntoTree(fileBuffer);
+      const originalPageCount = Object.keys(tree.pages).length;
+
+      // Save using saveModifiedTree
+      await processor.saveModifiedTree(exampleFile, tree, tempOutputPath);
+
+      // Load the saved file
+      const savedBuffer = fs.readFileSync(tempOutputPath);
+      const savedTree = await processor.loadIntoTree(savedBuffer);
+
+      // Verify the saved tree has the same pages
+      expect(Object.keys(savedTree.pages).length).toBe(originalPageCount);
+      expect(savedTree.rootId).toBe(tree.rootId);
+    });
+
+    it('should handle empty tree by copying original', async () => {
+      const processor = new GridsetProcessor();
+
+      // Create an empty tree
+      const emptyTree: AACTree = {
+        pages: {},
+        rootId: null,
+        toolbarId: null,
+        dashboardId: null,
+        metadata: {},
+        addPage() {
+          throw new Error('Not implemented');
+        },
+        getPage() {
+          return undefined;
+        },
+        traverse() {
+          // Empty - nothing to traverse
+        },
+      };
+
+      // Save using saveModifiedTree
+      await processor.saveModifiedTree(exampleFile, emptyTree, tempOutputPath);
+
+      // Verify the file was copied (same size)
+      const originalSize = fs.statSync(exampleFile).size;
+      const copiedSize = fs.statSync(tempOutputPath).size;
+      expect(copiedSize).toBe(originalSize);
+    });
+  });
 });
