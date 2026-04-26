@@ -2494,6 +2494,152 @@ class GridsetProcessor extends BaseProcessor {
     };
   }
 
+  /**
+   * Save a modified tree while preserving all original files (settings, images, assets)
+   * This method only updates the grid.xml files for pages in the tree, keeping everything else intact.
+   *
+   * @param originalPath - Path to the original gridset file
+   * @param tree - Modified AACTree with pages to save
+   * @param outputPath - Path where the modified gridset should be saved
+   */
+  async saveModifiedTree(originalPath: string, tree: AACTree, outputPath: string): Promise<void> {
+    const { readBinaryFromInput, writeBinaryToPath } = this.options.fileAdapter;
+
+    if (Object.keys(tree.pages).length === 0) {
+      // Empty tree, just copy the original
+      const originalBuffer = await readBinaryFromInput(originalPath);
+      await writeBinaryToPath(outputPath, originalBuffer);
+      return;
+    }
+
+    const AdmZip = (await import('adm-zip')).default;
+    const originalZip = new AdmZip(originalPath);
+    const outputZip = new AdmZip();
+
+    // Collect styles from the tree for grid.xml files
+    const uniqueStyles = new Map<string, { id: string; style: AACStyle }>();
+    let styleIdCounter = 1;
+
+    const addStyle = (style: AACStyle | undefined): string => {
+      if (!style) return '';
+      const normalizedStyle: AACStyle = { ...style };
+      const styleKey = JSON.stringify(normalizedStyle);
+      const existing = uniqueStyles.get(styleKey);
+      if (existing) return existing.id;
+
+      const styleId = `Style${styleIdCounter++}`;
+      uniqueStyles.set(styleKey, { id: styleId, style: normalizedStyle });
+      return styleId;
+    };
+
+    // Collect all styles from pages and buttons
+    Object.values(tree.pages).forEach((page) => {
+      addStyle(page.style);
+      page.buttons.forEach((button) => {
+        addStyle(button.style);
+      });
+    });
+
+    // Track which grid files we're modifying
+    const modifiedGridFiles = new Set<string>();
+
+    // Generate grid.xml files for pages in the tree
+    const newGridFiles = new Map<string, string>();
+
+    for (const page of Object.values(tree.pages)) {
+      const gridPath = `Grids/${page.name}/grid.xml`;
+      modifiedGridFiles.add(gridPath);
+
+      // Build the grid XML content
+      const gridData = {
+        Grid: {
+          '@_xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
+          GridGuid: page.id,
+          ColumnDefinitions: this.calculateColumnDefinitions(page),
+          RowDefinitions: this.calculateRowDefinitions(page, false),
+          AutoContentCommands: '',
+          Cells:
+            page.buttons.length > 0
+              ? {
+                  Cell: this.filterPageButtons(page.buttons).map((button, btnIndex) => {
+                    const buttonStyleId = button.style ? addStyle(button.style) : '';
+                    const position = this.findButtonPosition(page, button, btnIndex);
+
+                    const captionAndImage: Record<string, unknown> = {
+                      Caption: button.label || '',
+                    };
+
+                    // Handle image references
+                    if (button.image) {
+                      captionAndImage.Image = `${button.image}`;
+                    }
+
+                    const cell: Record<string, unknown> = {
+                      '@_Column': position.x,
+                      '@_Row': position.y,
+                      captionAndImage,
+                    };
+
+                    if (position.columnSpan > 1) {
+                      cell['@_ColumnSpan'] = position.columnSpan;
+                    }
+                    if (position.rowSpan > 1) {
+                      cell['@_RowSpan'] = position.rowSpan;
+                    }
+
+                    if (buttonStyleId) {
+                      cell.CellStyle = buttonStyleId;
+                    }
+
+                    if (button.message && button.message !== button.label) {
+                      // Use spoken message if different from label
+                      const spoken = button.message;
+                      const cellContent: Record<string, unknown> = {
+                        spoken,
+                        type: 'text',
+                      };
+                      cell['ContentCell'] = cellContent;
+                    }
+
+                    return cell;
+                  }),
+                }
+              : undefined,
+        },
+      };
+
+      const gridBuilder = new XMLBuilder({
+        ignoreAttributes: false,
+        format: true,
+        indentBy: '  ',
+        suppressEmptyNode: true,
+      });
+
+      newGridFiles.set(gridPath, gridBuilder.build(gridData));
+    }
+
+    // Copy all files from original zip, replacing modified grid files
+    for (const entry of originalZip.getEntries()) {
+      if (entry.isDirectory) continue;
+
+      // Skip grid.xml files that we're modifying
+      if (modifiedGridFiles.has(entry.entryName)) {
+        const newContent = newGridFiles.get(entry.entryName);
+        if (newContent) {
+          outputZip.addFile(entry.entryName, Buffer.from(newContent, 'utf8'));
+        }
+        continue;
+      }
+
+      // Copy all other files as-is
+      outputZip.addFile(entry.entryName, entry.getData());
+    }
+
+    // Write the output ZIP
+    const outputBuffer = outputZip.toBuffer();
+    await writeBinaryToPath(outputPath, outputBuffer);
+  }
+
   // Helper method to find button position with span information
   private findButtonPosition(
     page: AACPage,
