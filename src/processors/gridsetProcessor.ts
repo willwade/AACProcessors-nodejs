@@ -2539,6 +2539,8 @@ class GridsetProcessor extends BaseProcessor {
       format: true,
       indentBy: '  ',
       suppressEmptyNode: true,
+      // Preserve Grid 3 XML formatting requirements
+      suppressBooleanAttributes: false,
     });
 
     for (const page of Object.values(tree.pages)) {
@@ -2615,8 +2617,13 @@ class GridsetProcessor extends BaseProcessor {
         }
       }
 
-      // Build the updated grid XML
-      newGridFiles.set(gridPath, gridBuilder.build(originalGrid));
+      // Build the updated grid XML and convert to Windows line endings
+      let builtXml = gridBuilder.build(originalGrid);
+      // Convert Unix line endings to Windows (\r\n) for Grid 3 compatibility
+      builtXml = builtXml.replace(/\n/g, '\r\n');
+      // Add space before closing slash in self-closing tags for Grid 3 compatibility
+      builtXml = builtXml.replace(/<([^>\/]+)\/>/g, '<$1 />');
+      newGridFiles.set(gridPath, builtXml);
     }
 
     // Copy all files from original zip, replacing modified grid files
@@ -2691,9 +2698,15 @@ class GridsetProcessor extends BaseProcessor {
       format: true,
       indentBy: '  ',
       suppressEmptyNode: true,
+      // Preserve Grid 3 XML formatting requirements
+      suppressBooleanAttributes: false,
     });
 
-    return gridBuilder.build(gridData);
+    // Build the grid XML and convert to Windows line endings for Grid 3 compatibility
+    let builtXml = gridBuilder.build(gridData);
+    builtXml = builtXml.replace(/\n/g, '\r\n');
+    builtXml = builtXml.replace(/<([^>\/]+)\/>/g, '<$1 />');
+    return builtXml;
   }
 
   // Helper method to find button position with span information
