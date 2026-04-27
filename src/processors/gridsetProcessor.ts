@@ -2603,29 +2603,15 @@ class GridsetProcessor extends BaseProcessor {
               // populate from the WordList.
               // Note: WordList updates are handled by collecting all new words
               // and adding them to the WordList.Items array later.
-
-              // CRITICAL: Remove xsi:nil from CaptionAndImage for WordList cells
-              // Even though the cell populates from WordList, the xsi:nil attribute
-              // tells Grid 3 to display it as blank. We need to remove it so Grid 3
-              // will show the WordList content.
-              if (cell.Content.CaptionAndImage || cell.Content.captionAndImage) {
-                const captionAndImage = cell.Content.CaptionAndImage || cell.Content.captionAndImage;
-                if (captionAndImage['@_xsi:nil'] || captionAndImage['xsi:nil']) {
-                  delete captionAndImage['@_xsi:nil'];
-                  delete captionAndImage['xsi:nil'];
-                }
-              }
-
-              continue; // Skip further cell modification for WordList cells
+              continue; // Skip cell modification for WordList cells
             }
 
-            // For regular cells, update the caption directly
+            // For regular cells, update the caption directly (no CDATA needed in cells)
             if (cell.Content.CaptionAndImage || cell.Content.captionAndImage) {
               const captionAndImage = cell.Content.CaptionAndImage || cell.Content.captionAndImage;
               captionAndImage.Caption = modifiedButton.label || '';
 
-              // Remove xsi:nil attribute when adding content - this is critical for Grid 3
-              // The xsi:nil="true" attribute tells Grid 3 the cell is intentionally empty
+              // Remove xsi:nil attribute when adding content
               if (captionAndImage['@_xsi:nil'] || captionAndImage['xsi:nil']) {
                 delete captionAndImage['@_xsi:nil'];
                 delete captionAndImage['xsi:nil'];
@@ -2678,9 +2664,16 @@ class GridsetProcessor extends BaseProcessor {
             (cell.Content?.ContentSubType === 'WordList' || cell.Content?.ContentSubType === 'WordList');
 
           if (isWordListCell) {
-            // Add this button to the WordList
+            // Add this button to the WordList with proper Grid 3 format
+            // Format: <Text><s><r>label</r></s></Text>
             newWordListItems.push({
-              Text: { s: { r: button.label } },
+              Text: {
+                s: {
+                  r: button.label
+                }
+              },
+              Image: '', // No image for user-added words
+              PartOfSpeech: 'Unknown'
             });
           }
         }
