@@ -2497,6 +2497,7 @@ class GridsetProcessor extends BaseProcessor {
   /**
    * Save a modified tree while preserving all original files (settings, images, assets)
    * This method only updates the grid.xml files for pages in the tree, keeping everything else intact.
+   * It preserves the original grid structure and only updates button labels and messages.
    *
    * @param originalPath - Path to the original gridset file
    * @param tree - Modified AACTree with pages to save
@@ -2516,106 +2517,106 @@ class GridsetProcessor extends BaseProcessor {
     const originalZip = new AdmZip(originalPath);
     const outputZip = new AdmZip();
 
-    // Collect styles from the tree for grid.xml files
-    const uniqueStyles = new Map<string, { id: string; style: AACStyle }>();
-    let styleIdCounter = 1;
-
-    const addStyle = (style: AACStyle | undefined): string => {
-      if (!style) return '';
-      const normalizedStyle: AACStyle = { ...style };
-      const styleKey = JSON.stringify(normalizedStyle);
-      const existing = uniqueStyles.get(styleKey);
-      if (existing) return existing.id;
-
-      const styleId = `Style${styleIdCounter++}`;
-      uniqueStyles.set(styleKey, { id: styleId, style: normalizedStyle });
-      return styleId;
-    };
-
-    // Collect all styles from pages and buttons
-    Object.values(tree.pages).forEach((page) => {
-      addStyle(page.style);
-      page.buttons.forEach((button) => {
-        addStyle(button.style);
-      });
-    });
+    // Create a map of pages by name for easy lookup
+    const pagesByName = new Map<string, AACPage>();
+    for (const page of Object.values(tree.pages)) {
+      pagesByName.set(page.name, page);
+    }
 
     // Track which grid files we're modifying
     const modifiedGridFiles = new Set<string>();
 
-    // Generate grid.xml files for pages in the tree
+    // Generate updated grid.xml files for pages in the tree
     const newGridFiles = new Map<string, string>();
+
+    // Create XML parser and builder
+    const parser = new XMLParser({
+      ignoreAttributes: false,
+      attributeNamePrefix: '@_',
+    });
+    const gridBuilder = new XMLBuilder({
+      ignoreAttributes: false,
+      format: true,
+      indentBy: '  ',
+      suppressEmptyNode: true,
+    });
 
     for (const page of Object.values(tree.pages)) {
       const gridPath = `Grids/${page.name}/grid.xml`;
       modifiedGridFiles.add(gridPath);
 
-      // Build the grid XML content
-      const gridData = {
-        Grid: {
-          '@_xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
-          GridGuid: page.id,
-          ColumnDefinitions: this.calculateColumnDefinitions(page),
-          RowDefinitions: this.calculateRowDefinitions(page, false),
-          AutoContentCommands: '',
-          Cells:
-            page.buttons.length > 0
-              ? {
-                  Cell: this.filterPageButtons(page.buttons).map((button, btnIndex) => {
-                    const buttonStyleId = button.style ? addStyle(button.style) : '';
-                    const position = this.findButtonPosition(page, button, btnIndex);
+      // Try to get the original grid.xml file
+      const originalEntry = originalZip.getEntry(gridPath);
 
-                    const captionAndImage: Record<string, unknown> = {
-                      Caption: button.label || '',
-                    };
+      if (!originalEntry) {
+        // If original doesn't exist, create a new basic grid
+        const basicGrid = this.createBasicGridXml(page);
+        newGridFiles.set(gridPath, basicGrid);
+        continue;
+      }
 
-                    // Handle image references
-                    if (button.image) {
-                      captionAndImage.Image = `${button.image}`;
-                    }
+      // Parse the original grid XML
+      const originalContent = originalEntry.getData().toString('utf-8');
+      const originalGrid = parser.parse(originalContent);
 
-                    const cell: Record<string, unknown> = {
-                      '@_Column': position.x,
-                      '@_Row': position.y,
-                      captionAndImage,
-                    };
+      if (!originalGrid.Grid) {
+        // Invalid grid structure, create a basic one
+        const basicGrid = this.createBasicGridXml(page);
+        newGridFiles.set(gridPath, basicGrid);
+        continue;
+      }
 
-                    if (position.columnSpan > 1) {
-                      cell['@_ColumnSpan'] = position.columnSpan;
-                    }
-                    if (position.rowSpan > 1) {
-                      cell['@_RowSpan'] = position.rowSpan;
-                    }
+      // Create a map of buttons by their position for easy lookup
+      const buttonsByPosition = new Map<string, AACButton>();
+      for (const button of page.buttons) {
+        const pos = this.findButtonPosition(page, button, 0);
+        const key = `${pos.x},${pos.y}`;
+        buttonsByPosition.set(key, button);
+      }
 
-                    if (buttonStyleId) {
-                      cell.CellStyle = buttonStyleId;
-                    }
+      // Update cells in the original grid
+      const originalCells = originalGrid.Grid.Cells?.Cell;
+      if (originalCells) {
+        const cellArray = Array.isArray(originalCells) ? originalCells : [originalCells];
 
-                    if (button.message && button.message !== button.label) {
-                      // Use spoken message if different from label
-                      const spoken = button.message;
-                      const cellContent: Record<string, unknown> = {
-                        spoken,
-                        type: 'text',
-                      };
-                      cell['ContentCell'] = cellContent;
-                    }
+        for (const cell of cellArray) {
+          if (!cell.Content) continue;
 
-                    return cell;
-                  }),
-                }
-              : undefined,
-        },
-      };
+          // Get cell position
+          const x = parseInt(String(cell['@_X'] || cell['@_Column'] || '0'), 10);
+          const y = parseInt(String(cell['@_Y'] || cell['@_Row'] || '0'), 10);
+          const key = `${x},${y}`;
 
-      const gridBuilder = new XMLBuilder({
-        ignoreAttributes: false,
-        format: true,
-        indentBy: '  ',
-        suppressEmptyNode: true,
-      });
+          // Check if there's a modified button for this position
+          const modifiedButton = buttonsByPosition.get(key);
+          if (modifiedButton) {
+            // Update the caption
+            if (cell.Content.CaptionAndImage || cell.Content.captionAndImage) {
+              const captionAndImage = cell.Content.CaptionAndImage || cell.Content.captionAndImage;
+              captionAndImage.Caption = modifiedButton.label || '';
+            }
 
-      newGridFiles.set(gridPath, gridBuilder.build(gridData));
+            // Update the message if different from label
+            if (modifiedButton.message && modifiedButton.message !== modifiedButton.label) {
+              // For simple text content
+              if (!cell.Content.Commands) {
+                cell.Content['#text'] = modifiedButton.message;
+              }
+            }
+
+            // Update image if present
+            if (modifiedButton.image) {
+              if (cell.Content.CaptionAndImage || cell.Content.captionAndImage) {
+                const captionAndImage = cell.Content.CaptionAndImage || cell.Content.captionAndImage;
+                captionAndImage.Image = modifiedButton.image;
+              }
+            }
+          }
+        }
+      }
+
+      // Build the updated grid XML
+      newGridFiles.set(gridPath, gridBuilder.build(originalGrid));
     }
 
     // Copy all files from original zip, replacing modified grid files
@@ -2638,6 +2639,61 @@ class GridsetProcessor extends BaseProcessor {
     // Write the output ZIP
     const outputBuffer = outputZip.toBuffer();
     await writeBinaryToPath(outputPath, outputBuffer);
+  }
+
+  /**
+   * Create a basic grid XML for a page when original doesn't exist
+   */
+  private createBasicGridXml(page: AACPage): string {
+    const gridData = {
+      Grid: {
+        '@_xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
+        GridGuid: page.id,
+        ColumnDefinitions: this.calculateColumnDefinitions(page),
+        RowDefinitions: this.calculateRowDefinitions(page, false),
+        AutoContentCommands: '',
+        Cells:
+          page.buttons.length > 0
+            ? {
+                Cell: this.filterPageButtons(page.buttons).map((button, btnIndex) => {
+                  const position = this.findButtonPosition(page, button, btnIndex);
+
+                  const cell: Record<string, unknown> = {
+                    '@_X': position.x,
+                    '@_Y': position.y,
+                    Content: {
+                      CaptionAndImage: {
+                        Caption: button.label || '',
+                      },
+                    },
+                  };
+
+                  if (button.image) {
+                    (cell.Content as any).CaptionAndImage.Image = button.image;
+                  }
+
+                  if (position.columnSpan > 1) {
+                    cell['@_ColumnSpan'] = position.columnSpan;
+                  }
+                  if (position.rowSpan > 1) {
+                    cell['@_RowSpan'] = position.rowSpan;
+                  }
+
+                  return cell;
+                }),
+              }
+            : undefined,
+      },
+    };
+
+    const gridBuilder = new XMLBuilder({
+      ignoreAttributes: false,
+      format: true,
+      indentBy: '  ',
+      suppressEmptyNode: true,
+    });
+
+    return gridBuilder.build(gridData);
   }
 
   // Helper method to find button position with span information
