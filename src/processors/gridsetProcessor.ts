@@ -2592,7 +2592,34 @@ class GridsetProcessor extends BaseProcessor {
           // Check if there's a modified button for this position
           const modifiedButton = buttonsByPosition.get(key);
           if (modifiedButton) {
-            // Update the caption
+            // Check if this is an AutoContent/WordList cell
+            const isWordListCell =
+              (cell.Content.ContentType === 'AutoContent' || cell.Content.ContentType === 'AutoContent') &&
+              (cell.Content.ContentSubType === 'WordList' || cell.Content.ContentSubType === 'WordList');
+
+            if (isWordListCell) {
+              // For WordList cells, we need to add the word to the page's WordList
+              // instead of modifying the cell directly. The cell will automatically
+              // populate from the WordList.
+              // Note: WordList updates are handled by collecting all new words
+              // and adding them to the WordList.Items array later.
+
+              // CRITICAL: Remove xsi:nil from CaptionAndImage for WordList cells
+              // Even though the cell populates from WordList, the xsi:nil attribute
+              // tells Grid 3 to display it as blank. We need to remove it so Grid 3
+              // will show the WordList content.
+              if (cell.Content.CaptionAndImage || cell.Content.captionAndImage) {
+                const captionAndImage = cell.Content.CaptionAndImage || cell.Content.captionAndImage;
+                if (captionAndImage['@_xsi:nil'] || captionAndImage['xsi:nil']) {
+                  delete captionAndImage['@_xsi:nil'];
+                  delete captionAndImage['xsi:nil'];
+                }
+              }
+
+              continue; // Skip further cell modification for WordList cells
+            }
+
+            // For regular cells, update the caption directly
             if (cell.Content.CaptionAndImage || cell.Content.captionAndImage) {
               const captionAndImage = cell.Content.CaptionAndImage || cell.Content.captionAndImage;
               captionAndImage.Caption = modifiedButton.label || '';
@@ -2603,19 +2630,6 @@ class GridsetProcessor extends BaseProcessor {
                 delete captionAndImage['@_xsi:nil'];
                 delete captionAndImage['xsi:nil'];
               }
-            }
-
-            // CRITICAL: Remove ContentType and ContentSubType when adding static content
-            // Grid 3 sees ContentType="AutoContent" and tries to populate dynamically,
-            // ignoring the static Caption. We must remove these to show static content.
-            if (cell.Content.ContentType === 'AutoContent' ||
-                cell.Content.ContentSubType === 'WordList' ||
-                cell.Content.ContentType === 'AutoContent' ||
-                cell.Content.ContentSubType === 'WordList') {
-              delete cell.Content.ContentType;
-              delete cell.Content.ContentSubType;
-              delete cell.Content['ContentType'];
-              delete cell.Content['ContentSubType'];
             }
 
             // Update the message if different from label
@@ -2634,6 +2648,64 @@ class GridsetProcessor extends BaseProcessor {
               }
             }
           }
+        }
+      }
+
+      // Update the page's WordList with new words from modified buttons
+      // Collect all modified buttons that should be added to the WordList
+      const newWordListItems: any[] = [];
+
+      for (const button of page.buttons) {
+        const pos = this.findButtonPosition(page, button, 0);
+        const key = `${pos.x},${pos.y}`;
+
+        // Check if this button corresponds to a WordList cell
+        const cellArray = Array.isArray(originalGrid.Grid.Cells?.Cell)
+          ? originalGrid.Grid.Cells.Cell
+          : originalGrid.Grid.Cells?.Cell
+            ? [originalGrid.Grid.Cells.Cell]
+            : [];
+
+        const cell = cellArray.find((c: any) => {
+          const cellX = parseInt(String(c['@_X'] || '0'), 10);
+          const cellY = parseInt(String(c['@_Y'] || '0'), 10);
+          return cellX === pos.x && cellY === pos.y;
+        });
+
+        if (cell) {
+          const isWordListCell =
+            (cell.Content?.ContentType === 'AutoContent' || cell.Content?.ContentType === 'AutoContent') &&
+            (cell.Content?.ContentSubType === 'WordList' || cell.Content?.ContentSubType === 'WordList');
+
+          if (isWordListCell) {
+            // Add this button to the WordList
+            newWordListItems.push({
+              Text: { s: { r: button.label } },
+            });
+          }
+        }
+      }
+
+      // Add new items to the existing WordList
+      if (newWordListItems.length > 0) {
+        const existingWordList = originalGrid.Grid.WordList;
+        if (existingWordList && existingWordList.Items) {
+          const existingItems = existingWordList.Items.WordListItem ||
+                                existingWordList.Items.wordlistitem ||
+                                [];
+          const itemsArray = Array.isArray(existingItems) ? existingItems : [existingItems];
+
+          // Merge existing and new items
+          const allItems = [...itemsArray, ...newWordListItems];
+
+          // Update the WordList
+          if (!originalGrid.Grid.WordList) {
+            originalGrid.Grid.WordList = {};
+          }
+          if (!originalGrid.Grid.WordList.Items) {
+            originalGrid.Grid.WordList.Items = {};
+          }
+          originalGrid.Grid.WordList.Items.WordListItem = allItems;
         }
       }
 
