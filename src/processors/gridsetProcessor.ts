@@ -2596,6 +2596,13 @@ class GridsetProcessor extends BaseProcessor {
             if (cell.Content.CaptionAndImage || cell.Content.captionAndImage) {
               const captionAndImage = cell.Content.CaptionAndImage || cell.Content.captionAndImage;
               captionAndImage.Caption = modifiedButton.label || '';
+
+              // Remove xsi:nil attribute when adding content - this is critical for Grid 3
+              // The xsi:nil="true" attribute tells Grid 3 the cell is intentionally empty
+              if (captionAndImage['@_xsi:nil'] || captionAndImage['xsi:nil']) {
+                delete captionAndImage['@_xsi:nil'];
+                delete captionAndImage['xsi:nil'];
+              }
             }
 
             // Update the message if different from label
