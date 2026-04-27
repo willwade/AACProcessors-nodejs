@@ -2605,6 +2605,19 @@ class GridsetProcessor extends BaseProcessor {
               }
             }
 
+            // CRITICAL: Remove ContentType and ContentSubType when adding static content
+            // Grid 3 sees ContentType="AutoContent" and tries to populate dynamically,
+            // ignoring the static Caption. We must remove these to show static content.
+            if (cell.Content.ContentType === 'AutoContent' ||
+                cell.Content.ContentSubType === 'WordList' ||
+                cell.Content.ContentType === 'AutoContent' ||
+                cell.Content.ContentSubType === 'WordList') {
+              delete cell.Content.ContentType;
+              delete cell.Content.ContentSubType;
+              delete cell.Content['ContentType'];
+              delete cell.Content['ContentSubType'];
+            }
+
             // Update the message if different from label
             if (modifiedButton.message && modifiedButton.message !== modifiedButton.label) {
               // For simple text content
