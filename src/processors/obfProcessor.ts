@@ -227,19 +227,11 @@ class ObfProcessor extends BaseProcessor {
     }
   }
 
-  private async processBoard(
-    boardData: ObfBoard,
-    _boardPath: string,
-    isZipEntry: boolean
-  ): Promise<AACPage> {
+  private async processBoard(boardData: ObfBoard, _boardPath: string): Promise<AACPage> {
     const sourceButtons = boardData.buttons || [];
 
     // Calculate page ID first (used to make button IDs unique)
-    const pageId = isZipEntry
-      ? _boardPath // Zip entry - use filename to match navigation paths
-      : boardData?.id
-        ? String(boardData.id)
-        : _boardPath?.split(/[/\\]/).pop() || '';
+    const pageId = boardData?.id ? String(boardData.id) : _boardPath?.split(/[/\\]/).pop() || '';
 
     const images = boardData.images;
 
@@ -471,7 +463,7 @@ class ObfProcessor extends BaseProcessor {
         const boardData = await tryParseObfJson(content);
         if (boardData) {
           console.log('[OBF] Detected .obf file, parsed as JSON');
-          const page = await this.processBoard(boardData, filePathOrBuffer, false);
+          const page = await this.processBoard(boardData, filePathOrBuffer);
           tree.addPage(page);
 
           // Set metadata from root board
@@ -513,7 +505,7 @@ class ObfProcessor extends BaseProcessor {
       const asJson = await tryParseObfJson(filePathOrBuffer);
       if (!asJson) throw new Error('Invalid OBF content: not JSON and not ZIP');
       console.log('[OBF] Detected buffer/string as OBF JSON');
-      const page = await this.processBoard(asJson, '[bufferOrString]', false);
+      const page = await this.processBoard(asJson, '[bufferOrString]');
       tree.addPage(page);
 
       // Set metadata from root board
@@ -593,7 +585,7 @@ class ObfProcessor extends BaseProcessor {
         const content = await this.zipFile.readFile(entryName);
         const boardData = await tryParseObfJson(decodeText(content));
         if (boardData) {
-          const page = await this.processBoard(boardData, entryName, true);
+          const page = await this.processBoard(boardData, entryName);
           tree.addPage(page);
 
           // Set metadata if not already set (use first board as reference)
