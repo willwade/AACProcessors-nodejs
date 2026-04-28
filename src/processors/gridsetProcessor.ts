@@ -1292,9 +1292,13 @@ class GridsetProcessor extends BaseProcessor {
                     break;
 
                   case 'Jump.ToKeyboard': {
-                    // Navigate to the set keyboard if we found one in settings
+                    // Prefer explicit keyboard page metadata when available.
+                    // Some Gridsets resolve the keyboard page in metadata
+                    // without preserving tree.keyboardGridName during parse.
                     const keyboardGridName = (tree as any).keyboardGridName as string;
-                    const keyboardPageId = gridNameToIdMap.get(keyboardGridName);
+                    const keyboardPageId =
+                      tree.metadata?.defaultKeyboardPageId ||
+                      gridNameToIdMap.get(keyboardGridName);
                     if (keyboardPageId && !navigationTarget) {
                       navigationTarget = keyboardPageId;
                     }
@@ -1900,6 +1904,7 @@ class GridsetProcessor extends BaseProcessor {
           settingsData?.gridSetSettings?.keyboardGrid ||
           settingsData?.GridsetSettings?.KeyboardGrid;
         if (keyboardGridName && typeof keyboardGridName === 'string') {
+          (tree as any).keyboardGridName = keyboardGridName;
           metadata.defaultKeyboardPageId = gridNameToIdMap.get(keyboardGridName);
         }
       }
@@ -1909,6 +1914,24 @@ class GridsetProcessor extends BaseProcessor {
 
     // Set metadata on tree
     tree.metadata = metadata;
+    if (metadata.defaultKeyboardPageId) {
+      Object.values(tree.pages).forEach((page) => {
+        page.buttons.forEach((button) => {
+          if (
+            button?.semanticAction?.platformData?.grid3?.commandId === 'Jump.ToKeyboard' &&
+            !button.targetPageId
+          ) {
+            button.targetPageId = metadata.defaultKeyboardPageId;
+            if (button.semanticAction) {
+              button.semanticAction.targetId = metadata.defaultKeyboardPageId;
+              if (button.semanticAction.fallback?.type === 'NAVIGATE') {
+                button.semanticAction.fallback.targetPageId = metadata.defaultKeyboardPageId;
+              }
+            }
+          }
+        });
+      });
+    }
 
     return tree;
   }
