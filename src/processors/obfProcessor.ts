@@ -595,9 +595,12 @@ class ObfProcessor extends BaseProcessor {
             tree.metadata.description = boardData.description_html;
             tree.metadata.locale = boardData.locale;
             tree.metadata.id = boardData.id;
+            tree.metadata._obfPagePaths = { [page.id]: entryName };
             if (boardData.url) tree.metadata.url = boardData.url;
             if (boardData.locale) tree.metadata.languages = [boardData.locale];
             tree.rootId = page.id;
+          } else {
+            tree.metadata._obfPagePaths[page.id] = entryName;
           }
         } else {
           console.warn('[OBF] Skipped entry (not valid OBF JSON):', entryName);
@@ -784,7 +787,12 @@ class ObfProcessor extends BaseProcessor {
       );
       await writeTextToPath(outputPath, JSON.stringify(obfBoard, null, 2));
     } else {
-      const getPageFilename = (id: string): string => (id.endsWith('.obf') ? id : `${id}.obf`);
+      const getPageFilename = (id: string): string => {
+        if (tree.metadata._obfPagePaths && id in tree.metadata._obfPagePaths)
+          return tree.metadata._obfPagePaths[id] as string;
+        if (id.endsWith('.obf')) return id;
+        return `${id}.obf`;
+      };
       const files = Object.values(tree.pages).map((page) => {
         const obfBoard = this.createObfBoardFromPage(page, 'Board', tree.metadata, embedData);
         const obfContent = JSON.stringify(obfBoard, null, 2);
