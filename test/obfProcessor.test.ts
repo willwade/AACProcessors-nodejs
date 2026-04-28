@@ -89,7 +89,6 @@ describe('OBFProcessor', () => {
       const savedTree = await processor.loadIntoTree(tempOutputPath);
 
       // Verify the saved tree has the same pages
-      console.log("page keys", Object.keys(savedTree.pages))
       expect(Object.keys(savedTree.pages).length).toBe(originalPageCount);
       expect(savedTree.rootId).toBe(tree.rootId);
     });
