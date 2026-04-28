@@ -2768,7 +2768,18 @@ class GridsetProcessor extends BaseProcessor {
         | Array<{ label: string; message: string }>
         | undefined;
 
-      if (wordListItems && wordListItems.length > 0 && originalGrid.Grid?.WordList?.Items) {
+      if (wordListItems && wordListItems.length > 0) {
+        // Ensure WordList structure exists
+        if (!originalGrid.Grid) {
+          originalGrid.Grid = {};
+        }
+        if (!originalGrid.Grid.WordList) {
+          originalGrid.Grid.WordList = {};
+        }
+        if (!originalGrid.Grid.WordList.Items) {
+          originalGrid.Grid.WordList.Items = {};
+        }
+
         const existingItems =
           originalGrid.Grid.WordList.Items.WordListItem ||
           originalGrid.Grid.WordList.Items.wordlistitem ||
