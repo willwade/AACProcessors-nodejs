@@ -1,14 +1,14 @@
 // Comprehensive tests for TouchChatProcessor to improve coverage from 57.62% to 85%+
-import fs from 'fs';
-import path from 'path';
-import { TouchChatProcessor } from '../src/processors/touchchatProcessor';
-import { AACTree } from '../src/core/treeStructure';
-import { TreeFactory, PageFactory, ButtonFactory } from './utils/testFactories';
+import fs from "fs";
+import path from "path";
+import { TouchChatProcessor } from "../src/processors/touchchatProcessor";
+import { AACTree } from "../src/core/treeStructure";
+import { TreeFactory, PageFactory, ButtonFactory } from "./utils/testFactories";
 
-describe('TouchChatProcessor - Comprehensive Coverage Tests', () => {
+describe("TouchChatProcessor - Comprehensive Coverage Tests", () => {
   let processor: TouchChatProcessor;
-  const tempDir = path.join(__dirname, 'temp_touchchat');
-  const exampleFile = path.join(__dirname, 'assets/excel/example.ce');
+  const tempDir = path.join(__dirname, "temp_touchchat");
+  const exampleFile = path.join(__dirname, "assets/excel/example.ce");
 
   beforeAll(async () => {
     if (!fs.existsSync(tempDir)) {
@@ -26,13 +26,15 @@ describe('TouchChatProcessor - Comprehensive Coverage Tests', () => {
     }
   });
 
-  describe('SQLite Schema Tests', () => {
-    it('should handle TouchChat v1.x database schema', async () => {
+  describe("SQLite Schema Tests", () => {
+    it("should handle TouchChat v1.x database schema", async () => {
       // Test with minimal valid TouchChat database structure
       const tree = TreeFactory.createSimple();
-      const outputPath = path.join(tempDir, 'v1_test.ce');
+      const outputPath = path.join(tempDir, "v1_test.ce");
 
-      await expect(processor.saveFromTree(tree, outputPath)).resolves.not.toThrow();
+      await expect(
+        processor.saveFromTree(tree, outputPath),
+      ).resolves.not.toThrow();
 
       expect(fs.existsSync(outputPath)).toBe(true);
 
@@ -42,22 +44,24 @@ describe('TouchChatProcessor - Comprehensive Coverage Tests', () => {
       expect(Object.keys(loadedTree.pages).length).toBeGreaterThan(0);
     });
 
-    it('should handle TouchChat v2.x database schema', async () => {
+    it("should handle TouchChat v2.x database schema", async () => {
       // Test with more complex button configurations
       const tree = TreeFactory.createCommunicationBoard();
-      const outputPath = path.join(tempDir, 'v2_test.ce');
+      const outputPath = path.join(tempDir, "v2_test.ce");
 
       await processor.saveFromTree(tree, outputPath);
       const loadedTree = await processor.loadIntoTree(outputPath);
 
       expect(loadedTree).toBeDefined();
-      expect(Object.keys(loadedTree.pages).length).toBe(Object.keys(tree.pages).length);
+      expect(Object.keys(loadedTree.pages).length).toBe(
+        Object.keys(tree.pages).length,
+      );
     });
 
-    it('should handle TouchChat v3.x database schema', async () => {
+    it("should handle TouchChat v3.x database schema", async () => {
       // Test with large dataset
       const tree = TreeFactory.createLarge(5, 10);
-      const outputPath = path.join(tempDir, 'v3_test.ce');
+      const outputPath = path.join(tempDir, "v3_test.ce");
 
       await processor.saveFromTree(tree, outputPath);
       const loadedTree = await processor.loadIntoTree(outputPath);
@@ -66,189 +70,191 @@ describe('TouchChatProcessor - Comprehensive Coverage Tests', () => {
       expect(Object.keys(loadedTree.pages).length).toBe(5);
     });
 
-    it('should process buttons with custom actions', async () => {
+    it("should process buttons with custom actions", async () => {
       const page = PageFactory.create({
-        id: 'custom_actions',
-        name: 'Custom Actions Page',
+        id: "custom_actions",
+        name: "Custom Actions Page",
         buttons: [
-          { label: 'Speak Button', message: 'Hello World', type: 'SPEAK' },
+          { label: "Speak Button", message: "Hello World", type: "SPEAK" },
           {
-            label: 'Nav Button',
-            message: 'Navigate',
-            type: 'NAVIGATE',
-            targetPageId: 'target',
+            label: "Nav Button",
+            message: "Navigate",
+            type: "NAVIGATE",
+            targetPageId: "target",
           },
         ],
       });
 
       const tree = new AACTree();
       tree.addPage(page);
-      tree.addPage(PageFactory.create({ id: 'target', name: 'Target Page' }));
+      tree.addPage(PageFactory.create({ id: "target", name: "Target Page" }));
 
-      const outputPath = path.join(tempDir, 'custom_actions.ce');
+      const outputPath = path.join(tempDir, "custom_actions.ce");
       await processor.saveFromTree(tree, outputPath);
 
       const loadedTree = await processor.loadIntoTree(outputPath);
-      const loadedPage = loadedTree.getPage('custom_actions');
+      const loadedPage = loadedTree.getPage("custom_actions");
 
       expect(loadedPage).toBeDefined();
       if (!loadedPage) {
         return;
       }
       expect(loadedPage.buttons).toHaveLength(2);
-      expect(loadedPage.buttons[0].type).toBe('SPEAK');
-      expect(loadedPage.buttons[1].type).toBe('NAVIGATE');
-      expect(loadedPage.buttons[1].targetPageId).toBe('target');
+      expect(loadedPage.buttons[0].type).toBe("SPEAK");
+      expect(loadedPage.buttons[1].type).toBe("NAVIGATE");
+      expect(loadedPage.buttons[1].targetPageId).toBe("target");
     });
 
-    it('should handle buttons with multiple audio recordings', async () => {
+    it("should handle buttons with multiple audio recordings", async () => {
       const button = ButtonFactory.create({
-        label: 'Audio Button',
-        message: 'I have audio',
-        type: 'SPEAK',
+        label: "Audio Button",
+        message: "I have audio",
+        type: "SPEAK",
       });
 
       // Add audio recording
       button.audioRecording = {
         id: 1,
-        data: Buffer.from('fake audio data'),
-        identifier: 'audio_1',
-        metadata: 'Test audio recording',
+        data: Buffer.from("fake audio data"),
+        identifier: "audio_1",
+        metadata: "Test audio recording",
       };
 
       const page = PageFactory.create({
-        id: 'audio_page',
-        name: 'Audio Page',
+        id: "audio_page",
+        name: "Audio Page",
       });
       page.addButton(button);
 
       const tree = new AACTree();
       tree.addPage(page);
 
-      const outputPath = path.join(tempDir, 'audio_test.ce');
+      const outputPath = path.join(tempDir, "audio_test.ce");
       await processor.saveFromTree(tree, outputPath);
 
       const loadedTree = await processor.loadIntoTree(outputPath);
-      const loadedPage = loadedTree.getPage('audio_page');
+      const loadedPage = loadedTree.getPage("audio_page");
 
       expect(loadedPage).toBeDefined();
       if (!loadedPage) {
         return;
       }
-      expect(loadedPage.buttons[0].label).toBe('Audio Button');
+      expect(loadedPage.buttons[0].label).toBe("Audio Button");
     });
 
-    it('should process navigation buttons with complex targets', async () => {
+    it("should process navigation buttons with complex targets", async () => {
       // Create a complex navigation hierarchy
-      const homePage = PageFactory.create({ id: 'home', name: 'Home' });
+      const homePage = PageFactory.create({ id: "home", name: "Home" });
       const categoryPage = PageFactory.create({
-        id: 'category',
-        name: 'Category',
-        parentId: 'home',
+        id: "category",
+        name: "Category",
+        parentId: "home",
       });
       const subPage = PageFactory.create({
-        id: 'sub',
-        name: 'Sub Page',
-        parentId: 'category',
+        id: "sub",
+        name: "Sub Page",
+        parentId: "category",
       });
 
       // Add navigation buttons
       homePage.addButton(
         ButtonFactory.create({
-          label: 'Go to Category',
-          type: 'NAVIGATE',
-          targetPageId: 'category',
-        })
+          label: "Go to Category",
+          type: "NAVIGATE",
+          targetPageId: "category",
+        }),
       );
 
       categoryPage.addButton(
         ButtonFactory.create({
-          label: 'Go to Sub',
-          type: 'NAVIGATE',
-          targetPageId: 'sub',
-        })
+          label: "Go to Sub",
+          type: "NAVIGATE",
+          targetPageId: "sub",
+        }),
       );
 
       categoryPage.addButton(
         ButtonFactory.create({
-          label: 'Back to Home',
-          type: 'NAVIGATE',
-          targetPageId: 'home',
-        })
+          label: "Back to Home",
+          type: "NAVIGATE",
+          targetPageId: "home",
+        }),
       );
 
       const tree = new AACTree();
       tree.addPage(homePage);
       tree.addPage(categoryPage);
       tree.addPage(subPage);
-      tree.rootId = 'home';
+      tree.rootId = "home";
 
-      const outputPath = path.join(tempDir, 'navigation_test.ce');
+      const outputPath = path.join(tempDir, "navigation_test.ce");
       await processor.saveFromTree(tree, outputPath);
 
       const loadedTree = await processor.loadIntoTree(outputPath);
 
-      expect(loadedTree.rootId).toBe('home');
+      expect(loadedTree.rootId).toBe("home");
       expect(Object.keys(loadedTree.pages)).toHaveLength(3);
 
-      const loadedHome = loadedTree.getPage('home');
+      const loadedHome = loadedTree.getPage("home");
       expect(loadedHome).toBeDefined();
       if (!loadedHome) {
         return;
       }
-      expect(loadedHome.buttons[0].targetPageId).toBe('category');
+      expect(loadedHome.buttons[0].targetPageId).toBe("category");
 
-      const loadedCategory = loadedTree.getPage('category');
+      const loadedCategory = loadedTree.getPage("category");
       expect(loadedCategory).toBeDefined();
       if (!loadedCategory) {
         return;
       }
       expect(loadedCategory.buttons).toHaveLength(2);
-      expect(loadedCategory.buttons[0].targetPageId).toBe('sub');
-      expect(loadedCategory.buttons[1].targetPageId).toBe('home');
+      expect(loadedCategory.buttons[0].targetPageId).toBe("sub");
+      expect(loadedCategory.buttons[1].targetPageId).toBe("home");
     });
   });
 
-  describe('Database Connection Edge Cases', () => {
-    it('should handle corrupted SQLite databases gracefully', async () => {
-      const corruptedPath = path.join(tempDir, 'corrupted.ce');
-      fs.writeFileSync(corruptedPath, 'This is not a valid zip file');
+  describe("Database Connection Edge Cases", () => {
+    it("should handle corrupted SQLite databases gracefully", async () => {
+      const corruptedPath = path.join(tempDir, "corrupted.ce");
+      fs.writeFileSync(corruptedPath, "This is not a valid zip file");
 
       await expect(processor.loadIntoTree(corruptedPath)).rejects.toThrow();
     });
 
-    it('should process databases with missing required tables', async () => {
+    it("should process databases with missing required tables", async () => {
       // Create a minimal zip file without proper database structure
       // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const AdmZip = require('adm-zip');
+      const AdmZip = require("adm-zip");
       const zip = new AdmZip();
-      zip.addFile('empty.txt', Buffer.from('empty'));
+      zip.addFile("empty.txt", Buffer.from("empty"));
 
-      const invalidPath = path.join(tempDir, 'invalid.ce');
+      const invalidPath = path.join(tempDir, "invalid.ce");
       zip.writeZip(invalidPath);
 
       await expect(processor.loadIntoTree(invalidPath)).rejects.toThrow();
     });
 
-    it('should handle databases with foreign key constraints', async () => {
+    it("should handle databases with foreign key constraints", async () => {
       // Test with a valid tree that has proper relationships
       const tree = TreeFactory.createCommunicationBoard();
-      const outputPath = path.join(tempDir, 'fk_test.ce');
+      const outputPath = path.join(tempDir, "fk_test.ce");
 
-      await expect(processor.saveFromTree(tree, outputPath)).resolves.not.toThrow();
+      await expect(
+        processor.saveFromTree(tree, outputPath),
+      ).resolves.not.toThrow();
 
       const loadedTree = await processor.loadIntoTree(outputPath);
       expect(loadedTree).toBeDefined();
     });
   });
 
-  describe('Large Dataset Performance', () => {
-    it('should process databases with 1000+ buttons efficiently', async () => {
+  describe("Large Dataset Performance", () => {
+    it("should process databases with 1000+ buttons efficiently", async () => {
       const startTime = Date.now();
 
       // Create a large tree with many buttons
       const tree = TreeFactory.createLarge(10, 100); // 10 pages, 100 buttons each = 1000 buttons
-      const outputPath = path.join(tempDir, 'large_test.ce');
+      const outputPath = path.join(tempDir, "large_test.ce");
 
       await processor.saveFromTree(tree, outputPath);
       const loadedTree = await processor.loadIntoTree(outputPath);
@@ -268,10 +274,10 @@ describe('TouchChatProcessor - Comprehensive Coverage Tests', () => {
       expect(totalButtons).toBe(1000);
     });
 
-    it('should handle databases with complex page hierarchies', async () => {
+    it("should handle databases with complex page hierarchies", async () => {
       // Create a deep hierarchy
       const tree = new AACTree();
-      let currentParent = 'root';
+      let currentParent = "root";
 
       // Create 5 levels deep
       for (let level = 0; level < 5; level++) {
@@ -290,9 +296,9 @@ describe('TouchChatProcessor - Comprehensive Coverage Tests', () => {
               page.addButton(
                 ButtonFactory.create({
                   label: `Go to ${targetId}`,
-                  type: 'NAVIGATE',
+                  type: "NAVIGATE",
                   targetPageId: targetId,
-                })
+                }),
               );
             }
           }
@@ -305,7 +311,7 @@ describe('TouchChatProcessor - Comprehensive Coverage Tests', () => {
         }
       }
 
-      const outputPath = path.join(tempDir, 'hierarchy_test.ce');
+      const outputPath = path.join(tempDir, "hierarchy_test.ce");
       await processor.saveFromTree(tree, outputPath);
 
       const loadedTree = await processor.loadIntoTree(outputPath);
@@ -314,10 +320,10 @@ describe('TouchChatProcessor - Comprehensive Coverage Tests', () => {
     });
   });
 
-  describe('Text Processing Methods', () => {
-    it('should extract all texts from complex database', async () => {
+  describe("Text Processing Methods", () => {
+    it("should extract all texts from complex database", async () => {
       if (!fs.existsSync(exampleFile)) {
-        console.log('Skipping test - example file not found');
+        console.log("Skipping test - example file not found");
         return;
       }
 
@@ -327,34 +333,38 @@ describe('TouchChatProcessor - Comprehensive Coverage Tests', () => {
 
       // Verify texts are non-empty strings
       texts.forEach((text) => {
-        expect(typeof text).toBe('string');
+        expect(typeof text).toBe("string");
         expect(text.length).toBeGreaterThan(0);
       });
     });
 
-    it('should process texts with translations', async () => {
+    it("should process texts with translations", async () => {
       const tree = TreeFactory.createSimple();
-      const inputPath = path.join(tempDir, 'input_for_translation.ce');
-      const outputPath = path.join(tempDir, 'translation_test.ce');
+      const inputPath = path.join(tempDir, "input_for_translation.ce");
+      const outputPath = path.join(tempDir, "translation_test.ce");
 
       // Save the tree first
       await processor.saveFromTree(tree, inputPath);
 
       // Create translation map
       const translations = new Map<string, string>();
-      translations.set('Hello', 'Hola');
-      translations.set('Food', 'Comida');
-      translations.set('Home', 'Casa');
+      translations.set("Hello", "Hola");
+      translations.set("Food", "Comida");
+      translations.set("Home", "Casa");
 
-      const result = await processor.processTexts(inputPath, translations, outputPath);
+      const result = await processor.processTexts(
+        inputPath,
+        translations,
+        outputPath,
+      );
       expect(result).toBeInstanceOf(Buffer);
       expect(fs.existsSync(outputPath)).toBe(true);
 
       // Load and verify translations were applied
       const translatedTree = await processor.loadIntoTree(outputPath);
-      const homePage = translatedTree.getPage('home');
+      const homePage = translatedTree.getPage("home");
       expect(homePage).toBeDefined();
-      expect(homePage?.name).toBe('Casa');
+      expect(homePage?.name).toBe("Casa");
     });
   });
 });

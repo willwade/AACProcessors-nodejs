@@ -5,7 +5,7 @@
  */
 
 // Processor class
-export { DotProcessor } from './processors/dotProcessor';
+export { DotProcessor } from "./processors/dotProcessor";
 
 // Note: DOT doesn't currently have platform-specific helpers
 // Future helper functions can be added here

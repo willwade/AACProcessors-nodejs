@@ -16,8 +16,8 @@
 export function normalizeLabelForCloneId(label: string): string {
   return label
     .toLowerCase()
-    .replace(/['']/g, '') // Remove apostrophes
-    .replace(/\s+/g, '_') // Replace spaces with underscores
+    .replace(/['']/g, "") // Remove apostrophes
+    .replace(/\s+/g, "_") // Replace spaces with underscores
     .trim();
 }
 
@@ -39,7 +39,7 @@ export function generateCloneId(
   cols: number,
   row: number,
   col: number,
-  label: string
+  label: string,
 ): string {
   const normalizedLabel = normalizeLabelForCloneId(label);
   return `${rows}x${cols}-${row}.${col}-${normalizedLabel}`;
@@ -57,7 +57,7 @@ export function generateCloneId(
  * @returns A semantic_id string (hash-based)
  */
 export function generateSemanticId(message: string, label: string): string {
-  const content = `${message || ''}::${label || ''}`;
+  const content = `${message || ""}::${label || ""}`;
   // Simple hash function (djb2 algorithm)
   let hash = 5381;
   for (let i = 0; i < content.length; i++) {
@@ -73,7 +73,9 @@ export function generateSemanticId(message: string, label: string): string {
  * @param buttons - Array of buttons to scan
  * @returns Array of unique semantic_id strings
  */
-export function extractSemanticIds(buttons: Array<{ semantic_id?: string }>): string[] {
+export function extractSemanticIds(
+  buttons: Array<{ semantic_id?: string }>,
+): string[] {
   const ids = new Set<string>();
   for (const button of buttons) {
     if (button.semantic_id) {
@@ -89,7 +91,9 @@ export function extractSemanticIds(buttons: Array<{ semantic_id?: string }>): st
  * @param buttons - Array of buttons to scan
  * @returns Array of unique clone_id strings
  */
-export function extractCloneIds(buttons: Array<{ clone_id?: string }>): string[] {
+export function extractCloneIds(
+  buttons: Array<{ clone_id?: string }>,
+): string[] {
   const ids = new Set<string>();
   for (const button of buttons) {
     if (button.clone_id) {

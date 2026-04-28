@@ -5,7 +5,7 @@
  */
 
 // Processor class
-export { SnapProcessor } from './processors/snapProcessor';
+export { SnapProcessor } from "./processors/snapProcessor";
 
 // === Snap Helpers ===
 export {
@@ -23,4 +23,4 @@ export {
   type SnapPackagePath,
   type SnapUserInfo,
   type SnapUsageEntry,
-} from './processors/snap/helpers';
+} from "./processors/snap/helpers";

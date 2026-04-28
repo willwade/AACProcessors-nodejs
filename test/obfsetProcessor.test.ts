@@ -1,70 +1,70 @@
-import path from 'path';
-import fs from 'fs';
-import { ObfsetProcessor } from '../src/processors/obfsetProcessor';
-import { AACTree } from '../src/core/treeStructure';
+import path from "path";
+import fs from "fs";
+import { ObfsetProcessor } from "../src/processors/obfsetProcessor";
+import { AACTree } from "../src/core/treeStructure";
 
-describe('ObfsetProcessor', () => {
-  const obfsetPath = path.join(__dirname, 'fixtures/example.obfset');
+describe("ObfsetProcessor", () => {
+  const obfsetPath = path.join(__dirname, "fixtures/example.obfset");
 
-  it('can load .obfset files into a tree', async () => {
+  it("can load .obfset files into a tree", async () => {
     const processor = new ObfsetProcessor();
     const tree = await processor.loadIntoTree(obfsetPath);
 
     expect(tree).toBeInstanceOf(AACTree);
-    expect(tree.rootId).toBe('root');
+    expect(tree.rootId).toBe("root");
     expect(Object.keys(tree.pages).length).toBe(2);
 
-    const rootPage = tree.getPage('root');
+    const rootPage = tree.getPage("root");
     if (!rootPage) {
-      throw new Error('Expected root page to exist');
+      throw new Error("Expected root page to exist");
     }
-    expect(rootPage.name).toBe('Home');
-    expect(rootPage.grid[0][0]?.label).toBe('Hello');
-    expect(rootPage.grid[0][0]?.semantic_id).toBe('greeting-1');
+    expect(rootPage.name).toBe("Home");
+    expect(rootPage.grid[0][0]?.label).toBe("Hello");
+    expect(rootPage.grid[0][0]?.semantic_id).toBe("greeting-1");
     expect(rootPage.buttons.length).toBe(2);
 
-    const page2 = tree.getPage('page2');
+    const page2 = tree.getPage("page2");
     if (!page2) {
-      throw new Error('Expected page2 to exist');
+      throw new Error("Expected page2 to exist");
     }
-    expect(page2.parentId).toBe('root');
-    expect(page2.grid[0][0]?.label).toBe('World');
-    expect(page2.grid[0][0]?.clone_id).toBe('world-1');
+    expect(page2.parentId).toBe("root");
+    expect(page2.grid[0][0]?.label).toBe("World");
+    expect(page2.grid[0][0]?.clone_id).toBe("world-1");
   });
 
-  it('can load .obfset from a Buffer', async () => {
+  it("can load .obfset from a Buffer", async () => {
     const processor = new ObfsetProcessor();
     const buffer = fs.readFileSync(obfsetPath);
     const tree = await processor.loadIntoTree(buffer);
 
     expect(tree).toBeInstanceOf(AACTree);
-    expect(tree.rootId).toBe('root');
+    expect(tree.rootId).toBe("root");
   });
 
-  it('can extract texts from .obfset', async () => {
+  it("can extract texts from .obfset", async () => {
     const processor = new ObfsetProcessor();
     const texts = await processor.extractTexts(obfsetPath);
 
-    expect(texts).toContain('Hello');
-    expect(texts).toContain('Go To Page 2');
-    expect(texts).toContain('World');
-    expect(texts).toContain('Home');
-    expect(texts).toContain('Page 2');
+    expect(texts).toContain("Hello");
+    expect(texts).toContain("Go To Page 2");
+    expect(texts).toContain("World");
+    expect(texts).toContain("Home");
+    expect(texts).toContain("Page 2");
   });
 
-  it('throws error for unsupported operations', async () => {
+  it("throws error for unsupported operations", async () => {
     const processor = new ObfsetProcessor();
     await expect(async () => {
-      await processor.processTexts(obfsetPath, new Map(), 'out.obfset');
+      await processor.processTexts(obfsetPath, new Map(), "out.obfset");
     }).rejects.toThrow();
     await expect(async () => {
-      await processor.saveFromTree(new AACTree(), 'out.obfset');
+      await processor.saveFromTree(new AACTree(), "out.obfset");
     }).rejects.toThrow();
   });
 
-  it('correctly reports supported extension', async () => {
+  it("correctly reports supported extension", async () => {
     const processor = new ObfsetProcessor();
-    expect(processor.supportsExtension('.obfset')).toBe(true);
-    expect(processor.supportsExtension('.obf')).toBe(false);
+    expect(processor.supportsExtension(".obfset")).toBe(true);
+    expect(processor.supportsExtension(".obf")).toBe(false);
   });
 });

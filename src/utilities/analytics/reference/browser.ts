@@ -2,8 +2,8 @@
  * Browser-friendly reference data loader using fetch.
  */
 
-import type { CoreList, CommonWordsData, SynonymsData } from '../metrics/types';
-import type { ReferenceDataProvider } from './index';
+import type { CoreList, CommonWordsData, SynonymsData } from "../metrics/types";
+import type { ReferenceDataProvider } from "./index";
 
 export interface ReferenceData {
   coreLists: CoreList[];
@@ -46,12 +46,16 @@ export class InMemoryReferenceLoader implements ReferenceDataProvider {
   }
 
   async loadCommonFringe(): Promise<string[]> {
-    const commonWords = new Set(this.data.commonWords.words.map((w) => w.toLowerCase()));
+    const commonWords = new Set(
+      this.data.commonWords.words.map((w) => w.toLowerCase()),
+    );
     const coreWords = new Set<string>();
     this.data.coreLists.forEach((list) => {
       list.words.forEach((word) => coreWords.add(word.toLowerCase()));
     });
-    return Promise.resolve(Array.from(commonWords).filter((word) => !coreWords.has(word)));
+    return Promise.resolve(
+      Array.from(commonWords).filter((word) => !coreWords.has(word)),
+    );
   }
 
   async loadAll(): Promise<ReferenceData> {
@@ -61,9 +65,9 @@ export class InMemoryReferenceLoader implements ReferenceDataProvider {
 
 export async function loadReferenceDataFromUrl(
   baseUrl: string,
-  locale = 'en'
+  locale = "en",
 ): Promise<ReferenceData> {
-  const root = baseUrl.replace(/\/$/, '');
+  const root = baseUrl.replace(/\/$/, "");
   const fetchJson = async <T>(name: string): Promise<T> => {
     const res = await fetch(`${root}/${name}.${locale}.json`);
     if (!res.ok) {
@@ -72,14 +76,15 @@ export async function loadReferenceDataFromUrl(
     return (await res.json()) as T;
   };
 
-  const [coreLists, commonWords, synonyms, sentences, fringe, baseWords] = await Promise.all([
-    fetchJson<CoreList[]>('core_lists'),
-    fetchJson<CommonWordsData>('common_words'),
-    fetchJson<SynonymsData>('synonyms'),
-    fetchJson<string[][]>('sentences'),
-    fetchJson<string[]>('fringe'),
-    fetchJson<{ [word: string]: boolean }>('base_words'),
-  ]);
+  const [coreLists, commonWords, synonyms, sentences, fringe, baseWords] =
+    await Promise.all([
+      fetchJson<CoreList[]>("core_lists"),
+      fetchJson<CommonWordsData>("common_words"),
+      fetchJson<SynonymsData>("synonyms"),
+      fetchJson<string[][]>("sentences"),
+      fetchJson<string[]>("fringe"),
+      fetchJson<{ [word: string]: boolean }>("base_words"),
+    ]);
 
   return {
     coreLists,
@@ -93,7 +98,7 @@ export async function loadReferenceDataFromUrl(
 
 export async function createBrowserReferenceLoader(
   baseUrl: string,
-  locale = 'en'
+  locale = "en",
 ): Promise<InMemoryReferenceLoader> {
   const data = await loadReferenceDataFromUrl(baseUrl, locale);
   return new InMemoryReferenceLoader(data);

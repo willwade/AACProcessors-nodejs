@@ -9,11 +9,18 @@
  * do not have equivalent wordlist functionality.
  */
 
-import { XMLParser, XMLBuilder } from 'fast-xml-parser';
-import { getZipEntriesFromAdapter, resolveGridsetPasswordFromEnv } from './password';
-import { defaultFileAdapter, FileAdapter, type ProcessorInput } from '../../utils/io';
-import { decodeText } from '../../utils/io';
-import { getZipAdapter, ZipAdapter, ZipFile } from '../../utils/zip';
+import { XMLParser, XMLBuilder } from "fast-xml-parser";
+import {
+  getZipEntriesFromAdapter,
+  resolveGridsetPasswordFromEnv,
+} from "./password";
+import {
+  defaultFileAdapter,
+  FileAdapter,
+  type ProcessorInput,
+} from "../../utils/io";
+import { decodeText } from "../../utils/io";
+import { getZipAdapter, ZipAdapter, ZipFile } from "../../utils/zip";
 
 /**
  * Represents a single item in a wordlist
@@ -53,22 +60,22 @@ export interface WordList {
  * ]);
  */
 export function createWordlist(
-  input: string[] | WordListItem[] | Record<string, string | WordListItem>
+  input: string[] | WordListItem[] | Record<string, string | WordListItem>,
 ): WordList {
   let items: WordListItem[] = [];
 
   if (Array.isArray(input)) {
     // Handle array input
     items = input.map((item) => {
-      if (typeof item === 'string') {
+      if (typeof item === "string") {
         return { text: item };
       }
       return item;
     });
-  } else if (typeof input === 'object') {
+  } else if (typeof input === "object") {
     // Handle dictionary/object input
     items = Object.entries(input).map(([, value]) => {
-      if (typeof value === 'string') {
+      if (typeof value === "string") {
         return { text: value };
       }
       return value;
@@ -89,20 +96,24 @@ export function wordlistToXml(wordlist: WordList): string {
   const items = wordlist.items.map((item) => ({
     WordListItem: {
       Text: {
-        s: {
-          '@_Image': item.image || '',
-          r: item.text,
+        p: {
+          s: {
+            r: item.text,
+          },
         },
       },
-      Image: item.image || '',
-      PartOfSpeech: item.partOfSpeech || 'Unknown',
+      Image: item.image || "",
+      PartOfSpeech: item.partOfSpeech || "Unknown",
     },
   }));
 
   const wordlistData = {
     WordList: {
       Items: {
-        WordListItem: items.length === 1 ? items[0].WordListItem : items.map((i) => i.WordListItem),
+        WordListItem:
+          items.length === 1
+            ? items[0].WordListItem
+            : items.map((i) => i.WordListItem),
       },
     },
   };
@@ -132,7 +143,7 @@ export async function extractWordlists(
   gridsetBuffer: Uint8Array,
   password = resolveGridsetPasswordFromEnv(),
   fileAdapter: FileAdapter = defaultFileAdapter,
-  zipAdapter?: (input: ProcessorInput) => Promise<ZipAdapter>
+  zipAdapter?: (input: ProcessorInput) => Promise<ZipAdapter>,
 ): Promise<Map<string, WordList>> {
   const wordlists = new Map<string, WordList>();
   const parser = new XMLParser();
@@ -145,7 +156,10 @@ export async function extractWordlists(
 
     // Process each grid file
     for (const entry of entries) {
-      if (entry.entryName.startsWith('Grids/') && entry.entryName.endsWith('grid.xml')) {
+      if (
+        entry.entryName.startsWith("Grids/") &&
+        entry.entryName.endsWith("grid.xml")
+      ) {
         try {
           const xmlContent = decodeText(await entry.getData());
           const data = parser.parse(xmlContent);
@@ -174,9 +188,14 @@ export async function extractWordlists(
               : [];
 
           const items: WordListItem[] = itemArray.map((item: any) => ({
-            text: item.Text?.s?.r || item.text?.s?.r || '',
+            text:
+              item.Text?.p?.s?.r ||
+              item.Text?.s?.r ||
+              item.text?.p?.s?.r ||
+              item.text?.s?.r ||
+              "",
             image: item.Image || item.image || undefined,
-            partOfSpeech: item.PartOfSpeech || item.partOfSpeech || 'Unknown',
+            partOfSpeech: item.PartOfSpeech || item.partOfSpeech || "Unknown",
           }));
 
           if (items.length > 0) {
@@ -184,7 +203,10 @@ export async function extractWordlists(
           }
         } catch (error) {
           // Skip grids with parsing errors
-          console.warn(`Failed to extract wordlist from ${entry.entryName}:`, error);
+          console.warn(
+            `Failed to extract wordlist from ${entry.entryName}:`,
+            error,
+          );
         }
       }
     }
@@ -215,13 +237,13 @@ export async function updateWordlist(
   wordlist: WordList,
   password = resolveGridsetPasswordFromEnv(),
   fileAdapter: FileAdapter = defaultFileAdapter,
-  zipAdapter?: (input: ProcessorInput) => Promise<ZipAdapter>
+  zipAdapter?: (input: ProcessorInput) => Promise<ZipAdapter>,
 ): Promise<Uint8Array> {
   const parser = new XMLParser();
   const builder = new XMLBuilder({
     ignoreAttributes: false,
     format: true,
-    indentBy: '  ',
+    indentBy: "  ",
     suppressEmptyNode: false,
   });
 
@@ -235,7 +257,10 @@ export async function updateWordlist(
 
   // Find and update the grid
   for (const entry of entries) {
-    if (entry.entryName.startsWith('Grids/') && entry.entryName.endsWith('grid.xml')) {
+    if (
+      entry.entryName.startsWith("Grids/") &&
+      entry.entryName.endsWith("grid.xml")
+    ) {
       const match = entry.entryName.match(/^Grids\/([^/]+)\//);
       const currentGridName = match ? match[1] : null;
 
@@ -253,20 +278,23 @@ export async function updateWordlist(
           const items = wordlist.items.map((item) => ({
             WordListItem: {
               Text: {
-                s: {
-                  '@_Image': item.image || '',
-                  r: item.text,
+                p: {
+                  s: {
+                    r: item.text,
+                  },
                 },
               },
-              Image: item.image || '',
-              PartOfSpeech: item.partOfSpeech || 'Unknown',
+              Image: item.image || "",
+              PartOfSpeech: item.partOfSpeech || "Unknown",
             },
           }));
 
           grid.WordList = {
             Items: {
               WordListItem:
-                items.length === 1 ? items[0].WordListItem : items.map((i) => i.WordListItem),
+                items.length === 1
+                  ? items[0].WordListItem
+                  : items.map((i) => i.WordListItem),
             },
           };
 
@@ -278,8 +306,11 @@ export async function updateWordlist(
           });
           found = true;
         } catch (error) {
-          const message = error instanceof Error ? error.message : String(error);
-          throw new Error(`Failed to update wordlist in grid "${gridName}": ${message}`);
+          const message =
+            error instanceof Error ? error.message : String(error);
+          throw new Error(
+            `Failed to update wordlist in grid "${gridName}": ${message}`,
+          );
         }
       }
     }

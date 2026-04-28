@@ -5,8 +5,8 @@
  * for AAC metrics analysis.
  */
 
-import { CoreList, CommonWordsData, SynonymsData } from '../metrics/types';
-import { defaultFileAdapter, FileAdapter } from '../../../utils/io';
+import { CoreList, CommonWordsData, SynonymsData } from "../metrics/types";
+import { defaultFileAdapter, FileAdapter } from "../../../utils/io";
 
 export interface ReferenceDataProvider {
   loadCoreLists(): Promise<CoreList[]>;
@@ -33,8 +33,8 @@ export class ReferenceLoader {
 
   constructor(
     dataDir?: string,
-    locale: string = 'en',
-    fileAdapter: FileAdapter = defaultFileAdapter
+    locale: string = "en",
+    fileAdapter: FileAdapter = defaultFileAdapter,
   ) {
     this.locale = locale;
     this.fileAdapter = fileAdapter;
@@ -44,7 +44,7 @@ export class ReferenceLoader {
     } else {
       // Resolve the data directory relative to this file's location
       // Use __dirname which works correctly after compilation
-      this.dataDir = this.fileAdapter.join(__dirname, 'data');
+      this.dataDir = this.fileAdapter.join(__dirname, "data");
     }
   }
 
@@ -53,7 +53,10 @@ export class ReferenceLoader {
    */
   async loadCoreLists(): Promise<CoreList[]> {
     const { readTextFromInput } = this.fileAdapter;
-    const filePath = this.fileAdapter.join(this.dataDir, `core_lists.${this.locale}.json`);
+    const filePath = this.fileAdapter.join(
+      this.dataDir,
+      `core_lists.${this.locale}.json`,
+    );
     const content = await readTextFromInput(filePath);
     return JSON.parse(String(content)) as CoreList[];
   }
@@ -128,7 +131,9 @@ export class ReferenceLoader {
    */
   async loadCommonFringe(): Promise<string[]> {
     const commonWordsData = await this.loadCommonWords();
-    const commonWords = new Set(commonWordsData.words.map((w) => w.toLowerCase()));
+    const commonWords = new Set(
+      commonWordsData.words.map((w) => w.toLowerCase()),
+    );
 
     const coreLists = await this.loadCoreLists();
     const coreWords = new Set<string>();
@@ -137,7 +142,9 @@ export class ReferenceLoader {
     });
 
     // Common fringe = common words - core words
-    const commonFringe = Array.from(commonWords).filter((word) => !coreWords.has(word));
+    const commonFringe = Array.from(commonWords).filter(
+      (word) => !coreWords.has(word),
+    );
     return commonFringe;
   }
 
@@ -166,27 +173,29 @@ export class ReferenceLoader {
 /**
  * Get the default reference data path
  */
-export function getReferenceDataPath(fileAdapter: FileAdapter = defaultFileAdapter): string {
-  return String(fileAdapter.join(__dirname, 'data'));
+export function getReferenceDataPath(
+  fileAdapter: FileAdapter = defaultFileAdapter,
+): string {
+  return String(fileAdapter.join(__dirname, "data"));
 }
 
 /**
  * Check if reference data files exist
  */
 export async function hasReferenceData(
-  fileAdapter: FileAdapter = defaultFileAdapter
+  fileAdapter: FileAdapter = defaultFileAdapter,
 ): Promise<boolean> {
   const { pathExists, join } = fileAdapter;
   const dataPath = getReferenceDataPath();
   const requiredFiles = [
-    'core_lists.en.json',
-    'common_words.en.json',
-    'sentences.en.json',
-    'synonyms.en.json',
-    'fringe.en.json',
+    "core_lists.en.json",
+    "common_words.en.json",
+    "sentences.en.json",
+    "synonyms.en.json",
+    "fringe.en.json",
   ];
   const existingPaths = await Promise.all(
-    requiredFiles.map(async (file) => await pathExists(join(dataPath, file)))
+    requiredFiles.map(async (file) => await pathExists(join(dataPath, file))),
   );
   return existingPaths.every((exists) => exists);
 }

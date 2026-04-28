@@ -1,12 +1,12 @@
 // Round-trip test for ApplePanelsProcessor: load, save, reload, and compare structure
-import fs from 'fs';
-import path from 'path';
-import { ApplePanelsProcessor } from '../src/processors/applePanelsProcessor';
-import { AACTree, AACPage, AACButton } from '../src/core/treeStructure';
-import { ValidationFailureError } from '../src/validation';
+import fs from "fs";
+import path from "path";
+import { ApplePanelsProcessor } from "../src/processors/applePanelsProcessor";
+import { AACTree, AACPage, AACButton } from "../src/core/treeStructure";
+import { ValidationFailureError } from "../src/validation";
 
-describe('ApplePanelsProcessor round-trip', () => {
-  const outPath: string = path.join(__dirname, 'out.applepanels');
+describe("ApplePanelsProcessor round-trip", () => {
+  const outPath: string = path.join(__dirname, "out.applepanels");
 
   afterAll(async () => {
     const asconfigPath = `${outPath}.ascconfig`;
@@ -15,7 +15,7 @@ describe('ApplePanelsProcessor round-trip', () => {
     }
   });
 
-  it('can save and load a constructed tree', async () => {
+  it("can save and load a constructed tree", async () => {
     const processor = new ApplePanelsProcessor();
 
     // Create a simple tree programmatically
@@ -23,24 +23,24 @@ describe('ApplePanelsProcessor round-trip', () => {
 
     // Create first panel
     const page1 = new AACPage({
-      id: 'panel1',
-      name: 'Main Panel',
+      id: "panel1",
+      name: "Main Panel",
       buttons: [],
     });
 
     const button1 = new AACButton({
-      id: 'btn1',
-      label: 'Hello',
-      message: 'Hello World',
-      type: 'SPEAK',
+      id: "btn1",
+      label: "Hello",
+      message: "Hello World",
+      type: "SPEAK",
     });
 
     const button2 = new AACButton({
-      id: 'btn2',
-      label: 'Go to Panel 2',
-      message: 'Navigate',
-      type: 'NAVIGATE',
-      targetPageId: 'panel2',
+      id: "btn2",
+      label: "Go to Panel 2",
+      message: "Navigate",
+      type: "NAVIGATE",
+      targetPageId: "panel2",
     });
 
     page1.addButton(button1);
@@ -49,17 +49,17 @@ describe('ApplePanelsProcessor round-trip', () => {
 
     // Create second panel
     const page2 = new AACPage({
-      id: 'panel2',
-      name: 'Second Panel',
+      id: "panel2",
+      name: "Second Panel",
       buttons: [],
     });
 
     const button3 = new AACButton({
-      id: 'btn3',
-      label: 'Back',
-      message: 'Go back',
-      type: 'NAVIGATE',
-      targetPageId: 'panel1',
+      id: "btn3",
+      label: "Back",
+      message: "Go back",
+      type: "NAVIGATE",
+      targetPageId: "panel1",
     });
 
     page2.addButton(button3);
@@ -75,25 +75,25 @@ describe('ApplePanelsProcessor round-trip', () => {
     // Verify structure
     expect(Object.keys(tree2.pages)).toHaveLength(2);
 
-    const reloadedPage1 = tree2.pages['panel1'];
+    const reloadedPage1 = tree2.pages["panel1"];
     expect(reloadedPage1).toBeDefined();
-    expect(reloadedPage1.name).toBe('Main Panel');
+    expect(reloadedPage1.name).toBe("Main Panel");
     expect(reloadedPage1.buttons).toHaveLength(2);
 
-    const reloadedPage2 = tree2.pages['panel2'];
+    const reloadedPage2 = tree2.pages["panel2"];
     expect(reloadedPage2).toBeDefined();
-    expect(reloadedPage2.name).toBe('Second Panel');
+    expect(reloadedPage2.name).toBe("Second Panel");
     expect(reloadedPage2.buttons).toHaveLength(1);
 
     // Check navigation
-    const navButton = reloadedPage1.buttons.find((b) => b.type === 'NAVIGATE');
+    const navButton = reloadedPage1.buttons.find((b) => b.type === "NAVIGATE");
     expect(navButton).toBeDefined();
     if (navButton) {
-      expect(navButton.targetPageId).toBe('panel2');
+      expect(navButton.targetPageId).toBe("panel2");
     }
   });
 
-  it('handles empty tree gracefully', async () => {
+  it("handles empty tree gracefully", async () => {
     const processor = new ApplePanelsProcessor();
     const emptyTree = new AACTree();
 
@@ -101,6 +101,8 @@ describe('ApplePanelsProcessor round-trip', () => {
     const asconfigPath = `${outPath}.ascconfig`;
     expect(fs.existsSync(asconfigPath)).toBe(true);
 
-    await expect(processor.loadIntoTree(asconfigPath)).rejects.toThrow(ValidationFailureError);
+    await expect(processor.loadIntoTree(asconfigPath)).rejects.toThrow(
+      ValidationFailureError,
+    );
   });
 });

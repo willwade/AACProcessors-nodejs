@@ -1,13 +1,13 @@
 /* eslint-disable @typescript-eslint/require-await */
-import { BaseValidator } from './baseValidator';
-import { ValidationResult } from './validationTypes';
+import { BaseValidator } from "./baseValidator";
+import { ValidationResult } from "./validationTypes";
 import {
   decodeText,
   defaultFileAdapter,
   FileAdapter,
   getBasename,
   toUint8Array,
-} from '../utils/io';
+} from "../utils/io";
 
 /**
  * Validator for Asterics Grid (.grd) JSON files
@@ -18,9 +18,10 @@ export class AstericsGridValidator extends BaseValidator {
    */
   static async validateFile(
     filePath: string,
-    fileAdapter?: FileAdapter
+    fileAdapter?: FileAdapter,
   ): Promise<ValidationResult> {
-    const { readBinaryFromInput, getFileSize } = fileAdapter ?? defaultFileAdapter;
+    const { readBinaryFromInput, getFileSize } =
+      fileAdapter ?? defaultFileAdapter;
     const validator = new AstericsGridValidator();
     const content = await readBinaryFromInput(filePath);
     const size = await getFileSize(filePath);
@@ -30,21 +31,27 @@ export class AstericsGridValidator extends BaseValidator {
   /**
    * Identify whether the content appears to be an Asterics .grd file
    */
-  static async identifyFormat(content: any, filename: string): Promise<boolean> {
+  static async identifyFormat(
+    content: any,
+    filename: string,
+  ): Promise<boolean> {
     const name = filename.toLowerCase();
-    if (name.endsWith('.grd')) {
+    if (name.endsWith(".grd")) {
       return true;
     }
 
     try {
       if (
-        typeof content !== 'string' &&
+        typeof content !== "string" &&
         !(content instanceof ArrayBuffer) &&
         !(content instanceof Uint8Array)
       ) {
         return false;
       }
-      const str = typeof content === 'string' ? content : decodeText(toUint8Array(content));
+      const str =
+        typeof content === "string"
+          ? content
+          : decodeText(toUint8Array(content));
       const json = JSON.parse(str);
       return Array.isArray(json?.grids);
     } catch {
@@ -55,18 +62,18 @@ export class AstericsGridValidator extends BaseValidator {
   async validate(
     content: Buffer | Uint8Array,
     filename: string,
-    filesize: number
+    filesize: number,
   ): Promise<ValidationResult> {
     this.reset();
 
-    await this.add_check('filename', 'file extension', async () => {
-      if (!filename.toLowerCase().endsWith('.grd')) {
-        this.warn('filename should end with .grd');
+    await this.add_check("filename", "file extension", async () => {
+      if (!filename.toLowerCase().endsWith(".grd")) {
+        this.warn("filename should end with .grd");
       }
     });
 
     let json: any = null;
-    await this.add_check('json_parse', 'valid JSON', async () => {
+    await this.add_check("json_parse", "valid JSON", async () => {
       try {
         let str = decodeText(content);
         if (str.charCodeAt(0) === 0xfeff) {
@@ -79,12 +86,12 @@ export class AstericsGridValidator extends BaseValidator {
     });
 
     if (!json) {
-      return this.buildResult(filename, filesize, 'asterics');
+      return this.buildResult(filename, filesize, "asterics");
     }
 
-    await this.add_check('grids', 'grids array', async () => {
+    await this.add_check("grids", "grids array", async () => {
       if (!Array.isArray(json.grids) || json.grids.length === 0) {
-        this.err('missing grids array in file', true);
+        this.err("missing grids array in file", true);
       }
     });
 
@@ -93,28 +100,28 @@ export class AstericsGridValidator extends BaseValidator {
     grids.forEach((grid: any, idx: number) => {
       const prefix = `grid[${idx}]`;
       this.add_check_sync(`${prefix}_id`, `${prefix} id`, () => {
-        if (!grid?.id || typeof grid.id !== 'string') {
-          this.err('grid is missing an id');
+        if (!grid?.id || typeof grid.id !== "string") {
+          this.err("grid is missing an id");
         }
       });
 
       this.add_check_sync(`${prefix}_rows`, `${prefix} rowCount`, () => {
-        if (typeof grid?.rowCount !== 'number' || grid.rowCount <= 0) {
-          this.err('rowCount must be a positive number');
+        if (typeof grid?.rowCount !== "number" || grid.rowCount <= 0) {
+          this.err("rowCount must be a positive number");
         }
       });
 
       this.add_check_sync(`${prefix}_elements`, `${prefix} elements`, () => {
         if (!Array.isArray(grid?.gridElements)) {
-          this.err('gridElements must be an array');
+          this.err("gridElements must be an array");
           return;
         }
         if (grid.gridElements.length === 0) {
-          this.warn('grid has no elements');
+          this.warn("grid has no elements");
         }
       });
     });
 
-    return this.buildResult(filename, filesize, 'asterics');
+    return this.buildResult(filename, filesize, "asterics");
   }
 }

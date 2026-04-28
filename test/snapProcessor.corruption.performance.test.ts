@@ -1,13 +1,13 @@
 // Database corruption and performance tests for SnapProcessor
-import fs from 'fs';
-import path from 'path';
-import { SnapProcessor } from '../src/processors/snapProcessor';
-import { AACTree } from '../src/core/treeStructure';
-import { TreeFactory, PageFactory, ButtonFactory } from './utils/testFactories';
+import fs from "fs";
+import path from "path";
+import { SnapProcessor } from "../src/processors/snapProcessor";
+import { AACTree } from "../src/core/treeStructure";
+import { TreeFactory, PageFactory, ButtonFactory } from "./utils/testFactories";
 
-describe('SnapProcessor - Database Corruption & Performance Tests', () => {
+describe("SnapProcessor - Database Corruption & Performance Tests", () => {
   let processor: SnapProcessor;
-  const tempDir = path.join(__dirname, 'temp_snap_corruption');
+  const tempDir = path.join(__dirname, "temp_snap_corruption");
 
   beforeAll(async () => {
     if (!fs.existsSync(tempDir)) {
@@ -25,11 +25,11 @@ describe('SnapProcessor - Database Corruption & Performance Tests', () => {
     }
   });
 
-  describe('Database Corruption Handling', () => {
-    it('should handle partially corrupted SPS files', async () => {
+  describe("Database Corruption Handling", () => {
+    it("should handle partially corrupted SPS files", async () => {
       // Create a valid SPS file first
       const tree = TreeFactory.createSimple();
-      const validPath = path.join(tempDir, 'valid.sps');
+      const validPath = path.join(tempDir, "valid.sps");
       await processor.saveFromTree(tree, validPath);
 
       // Read the valid file and corrupt part of it
@@ -43,38 +43,38 @@ describe('SnapProcessor - Database Corruption & Performance Tests', () => {
         corruptedData[i] = Math.floor(Math.random() * 256);
       }
 
-      const corruptedPath = path.join(tempDir, 'partially_corrupted.sps');
+      const corruptedPath = path.join(tempDir, "partially_corrupted.sps");
       fs.writeFileSync(corruptedPath, corruptedData);
 
       // Should handle corruption gracefully
       await expect(processor.loadIntoTree(corruptedPath)).rejects.toThrow();
     });
 
-    it('should recover from corrupted audio blob data', async () => {
+    it("should recover from corrupted audio blob data", async () => {
       // Create a file with audio data
       const button = ButtonFactory.create({
-        label: 'Audio Button',
-        message: 'Has audio',
-        type: 'SPEAK',
+        label: "Audio Button",
+        message: "Has audio",
+        type: "SPEAK",
       });
 
       button.audioRecording = {
         id: 1,
-        data: Buffer.from('valid audio data'),
-        identifier: 'audio_1',
-        metadata: 'Valid audio',
+        data: Buffer.from("valid audio data"),
+        identifier: "audio_1",
+        metadata: "Valid audio",
       };
 
       const page = PageFactory.create({
-        id: 'audio_page',
-        name: 'Audio Page',
+        id: "audio_page",
+        name: "Audio Page",
       });
       page.addButton(button);
 
       const tree = new AACTree();
       tree.addPage(page);
 
-      const outputPath = path.join(tempDir, 'audio_corruption.sps');
+      const outputPath = path.join(tempDir, "audio_corruption.sps");
       await processor.saveFromTree(tree, outputPath);
 
       // Verify the file was created successfully
@@ -85,81 +85,88 @@ describe('SnapProcessor - Database Corruption & Performance Tests', () => {
       expect(loadedTree).toBeDefined();
     });
 
-    it('should handle missing database tables gracefully', async () => {
+    it("should handle missing database tables gracefully", async () => {
       // Create a zip file with missing required tables
       // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const AdmZip = require('adm-zip');
+      const AdmZip = require("adm-zip");
       const zip = new AdmZip();
 
       // Add some files but not the required database structure
-      zip.addFile('readme.txt', Buffer.from('This is not a proper SPS file'));
-      zip.addFile('config.json', Buffer.from('{"version": "1.0"}'));
+      zip.addFile("readme.txt", Buffer.from("This is not a proper SPS file"));
+      zip.addFile("config.json", Buffer.from('{"version": "1.0"}'));
 
-      const invalidPath = path.join(tempDir, 'missing_tables.sps');
+      const invalidPath = path.join(tempDir, "missing_tables.sps");
       zip.writeZip(invalidPath);
 
       await expect(processor.loadIntoTree(invalidPath)).rejects.toThrow();
     });
 
-    it('should process files with invalid foreign keys', async () => {
+    it("should process files with invalid foreign keys", async () => {
       // Create a valid tree first
       const tree = TreeFactory.createCommunicationBoard();
-      const outputPath = path.join(tempDir, 'foreign_keys.sps');
+      const outputPath = path.join(tempDir, "foreign_keys.sps");
 
       // This should work with proper relationships
-      await expect(processor.saveFromTree(tree, outputPath)).resolves.not.toThrow();
+      await expect(
+        processor.saveFromTree(tree, outputPath),
+      ).resolves.not.toThrow();
 
       const loadedTree = await processor.loadIntoTree(outputPath);
       expect(loadedTree).toBeDefined();
     });
 
-    it('should handle truncated database files', async () => {
+    it("should handle truncated database files", async () => {
       // Create a valid file
       const tree = TreeFactory.createSimple();
-      const validPath = path.join(tempDir, 'valid_for_truncation.sps');
+      const validPath = path.join(tempDir, "valid_for_truncation.sps");
       await processor.saveFromTree(tree, validPath);
 
       // Read and truncate the file
       const validData = fs.readFileSync(validPath);
-      const truncatedData = validData.slice(0, Math.floor(validData.length / 2));
+      const truncatedData = validData.slice(
+        0,
+        Math.floor(validData.length / 2),
+      );
 
-      const truncatedPath = path.join(tempDir, 'truncated.sps');
+      const truncatedPath = path.join(tempDir, "truncated.sps");
       fs.writeFileSync(truncatedPath, truncatedData);
 
       await expect(processor.loadIntoTree(truncatedPath)).rejects.toThrow();
     });
 
-    it('should handle completely invalid file formats', async () => {
-      const invalidPath = path.join(tempDir, 'not_a_zip.sps');
-      fs.writeFileSync(invalidPath, 'This is just plain text, not a zip file');
+    it("should handle completely invalid file formats", async () => {
+      const invalidPath = path.join(tempDir, "not_a_zip.sps");
+      fs.writeFileSync(invalidPath, "This is just plain text, not a zip file");
 
       await expect(processor.loadIntoTree(invalidPath)).rejects.toThrow();
     });
 
-    it('should handle empty files', async () => {
-      const emptyPath = path.join(tempDir, 'empty.sps');
-      fs.writeFileSync(emptyPath, '');
+    it("should handle empty files", async () => {
+      const emptyPath = path.join(tempDir, "empty.sps");
+      fs.writeFileSync(emptyPath, "");
 
       await expect(processor.loadIntoTree(emptyPath)).rejects.toThrow();
     });
 
-    it('should handle files with invalid zip structure', async () => {
-      const invalidZipPath = path.join(tempDir, 'invalid_zip.sps');
+    it("should handle files with invalid zip structure", async () => {
+      const invalidZipPath = path.join(tempDir, "invalid_zip.sps");
       // Write some bytes that look like they might be a zip but aren't
-      const fakeZipData = Buffer.from('PK\x03\x04\x14\x00\x00\x00invalid zip data');
+      const fakeZipData = Buffer.from(
+        "PK\x03\x04\x14\x00\x00\x00invalid zip data",
+      );
       fs.writeFileSync(invalidZipPath, fakeZipData);
 
       await expect(processor.loadIntoTree(invalidZipPath)).rejects.toThrow();
     });
   });
 
-  describe('Performance Tests', () => {
-    it('should process large pagesets (500+ pages) efficiently', async () => {
+  describe("Performance Tests", () => {
+    it("should process large pagesets (500+ pages) efficiently", async () => {
       const startTime = Date.now();
 
       // Create a very large tree
       const tree = TreeFactory.createLarge(500, 5); // 500 pages, 5 buttons each
-      const outputPath = path.join(tempDir, 'large_pageset.sps');
+      const outputPath = path.join(tempDir, "large_pageset.sps");
 
       await processor.saveFromTree(tree, outputPath);
       const loadedTree = await processor.loadIntoTree(outputPath);
@@ -174,7 +181,7 @@ describe('SnapProcessor - Database Corruption & Performance Tests', () => {
       console.log(`Large pageset processing time: ${processingTime}ms`);
     });
 
-    it('should handle pagesets with extensive audio content', async () => {
+    it("should handle pagesets with extensive audio content", async () => {
       const startTime = Date.now();
 
       // Create tree with many audio recordings
@@ -192,7 +199,7 @@ describe('SnapProcessor - Database Corruption & Performance Tests', () => {
           const button = ButtonFactory.create({
             label: `Audio Button ${buttonIndex}`,
             message: `Audio message ${buttonIndex}`,
-            type: 'SPEAK',
+            type: "SPEAK",
           });
 
           const audioSize = audioSizes[buttonIndex % audioSizes.length];
@@ -213,7 +220,7 @@ describe('SnapProcessor - Database Corruption & Performance Tests', () => {
         tree.addPage(page);
       }
 
-      const outputPath = path.join(tempDir, 'extensive_audio.sps');
+      const outputPath = path.join(tempDir, "extensive_audio.sps");
       await processor.saveFromTree(tree, outputPath);
 
       const loadedTree = await processor.loadIntoTree(outputPath);
@@ -226,7 +233,7 @@ describe('SnapProcessor - Database Corruption & Performance Tests', () => {
       expect(processingTime).toBeLessThan(80000); // Allow headroom on slower machines
 
       // Verify audio data integrity
-      const firstPage = loadedTree.getPage('audio_page_0');
+      const firstPage = loadedTree.getPage("audio_page_0");
       expect(firstPage).toBeDefined();
       if (!firstPage) {
         return;
@@ -237,7 +244,7 @@ describe('SnapProcessor - Database Corruption & Performance Tests', () => {
       console.log(`Extensive audio processing time: ${processingTime}ms`);
     });
 
-    it('should maintain memory usage under 100MB for large files', async () => {
+    it("should maintain memory usage under 100MB for large files", async () => {
       // Monitor memory usage during processing
       const initialMemory = process.memoryUsage();
 
@@ -253,13 +260,13 @@ describe('SnapProcessor - Database Corruption & Performance Tests', () => {
               id: pageIndex * 100 + buttonIndex,
               data: Buffer.alloc(4096, 0x42), // 4KB audio data
               identifier: `audio_${pageIndex}_${buttonIndex}`,
-              metadata: 'Performance test audio',
+              metadata: "Performance test audio",
             };
           }
         });
       });
 
-      const outputPath = path.join(tempDir, 'memory_test.sps');
+      const outputPath = path.join(tempDir, "memory_test.sps");
       await processor.saveFromTree(tree, outputPath);
 
       const loadedTree = await processor.loadIntoTree(outputPath);
@@ -274,7 +281,7 @@ describe('SnapProcessor - Database Corruption & Performance Tests', () => {
       console.log(`Memory increase: ${memoryIncreaseMB.toFixed(2)}MB`);
     });
 
-    it('should handle concurrent processing efficiently', async () => {
+    it("should handle concurrent processing efficiently", async () => {
       // Test processing multiple files concurrently
       const trees = [
         TreeFactory.createSimple(),
@@ -305,11 +312,11 @@ describe('SnapProcessor - Database Corruption & Performance Tests', () => {
       console.log(`Concurrent processing time: ${processingTime}ms`);
     });
 
-    it('should handle streaming large files efficiently', async () => {
+    it("should handle streaming large files efficiently", async () => {
       // Test with a very large tree that would benefit from streaming
       const tree = TreeFactory.createLarge(200, 10); // 200 pages, 10 buttons each
 
-      const outputPath = path.join(tempDir, 'streaming_test.sps');
+      const outputPath = path.join(tempDir, "streaming_test.sps");
 
       const startTime = Date.now();
       await processor.saveFromTree(tree, outputPath);
@@ -329,15 +336,15 @@ describe('SnapProcessor - Database Corruption & Performance Tests', () => {
       expect(processingTime).toBeLessThan(80000); // Should complete in under ~80 seconds
 
       console.log(
-        `Streaming test - File size: ${fileSizeMB.toFixed(2)}MB, Processing time: ${processingTime}ms`
+        `Streaming test - File size: ${fileSizeMB.toFixed(2)}MB, Processing time: ${processingTime}ms`,
       );
     });
   });
 
-  describe('Text Processing Methods', () => {
-    it('should extract all texts from large databases', async () => {
+  describe("Text Processing Methods", () => {
+    it("should extract all texts from large databases", async () => {
       const tree = TreeFactory.createLarge(50, 10);
-      const outputPath = path.join(tempDir, 'text_extraction.sps');
+      const outputPath = path.join(tempDir, "text_extraction.sps");
       await processor.saveFromTree(tree, outputPath);
 
       const texts = await processor.extractTexts(outputPath);
@@ -349,10 +356,10 @@ describe('SnapProcessor - Database Corruption & Performance Tests', () => {
       expect(texts.length).toBeGreaterThanOrEqual(expectedTextCount);
     });
 
-    it('should process texts with translations efficiently', async () => {
+    it("should process texts with translations efficiently", async () => {
       const tree = TreeFactory.createCommunicationBoard();
-      const inputPath = path.join(tempDir, 'input_for_translation.sps');
-      const outputPath = path.join(tempDir, 'translation_performance.sps');
+      const inputPath = path.join(tempDir, "input_for_translation.sps");
+      const outputPath = path.join(tempDir, "translation_performance.sps");
 
       // Save the tree first
       await processor.saveFromTree(tree, inputPath);
@@ -364,7 +371,11 @@ describe('SnapProcessor - Database Corruption & Performance Tests', () => {
       }
 
       const startTime = Date.now();
-      const result = await processor.processTexts(inputPath, translations, outputPath);
+      const result = await processor.processTexts(
+        inputPath,
+        translations,
+        outputPath,
+      );
       const endTime = Date.now();
 
       expect(result).toBeInstanceOf(Buffer);

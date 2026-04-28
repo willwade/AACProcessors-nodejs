@@ -1,15 +1,15 @@
 // Edge case tests for all processors
-import fs from 'fs';
-import path from 'path';
-import os from 'os';
-import { DotProcessor } from '../src/processors/dotProcessor';
-import { OpmlProcessor } from '../src/processors/opmlProcessor';
-import { ObfProcessor } from '../src/processors/obfProcessor';
-import { SnapProcessor } from '../src/processors/snapProcessor';
-import { AACTree } from '../src/core/treeStructure';
+import fs from "fs";
+import path from "path";
+import os from "os";
+import { DotProcessor } from "../src/processors/dotProcessor";
+import { OpmlProcessor } from "../src/processors/opmlProcessor";
+import { ObfProcessor } from "../src/processors/obfProcessor";
+import { SnapProcessor } from "../src/processors/snapProcessor";
+import { AACTree } from "../src/core/treeStructure";
 
-describe('Edge Case Tests', () => {
-  const tempDir = path.join(__dirname, 'temp_edge_cases');
+describe("Edge Case Tests", () => {
+  const tempDir = path.join(__dirname, "temp_edge_cases");
 
   beforeAll(async () => {
     if (!fs.existsSync(tempDir)) {
@@ -23,12 +23,12 @@ describe('Edge Case Tests', () => {
     }
   });
 
-  describe('Empty and Minimal Content', () => {
-    it('should handle completely empty files', async () => {
+  describe("Empty and Minimal Content", () => {
+    it("should handle completely empty files", async () => {
       const processors = [
-        { name: 'DOT', processor: new DotProcessor(), testBuffer: true },
-        { name: 'OPML', processor: new OpmlProcessor(), testBuffer: true },
-        { name: 'OBF', processor: new ObfProcessor(), testBuffer: true },
+        { name: "DOT", processor: new DotProcessor(), testBuffer: true },
+        { name: "OPML", processor: new OpmlProcessor(), testBuffer: true },
+        { name: "OBF", processor: new ObfProcessor(), testBuffer: true },
       ];
 
       for (const { processor, testBuffer } of processors) {
@@ -38,21 +38,21 @@ describe('Edge Case Tests', () => {
       }
     });
 
-    it('should handle minimal valid content', async () => {
+    it("should handle minimal valid content", async () => {
       const testCases = [
         {
-          name: 'DOT',
+          name: "DOT",
           processor: new DotProcessor(),
-          content: 'digraph G { }',
+          content: "digraph G { }",
         },
         {
-          name: 'OPML',
+          name: "OPML",
           processor: new OpmlProcessor(),
           content:
             '<?xml version="1.0"?><opml version="2.0"><body><outline text="Root"/></body></opml>',
         },
         {
-          name: 'OBF',
+          name: "OBF",
           processor: new ObfProcessor(),
           content: '{"id": "test", "buttons": []}',
         },
@@ -61,57 +61,61 @@ describe('Edge Case Tests', () => {
       for (const { name, processor, content } of testCases) {
         const tree = await processor.loadIntoTree(Buffer.from(content));
         expect(tree).toBeInstanceOf(AACTree);
-        console.log(`${name} minimal content: ${Object.keys(tree.pages).length} pages`);
+        console.log(
+          `${name} minimal content: ${Object.keys(tree.pages).length} pages`,
+        );
       }
     });
 
-    it('should handle single-element content', async () => {
+    it("should handle single-element content", async () => {
       const dotProcessor = new DotProcessor();
       const singleNodeContent = 'digraph G { single [label="Only Node"]; }';
 
-      const tree = await dotProcessor.loadIntoTree(Buffer.from(singleNodeContent));
+      const tree = await dotProcessor.loadIntoTree(
+        Buffer.from(singleNodeContent),
+      );
       expect(Object.keys(tree.pages)).toHaveLength(1);
 
       const page = Object.values(tree.pages)[0];
       expect(page.buttons).toHaveLength(1);
-      expect(page.buttons[0].label).toBe('Only Node');
+      expect(page.buttons[0].label).toBe("Only Node");
     });
   });
 
-  describe('Unusual Characters and Encoding', () => {
-    it('should handle Unicode characters correctly', async () => {
+  describe("Unusual Characters and Encoding", () => {
+    it("should handle Unicode characters correctly", async () => {
       const unicodeTestCases = [
         {
-          name: 'Emoji',
+          name: "Emoji",
           content: 'digraph G { emoji [label="😀🎉🌟"]; }',
-          expectedLabel: '😀🎉🌟',
+          expectedLabel: "😀🎉🌟",
         },
         {
-          name: 'Chinese',
+          name: "Chinese",
           content: 'digraph G { chinese [label="你好世界"]; }',
-          expectedLabel: '你好世界',
+          expectedLabel: "你好世界",
         },
         {
-          name: 'Arabic',
+          name: "Arabic",
           content: 'digraph G { arabic [label="مرحبا بالعالم"]; }',
-          expectedLabel: 'مرحبا بالعالم',
+          expectedLabel: "مرحبا بالعالم",
         },
         {
-          name: 'Accented',
+          name: "Accented",
           content: 'digraph G { accented [label="Café, naïve, résumé"]; }',
-          expectedLabel: 'Café, naïve, résumé',
+          expectedLabel: "Café, naïve, résumé",
         },
         {
-          name: 'Mathematical',
+          name: "Mathematical",
           content: 'digraph G { math [label="∑∞≠≤≥±"]; }',
-          expectedLabel: '∑∞≠≤≥±',
+          expectedLabel: "∑∞≠≤≥±",
         },
       ];
 
       const processor = new DotProcessor();
 
       for (const { name, content, expectedLabel } of unicodeTestCases) {
-        const tree = await processor.loadIntoTree(Buffer.from(content, 'utf8'));
+        const tree = await processor.loadIntoTree(Buffer.from(content, "utf8"));
         const page = Object.values(tree.pages)[0];
 
         expect(page.buttons).toHaveLength(1);
@@ -120,7 +124,7 @@ describe('Edge Case Tests', () => {
       }
     });
 
-    it('should handle special characters in file paths and content', async () => {
+    it("should handle special characters in file paths and content", async () => {
       const processor = new DotProcessor();
       const specialContent = `
         digraph G {
@@ -136,16 +140,18 @@ describe('Edge Case Tests', () => {
       const tree = await processor.loadIntoTree(Buffer.from(specialContent));
       expect(Object.keys(tree.pages).length).toBeGreaterThan(0);
 
-      const allButtons = Object.values(tree.pages).flatMap((page) => page.buttons);
+      const allButtons = Object.values(tree.pages).flatMap(
+        (page) => page.buttons,
+      );
       expect(allButtons.length).toBe(6);
 
       const labels = allButtons.map((btn) => btn.label);
-      expect(labels).toContain('Label with spaces');
-      expect(labels).toContain('Label-with-dashes');
-      expect(labels).toContain('Label@with@symbols');
+      expect(labels).toContain("Label with spaces");
+      expect(labels).toContain("Label-with-dashes");
+      expect(labels).toContain("Label@with@symbols");
     });
 
-    it('should handle escaped characters correctly', async () => {
+    it("should handle escaped characters correctly", async () => {
       const processor = new DotProcessor();
       const escapedContent = `
         digraph G {
@@ -156,21 +162,25 @@ describe('Edge Case Tests', () => {
       `;
 
       const tree = await processor.loadIntoTree(Buffer.from(escapedContent));
-      const allButtons = Object.values(tree.pages).flatMap((page) => page.buttons);
+      const allButtons = Object.values(tree.pages).flatMap(
+        (page) => page.buttons,
+      );
 
       expect(allButtons.length).toBe(3);
 
-      const escapedButton = allButtons.find((btn) => btn.label.includes('Line 1'));
+      const escapedButton = allButtons.find((btn) =>
+        btn.label.includes("Line 1"),
+      );
       expect(escapedButton).toBeDefined();
     });
   });
 
-  describe('Boundary Conditions', () => {
-    it('should handle maximum reasonable content sizes', async () => {
+  describe("Boundary Conditions", () => {
+    it("should handle maximum reasonable content sizes", async () => {
       const processor = new DotProcessor();
 
       // Test very long labels
-      const longLabel = 'A'.repeat(1000);
+      const longLabel = "A".repeat(1000);
       const longLabelContent = `digraph G { long [label="${longLabel}"]; }`;
 
       const tree = await processor.loadIntoTree(Buffer.from(longLabelContent));
@@ -178,28 +188,30 @@ describe('Edge Case Tests', () => {
       expect(page.buttons[0].label).toBe(longLabel);
 
       // Test many nodes
-      const manyNodesLines = ['digraph G {'];
+      const manyNodesLines = ["digraph G {"];
       for (let i = 0; i < 100; i++) {
         manyNodesLines.push(`  node${i} [label="Node ${i}"];`);
       }
-      manyNodesLines.push('}');
+      manyNodesLines.push("}");
 
-      const manyNodesContent = manyNodesLines.join('\n');
-      const manyNodesTree = await processor.loadIntoTree(Buffer.from(manyNodesContent));
+      const manyNodesContent = manyNodesLines.join("\n");
+      const manyNodesTree = await processor.loadIntoTree(
+        Buffer.from(manyNodesContent),
+      );
 
       const totalButtons = Object.values(manyNodesTree.pages).reduce(
         (sum, page) => sum + page.buttons.length,
-        0
+        0,
       );
       expect(totalButtons).toBe(100);
     });
 
-    it('should handle deeply nested structures', async () => {
+    it("should handle deeply nested structures", async () => {
       const processor = new OpmlProcessor();
 
       // Create deeply nested OPML
       let nestedContent = '<?xml version="1.0"?><opml version="2.0"><body>';
-      let currentLevel = '';
+      let currentLevel = "";
 
       for (let i = 0; i < 10; i++) {
         currentLevel += '<outline text="Level ' + i + '">';
@@ -208,16 +220,16 @@ describe('Edge Case Tests', () => {
       nestedContent += currentLevel;
 
       for (let i = 9; i >= 0; i--) {
-        nestedContent += '</outline>';
+        nestedContent += "</outline>";
       }
 
-      nestedContent += '</body></opml>';
+      nestedContent += "</body></opml>";
 
       const tree = await processor.loadIntoTree(Buffer.from(nestedContent));
       expect(Object.keys(tree.pages).length).toBeGreaterThan(0);
     });
 
-    it('should handle circular references gracefully', async () => {
+    it("should handle circular references gracefully", async () => {
       const processor = new DotProcessor();
       const circularContent = `
         digraph G {
@@ -244,8 +256,8 @@ describe('Edge Case Tests', () => {
     });
   });
 
-  describe('Corrupted and Malformed Content', () => {
-    it('should handle partially corrupted JSON', async () => {
+  describe("Corrupted and Malformed Content", () => {
+    it("should handle partially corrupted JSON", async () => {
       const processor = new ObfProcessor();
 
       const corruptedJsonCases = [
@@ -257,12 +269,14 @@ describe('Edge Case Tests', () => {
       ];
 
       for (const [index, corruptedJson] of corruptedJsonCases.entries()) {
-        await expect(processor.loadIntoTree(Buffer.from(corruptedJson))).rejects.toThrow();
+        await expect(
+          processor.loadIntoTree(Buffer.from(corruptedJson)),
+        ).rejects.toThrow();
         console.log(`Corrupted JSON case ${index + 1} handled correctly`);
       }
     });
 
-    it('should handle malformed XML', async () => {
+    it("should handle malformed XML", async () => {
       const processor = new OpmlProcessor();
 
       const malformedXmlCases = [
@@ -282,18 +296,20 @@ describe('Edge Case Tests', () => {
       }
     });
 
-    it('should handle binary data as text input', async () => {
+    it("should handle binary data as text input", async () => {
       const processor = new DotProcessor();
 
       // Create some binary data
-      const binaryData = Buffer.from([0x00, 0x01, 0x02, 0x03, 0xff, 0xfe, 0xfd]);
+      const binaryData = Buffer.from([
+        0x00, 0x01, 0x02, 0x03, 0xff, 0xfe, 0xfd,
+      ]);
 
       await expect(processor.loadIntoTree(binaryData)).rejects.toThrow();
     });
   });
 
-  describe('Resource Limits and Cleanup', () => {
-    it('should clean up temporary files on errors', async () => {
+  describe("Resource Limits and Cleanup", () => {
+    it("should clean up temporary files on errors", async () => {
       const processor = new SnapProcessor();
 
       const tempFilesBefore = fs.readdirSync(os.tmpdir()).length;
@@ -311,10 +327,10 @@ describe('Edge Case Tests', () => {
       }, 100);
     });
 
-    it('should handle concurrent access to same file', async () => {
+    it("should handle concurrent access to same file", async () => {
       const processor = new DotProcessor();
       const testContent = 'digraph G { test [label="Concurrent Test"]; }';
-      const testFile = path.join(tempDir, 'concurrent_test.dot');
+      const testFile = path.join(tempDir, "concurrent_test.dot");
 
       fs.writeFileSync(testFile, testContent);
 
@@ -334,14 +350,14 @@ describe('Edge Case Tests', () => {
       });
     });
 
-    it('should handle very long file paths', async () => {
+    it("should handle very long file paths", async () => {
       const processor = new DotProcessor();
 
       // Create a very long but valid path
-      const longDir = path.join(tempDir, 'a'.repeat(100), 'b'.repeat(100));
+      const longDir = path.join(tempDir, "a".repeat(100), "b".repeat(100));
       fs.mkdirSync(longDir, { recursive: true });
 
-      const longFilePath = path.join(longDir, 'test.dot');
+      const longFilePath = path.join(longDir, "test.dot");
       const testContent = 'digraph G { test [label="Long Path Test"]; }';
 
       fs.writeFileSync(longFilePath, testContent);
@@ -352,44 +368,54 @@ describe('Edge Case Tests', () => {
     });
   });
 
-  describe('Translation Edge Cases', () => {
-    it('should handle empty translation maps', async () => {
+  describe("Translation Edge Cases", () => {
+    it("should handle empty translation maps", async () => {
       const processor = new DotProcessor();
       const content = 'digraph G { test [label="Test"]; }';
-      const outputPath = path.join(tempDir, 'empty_translation.dot');
+      const outputPath = path.join(tempDir, "empty_translation.dot");
 
       const emptyTranslations = new Map<string, string>();
 
       await expect(
-        processor.processTexts(Buffer.from(content), emptyTranslations, outputPath)
+        processor.processTexts(
+          Buffer.from(content),
+          emptyTranslations,
+          outputPath,
+        ),
       ).resolves.not.toThrow();
 
       expect(fs.existsSync(outputPath)).toBe(true);
     });
 
-    it('should handle translations with special regex characters', async () => {
+    it("should handle translations with special regex characters", async () => {
       const processor = new DotProcessor();
       const content = 'digraph G { test [label="$pecial [chars] (here)"]; }';
-      const outputPath = path.join(tempDir, 'special_chars_translation.dot');
+      const outputPath = path.join(tempDir, "special_chars_translation.dot");
 
-      const translations = new Map([['$pecial [chars] (here)', 'Caracteres especiales aquí']]);
+      const translations = new Map([
+        ["$pecial [chars] (here)", "Caracteres especiales aquí"],
+      ]);
 
-      const result = await processor.processTexts(Buffer.from(content), translations, outputPath);
-      const translatedContent = Buffer.from(result).toString('utf8');
+      const result = await processor.processTexts(
+        Buffer.from(content),
+        translations,
+        outputPath,
+      );
+      const translatedContent = Buffer.from(result).toString("utf8");
 
-      expect(translatedContent).toContain('Caracteres especiales aquí');
+      expect(translatedContent).toContain("Caracteres especiales aquí");
     });
 
-    it('should handle very large translation maps', async () => {
+    it("should handle very large translation maps", async () => {
       const processor = new DotProcessor();
 
       // Create content with many translatable items
-      const lines = ['digraph G {'];
+      const lines = ["digraph G {"];
       for (let i = 0; i < 100; i++) {
         lines.push(`  node${i} [label="Text ${i}"];`);
       }
-      lines.push('}');
-      const content = lines.join('\n');
+      lines.push("}");
+      const content = lines.join("\n");
 
       // Create large translation map
       const translations = new Map<string, string>();
@@ -397,15 +423,19 @@ describe('Edge Case Tests', () => {
         translations.set(`Text ${i}`, `Texto ${i}`);
       }
 
-      const outputPath = path.join(tempDir, 'large_translation.dot');
-      const result = await processor.processTexts(Buffer.from(content), translations, outputPath);
+      const outputPath = path.join(tempDir, "large_translation.dot");
+      const result = await processor.processTexts(
+        Buffer.from(content),
+        translations,
+        outputPath,
+      );
 
       expect(Buffer.from(result)).toBeInstanceOf(Buffer);
       expect(fs.existsSync(outputPath)).toBe(true);
 
-      const translatedContent = Buffer.from(result).toString('utf8');
-      expect(translatedContent).toContain('Texto 0');
-      expect(translatedContent).toContain('Texto 99');
+      const translatedContent = Buffer.from(result).toString("utf8");
+      expect(translatedContent).toContain("Texto 0");
+      expect(translatedContent).toContain("Texto 99");
     });
   });
 });

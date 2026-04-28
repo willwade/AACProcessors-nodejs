@@ -15,39 +15,39 @@
 // ===================================================================
 // CORE TYPES
 // ===================================================================
-export * from './core/treeStructure';
-export * from './core/baseProcessor';
-export * from './core/stringCasing';
+export * from "./core/treeStructure";
+export * from "./core/baseProcessor";
+export * from "./core/stringCasing";
 
 // ===================================================================
 // BROWSER-SAFE PROCESSORS
 // ===================================================================
-export { DotProcessor } from './processors/dotProcessor';
-export { OpmlProcessor } from './processors/opmlProcessor';
-export { ObfProcessor } from './processors/obfProcessor';
-export { GridsetProcessor } from './processors/gridsetProcessor';
-export { SnapProcessor } from './processors/snapProcessor';
-export { TouchChatProcessor } from './processors/touchchatProcessor';
-export { ApplePanelsProcessor } from './processors/applePanelsProcessor';
-export { AstericsGridProcessor } from './processors/astericsGridProcessor';
+export { DotProcessor } from "./processors/dotProcessor";
+export { OpmlProcessor } from "./processors/opmlProcessor";
+export { ObfProcessor } from "./processors/obfProcessor";
+export { GridsetProcessor } from "./processors/gridsetProcessor";
+export { SnapProcessor } from "./processors/snapProcessor";
+export { TouchChatProcessor } from "./processors/touchchatProcessor";
+export { ApplePanelsProcessor } from "./processors/applePanelsProcessor";
+export { AstericsGridProcessor } from "./processors/astericsGridProcessor";
 
 // ===================================================================
 // UTILITY FUNCTIONS
 // ===================================================================
 
 // Metrics namespace (pageset analytics)
-export * as Metrics from './metrics';
+export * as Metrics from "./metrics";
 
-import { BaseProcessor, ProcessorOptions } from './core/baseProcessor';
-import { DotProcessor } from './processors/dotProcessor';
-import { OpmlProcessor } from './processors/opmlProcessor';
-import { ObfProcessor } from './processors/obfProcessor';
-import { GridsetProcessor } from './processors/gridsetProcessor';
-import { SnapProcessor } from './processors/snapProcessor';
-import { TouchChatProcessor } from './processors/touchchatProcessor';
-import { ApplePanelsProcessor } from './processors/applePanelsProcessor';
-import { AstericsGridProcessor } from './processors/astericsGridProcessor';
-export { configureSqlJs } from './utils/sqlite';
+import { BaseProcessor, ProcessorOptions } from "./core/baseProcessor";
+import { DotProcessor } from "./processors/dotProcessor";
+import { OpmlProcessor } from "./processors/opmlProcessor";
+import { ObfProcessor } from "./processors/obfProcessor";
+import { GridsetProcessor } from "./processors/gridsetProcessor";
+import { SnapProcessor } from "./processors/snapProcessor";
+import { TouchChatProcessor } from "./processors/touchchatProcessor";
+import { ApplePanelsProcessor } from "./processors/applePanelsProcessor";
+import { AstericsGridProcessor } from "./processors/astericsGridProcessor";
+export { configureSqlJs } from "./utils/sqlite";
 
 /**
  * Factory function to get the appropriate processor for a file extension
@@ -57,30 +57,30 @@ export { configureSqlJs } from './utils/sqlite';
  */
 export function getProcessor(
   filePathOrExtension: string,
-  options?: ProcessorOptions
+  options?: ProcessorOptions,
 ): BaseProcessor {
-  const extension = filePathOrExtension.includes('.')
-    ? filePathOrExtension.substring(filePathOrExtension.lastIndexOf('.'))
+  const extension = filePathOrExtension.includes(".")
+    ? filePathOrExtension.substring(filePathOrExtension.lastIndexOf("."))
     : filePathOrExtension;
 
   switch (extension.toLowerCase()) {
-    case '.dot':
+    case ".dot":
       return new DotProcessor(options);
-    case '.opml':
+    case ".opml":
       return new OpmlProcessor(options);
-    case '.obf':
-    case '.obz':
+    case ".obf":
+    case ".obz":
       return new ObfProcessor(options);
-    case '.gridset':
+    case ".gridset":
       return new GridsetProcessor(options);
-    case '.spb':
-    case '.sps':
+    case ".spb":
+    case ".sps":
       return new SnapProcessor(options);
-    case '.ce':
+    case ".ce":
       return new TouchChatProcessor(options);
-    case '.plist':
+    case ".plist":
       return new ApplePanelsProcessor(options);
-    case '.grd':
+    case ".grd":
       return new AstericsGridProcessor(options);
     default:
       throw new Error(`Unsupported file extension: ${extension}`);
@@ -92,7 +92,18 @@ export function getProcessor(
  * @returns Array of supported file extensions
  */
 export function getSupportedExtensions(): string[] {
-  return ['.dot', '.opml', '.obf', '.obz', '.gridset', '.spb', '.sps', '.ce', '.plist', '.grd'];
+  return [
+    ".dot",
+    ".opml",
+    ".obf",
+    ".obz",
+    ".gridset",
+    ".spb",
+    ".sps",
+    ".ce",
+    ".plist",
+    ".grd",
+  ];
 }
 
 /**

@@ -4,13 +4,18 @@ import {
   ExtractStringsResult,
   TranslatedString,
   SourceString,
-} from '../core/baseProcessor';
-import { AACTree, AACPage, AACButton, AACSemanticIntent } from '../core/treeStructure';
+} from "../core/baseProcessor";
+import {
+  AACTree,
+  AACPage,
+  AACButton,
+  AACSemanticIntent,
+} from "../core/treeStructure";
 import {
   ValidationFailureError,
   buildValidationResultFromMessage,
-} from '../validation/validationTypes';
-import { ProcessorInput, getBasename, encodeText } from '../utils/io';
+} from "../validation/validationTypes";
+import { ProcessorInput, getBasename, encodeText } from "../utils/io";
 
 interface DotNode {
   id: string;
@@ -35,7 +40,8 @@ class DotProcessor extends BaseProcessor {
     const edges: DotEdge[] = [];
 
     // Extract all edge statements using regex to handle single-line DOT files
-    const edgeRegex = /"?([^"\s]+)"?\s*->\s*"?([^"\s]+)"?(?:\s*\[label="([^"]+)"\])?/g;
+    const edgeRegex =
+      /"?([^"\s]+)"?\s*->\s*"?([^"\s]+)"?(?:\s*\[label="([^"]+)"\])?/g;
 
     // We need to find nodes, but avoid matching the target of an edge which might look like a node definition
     // e.g. A -> B [label="L"]  -- "B [label="L"]" looks like a node def
@@ -59,7 +65,10 @@ class DotProcessor extends BaseProcessor {
 
       // Mask this edge in the content so we don't match it as a node
       // We replace it with spaces to preserve indices if needed, but simple replacement is enough here
-      maskedContent = maskedContent.replace(fullMatch, ' '.repeat(fullMatch.length));
+      maskedContent = maskedContent.replace(
+        fullMatch,
+        " ".repeat(fullMatch.length),
+      );
     }
 
     // Now find explicit node definitions in the masked content
@@ -73,7 +82,7 @@ class DotProcessor extends BaseProcessor {
     while ((nodeMatch = nodeRegex.exec(maskedContent)) !== null) {
       const [, id, rawLabel] = nodeMatch;
       // Unescape the label: replace \" with " and \\ with \
-      const label = rawLabel.replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+      const label = rawLabel.replace(/\\"/g, '"').replace(/\\\\/g, "\\");
       // Only update if not already defined or if we want to override the implicit label
       nodes.set(id, { id, label });
     }
@@ -108,7 +117,9 @@ class DotProcessor extends BaseProcessor {
     const { readBinaryFromInput, readTextFromInput } = this.options.fileAdapter;
 
     const filename =
-      typeof filePathOrBuffer === 'string' ? getBasename(filePathOrBuffer) : 'upload.dot';
+      typeof filePathOrBuffer === "string"
+        ? getBasename(filePathOrBuffer)
+        : "upload.dot";
     const buffer = await readBinaryFromInput(filePathOrBuffer);
     const filesize = buffer.byteLength;
 
@@ -119,34 +130,38 @@ class DotProcessor extends BaseProcessor {
         const validation = buildValidationResultFromMessage({
           filename,
           filesize,
-          format: 'dot',
-          message: 'DOT file is empty',
-          type: 'content',
-          description: 'DOT file content',
+          format: "dot",
+          message: "DOT file is empty",
+          type: "content",
+          description: "DOT file content",
         });
-        throw new ValidationFailureError('Empty DOT content', validation);
+        throw new ValidationFailureError("Empty DOT content", validation);
       }
 
       // Check for binary data (contains null bytes or non-printable characters)
       const head = content.substring(0, 100);
       for (let i = 0; i < head.length; i++) {
         const code = head.charCodeAt(i);
-        if (code === 0 || (code >= 0 && code <= 8) || (code >= 14 && code <= 31)) {
+        if (
+          code === 0 ||
+          (code >= 0 && code <= 8) ||
+          (code >= 14 && code <= 31)
+        ) {
           const validation = buildValidationResultFromMessage({
             filename,
             filesize,
-            format: 'dot',
-            message: 'DOT appears to be binary data',
-            type: 'content',
-            description: 'DOT file content',
+            format: "dot",
+            message: "DOT appears to be binary data",
+            type: "content",
+            description: "DOT file content",
           });
-          throw new ValidationFailureError('Invalid DOT content', validation);
+          throw new ValidationFailureError("Invalid DOT content", validation);
         }
       }
 
       const { nodes, edges } = this.parseDotFile(content);
       const tree = new AACTree();
-      tree.metadata.format = 'dot';
+      tree.metadata.format = "dot";
 
       // Create pages for each node and add a self button representing the node label
       for (const node of nodes) {
@@ -168,9 +183,9 @@ class DotProcessor extends BaseProcessor {
             semanticAction: {
               intent: AACSemanticIntent.SPEAK_TEXT,
               text: node.label,
-              fallback: { type: 'SPEAK', message: node.label },
+              fallback: { type: "SPEAK", message: node.label },
             },
-          })
+          }),
         );
       }
 
@@ -181,7 +196,7 @@ class DotProcessor extends BaseProcessor {
           const button = new AACButton({
             id: `nav_${edge.from}_${edge.to}`,
             label: edge.label || edge.to,
-            message: '',
+            message: "",
 
             targetPageId: edge.to,
           });
@@ -198,19 +213,23 @@ class DotProcessor extends BaseProcessor {
       const validation = buildValidationResultFromMessage({
         filename,
         filesize,
-        format: 'dot',
-        message: error?.message || 'Failed to parse DOT file',
-        type: 'parse',
-        description: 'Parse DOT graph',
+        format: "dot",
+        message: error?.message || "Failed to parse DOT file",
+        type: "parse",
+        description: "Parse DOT graph",
       });
-      throw new ValidationFailureError('Failed to load DOT file', validation, error);
+      throw new ValidationFailureError(
+        "Failed to load DOT file",
+        validation,
+        error,
+      );
     }
   }
 
   async processTexts(
     filePathOrBuffer: ProcessorInput,
     translations: Map<string, string>,
-    outputPath: string
+    outputPath: string,
   ): Promise<Uint8Array> {
     const { readTextFromInput, writeBinaryToPath } = this.options.fileAdapter;
 
@@ -218,19 +237,19 @@ class DotProcessor extends BaseProcessor {
     let translatedContent = content;
 
     translations.forEach((translation, text) => {
-      if (typeof text === 'string' && typeof translation === 'string') {
+      if (typeof text === "string" && typeof translation === "string") {
         // Escape special regex characters in the text
-        const escapedText = text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const escapedTranslation = translation.replace(/\$/g, '$$$$'); // Escape $ in replacement
+        const escapedText = text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const escapedTranslation = translation.replace(/\$/g, "$$$$"); // Escape $ in replacement
 
         translatedContent = translatedContent.replace(
-          new RegExp(`label="${escapedText}"`, 'g'),
-          `label="${escapedTranslation}"`
+          new RegExp(`label="${escapedText}"`, "g"),
+          `label="${escapedTranslation}"`,
         );
       }
     });
 
-    const resultBuffer = encodeText(translatedContent || '');
+    const resultBuffer = encodeText(translatedContent || "");
     await writeBinaryToPath(outputPath, resultBuffer);
     return resultBuffer;
   }
@@ -238,11 +257,11 @@ class DotProcessor extends BaseProcessor {
   async saveFromTree(tree: AACTree, _outputPath: string): Promise<void> {
     const { writeTextToPath } = this.options.fileAdapter;
 
-    let dotContent = `digraph "${tree.metadata?.name || 'AACBoard'}" {\n`;
+    let dotContent = `digraph "${tree.metadata?.name || "AACBoard"}" {\n`;
 
     // Helper to escape DOT string
     const escapeDotString = (str: string): string => {
-      return str.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+      return str.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
     };
 
     if (tree.metadata?.name) {
@@ -262,7 +281,9 @@ class DotProcessor extends BaseProcessor {
         .filter((btn: AACButton) => {
           const intentStr = String(btn.semanticAction?.intent);
           return (
-            intentStr === 'NAVIGATE_TO' || !!btn.targetPageId || !!btn.semanticAction?.targetId
+            intentStr === "NAVIGATE_TO" ||
+            !!btn.targetPageId ||
+            !!btn.semanticAction?.targetId
           );
         })
         .forEach((btn: AACButton) => {
@@ -273,7 +294,7 @@ class DotProcessor extends BaseProcessor {
         });
     }
 
-    dotContent += '}\n';
+    dotContent += "}\n";
     await writeTextToPath(_outputPath, dotContent);
   }
 
@@ -281,7 +302,9 @@ class DotProcessor extends BaseProcessor {
    * Extract strings with metadata for aac-tools-platform compatibility
    * Uses the generic implementation from BaseProcessor
    */
-  async extractStringsWithMetadata(filePath: string): Promise<ExtractStringsResult> {
+  async extractStringsWithMetadata(
+    filePath: string,
+  ): Promise<ExtractStringsResult> {
     return this.extractStringsWithMetadataGeneric(filePath);
   }
 
@@ -292,9 +315,13 @@ class DotProcessor extends BaseProcessor {
   async generateTranslatedDownload(
     filePath: string,
     translatedStrings: TranslatedString[],
-    sourceStrings: SourceString[]
+    sourceStrings: SourceString[],
   ): Promise<string> {
-    return this.generateTranslatedDownloadGeneric(filePath, translatedStrings, sourceStrings);
+    return this.generateTranslatedDownloadGeneric(
+      filePath,
+      translatedStrings,
+      sourceStrings,
+    );
   }
 }
 

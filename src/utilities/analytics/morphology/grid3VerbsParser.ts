@@ -1,7 +1,7 @@
-import { XMLParser } from 'fast-xml-parser';
-import AdmZip from 'adm-zip';
-import { join, dirname, basename } from 'path';
-import type { VerbFormWithConditions, Grid3VerbFormsDetailed } from './types';
+import { XMLParser } from "fast-xml-parser";
+import AdmZip from "adm-zip";
+import { join, dirname, basename } from "path";
+import type { VerbFormWithConditions, Grid3VerbFormsDetailed } from "./types";
 
 export interface Grid3VerbForms {
   locale: string;
@@ -30,17 +30,18 @@ export class Grid3VerbsParser {
   private parser = new XMLParser({
     ignoreAttributes: false,
     ignoreDeclaration: true,
-    textNodeName: '#text',
+    textNodeName: "#text",
   });
 
   parseXml(xmlContent: string, locale?: string): Grid3VerbForms {
     const data = this.parser.parse(xmlContent);
     const verbdata = data.verbdata || data.Verbdata;
     if (!verbdata) {
-      return { locale: locale || 'unknown', verbs: new Map() };
+      return { locale: locale || "unknown", verbs: new Map() };
     }
 
-    const detectedLocale = verbdata['@_locale'] || verbdata.locale || locale || 'unknown';
+    const detectedLocale =
+      verbdata["@_locale"] || verbdata.locale || locale || "unknown";
     const ruleSets = this.parseRuleSets(verbdata);
     const verbs = this.parseVerbs(verbdata);
     const result = new Map<string, string[]>();
@@ -55,14 +56,18 @@ export class Grid3VerbsParser {
     return { locale: detectedLocale, verbs: result };
   }
 
-  parseXmlDetailed(xmlContent: string, locale?: string): Grid3VerbFormsDetailed {
+  parseXmlDetailed(
+    xmlContent: string,
+    locale?: string,
+  ): Grid3VerbFormsDetailed {
     const data = this.parser.parse(xmlContent);
     const verbdata = data.verbdata || data.Verbdata;
     if (!verbdata) {
-      return { locale: locale || 'unknown', verbs: new Map() };
+      return { locale: locale || "unknown", verbs: new Map() };
     }
 
-    const detectedLocale = verbdata['@_locale'] || verbdata.locale || locale || 'unknown';
+    const detectedLocale =
+      verbdata["@_locale"] || verbdata.locale || locale || "unknown";
     const ruleSets = this.parseRuleSets(verbdata);
     const verbs = this.parseVerbs(verbdata);
     const result = new Map<string, VerbFormWithConditions[]>();
@@ -79,8 +84,8 @@ export class Grid3VerbsParser {
 
   /* eslint-disable @typescript-eslint/no-var-requires, @typescript-eslint/no-unsafe-argument */
   parseXmlFileDetailed(filePath: string): Grid3VerbFormsDetailed {
-    const fs = require('fs');
-    const xml = fs.readFileSync(filePath, 'utf-8');
+    const fs = require("fs");
+    const xml = fs.readFileSync(filePath, "utf-8");
     return this.parseXmlDetailed(xml);
   }
   /* eslint-enable @typescript-eslint/no-var-requires, @typescript-eslint/no-unsafe-argument */
@@ -88,34 +93,41 @@ export class Grid3VerbsParser {
   parseZip(zipPath: string): Grid3VerbForms {
     const zip = new AdmZip(zipPath);
     const entries = zip.getEntries();
-    const verbEntry = entries.find((e) => e.entryName.toLowerCase().endsWith('verbs.xml'));
+    const verbEntry = entries.find((e) =>
+      e.entryName.toLowerCase().endsWith("verbs.xml"),
+    );
     if (!verbEntry) {
       const locale = basename(dirname(zipPath));
       return { locale, verbs: new Map() };
     }
-    const xml = verbEntry.getData().toString('utf-8');
+    const xml = verbEntry.getData().toString("utf-8");
     return this.parseXml(xml);
   }
 
   parseZipDetailed(zipPath: string): Grid3VerbFormsDetailed {
     const zip = new AdmZip(zipPath);
     const entries = zip.getEntries();
-    const verbEntry = entries.find((e) => e.entryName.toLowerCase().endsWith('verbs.xml'));
+    const verbEntry = entries.find((e) =>
+      e.entryName.toLowerCase().endsWith("verbs.xml"),
+    );
     if (!verbEntry) {
       const locale = basename(dirname(zipPath));
       return { locale, verbs: new Map() };
     }
-    const xml = verbEntry.getData().toString('utf-8');
+    const xml = verbEntry.getData().toString("utf-8");
     return this.parseXmlDetailed(xml);
   }
 
   // eslint-disable-next-line @typescript-eslint/require-await
-  async parseLocale(locale: string, grid3InstallPath?: string): Promise<Grid3VerbForms> {
+  async parseLocale(
+    locale: string,
+    grid3InstallPath?: string,
+  ): Promise<Grid3VerbForms> {
     const installPath = grid3InstallPath || this.getDefaultInstallPath();
     if (!installPath) {
       return { locale, verbs: new Map() };
     }
-    const zipPath = join(installPath, 'Locale', locale, 'verbs', 'verbs.zip');
+    const zipPath = join(installPath, "Locale", locale, "verbs", "verbs.zip");
     try {
       return this.parseZip(zipPath);
     } catch {
@@ -123,13 +135,15 @@ export class Grid3VerbsParser {
     }
   }
 
-  async parseInstalledLocales(grid3InstallPath?: string): Promise<Map<string, Grid3VerbForms>> {
+  async parseInstalledLocales(
+    grid3InstallPath?: string,
+  ): Promise<Map<string, Grid3VerbForms>> {
     const installPath = grid3InstallPath || this.getDefaultInstallPath();
     const results = new Map<string, Grid3VerbForms>();
     if (!installPath) return results;
 
-    const fs = await import('fs');
-    const localeDir = join(installPath, 'Locale');
+    const fs = await import("fs");
+    const localeDir = join(installPath, "Locale");
     let locales: string[];
     try {
       locales = fs
@@ -140,7 +154,7 @@ export class Grid3VerbsParser {
     }
 
     for (const locale of locales) {
-      const verbsZip = join(localeDir, locale, 'verbs', 'verbs.zip');
+      const verbsZip = join(localeDir, locale, "verbs", "verbs.zip");
       try {
         fs.accessSync(verbsZip, fs.constants.R_OK);
         const forms = this.parseZip(verbsZip);
@@ -164,18 +178,23 @@ export class Grid3VerbsParser {
    * This allows users to supply morphology data copied from any Grid 3
    * installation without needing Grid 3 installed on this machine.
    */
-  parseCustomDirectory(dirPath: string, detailed?: false): Map<string, Grid3VerbForms>;
   parseCustomDirectory(
     dirPath: string,
-    detailed: true
-  ): Map<string, import('./types').Grid3VerbFormsDetailed>;
+    detailed?: false,
+  ): Map<string, Grid3VerbForms>;
+  parseCustomDirectory(
+    dirPath: string,
+    detailed: true,
+  ): Map<string, import("./types").Grid3VerbFormsDetailed>;
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   parseCustomDirectory(
     dirPath: string,
-    detailed = false
-  ): Map<string, Grid3VerbForms> | Map<string, import('./types').Grid3VerbFormsDetailed> {
+    detailed = false,
+  ):
+    | Map<string, Grid3VerbForms>
+    | Map<string, import("./types").Grid3VerbFormsDetailed> {
     /* eslint-disable @typescript-eslint/no-var-requires, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return */
-    const fs = require('fs');
+    const fs = require("fs");
     let locales: string[];
     try {
       locales = fs
@@ -186,9 +205,12 @@ export class Grid3VerbsParser {
     }
 
     if (detailed) {
-      const results = new Map<string, import('./types').Grid3VerbFormsDetailed>();
+      const results = new Map<
+        string,
+        import("./types").Grid3VerbFormsDetailed
+      >();
       for (const locale of locales) {
-        const verbsZip = join(dirPath, locale, 'verbs', 'verbs.zip');
+        const verbsZip = join(dirPath, locale, "verbs", "verbs.zip");
         try {
           fs.accessSync(verbsZip, fs.constants.R_OK);
           results.set(locale, this.parseZipDetailed(verbsZip));
@@ -201,7 +223,7 @@ export class Grid3VerbsParser {
 
     const results = new Map<string, Grid3VerbForms>();
     for (const locale of locales) {
-      const verbsZip = join(dirPath, locale, 'verbs', 'verbs.zip');
+      const verbsZip = join(dirPath, locale, "verbs", "verbs.zip");
       try {
         fs.accessSync(verbsZip, fs.constants.R_OK);
         results.set(locale, this.parseZip(verbsZip));
@@ -214,16 +236,16 @@ export class Grid3VerbsParser {
   }
 
   private getDefaultInstallPath(): string | null {
-    if (typeof process === 'undefined' || process.platform !== 'win32') {
+    if (typeof process === "undefined" || process.platform !== "win32") {
       return null;
     }
     const paths = [
-      'C:\\Program Files (x86)\\Smartbox\\Grid 3',
-      'C:\\Program Files\\Smartbox\\Grid 3',
+      "C:\\Program Files (x86)\\Smartbox\\Grid 3",
+      "C:\\Program Files\\Smartbox\\Grid 3",
     ];
     try {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const fs = require('fs');
+      const fs = require("fs");
       for (const p of paths) {
         if (fs.existsSync(p)) return p;
       }
@@ -248,7 +270,7 @@ export class Grid3VerbsParser {
       if (ph) {
         const phArr = Array.isArray(ph) ? ph : [ph];
         for (const p of phArr) {
-          const val = typeof p === 'string' ? p : p['#text'] || p;
+          const val = typeof p === "string" ? p : p["#text"] || p;
           if (val) placeholders.push(val);
         }
       }
@@ -258,8 +280,8 @@ export class Grid3VerbsParser {
       if (pr) {
         const prArr = Array.isArray(pr) ? pr : [pr];
         for (const rule of prArr) {
-          const type = rule['@_type'] || rule.type;
-          const value = rule['@_value'] || rule.value;
+          const type = rule["@_type"] || rule.type;
+          const value = rule["@_value"] || rule.value;
           if (type && value) {
             participleRules.set(type, value);
           }
@@ -274,21 +296,21 @@ export class Grid3VerbsParser {
       if (cr) {
         const crArr = Array.isArray(cr) ? cr : [cr];
         for (const rule of crArr) {
-          const value = rule['@_value'] || rule.value;
+          const value = rule["@_value"] || rule.value;
           if (!value) continue;
           const conditions = new Map<string, string>();
           for (const attr of [
-            'time',
-            'number',
-            'person',
-            'aspect',
-            'mood',
-            'voice',
-            'tense',
-            'polarity',
+            "time",
+            "number",
+            "person",
+            "aspect",
+            "mood",
+            "voice",
+            "tense",
+            "polarity",
           ]) {
             const v = rule[`@_${attr}`] || rule[attr];
-            if (v && v !== '*') {
+            if (v && v !== "*") {
               conditions.set(attr, String(v));
             }
           }
@@ -310,18 +332,18 @@ export class Grid3VerbsParser {
 
     const arr = Array.isArray(verbsData) ? verbsData : [verbsData];
     for (const v of arr) {
-      const root = v['@_root'] || v.root;
+      const root = v["@_root"] || v.root;
       if (!root) continue;
 
-      const ruleId = v['@_ruleid'] || v.ruleid || undefined;
+      const ruleId = v["@_ruleid"] || v.ruleid || undefined;
 
       const placeholderValues = new Map<string, string>();
       const rphv = v.ruleplaceholdervalues?.ruleplaceholdervalue;
       if (rphv) {
         const rphvArr = Array.isArray(rphv) ? rphv : [rphv];
         for (const ph of rphvArr) {
-          const placeholder = ph['@_placeholder'] || ph.placeholder;
-          const value = ph['@_value'] || ph.value;
+          const placeholder = ph["@_placeholder"] || ph.placeholder;
+          const value = ph["@_value"] || ph.value;
           if (placeholder && value) {
             placeholderValues.set(placeholder, value);
           }
@@ -333,8 +355,8 @@ export class Grid3VerbsParser {
       if (parts) {
         const partsArr = Array.isArray(parts) ? parts : [parts];
         for (const p of partsArr) {
-          const type = p['@_type'] || p.type;
-          const value = p['@_value'] || p.value;
+          const type = p["@_type"] || p.type;
+          const value = p["@_value"] || p.value;
           if (type && value) {
             participleOverrides.set(type, value);
           }
@@ -349,16 +371,23 @@ export class Grid3VerbsParser {
       if (conjs) {
         const conjArr = Array.isArray(conjs) ? conjs : [conjs];
         for (const c of conjArr) {
-          const value = c['@_value'] || c.value;
+          const value = c["@_value"] || c.value;
           if (!value) continue;
           const conditions = new Map<string, string>();
           const parts2 = c.part;
           if (parts2) {
             const pArr = Array.isArray(parts2) ? parts2 : [parts2];
             for (const p of pArr) {
-              for (const attr of ['time', 'number', 'person', 'aspect', 'mood', 'voice']) {
+              for (const attr of [
+                "time",
+                "number",
+                "person",
+                "aspect",
+                "mood",
+                "voice",
+              ]) {
                 const pv = p[`@_${attr}`] || p[attr];
-                if (pv && pv !== '*') {
+                if (pv && pv !== "*") {
                   conditions.set(attr, String(pv));
                 }
               }
@@ -380,7 +409,10 @@ export class Grid3VerbsParser {
     return verbs;
   }
 
-  private generateForms(verb: ParsedVerb, ruleSets: Map<string, ParsedRuleSet>): string[] {
+  private generateForms(
+    verb: ParsedVerb,
+    ruleSets: Map<string, ParsedRuleSet>,
+  ): string[] {
     const forms = new Set<string>();
     const resolvedParticiples = new Map<string, string>();
 
@@ -430,7 +462,7 @@ export class Grid3VerbsParser {
 
   private generateFormsDetailed(
     verb: ParsedVerb,
-    ruleSets: Map<string, ParsedRuleSet>
+    ruleSets: Map<string, ParsedRuleSet>,
   ): VerbFormWithConditions[] {
     const forms = new Map<string, Map<string, string>>();
     const resolvedParticiples = new Map<string, string>();
@@ -463,7 +495,7 @@ export class Grid3VerbsParser {
 
       for (const conjRule of appliedRule.conjugationRules) {
         const resolved = this.resolveTemplate(conjRule.value, fullContext);
-        if (resolved && !resolved.includes(' ') && resolved !== '-') {
+        if (resolved && !resolved.includes(" ") && resolved !== "-") {
           const trimmed = resolved.trim();
           if (trimmed.length > 0 && trimmed !== verb.root) {
             const existing = forms.get(trimmed);
@@ -480,9 +512,14 @@ export class Grid3VerbsParser {
     }
 
     for (const [type, value] of resolvedParticiples) {
-      if (!value.includes(' ') && value !== '-' && value.trim().length > 0 && value !== verb.root) {
+      if (
+        !value.includes(" ") &&
+        value !== "-" &&
+        value.trim().length > 0 &&
+        value !== verb.root
+      ) {
         const conditions = forms.get(value) || new Map<string, string>();
-        conditions.set('participleType', type);
+        conditions.set("participleType", type);
         forms.set(value, conditions);
       }
     }
@@ -490,8 +527,8 @@ export class Grid3VerbsParser {
     for (const conj of verb.conjugationOverrides) {
       if (
         conj.value &&
-        !conj.value.includes(' ') &&
-        conj.value !== '-' &&
+        !conj.value.includes(" ") &&
+        conj.value !== "-" &&
         conj.value.trim().length > 0 &&
         conj.value !== verb.root
       ) {
@@ -512,13 +549,13 @@ export class Grid3VerbsParser {
 
   private buildContext(
     verb: ParsedVerb,
-    resolvedParticiples: Map<string, string>
+    resolvedParticiples: Map<string, string>,
   ): Map<string, string> {
     const context = new Map<string, string>();
-    context.set('{root}', verb.root);
+    context.set("{root}", verb.root);
     for (const [key, value] of verb.placeholderValues) {
       context.set(key, value);
-      if (!key.startsWith('{')) {
+      if (!key.startsWith("{")) {
         context.set(`{${key}}`, value);
       }
     }
@@ -528,10 +565,13 @@ export class Grid3VerbsParser {
     return context;
   }
 
-  private resolveTemplate(template: string, context: Map<string, string>): string {
+  private resolveTemplate(
+    template: string,
+    context: Map<string, string>,
+  ): string {
     let result = template;
     for (const [key, value] of context) {
-      const keyToReplace = key.startsWith('{') ? key : `{${key}}`;
+      const keyToReplace = key.startsWith("{") ? key : `{${key}}`;
       result = result.split(keyToReplace).join(value);
     }
     return result;
@@ -539,8 +579,8 @@ export class Grid3VerbsParser {
 
   private addIfSingleWord(form: string, set: Set<string>): void {
     if (!form) return;
-    if (form.includes(' ')) return;
-    if (form === '-') return;
+    if (form.includes(" ")) return;
+    if (form === "-") return;
     const trimmed = form.trim();
     if (trimmed.length > 0) {
       set.add(trimmed);

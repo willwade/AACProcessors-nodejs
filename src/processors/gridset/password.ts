@@ -1,11 +1,11 @@
-import type JSZip from 'jszip';
-import { ProcessorOptions } from '../../core/baseProcessor';
-import { ProcessorInput } from '../../utils/io';
-import { ZipAdapter } from '../../utils/zip';
+import type JSZip from "jszip";
+import { ProcessorOptions } from "../../core/baseProcessor";
+import { ProcessorInput } from "../../utils/io";
+import { ZipAdapter } from "../../utils/zip";
 
 function getExtension(source: string): string {
-  const index = source.lastIndexOf('.');
-  if (index === -1) return '';
+  const index = source.lastIndexOf(".");
+  if (index === -1) return "";
   return source.slice(index);
 }
 
@@ -17,22 +17,25 @@ function getExtension(source: string): string {
  */
 export function resolveGridsetPassword(
   options?: ProcessorOptions,
-  source?: ProcessorInput
+  source?: ProcessorInput,
 ): string | undefined {
   if (options?.gridsetPassword) return options.gridsetPassword;
-  const envPassword = typeof process !== 'undefined' ? process.env?.GRIDSET_PASSWORD : undefined;
+  const envPassword =
+    typeof process !== "undefined" ? process.env?.GRIDSET_PASSWORD : undefined;
   if (envPassword) return envPassword;
 
-  if (typeof source === 'string') {
+  if (typeof source === "string") {
     const ext = getExtension(source).toLowerCase();
-    if (ext === '.gridsetx') return envPassword;
+    if (ext === ".gridsetx") return envPassword;
   }
 
   return undefined;
 }
 
 export function resolveGridsetPasswordFromEnv(): string | undefined {
-  return typeof process !== 'undefined' ? process.env?.GRIDSET_PASSWORD : undefined;
+  return typeof process !== "undefined"
+    ? process.env?.GRIDSET_PASSWORD
+    : undefined;
 }
 
 /**
@@ -51,7 +54,10 @@ export type ZipEntry = {
   getData: () => Promise<Uint8Array>;
 };
 
-export function getZipEntriesWithPassword(zip: JSZip, password?: string): ZipEntry[] {
+export function getZipEntriesWithPassword(
+  zip: JSZip,
+  password?: string,
+): ZipEntry[] {
   const entries: Array<{
     name: string;
     entryName: string;
@@ -64,7 +70,7 @@ export function getZipEntriesWithPassword(zip: JSZip, password?: string): ZipEnt
   // in crypto.ts before the zip is loaded
   if (password) {
     console.warn(
-      'JSZip does not support zip-level password protection. For .gridsetx encrypted files, password is handled at the archive level.'
+      "JSZip does not support zip-level password protection. For .gridsetx encrypted files, password is handled at the archive level.",
     );
   }
 
@@ -75,7 +81,7 @@ export function getZipEntriesWithPassword(zip: JSZip, password?: string): ZipEnt
       dir: file.dir || false,
       getData: async () => {
         // Use 'uint8array' which is supported everywhere
-        return await file.async('uint8array');
+        return await file.async("uint8array");
       },
     });
   });
@@ -83,9 +89,14 @@ export function getZipEntriesWithPassword(zip: JSZip, password?: string): ZipEnt
   return entries;
 }
 
-export function getZipEntriesFromAdapter(zip: ZipAdapter, password?: string): ZipEntry[] {
+export function getZipEntriesFromAdapter(
+  zip: ZipAdapter,
+  password?: string,
+): ZipEntry[] {
   if (password) {
-    console.warn('Zip password support is handled at the archive level for .gridsetx files.');
+    console.warn(
+      "Zip password support is handled at the archive level for .gridsetx files.",
+    );
   }
 
   return zip.listFiles().map((entryName) => ({

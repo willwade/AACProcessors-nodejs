@@ -40,11 +40,16 @@
  * See `src/utilities/translation/translationProcessor.ts` for shared utilities.
  */
 
-import { AACTree, AACButton, AACSemanticCategory } from './treeStructure';
-import { StringCasing, detectCasing, isNumericOrEmpty } from './stringCasing';
-import { ValidationResult } from '../validation/validationTypes';
-import { BinaryOutput, defaultFileAdapter, FileAdapter, ProcessorInput } from '../utils/io';
-import { getZipAdapter, ZipAdapter } from '../utils/zip';
+import { AACTree, AACButton, AACSemanticCategory } from "./treeStructure";
+import { StringCasing, detectCasing, isNumericOrEmpty } from "./stringCasing";
+import { ValidationResult } from "../validation/validationTypes";
+import {
+  BinaryOutput,
+  defaultFileAdapter,
+  FileAdapter,
+  ProcessorInput,
+} from "../utils/io";
+import { getZipAdapter, ZipAdapter } from "../utils/zip";
 
 // Configuration options for processors
 export interface ProcessorConfig {
@@ -77,7 +82,10 @@ export interface ProcessorConfig {
   fileAdapter: FileAdapter;
 
   // Adapter for handling encoding/decoding zip files
-  zipAdapter: (input?: ProcessorInput, fileAdapter?: FileAdapter) => Promise<ZipAdapter>;
+  zipAdapter: (
+    input?: ProcessorInput,
+    fileAdapter?: FileAdapter,
+  ) => Promise<ZipAdapter>;
 }
 export type ProcessorOptions = Partial<ProcessorConfig>;
 
@@ -100,7 +108,7 @@ export interface VocabLocation {
 
 export interface ProcessingError {
   message: string;
-  step: 'EXTRACT' | 'PROCESS' | 'SAVE';
+  step: "EXTRACT" | "PROCESS" | "SAVE";
 }
 
 export interface ExtractStringsResult {
@@ -145,7 +153,7 @@ abstract class BaseProcessor {
   abstract processTexts(
     filePathOrBuffer: ProcessorInput,
     translations: Map<string, string>,
-    outputPath: string
+    outputPath: string,
   ): Promise<BinaryOutput>;
 
   // Save tree structure back to file/buffer
@@ -174,7 +182,7 @@ abstract class BaseProcessor {
   generateTranslatedDownload?(
     filePath: string,
     translatedStrings: TranslatedString[],
-    sourceStrings: SourceString[]
+    sourceStrings: SourceString[],
   ): Promise<string>;
 
   // Helper method to determine if a button should be filtered out
@@ -196,13 +204,16 @@ abstract class BaseProcessor {
       // Filter specific navigation intents (toolbar navigation only)
       if (this.options.excludeNavigationButtons) {
         const i = String(intent);
-        if (i === 'GO_BACK' || i === 'GO_HOME') {
+        if (i === "GO_BACK" || i === "GO_HOME") {
           return true;
         }
       }
 
       // Filter system/text editing buttons by category
-      if (this.options.excludeSystemButtons && category === AACSemanticCategory.TEXT_EDITING) {
+      if (
+        this.options.excludeSystemButtons &&
+        category === AACSemanticCategory.TEXT_EDITING
+      ) {
         return true;
       }
 
@@ -210,10 +221,10 @@ abstract class BaseProcessor {
       if (this.options.excludeSystemButtons) {
         const i = String(intent);
         if (
-          i === 'DELETE_WORD' ||
-          i === 'DELETE_CHARACTER' ||
-          i === 'CLEAR_TEXT' ||
-          i === 'COPY_TEXT'
+          i === "DELETE_WORD" ||
+          i === "DELETE_CHARACTER" ||
+          i === "CLEAR_TEXT" ||
+          i === "COPY_TEXT"
         ) {
           return true;
         }
@@ -224,25 +235,30 @@ abstract class BaseProcessor {
     // Only apply label-based filtering if button doesn't have semantic actions
     if (
       !button.semanticAction &&
-      (this.options.excludeNavigationButtons || this.options.excludeSystemButtons)
+      (this.options.excludeNavigationButtons ||
+        this.options.excludeSystemButtons)
     ) {
-      const label = button.label?.toLowerCase() || '';
-      const message = button.message?.toLowerCase() || '';
+      const label = button.label?.toLowerCase() || "";
+      const message = button.message?.toLowerCase() || "";
 
       // More conservative navigation terms (exclude "more" since it's often used for legitimate page navigation)
-      const navigationTerms = ['back', 'home', 'menu', 'settings'];
-      const systemTerms = ['delete', 'clear', 'copy', 'paste', 'undo', 'redo'];
+      const navigationTerms = ["back", "home", "menu", "settings"];
+      const systemTerms = ["delete", "clear", "copy", "paste", "undo", "redo"];
 
       if (
         this.options.excludeNavigationButtons &&
-        navigationTerms.some((term) => label.includes(term) || message.includes(term))
+        navigationTerms.some(
+          (term) => label.includes(term) || message.includes(term),
+        )
       ) {
         return true;
       }
 
       if (
         this.options.excludeSystemButtons &&
-        systemTerms.some((term) => label.includes(term) || message.includes(term))
+        systemTerms.some(
+          (term) => label.includes(term) || message.includes(term),
+        )
       ) {
         return true;
       }
@@ -263,7 +279,7 @@ abstract class BaseProcessor {
    * @returns Promise with extracted strings and metadata
    */
   protected async extractStringsWithMetadataGeneric(
-    filePath: string
+    filePath: string,
   ): Promise<ExtractStringsResult> {
     try {
       const tree = await this.loadIntoTree(filePath);
@@ -272,30 +288,48 @@ abstract class BaseProcessor {
       // Process all pages and buttons
       Object.values(tree.pages).forEach((page) => {
         // Process page names
-        if (page.name && page.name.trim().length > 1 && !isNumericOrEmpty(page.name)) {
+        if (
+          page.name &&
+          page.name.trim().length > 1 &&
+          !isNumericOrEmpty(page.name)
+        ) {
           const key = page.name.trim().toLowerCase();
           const vocabLocation: VocabLocation = {
-            table: 'pages',
+            table: "pages",
             id: page.id,
-            column: 'NAME',
+            column: "NAME",
             casing: detectCasing(page.name),
           };
 
-          this.addToExtractedMap(extractedMap, key, page.name.trim(), vocabLocation);
+          this.addToExtractedMap(
+            extractedMap,
+            key,
+            page.name.trim(),
+            vocabLocation,
+          );
         }
 
         page.buttons.forEach((button) => {
           // Process button labels
-          if (button.label && button.label.trim().length > 1 && !isNumericOrEmpty(button.label)) {
+          if (
+            button.label &&
+            button.label.trim().length > 1 &&
+            !isNumericOrEmpty(button.label)
+          ) {
             const key = button.label.trim().toLowerCase();
             const vocabLocation: VocabLocation = {
-              table: 'buttons',
+              table: "buttons",
               id: button.id,
-              column: 'LABEL',
+              column: "LABEL",
               casing: detectCasing(button.label),
             };
 
-            this.addToExtractedMap(extractedMap, key, button.label.trim(), vocabLocation);
+            this.addToExtractedMap(
+              extractedMap,
+              key,
+              button.label.trim(),
+              vocabLocation,
+            );
           }
 
           // Process button messages (if different from label)
@@ -307,13 +341,18 @@ abstract class BaseProcessor {
           ) {
             const key = button.message.trim().toLowerCase();
             const vocabLocation: VocabLocation = {
-              table: 'buttons',
+              table: "buttons",
               id: button.id,
-              column: 'MESSAGE',
+              column: "MESSAGE",
               casing: detectCasing(button.message),
             };
 
-            this.addToExtractedMap(extractedMap, key, button.message.trim(), vocabLocation);
+            this.addToExtractedMap(
+              extractedMap,
+              key,
+              button.message.trim(),
+              vocabLocation,
+            );
           }
         });
       });
@@ -324,8 +363,11 @@ abstract class BaseProcessor {
       return {
         errors: [
           {
-            message: error instanceof Error ? error.message : 'Unknown extraction error',
-            step: 'EXTRACT' as const,
+            message:
+              error instanceof Error
+                ? error.message
+                : "Unknown extraction error",
+            step: "EXTRACT" as const,
           },
         ],
         extractedStrings: [],
@@ -344,14 +386,14 @@ abstract class BaseProcessor {
   protected async generateTranslatedDownloadGeneric(
     filePath: string,
     translatedStrings: TranslatedString[],
-    sourceStrings: SourceString[]
+    sourceStrings: SourceString[],
   ): Promise<string> {
     // Build translation map from the provided data
     const translations = new Map<string, string>();
 
     sourceStrings.forEach((sourceString) => {
       const translated = translatedStrings.find(
-        (ts) => ts.sourcestringid.toString() === sourceString.id.toString()
+        (ts) => ts.sourcestringid.toString() === sourceString.id.toString(),
       );
 
       if (translated) {
@@ -383,7 +425,7 @@ abstract class BaseProcessor {
     extractedMap: Map<string, ExtractedString>,
     key: string,
     originalString: string,
-    vocabLocation: VocabLocation
+    vocabLocation: VocabLocation,
   ): void {
     const existing = extractedMap.get(key);
     if (existing) {
@@ -404,9 +446,9 @@ abstract class BaseProcessor {
    * @returns Path for the translated output file
    */
   protected generateTranslatedOutputPath(filePath: string): string {
-    const lastDotIndex = filePath.lastIndexOf('.');
+    const lastDotIndex = filePath.lastIndexOf(".");
     if (lastDotIndex === -1) {
-      return filePath + '_translated';
+      return filePath + "_translated";
     }
 
     const basePath = filePath.substring(0, lastDotIndex);

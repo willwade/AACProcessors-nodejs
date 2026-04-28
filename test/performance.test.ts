@@ -1,17 +1,17 @@
 // Performance tests for all processors
-import fs from 'fs';
-import path from 'path';
-import { performance } from 'perf_hooks';
-import { DotProcessor } from '../src/processors/dotProcessor';
-import { SnapProcessor } from '../src/processors/snapProcessor';
-import { AACTree, AACPage, AACButton } from '../src/core/treeStructure';
+import fs from "fs";
+import path from "path";
+import { performance } from "perf_hooks";
+import { DotProcessor } from "../src/processors/dotProcessor";
+import { SnapProcessor } from "../src/processors/snapProcessor";
+import { AACTree, AACPage, AACButton } from "../src/core/treeStructure";
 
-describe('Performance Tests', () => {
-  const tempDir = path.join(__dirname, 'temp_performance');
+describe("Performance Tests", () => {
+  const tempDir = path.join(__dirname, "temp_performance");
   let warnSpy: jest.SpyInstance;
 
   beforeAll(async () => {
-    warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
     if (!fs.existsSync(tempDir)) {
       fs.mkdirSync(tempDir, { recursive: true });
     }
@@ -37,11 +37,13 @@ describe('Performance Tests', () => {
 
   // Helper function to create large test data
   function createLargeDotFile(nodeCount: number): string {
-    const lines = ['digraph G {'];
+    const lines = ["digraph G {"];
 
     // Add nodes
     for (let i = 0; i < nodeCount; i++) {
-      lines.push(`  node${i} [label="Node ${i} with some longer text content"];`);
+      lines.push(
+        `  node${i} [label="Node ${i} with some longer text content"];`,
+      );
     }
 
     // Add edges (create a connected graph)
@@ -58,8 +60,8 @@ describe('Performance Tests', () => {
       }
     }
 
-    lines.push('}');
-    return lines.join('\n');
+    lines.push("}");
+    return lines.join("\n");
   }
 
   function createLargeTree(pageCount: number, buttonsPerPage: number): AACTree {
@@ -77,9 +79,11 @@ describe('Performance Tests', () => {
           id: `btn_${p}_${b}`,
           label: `Button ${b} on Page ${p}`,
           message: `This is button ${b} on page ${p} with some longer message content`,
-          type: Math.random() > 0.7 ? 'NAVIGATE' : 'SPEAK',
+          type: Math.random() > 0.7 ? "NAVIGATE" : "SPEAK",
           targetPageId:
-            Math.random() > 0.7 ? `page_${Math.floor(Math.random() * pageCount)}` : undefined,
+            Math.random() > 0.7
+              ? `page_${Math.floor(Math.random() * pageCount)}`
+              : undefined,
         });
         page.addButton(button);
       }
@@ -90,8 +94,8 @@ describe('Performance Tests', () => {
     return tree;
   }
 
-  describe('Large File Processing', () => {
-    it('should handle large DOT files efficiently', async () => {
+  describe("Large File Processing", () => {
+    it("should handle large DOT files efficiently", async () => {
       const processor = new DotProcessor();
       const largeContent = createLargeDotFile(1000); // 1000 nodes
 
@@ -106,7 +110,9 @@ describe('Performance Tests', () => {
       const processingTime = endTime - startTime;
       const memoryIncrease = memAfter.heapUsed - memBefore.heapUsed;
 
-      console.log(`DOT Performance: ${processingTime.toFixed(2)}ms, Memory: +${memoryIncrease}MB`);
+      console.log(
+        `DOT Performance: ${processingTime.toFixed(2)}ms, Memory: +${memoryIncrease}MB`,
+      );
 
       expect(tree).toBeDefined();
       expect(Object.keys(tree.pages).length).toBeGreaterThan(0);
@@ -114,11 +120,11 @@ describe('Performance Tests', () => {
       expect(memoryIncrease).toBeLessThan(100); // Should not use more than 100MB extra
     });
 
-    it('should handle large trees in saveFromTree operations', async () => {
+    it("should handle large trees in saveFromTree operations", async () => {
       const processor = new DotProcessor();
       const largeTree = createLargeTree(50, 20); // 50 pages, 20 buttons each
 
-      const outputPath = path.join(tempDir, 'large_output.dot');
+      const outputPath = path.join(tempDir, "large_output.dot");
       const memBefore = getMemoryUsage();
       const startTime = performance.now();
 
@@ -131,7 +137,7 @@ describe('Performance Tests', () => {
       const memoryIncrease = memAfter.heapUsed - memBefore.heapUsed;
 
       console.log(
-        `DOT Save Performance: ${processingTime.toFixed(2)}ms, Memory: +${memoryIncrease}MB`
+        `DOT Save Performance: ${processingTime.toFixed(2)}ms, Memory: +${memoryIncrease}MB`,
       );
 
       expect(fs.existsSync(outputPath)).toBe(true);
@@ -139,7 +145,7 @@ describe('Performance Tests', () => {
       expect(memoryIncrease).toBeLessThan(50); // Should not use more than 50MB extra
     });
 
-    it('should handle large translation operations efficiently', async () => {
+    it("should handle large translation operations efficiently", async () => {
       const processor = new DotProcessor();
       const largeContent = createLargeDotFile(500);
 
@@ -150,14 +156,14 @@ describe('Performance Tests', () => {
         translations.set(`Edge ${i}`, `Borde ${i}`);
       }
 
-      const outputPath = path.join(tempDir, 'large_translated.dot');
+      const outputPath = path.join(tempDir, "large_translated.dot");
       const memBefore = getMemoryUsage();
       const startTime = performance.now();
 
       const result = await processor.processTexts(
         Buffer.from(largeContent),
         translations,
-        outputPath
+        outputPath,
       );
 
       const endTime = performance.now();
@@ -167,7 +173,7 @@ describe('Performance Tests', () => {
       const memoryIncrease = memAfter.heapUsed - memBefore.heapUsed;
 
       console.log(
-        `DOT Translation Performance: ${processingTime.toFixed(2)}ms, Memory: +${memoryIncrease}MB`
+        `DOT Translation Performance: ${processingTime.toFixed(2)}ms, Memory: +${memoryIncrease}MB`,
       );
 
       expect(result).toBeInstanceOf(Buffer);
@@ -176,8 +182,8 @@ describe('Performance Tests', () => {
     });
   });
 
-  describe('Memory Usage Patterns', () => {
-    it('should not leak memory during repeated operations', async () => {
+  describe("Memory Usage Patterns", () => {
+    it("should not leak memory during repeated operations", async () => {
       const processor = new DotProcessor();
       const testContent = createLargeDotFile(100);
 
@@ -203,7 +209,7 @@ describe('Performance Tests', () => {
       expect(memoryIncrease).toBeLessThan(30); // Allow small variance on CI
     });
 
-    it('should handle concurrent processing efficiently', async () => {
+    it("should handle concurrent processing efficiently", async () => {
       const processor = new DotProcessor();
       const testContent = createLargeDotFile(200);
 
@@ -229,7 +235,7 @@ describe('Performance Tests', () => {
       const memoryIncrease = memAfter.heapUsed - memBefore.heapUsed;
 
       console.log(
-        `Concurrent Performance: ${processingTime.toFixed(2)}ms, Memory: +${memoryIncrease}MB`
+        `Concurrent Performance: ${processingTime.toFixed(2)}ms, Memory: +${memoryIncrease}MB`,
       );
 
       expect(results).toHaveLength(5);
@@ -242,12 +248,12 @@ describe('Performance Tests', () => {
     });
   });
 
-  describe('Database Performance', () => {
-    it('should handle large Snap databases efficiently', async () => {
+  describe("Database Performance", () => {
+    it("should handle large Snap databases efficiently", async () => {
       const processor = new SnapProcessor();
       const largeTree = createLargeTree(20, 15); // 20 pages, 15 buttons each
 
-      const outputPath = path.join(tempDir, 'large_snap.spb');
+      const outputPath = path.join(tempDir, "large_snap.spb");
       const memBefore = getMemoryUsage();
       const startTime = performance.now();
 
@@ -266,19 +272,21 @@ describe('Performance Tests', () => {
       const memoryIncrease = memAfter.heapUsed - memBefore.heapUsed;
 
       console.log(
-        `Snap DB Performance: Save ${saveProcessingTime.toFixed(2)}ms, Load ${loadProcessingTime.toFixed(2)}ms, Memory: +${memoryIncrease}MB`
+        `Snap DB Performance: Save ${saveProcessingTime.toFixed(2)}ms, Load ${loadProcessingTime.toFixed(2)}ms, Memory: +${memoryIncrease}MB`,
       );
 
       expect(loadedTree).toBeDefined();
-      expect(Object.keys(loadedTree.pages).length).toBe(Object.keys(largeTree.pages).length);
+      expect(Object.keys(loadedTree.pages).length).toBe(
+        Object.keys(largeTree.pages).length,
+      );
       expect(saveProcessingTime).toBeLessThan(25000); // Save should complete in under 25 seconds on slower disks
       expect(loadProcessingTime).toBeLessThan(15000); // Load should complete in under 15 seconds
       expect(memoryIncrease).toBeLessThan(100); // Should not use excessive memory
     });
   });
 
-  describe('Timeout Handling', () => {
-    it('should handle slow operations gracefully', async () => {
+  describe("Timeout Handling", () => {
+    it("should handle slow operations gracefully", async () => {
       const processor = new DotProcessor();
 
       // Create a very large file that might be slow to process
@@ -287,17 +295,21 @@ describe('Performance Tests', () => {
       const startTime = performance.now();
 
       try {
-        const tree = await processor.loadIntoTree(Buffer.from(veryLargeContent));
+        const tree = await processor.loadIntoTree(
+          Buffer.from(veryLargeContent),
+        );
         const endTime = performance.now();
         const processingTime = endTime - startTime;
 
-        console.log(`Very large file processing: ${processingTime.toFixed(2)}ms`);
+        console.log(
+          `Very large file processing: ${processingTime.toFixed(2)}ms`,
+        );
 
         expect(tree).toBeDefined();
         expect(processingTime).toBeLessThan(30000); // Should complete within 30 seconds
       } catch (error) {
         // If it fails due to memory or timeout, that's acceptable for very large files
-        console.log('Very large file processing failed (acceptable):', error);
+        console.log("Very large file processing failed (acceptable):", error);
       }
     });
   });

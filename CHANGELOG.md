@@ -27,7 +27,11 @@ processor.saveFromTree(tree, output);
 // After (v3.x)
 const tree: AACTree = await processor.loadIntoTree(file);
 const texts: string[] = await processor.extractTexts(file);
-const result: Uint8Array = await processor.processTexts(file, translations, output);
+const result: Uint8Array = await processor.processTexts(
+  file,
+  translations,
+  output,
+);
 await processor.saveFromTree(tree, output);
 ```
 
@@ -39,7 +43,8 @@ const symbols: ButtonForTranslation[] = processor.extractSymbolsForLLM(file);
 processor.processLLMTranslations(file, translations, output);
 
 // After
-const symbols: ButtonForTranslation[] = await processor.extractSymbolsForLLM(file);
+const symbols: ButtonForTranslation[] =
+  await processor.extractSymbolsForLLM(file);
 await processor.processLLMTranslations(file, translations, output);
 ```
 
@@ -47,10 +52,10 @@ await processor.processLLMTranslations(file, translations, output);
 
 ```typescript
 // Before
-const result = analyze(file, format);  // Returns { tree }
+const result = analyze(file, format); // Returns { tree }
 
 // After
-const result = await analyze(file, format);  // Returns Promise<{ tree }>
+const result = await analyze(file, format); // Returns Promise<{ tree }>
 ```
 
 ### Migration Guide
@@ -103,7 +108,7 @@ async function processMultipleFiles(files: string[]) {
       const processor = getProcessor(file);
       const tree = await processor.loadIntoTree(file);
       return tree;
-    })
+    }),
   );
   return results;
 }
@@ -154,6 +159,7 @@ async function processMultipleFiles(files: string[]) {
 ### Browser Compatibility Progress
 
 This change enables the following browser-compatible processors:
+
 - ✅ DotProcessor
 - ✅ OpmlProcessor
 - ✅ ObfProcessor (JSZip migration complete!)
@@ -164,6 +170,7 @@ This change enables the following browser-compatible processors:
 **Note:** Gridset `.gridsetx` encrypted files require Node.js for crypto operations. Regular `.gridset` files work in browser.
 
 Still Node-only (deferred):
+
 - ❌ SnapProcessor (sqlite - needs wasm sqlite)
 - ❌ TouchChatProcessor (sqlite - needs wasm sqlite)
 - ❌ ExcelProcessor (fs dependencies - needs audit)

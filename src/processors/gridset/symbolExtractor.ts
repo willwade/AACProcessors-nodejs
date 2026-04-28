@@ -12,9 +12,17 @@
  *    c. For Tawasol: provide alternative sources
  */
 
-import { resolveSymbolReference, parseSymbolReference, type SymbolReference } from './symbols';
-import { defaultFileAdapter, FileAdapter, ProcessorInput } from '../../utils/io';
-import { getZipAdapter, ZipAdapter } from '../../utils/zip';
+import {
+  resolveSymbolReference,
+  parseSymbolReference,
+  type SymbolReference,
+} from "./symbols";
+import {
+  defaultFileAdapter,
+  FileAdapter,
+  ProcessorInput,
+} from "../../utils/io";
+import { getZipAdapter, ZipAdapter } from "../../utils/zip";
 
 /**
  * Image extraction result
@@ -22,8 +30,8 @@ import { getZipAdapter, ZipAdapter } from '../../utils/zip';
 export interface ExtractedImage {
   found: boolean;
   data?: Buffer;
-  format?: 'png' | 'jpg' | 'jpeg' | 'gif' | 'svg' | 'unknown';
-  source: 'embedded' | 'symbol-library' | 'external-file' | 'not-found';
+  format?: "png" | "jpg" | "jpeg" | "gif" | "svg" | "unknown";
+  source: "embedded" | "symbol-library" | "external-file" | "not-found";
   reference?: string;
   error?: string;
   metadata?: {
@@ -61,22 +69,22 @@ const OPEN_LICENSE_SYMBOLS: {
   };
 } = {
   tawasl: {
-    name: 'Tawasol',
-    attribution: 'Tawasol symbols by Mada (Qatar Assistive Technology Center)',
-    license: 'CC BY-SA 4.0',
-    url: 'https://mada.org.qa/en/resources/tawasol-symbols',
-    alternativeSources: ['https://github.com/mada-qatar/Tawasol'],
+    name: "Tawasol",
+    attribution: "Tawasol symbols by Mada (Qatar Assistive Technology Center)",
+    license: "CC BY-SA 4.0",
+    url: "https://mada.org.qa/en/resources/tawasol-symbols",
+    alternativeSources: ["https://github.com/mada-qatar/Tawasol"],
   },
   blissx: {
-    name: 'Blissymbols',
-    attribution: 'Blissymbolics Communication International',
-    license: 'CC BY-ND 3.0',
-    url: 'https://blissymbolics.org',
+    name: "Blissymbols",
+    attribution: "Blissymbolics Communication International",
+    license: "CC BY-ND 3.0",
+    url: "https://blissymbolics.org",
   },
   symoji: {
-    name: 'Symoji',
-    attribution: 'Smartbox Assistive Technology',
-    license: 'Proprietary - Free use in Grid 3',
+    name: "Symoji",
+    attribution: "Smartbox Assistive Technology",
+    license: "Proprietary - Free use in Grid 3",
   },
 };
 
@@ -94,7 +102,7 @@ export async function extractButtonImage(
   symbolReference: string | undefined,
   options: SymbolExtractionOptions = {},
   fileAdapter: FileAdapter = defaultFileAdapter,
-  zipAdapter?: (input: ProcessorInput) => Promise<ZipAdapter>
+  zipAdapter?: (input: ProcessorInput) => Promise<ZipAdapter>,
 ): Promise<ExtractedImage> {
   // Priority 1: Use embedded image if available
   if (resolvedImageEntry && options.preferEmbedded !== false) {
@@ -112,7 +120,7 @@ export async function extractButtonImage(
           found: true,
           data,
           format,
-          source: 'embedded',
+          source: "embedded",
           reference: resolvedImageEntry,
         };
       }
@@ -129,7 +137,7 @@ export async function extractButtonImage(
   // Not found
   return {
     found: false,
-    source: 'not-found',
+    source: "not-found",
   };
 }
 
@@ -141,20 +149,21 @@ export async function extractButtonImage(
  */
 export async function extractSymbolLibraryImage(
   reference: string,
-  options: SymbolExtractionOptions = {}
+  options: SymbolExtractionOptions = {},
 ): Promise<ExtractedImage> {
   const ref = parseSymbolReferenceSafe(reference);
 
   if (!ref || !ref.isValid) {
     return {
       found: false,
-      source: 'not-found',
+      source: "not-found",
       reference,
     };
   }
 
   // Get library metadata
-  const libInfo = OPEN_LICENSE_SYMBOLS[ref.library as keyof typeof OPEN_LICENSE_SYMBOLS];
+  const libInfo =
+    OPEN_LICENSE_SYMBOLS[ref.library as keyof typeof OPEN_LICENSE_SYMBOLS];
 
   // Resolve symbol reference and extract from .symbols file
   const resolved = await resolveSymbolReference(reference, {
@@ -176,7 +185,7 @@ export async function extractSymbolLibraryImage(
 
     return {
       found: false,
-      source: 'symbol-library',
+      source: "symbol-library",
       reference: reference,
       metadata,
       error: resolved.error,
@@ -185,12 +194,12 @@ export async function extractSymbolLibraryImage(
 
   // Successfully extracted!
   const data = resolved.data;
-  const format = data ? detectImageFormat(data) : 'unknown';
+  const format = data ? detectImageFormat(data) : "unknown";
   return {
     found: true,
     data,
     format,
-    source: 'symbol-library',
+    source: "symbol-library",
     reference: reference,
     metadata,
   };
@@ -206,11 +215,11 @@ export function convertToAstericsImage(extracted: ExtractedImage): any {
 
   if (extracted.found && extracted.data) {
     // Embed as base64
-    image.data = Buffer.from(extracted.data).toString('base64');
+    image.data = Buffer.from(extracted.data).toString("base64");
   }
 
   // Even if embedded, add attribution for symbol libraries
-  if (extracted.source === 'symbol-library') {
+  if (extracted.source === "symbol-library") {
     if (extracted.metadata?.attribution) {
       image.author = extracted.metadata.attribution;
     }
@@ -283,14 +292,16 @@ export function analyzeSymbolExtraction(tree: any): SymbolReport {
           report.byLibrary[button.symbolLibrary] =
             (report.byLibrary[button.symbolLibrary] || 0) + 1;
 
-          const ref = `[${button.symbolLibrary}]${button.symbolPath || ''}`;
+          const ref = `[${button.symbolLibrary}]${button.symbolPath || ""}`;
           const libInfo =
-            OPEN_LICENSE_SYMBOLS[button.symbolLibrary as keyof typeof OPEN_LICENSE_SYMBOLS];
+            OPEN_LICENSE_SYMBOLS[
+              button.symbolLibrary as keyof typeof OPEN_LICENSE_SYMBOLS
+            ];
 
           report.missingSymbols.push({
             reference: ref,
             library: button.symbolLibrary,
-            path: button.symbolPath || '',
+            path: button.symbolPath || "",
             attribution: libInfo?.attribution,
             license: libInfo?.license,
           });
@@ -315,20 +326,29 @@ export function suggestExtractionStrategy(report: SymbolReport): string {
   const suggestions: string[] = [];
 
   if (report.embedded > 0) {
-    suggestions.push(`✓ Can extract ${report.embedded} embedded images directly`);
+    suggestions.push(
+      `✓ Can extract ${report.embedded} embedded images directly`,
+    );
   }
 
   if (report.symbolLibraries > 0) {
-    suggestions.push(`⚠ ${report.symbolLibraries} symbol library references found:`);
+    suggestions.push(
+      `⚠ ${report.symbolLibraries} symbol library references found:`,
+    );
     Object.entries(report.byLibrary).forEach(([lib, count]) => {
-      const libInfo = OPEN_LICENSE_SYMBOLS[lib as keyof typeof OPEN_LICENSE_SYMBOLS];
+      const libInfo =
+        OPEN_LICENSE_SYMBOLS[lib as keyof typeof OPEN_LICENSE_SYMBOLS];
       if (libInfo) {
         suggestions.push(`  - ${lib}: ${count} symbols (${libInfo.license})`);
         if (libInfo.alternativeSources) {
-          suggestions.push(`    Alternative: ${libInfo.alternativeSources.join(', ')}`);
+          suggestions.push(
+            `    Alternative: ${libInfo.alternativeSources.join(", ")}`,
+          );
         }
       } else {
-        suggestions.push(`  - ${lib}: ${count} symbols (Proprietary - requires Grid 3)`);
+        suggestions.push(
+          `  - ${lib}: ${count} symbols (Proprietary - requires Grid 3)`,
+        );
       }
     });
   }
@@ -337,37 +357,52 @@ export function suggestExtractionStrategy(report: SymbolReport): string {
     suggestions.push(`✗ ${report.notFound} images not found`);
   }
 
-  return suggestions.join('\n');
+  return suggestions.join("\n");
 }
 
 /**
  * Detect image format from buffer
  */
-function detectImageFormat(buffer: Buffer): 'png' | 'jpg' | 'jpeg' | 'gif' | 'svg' | 'unknown' {
-  if (buffer.length < 4) return 'unknown';
+function detectImageFormat(
+  buffer: Buffer,
+): "png" | "jpg" | "jpeg" | "gif" | "svg" | "unknown" {
+  if (buffer.length < 4) return "unknown";
 
   // PNG: 89 50 4E 47
-  if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47) {
-    return 'png';
+  if (
+    buffer[0] === 0x89 &&
+    buffer[1] === 0x50 &&
+    buffer[2] === 0x4e &&
+    buffer[3] === 0x47
+  ) {
+    return "png";
   }
 
   // JPEG: FF D8 FF
   if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) {
-    return 'jpg';
+    return "jpg";
   }
 
   // GIF: 47 49 46 38
-  if (buffer[0] === 0x47 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x38) {
-    return 'gif';
+  if (
+    buffer[0] === 0x47 &&
+    buffer[1] === 0x49 &&
+    buffer[2] === 0x46 &&
+    buffer[3] === 0x38
+  ) {
+    return "gif";
   }
 
   // SVG (check for <svg text)
-  const header = buffer.slice(0, Math.min(100, buffer.length)).toString('ascii').toLowerCase();
-  if (header.includes('<svg')) {
-    return 'svg';
+  const header = buffer
+    .slice(0, Math.min(100, buffer.length))
+    .toString("ascii")
+    .toLowerCase();
+  if (header.includes("<svg")) {
+    return "svg";
   }
 
-  return 'unknown';
+  return "unknown";
 }
 
 /**
@@ -387,18 +422,18 @@ function parseSymbolReferenceSafe(reference: string): SymbolReference | null {
 export async function exportSymbolReferencesToCsv(
   report: SymbolReport,
   outputPath: string,
-  fileAdapter: FileAdapter = defaultFileAdapter
+  fileAdapter: FileAdapter = defaultFileAdapter,
 ): Promise<void> {
   const { writeTextToPath } = fileAdapter;
-  const lines = ['Reference,Library,Path,Attribution,License'];
+  const lines = ["Reference,Library,Path,Attribution,License"];
 
   for (const symbol of report.missingSymbols) {
     lines.push(
-      `"${symbol.reference}","${symbol.library}","${symbol.path}","${symbol.attribution || ''}","${symbol.license || ''}"`
+      `"${symbol.reference}","${symbol.library}","${symbol.path}","${symbol.attribution || ""}","${symbol.license || ""}"`,
     );
   }
 
-  await writeTextToPath(outputPath, lines.join('\n'));
+  await writeTextToPath(outputPath, lines.join("\n"));
 }
 
 /**
@@ -427,7 +462,10 @@ export interface SymbolManifest {
   }>;
 }
 
-export function createSymbolManifest(tree: any, gridsetName: string): SymbolManifest {
+export function createSymbolManifest(
+  tree: any,
+  gridsetName: string,
+): SymbolManifest {
   const manifest: SymbolManifest = {
     generatedAt: new Date().toISOString(),
     gridset: gridsetName,
@@ -455,7 +493,9 @@ export function createSymbolManifest(tree: any, gridsetName: string): SymbolMani
 
           if (!manifest.libraries[button.symbolLibrary]) {
             const libInfo =
-              OPEN_LICENSE_SYMBOLS[button.symbolLibrary as keyof typeof OPEN_LICENSE_SYMBOLS];
+              OPEN_LICENSE_SYMBOLS[
+                button.symbolLibrary as keyof typeof OPEN_LICENSE_SYMBOLS
+              ];
             manifest.libraries[button.symbolLibrary] = {
               count: 0,
               attribution: libInfo?.attribution,
@@ -466,7 +506,7 @@ export function createSymbolManifest(tree: any, gridsetName: string): SymbolMani
 
           manifest.libraries[button.symbolLibrary].count++;
 
-          const ref = `[${button.symbolLibrary}]${button.symbolPath || ''}`;
+          const ref = `[${button.symbolLibrary}]${button.symbolPath || ""}`;
           manifest.symbols.push({
             pageId,
             buttonId: button.id,

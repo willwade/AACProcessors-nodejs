@@ -1,29 +1,33 @@
-import fs from 'fs';
-import os from 'os';
-import path from 'path';
+import fs from "fs";
+import os from "os";
+import path from "path";
 import {
   decodeText,
   defaultFileAdapter,
   encodeBase64,
   encodeText,
   getBasename,
-} from '../../src/utils/io';
+} from "../../src/utils/io";
 
 function createTempDir(prefix: string): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), prefix));
 }
 
-describe('io helpers', () => {
-  it('reads and writes text and binary files', async () => {
-    const tempDir = createTempDir('aac-io-test-');
-    const textPath = path.join(tempDir, 'note.txt');
-    const binPath = path.join(tempDir, 'data.bin');
-    const { writeTextToPath, readTextFromInput, writeBinaryToPath, readBinaryFromInput } =
-      defaultFileAdapter;
+describe("io helpers", () => {
+  it("reads and writes text and binary files", async () => {
+    const tempDir = createTempDir("aac-io-test-");
+    const textPath = path.join(tempDir, "note.txt");
+    const binPath = path.join(tempDir, "data.bin");
+    const {
+      writeTextToPath,
+      readTextFromInput,
+      writeBinaryToPath,
+      readBinaryFromInput,
+    } = defaultFileAdapter;
 
     try {
-      await writeTextToPath(textPath, 'hello');
-      expect(await readTextFromInput(textPath)).toBe('hello');
+      await writeTextToPath(textPath, "hello");
+      expect(await readTextFromInput(textPath)).toBe("hello");
       const bin = await readBinaryFromInput(textPath);
       expect(Buffer.isBuffer(bin)).toBe(true);
 
@@ -36,19 +40,19 @@ describe('io helpers', () => {
     }
   });
 
-  it('encodes and decodes text helpers', () => {
-    const encoded = encodeText('abc');
-    expect(Buffer.from(encoded).toString('utf8')).toBe('abc');
+  it("encodes and decodes text helpers", () => {
+    const encoded = encodeText("abc");
+    expect(Buffer.from(encoded).toString("utf8")).toBe("abc");
 
-    const base64 = encodeBase64(Buffer.from('xyz', 'utf8'));
-    expect(base64).toBe('eHl6');
+    const base64 = encodeBase64(Buffer.from("xyz", "utf8"));
+    expect(base64).toBe("eHl6");
 
     const decoded = decodeText(new Uint8Array([104, 105]));
-    expect(decoded).toBe('hi');
+    expect(decoded).toBe("hi");
   });
 
-  it('extracts basenames from paths', () => {
-    expect(getBasename('/tmp/example.txt')).toBe('example.txt');
-    expect(getBasename('C:\\\\temp\\\\example.txt')).toBe('example.txt');
+  it("extracts basenames from paths", () => {
+    expect(getBasename("/tmp/example.txt")).toBe("example.txt");
+    expect(getBasename("C:\\\\temp\\\\example.txt")).toBe("example.txt");
   });
 });

@@ -6,9 +6,12 @@ import {
   OblUtteranceEvent,
   OblActionEvent,
   OblNoteEvent,
-} from './obl-types';
-import { HistoryEntry, HistoryOccurrence } from '../history';
-import { AACSemanticIntent, AACSemanticCategory } from '../../../core/treeStructure';
+} from "./obl-types";
+import { HistoryEntry, HistoryOccurrence } from "../history";
+import {
+  AACSemanticIntent,
+  AACSemanticCategory,
+} from "../../../core/treeStructure";
 
 /**
  * .obl (Open Board Logging) Utility
@@ -23,8 +26,8 @@ export class OblUtil {
   static parse(json: string): OblFile {
     // Remove potential comment at the start
     let cleanJson = json.trim();
-    if (cleanJson.startsWith('/*')) {
-      const endComment = cleanJson.indexOf('*/');
+    if (cleanJson.startsWith("/*")) {
+      const endComment = cleanJson.indexOf("*/");
       if (endComment !== -1) {
         cleanJson = cleanJson.substring(endComment + 2).trim();
       }
@@ -49,7 +52,7 @@ export class OblUtil {
    */
   static toHistoryEntries(obl: OblFile): HistoryEntry[] {
     const entries: HistoryEntry[] = [];
-    const source = obl.source || 'OBL';
+    const source = obl.source || "OBL";
 
     // OBL is session-based and event-based.
     // HistoryEntry is content-based with occurrences.
@@ -58,7 +61,7 @@ export class OblUtil {
 
     for (const session of obl.sessions) {
       for (const event of session.events) {
-        let content = '';
+        let content = "";
         const evtAny = event as any;
         const occurrence: HistoryOccurrence = {
           timestamp: new Date(event.timestamp),
@@ -66,7 +69,7 @@ export class OblUtil {
           pageId: evtAny.board_id || null,
           latitude: event.geo?.[0] || null,
           longitude: event.geo?.[1] || null,
-          type: event.type as HistoryOccurrence['type'],
+          type: event.type as HistoryOccurrence["type"],
           // Store all other OBL fields in the occurrence
           buttonId: evtAny.button_id || null,
           boardId: evtAny.board_id || null,
@@ -76,21 +79,21 @@ export class OblUtil {
           actions: evtAny.actions,
         };
 
-        if (event.type === 'button') {
+        if (event.type === "button") {
           const btn = event as OblButtonEvent;
           content = btn.vocalization || btn.label;
-        } else if (event.type === 'utterance') {
+        } else if (event.type === "utterance") {
           const utt = event as OblUtteranceEvent;
           content = utt.text;
-        } else if (event.type === 'action') {
+        } else if (event.type === "action") {
           const act = event as OblActionEvent;
           content = act.action;
-        } else if (event.type === 'note') {
+        } else if (event.type === "note") {
           const note = event as OblNoteEvent;
           content = note.text;
         } else {
           const evtAny = event as any;
-          content = evtAny.label || evtAny.text || evtAny.action || 'unknown';
+          content = evtAny.label || evtAny.text || evtAny.action || "unknown";
         }
 
         const occurrences = contentMap.get(content) || [];
@@ -104,7 +107,9 @@ export class OblUtil {
         id: `obl:${content}`,
         source: source,
         content: content,
-        occurrences: occurrences.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime()),
+        occurrences: occurrences.sort(
+          (a, b) => a.timestamp.getTime() - b.timestamp.getTime(),
+        ),
       });
     });
 
@@ -114,7 +119,11 @@ export class OblUtil {
   /**
    * Convert HistoryEntries to an OBL file object.
    */
-  static fromHistoryEntries(entries: HistoryEntry[], userId: string, source?: string): OblFile {
+  static fromHistoryEntries(
+    entries: HistoryEntry[],
+    userId: string,
+    source?: string,
+  ): OblFile {
     const events: OblEvent[] = [];
 
     for (const entry of entries) {
@@ -122,33 +131,33 @@ export class OblUtil {
         const timestamp = occ.timestamp.toISOString();
         const intent = occ.intent as string;
 
-        let oblType: OblEvent['type'] = occ.type || 'button';
+        let oblType: OblEvent["type"] = occ.type || "button";
         let actionStr: string | undefined = undefined;
 
         // Smart mapping based on AACSemanticIntent
         if (intent === (AACSemanticIntent.CLEAR_TEXT as string)) {
-          oblType = 'action';
-          actionStr = ':clear';
+          oblType = "action";
+          actionStr = ":clear";
         } else if (intent === (AACSemanticIntent.GO_HOME as string)) {
-          oblType = 'action';
-          actionStr = ':home';
+          oblType = "action";
+          actionStr = ":home";
         } else if (intent === (AACSemanticIntent.NAVIGATE_TO as string)) {
-          oblType = 'action';
-          actionStr = ':open_board';
+          oblType = "action";
+          actionStr = ":open_board";
         } else if (intent === (AACSemanticIntent.GO_BACK as string)) {
-          oblType = 'action';
-          actionStr = ':back';
+          oblType = "action";
+          actionStr = ":back";
         } else if (intent === (AACSemanticIntent.DELETE_CHARACTER as string)) {
-          oblType = 'action';
-          actionStr = ':backspace';
+          oblType = "action";
+          actionStr = ":backspace";
         } else if (
           intent === (AACSemanticIntent.SPEAK_IMMEDIATE as string) ||
           intent === (AACSemanticIntent.SPEAK_TEXT as string)
         ) {
           // Speak could be a button or an utterance or an action
-          if (oblType !== 'utterance' && oblType !== 'button') {
-            oblType = 'action';
-            actionStr = ':speak';
+          if (oblType !== "utterance" && oblType !== "button") {
+            oblType = "action";
+            actionStr = ":speak";
           }
         }
 
@@ -168,19 +177,22 @@ export class OblUtil {
           common.geo = [occ.latitude, occ.longitude];
         }
 
-        if (oblType === 'utterance') {
+        if (oblType === "utterance") {
           events.push({
             ...common,
             text: entry.content,
           } as OblUtteranceEvent);
-        } else if (oblType === 'action') {
+        } else if (oblType === "action") {
           events.push({
             ...common,
             action: actionStr || entry.content,
             destination_board_id: occ.boardId || undefined,
-            text: intent === (AACSemanticIntent.SPEAK_TEXT as string) ? entry.content : undefined,
+            text:
+              intent === (AACSemanticIntent.SPEAK_TEXT as string)
+                ? entry.content
+                : undefined,
           } as OblActionEvent);
-        } else if (oblType === 'note') {
+        } else if (oblType === "note") {
           events.push({
             ...common,
             text: entry.content,
@@ -189,11 +201,12 @@ export class OblUtil {
           // Default to button
           events.push({
             ...common,
-            type: 'button',
+            type: "button",
             label: occ.vocalization ? entry.content : entry.content,
             spoken:
               occ.spoken ??
-              (occ.category as string) === (AACSemanticCategory.COMMUNICATION as string),
+              (occ.category as string) ===
+                (AACSemanticCategory.COMMUNICATION as string),
             button_id: occ.buttonId || undefined,
             board_id: occ.boardId || occ.pageId || undefined,
             vocalization: occ.vocalization || undefined,
@@ -207,22 +220,25 @@ export class OblUtil {
     // Sort events by timestamp
     events.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
 
-    const started = events.length > 0 ? events[0].timestamp : new Date().toISOString();
+    const started =
+      events.length > 0 ? events[0].timestamp : new Date().toISOString();
     const ended =
-      events.length > 0 ? events[events.length - 1].timestamp : new Date().toISOString();
+      events.length > 0
+        ? events[events.length - 1].timestamp
+        : new Date().toISOString();
 
     const session: OblSession = {
-      id: 'session-1',
-      type: 'log',
+      id: "session-1",
+      type: "log",
       started,
       ended,
       events,
     };
 
     return {
-      format: 'open-board-log-0.1',
+      format: "open-board-log-0.1",
       user_id: userId,
-      source: source || 'aac-processors',
+      source: source || "aac-processors",
       sessions: [session],
     };
   }
@@ -242,28 +258,28 @@ export class OblAnonymizer {
     for (const session of newObl.sessions) {
       session.anonymizations = session.anonymizations || [];
 
-      if (types.includes('timestamp_shift')) {
+      if (types.includes("timestamp_shift")) {
         this.applyTimestampShift(session);
-        if (!session.anonymizations.includes('timestamp_shift'))
-          session.anonymizations.push('timestamp_shift');
+        if (!session.anonymizations.includes("timestamp_shift"))
+          session.anonymizations.push("timestamp_shift");
       }
 
-      if (types.includes('geolocation_masking')) {
+      if (types.includes("geolocation_masking")) {
         this.applyGeolocationMasking(session);
-        if (!session.anonymizations.includes('geolocation_masking'))
-          session.anonymizations.push('geolocation_masking');
+        if (!session.anonymizations.includes("geolocation_masking"))
+          session.anonymizations.push("geolocation_masking");
       }
 
-      if (types.includes('url_stripping')) {
+      if (types.includes("url_stripping")) {
         this.applyUrlStripping(session);
-        if (!session.anonymizations.includes('url_stripping'))
-          session.anonymizations.push('url_stripping');
+        if (!session.anonymizations.includes("url_stripping"))
+          session.anonymizations.push("url_stripping");
       }
 
-      if (types.includes('name_masking')) {
+      if (types.includes("name_masking")) {
         this.applyNameMasking(newObl, session);
-        if (!session.anonymizations.includes('name_masking'))
-          session.anonymizations.push('name_masking');
+        if (!session.anonymizations.includes("name_masking"))
+          session.anonymizations.push("name_masking");
       }
     }
 
@@ -274,20 +290,30 @@ export class OblAnonymizer {
     if (session.events.length === 0) return;
 
     const firstEventTime =
-      session.events.length > 0 ? new Date(session.events[0].timestamp).getTime() : Infinity;
-    const sessionStartTime = session.started ? new Date(session.started).getTime() : Infinity;
+      session.events.length > 0
+        ? new Date(session.events[0].timestamp).getTime()
+        : Infinity;
+    const sessionStartTime = session.started
+      ? new Date(session.started).getTime()
+      : Infinity;
     const firstTimestamp = Math.min(firstEventTime, sessionStartTime);
 
     if (firstTimestamp === Infinity) return;
 
-    const targetStart = new Date('2000-01-01T00:00:00.000Z').getTime();
+    const targetStart = new Date("2000-01-01T00:00:00.000Z").getTime();
     const offset = targetStart - firstTimestamp;
 
-    session.started = new Date(new Date(session.started).getTime() + offset).toISOString();
-    session.ended = new Date(new Date(session.ended).getTime() + offset).toISOString();
+    session.started = new Date(
+      new Date(session.started).getTime() + offset,
+    ).toISOString();
+    session.ended = new Date(
+      new Date(session.ended).getTime() + offset,
+    ).toISOString();
 
     for (const event of session.events) {
-      event.timestamp = new Date(new Date(event.timestamp).getTime() + offset).toISOString();
+      event.timestamp = new Date(
+        new Date(event.timestamp).getTime() + offset,
+      ).toISOString();
     }
   }
 
@@ -300,10 +326,10 @@ export class OblAnonymizer {
 
   private static applyUrlStripping(session: OblSession): void {
     for (const event of session.events) {
-      if (event.type === 'button') {
+      if (event.type === "button") {
         delete (event as OblButtonEvent).image_url;
       }
-      if (event.type === 'note') {
+      if (event.type === "note") {
         delete (event as OblNoteEvent).author_url;
         delete (event as OblNoteEvent).author_email;
       }
@@ -313,7 +339,7 @@ export class OblAnonymizer {
   private static applyNameMasking(obl: OblFile, session: OblSession): void {
     delete obl.user_name;
     for (const event of session.events) {
-      if (event.type === 'note') {
+      if (event.type === "note") {
         delete (event as OblNoteEvent).author_name;
       }
     }

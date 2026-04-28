@@ -61,10 +61,10 @@ export interface TranslatedMessage {
  */
 export function parseMessageWithSymbols(
   message: string,
-  richTextSymbols?: Array<{ text: string; image?: string }>
+  richTextSymbols?: Array<{ text: string; image?: string }>,
 ): ParsedMessage {
   // Normalize whitespace for consistent tokenization
-  const normalizedMessage = message.trim().replace(/\s+/g, ' ');
+  const normalizedMessage = message.trim().replace(/\s+/g, " ");
 
   // Tokenize into words, preserving punctuation
   const words: string[] = [];
@@ -99,7 +99,7 @@ export function parseMessageWithSymbols(
       if (wordIndex !== -1) {
         const pos = wordPositions[wordIndex];
         symbols.push({
-          symbolRef: sym.image || '',
+          symbolRef: sym.image || "",
           wordIndex,
           originalWord: sym.text,
           startPos: pos.start,
@@ -107,15 +107,15 @@ export function parseMessageWithSymbols(
         });
       } else {
         // Fuzzy match - find closest word (handles case differences, punctuation)
-        const normalizedSymText = sym.text.toLowerCase().replace(/[^\w]/g, '');
+        const normalizedSymText = sym.text.toLowerCase().replace(/[^\w]/g, "");
         const fuzzyIndex = words.findIndex(
-          (w) => w.toLowerCase().replace(/[^\w]/g, '') === normalizedSymText
+          (w) => w.toLowerCase().replace(/[^\w]/g, "") === normalizedSymText,
         );
 
         if (fuzzyIndex !== -1) {
           const pos = wordPositions[fuzzyIndex];
           symbols.push({
-            symbolRef: sym.image || '',
+            symbolRef: sym.image || "",
             wordIndex: fuzzyIndex,
             originalWord: words[fuzzyIndex],
             startPos: pos.start,
@@ -151,23 +151,23 @@ export function parseMessageWithSymbols(
  */
 export function alignWords(
   originalWords: string[],
-  translatedWords: string[]
-): TranslatedMessage['alignment'] {
-  const alignment: TranslatedMessage['alignment'] = [];
+  translatedWords: string[],
+): TranslatedMessage["alignment"] {
+  const alignment: TranslatedMessage["alignment"] = [];
 
   // Strategy 1: Try to match identical words (numbers, names, cognates)
   const matchedTranslatedIndices = new Set<number>();
 
   for (let origIdx = 0; origIdx < originalWords.length; origIdx++) {
     const origWord = originalWords[origIdx];
-    const normalizedOrig = origWord.toLowerCase().replace(/[^\w]/g, '');
+    const normalizedOrig = origWord.toLowerCase().replace(/[^\w]/g, "");
 
     // Try to find this word in the translation
     for (let transIdx = 0; transIdx < translatedWords.length; transIdx++) {
       if (matchedTranslatedIndices.has(transIdx)) continue;
 
       const transWord = translatedWords[transIdx];
-      const normalizedTrans = transWord.toLowerCase().replace(/[^\w]/g, '');
+      const normalizedTrans = transWord.toLowerCase().replace(/[^\w]/g, "");
 
       // Exact match (case-insensitive, ignoring punctuation)
       if (normalizedOrig === normalizedTrans && normalizedOrig.length > 0) {
@@ -231,7 +231,7 @@ export function alignWords(
 export function reattachSymbols(
   translatedText: string,
   originalParsed: ParsedMessage,
-  alignment: TranslatedMessage['alignment']
+  alignment: TranslatedMessage["alignment"],
 ): {
   text: string;
   richTextSymbols: Array<{ text: string; image?: string }>;
@@ -239,7 +239,7 @@ export function reattachSymbols(
   // Tokenize the translated text
   const translatedWords = translatedText
     .trim()
-    .replace(/\s+/g, ' ')
+    .replace(/\s+/g, " ")
     .split(/\s+/)
     .filter((w) => w.length > 0);
 
@@ -248,9 +248,14 @@ export function reattachSymbols(
 
   for (const symbol of originalParsed.symbols) {
     // Find the alignment for this word
-    const wordAlignment = alignment.find((a) => a.originalIndex === symbol.wordIndex);
+    const wordAlignment = alignment.find(
+      (a) => a.originalIndex === symbol.wordIndex,
+    );
 
-    if (wordAlignment && wordAlignment.translatedIndex < translatedWords.length) {
+    if (
+      wordAlignment &&
+      wordAlignment.translatedIndex < translatedWords.length
+    ) {
       const translatedWord = translatedWords[wordAlignment.translatedIndex];
 
       // Attach the symbol to the translated word
@@ -284,13 +289,16 @@ export function reattachSymbols(
 export function translateWithSymbols(
   originalMessage: string,
   translatedText: string,
-  richTextSymbols?: Array<{ text: string; image?: string }>
+  richTextSymbols?: Array<{ text: string; image?: string }>,
 ): {
   text: string;
   richTextSymbols: Array<{ text: string; image?: string }>;
 } {
   // Step 1: Parse original message
-  const parsedOriginal = parseMessageWithSymbols(originalMessage, richTextSymbols);
+  const parsedOriginal = parseMessageWithSymbols(
+    originalMessage,
+    richTextSymbols,
+  );
 
   // If no symbols, return as-is
   if (parsedOriginal.symbols.length === 0) {
@@ -303,7 +311,7 @@ export function translateWithSymbols(
   // Step 2: Tokenize translated text
   const translatedWords = translatedText
     .trim()
-    .replace(/\s+/g, ' ')
+    .replace(/\s+/g, " ")
     .split(/\s+/)
     .filter((w) => w.length > 0);
 
@@ -327,7 +335,7 @@ export function translateWithSymbols(
  * @returns Array of symbol attachments
  */
 export function extractSymbolsFromButton(
-  button: any
+  button: any,
 ): Array<{ text: string; image?: string }> | undefined {
   // First check richText structure
   if (button.semanticAction?.richText?.symbols) {
@@ -340,7 +348,7 @@ export function extractSymbolsFromButton(
   // Check if button has a symbol library reference as image
   if (button.symbolLibrary && button.symbolPath) {
     // Create a symbol attachment for the label/message
-    const text = button.label || button.message || '';
+    const text = button.label || button.message || "";
     if (text) {
       return [
         {
@@ -352,8 +360,8 @@ export function extractSymbolsFromButton(
   }
 
   // Check if image field contains a symbol reference
-  if (button.image && button.image.startsWith('[')) {
-    const text = button.label || button.message || '';
+  if (button.image && button.image.startsWith("[")) {
+    const text = button.label || button.message || "";
     if (text) {
       return [
         {
