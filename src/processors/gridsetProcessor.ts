@@ -1297,8 +1297,7 @@ class GridsetProcessor extends BaseProcessor {
                     // without preserving tree.keyboardGridName during parse.
                     const keyboardGridName = (tree as any).keyboardGridName as string;
                     const keyboardPageId =
-                      tree.metadata?.defaultKeyboardPageId ||
-                      gridNameToIdMap.get(keyboardGridName);
+                      tree.metadata?.defaultKeyboardPageId || gridNameToIdMap.get(keyboardGridName);
                     if (keyboardPageId && !navigationTarget) {
                       navigationTarget = keyboardPageId;
                     }
