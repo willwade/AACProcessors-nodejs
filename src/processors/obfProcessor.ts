@@ -70,6 +70,24 @@ interface ObfGrid {
   order?: Array<Array<string | number | null>>;
 }
 
+interface ObfImage {
+  id: string;
+  data?: string;
+  path?: string;
+  url?: string;
+  width?: number;
+  height?: number;
+  content_type?: string;
+  license?: {
+    type?: string;
+    copyright_notice_url?: string;
+    source_url?: string;
+    author_name?: string;
+    author_url?: string;
+    author_email?: string;
+  };
+}
+
 interface ObfBoard {
   format?: string;
   id: string;
@@ -79,7 +97,7 @@ interface ObfBoard {
   description_html?: string;
   buttons: ObfButton[];
   grid?: ObfGrid;
-  images?: any[];
+  images?: ObfImage[];
   sounds?: any[];
 }
 
@@ -132,7 +150,7 @@ class ObfProcessor extends BaseProcessor {
   /**
    * Extract an image from the ZIP file and convert to data URL
    */
-  private async extractImageAsDataUrl(imageId: string, images: any[]): Promise<string | null> {
+  private async extractImageAsDataUrl(imageId: string, images: ObfImage[]): Promise<string | null> {
     // Check cache first
     if (this.imageCache.has(imageId)) {
       return this.imageCache.get(imageId) ?? null;
@@ -147,8 +165,8 @@ class ObfProcessor extends BaseProcessor {
     }
 
     // If image has data property, use that
-    if ((imageData as { data?: string }).data) {
-      const dataUrl = (imageData as { data: string }).data;
+    if (imageData.data) {
+      const dataUrl = imageData.data;
       this.imageCache.set(imageId, dataUrl);
       return dataUrl;
     }
@@ -158,7 +176,7 @@ class ObfProcessor extends BaseProcessor {
       // Images are typically stored in an 'images' folder or root
       const possiblePaths = [
         imageData.path, // Explicit path if provided
-        `images/${imageData.filename || imageId}`, // Standard images folder
+        `images/${imageData.path || imageId}`, // Standard images folder
         imageData.id, // Just the ID
       ].filter(Boolean);
 
@@ -181,8 +199,8 @@ class ObfProcessor extends BaseProcessor {
     }
 
     // If image has a URL, use that as fallback
-    if ((imageData as { url?: string }).url) {
-      const url = (imageData as { url: string }).url;
+    if (imageData.url) {
+      const url = imageData.url;
       this.imageCache.set(imageId, url);
       return url;
     }
@@ -209,19 +227,20 @@ class ObfProcessor extends BaseProcessor {
     }
   }
 
-  private async processBoard(
-    boardData: ObfBoard,
-    _boardPath: string,
-    isZipEntry: boolean
-  ): Promise<AACPage> {
+  private getPageFilename(id: string, metadata: any): string {
+    if (metadata._obfPagePaths && id in metadata._obfPagePaths)
+      return metadata._obfPagePaths[id] as string;
+    if (id.endsWith('.obf')) return id;
+    return `${id}.obf`;
+  }
+
+  private async processBoard(boardData: ObfBoard, _boardPath: string): Promise<AACPage> {
     const sourceButtons = boardData.buttons || [];
 
     // Calculate page ID first (used to make button IDs unique)
-    const pageId = isZipEntry
-      ? _boardPath // Zip entry - use filename to match navigation paths
-      : boardData?.id
-        ? String(boardData.id)
-        : _boardPath?.split(/[/\\]/).pop() || '';
+    const pageId = boardData?.id ? String(boardData.id) : _boardPath?.split(/[/\\]/).pop() || '';
+
+    const images = boardData.images;
 
     const buttons: AACButton[] = await Promise.all(
       sourceButtons.map(async (btn: ObfButton): Promise<AACButton> => {
@@ -248,11 +267,17 @@ class ObfProcessor extends BaseProcessor {
         // Resolve image if image_id is present
         let resolvedImage: string | undefined;
         let imageBuffer: Buffer | undefined;
-        if (btn.image_id && boardData.images) {
-          resolvedImage =
-            (await this.extractImageAsDataUrl(btn.image_id, boardData.images)) || undefined;
-          imageBuffer =
-            (await this.extractImageAsBuffer(btn.image_id, boardData.images)) || undefined;
+        if (btn.image_id && images) {
+          resolvedImage = (await this.extractImageAsDataUrl(btn.image_id, images)) || undefined;
+          imageBuffer = (await this.extractImageAsBuffer(btn.image_id, images)) || undefined;
+
+          // save image data
+          if (images) {
+            const imageIndex = images?.findIndex((img: any) => img.id === btn.image_id);
+            if (imageIndex !== -1) {
+              images[imageIndex].data = resolvedImage;
+            }
+          }
         }
 
         // Build parameters object for Grid3 export compatibility
@@ -294,7 +319,7 @@ class ObfProcessor extends BaseProcessor {
       parentId: null,
       locale: boardData.locale,
       descriptionHtml: boardData.description_html,
-      images: boardData.images,
+      images,
       sounds: boardData.sounds,
     });
 
@@ -397,7 +422,8 @@ class ObfProcessor extends BaseProcessor {
   }
 
   async loadIntoTree(filePathOrBuffer: ProcessorInput): Promise<AACTree> {
-    const { readBinaryFromInput, readTextFromInput } = this.options.fileAdapter;
+    const { readBinaryFromInput, readTextFromInput, listDir, join, isDirectory } =
+      this.options.fileAdapter;
     // Detailed logging for debugging input
     const bufferLength =
       typeof filePathOrBuffer === 'string'
@@ -444,7 +470,7 @@ class ObfProcessor extends BaseProcessor {
         const boardData = await tryParseObfJson(content);
         if (boardData) {
           console.log('[OBF] Detected .obf file, parsed as JSON');
-          const page = await this.processBoard(boardData, filePathOrBuffer, false);
+          const page = await this.processBoard(boardData, filePathOrBuffer);
           tree.addPage(page);
 
           // Set metadata from root board
@@ -467,22 +493,26 @@ class ObfProcessor extends BaseProcessor {
       }
     }
 
-    // Detect likely zip signature first
-    async function isLikelyZip(input: ProcessorInput): Promise<boolean> {
-      if (typeof input === 'string') {
-        const lowered = input.toLowerCase();
-        return lowered.endsWith('.zip') || lowered.endsWith('.obz');
+    // Determine if input is ZIP, directory, or OBF JSON string/buffer
+    let fileType: 'obf' | 'zip' | 'dir' = 'obf';
+    if (typeof filePathOrBuffer !== 'string') {
+      const bytes = await readBinaryFromInput(filePathOrBuffer);
+      if (bytes.length >= 2 && bytes[0] === 0x50 && bytes[1] === 0x4b) fileType = 'zip';
+    } else {
+      if (await isDirectory(filePathOrBuffer)) {
+        fileType = 'dir';
+      } else {
+        const lowered = filePathOrBuffer.toLowerCase();
+        if (lowered.endsWith('.zip') || lowered.endsWith('.obz')) fileType = 'zip';
       }
-      const bytes = await readBinaryFromInput(input);
-      return bytes.length >= 2 && bytes[0] === 0x50 && bytes[1] === 0x4b;
     }
 
     // Check if input is a buffer or string that parses as OBF JSON; throw if neither JSON nor ZIP
-    if (!(await isLikelyZip(filePathOrBuffer))) {
+    if (fileType === 'obf') {
       const asJson = await tryParseObfJson(filePathOrBuffer);
       if (!asJson) throw new Error('Invalid OBF content: not JSON and not ZIP');
       console.log('[OBF] Detected buffer/string as OBF JSON');
-      const page = await this.processBoard(asJson, '[bufferOrString]', false);
+      const page = await this.processBoard(asJson, '[bufferOrString]');
       tree.addPage(page);
 
       // Set metadata from root board
@@ -500,20 +530,34 @@ class ObfProcessor extends BaseProcessor {
       return tree;
     }
 
-    try {
-      this.zipFile = await this.options.zipAdapter(filePathOrBuffer);
-    } catch (err) {
-      console.error('[OBF] Error loading ZIP:', err);
-      throw err;
+    this.zipFile = {
+      readFile: async (name: string): Promise<Uint8Array> => {
+        return await readBinaryFromInput(join(filePathOrBuffer as string, name));
+      },
+      listFiles: () => {
+        throw new Error('Not implemented for directory input');
+      },
+      writeFiles: () => {
+        throw new Error('Not implemented for directory input');
+      },
+    };
+    if (fileType === 'zip') {
+      try {
+        this.zipFile = await this.options.zipAdapter(filePathOrBuffer);
+      } catch (err) {
+        console.error('[OBF] Error loading ZIP:', err);
+        throw err;
+      }
     }
 
     // Store the ZIP file reference for image extraction
     this.imageCache.clear(); // Clear cache for new file
 
-    console.log('[OBF] Detected zip archive, extracting .obf files');
+    console.log('[OBF] Detected zip archive or directory, extracting .obf files');
 
     // List manifest and OBF files
-    const filesInZip = this.zipFile.listFiles();
+    const filesInZip =
+      fileType === 'zip' ? this.zipFile.listFiles() : await listDir(filePathOrBuffer as string);
     const manifestFile = filesInZip.filter((name) => name.toLowerCase() === 'manifest.json');
     let obfEntries = filesInZip.filter((name) => name.toLowerCase().endsWith('.obf'));
 
@@ -548,7 +592,7 @@ class ObfProcessor extends BaseProcessor {
         const content = await this.zipFile.readFile(entryName);
         const boardData = await tryParseObfJson(decodeText(content));
         if (boardData) {
-          const page = await this.processBoard(boardData, entryName, true);
+          const page = await this.processBoard(boardData, entryName);
           tree.addPage(page);
 
           // Set metadata if not already set (use first board as reference)
@@ -558,9 +602,12 @@ class ObfProcessor extends BaseProcessor {
             tree.metadata.description = boardData.description_html;
             tree.metadata.locale = boardData.locale;
             tree.metadata.id = boardData.id;
+            tree.metadata._obfPagePaths = { [page.id]: entryName };
             if (boardData.url) tree.metadata.url = boardData.url;
             if (boardData.locale) tree.metadata.languages = [boardData.locale];
             tree.rootId = page.id;
+          } else {
+            tree.metadata._obfPagePaths[page.id] = entryName;
           }
         } else {
           console.warn('[OBF] Skipped entry (not valid OBF JSON):', entryName);
@@ -627,13 +674,21 @@ class ObfProcessor extends BaseProcessor {
   private createObfBoardFromPage(
     page: AACPage,
     fallbackName: string,
-    metadata?: AACTreeMetadata
+    metadata?: AACTreeMetadata,
+    embedData = false
   ): ObfBoard {
     const { rows, columns, order, buttonPositions } = this.buildGridMetadata(page);
     const boardName =
       metadata?.name && page.id === metadata?.defaultHomePageId
         ? metadata.name
         : page.name || fallbackName;
+    let images: ObfImage[] = Array.isArray(page.images) ? page.images : [];
+    if (!embedData) {
+      images = images.map((image) => {
+        delete image.data;
+        return image;
+      });
+    }
 
     return {
       format: OBF_FORMAT_VERSION,
@@ -675,7 +730,7 @@ class ObfProcessor extends BaseProcessor {
           hidden: button.visibility === 'Hidden' || false,
         };
       }),
-      images: Array.isArray(page.images) ? page.images : [],
+      images,
       sounds: Array.isArray(page.sounds) ? page.sounds : [],
     };
   }
@@ -721,8 +776,9 @@ class ObfProcessor extends BaseProcessor {
     return await readBinaryFromInput(outputPath);
   }
 
-  async saveFromTree(tree: AACTree, outputPath: string): Promise<void> {
-    const { writeTextToPath, writeBinaryToPath, pathExists } = this.options.fileAdapter;
+  async saveFromTree(tree: AACTree, outputPath: string, embedData = false): Promise<void> {
+    const { writeTextToPath, writeBinaryToPath, pathExists, mkDir, join } =
+      this.options.fileAdapter;
     if (outputPath.endsWith('.obf')) {
       // Save as single OBF JSON file
       const rootPage = tree.rootId ? tree.getPage(tree.rootId) : Object.values(tree.pages)[0];
@@ -730,14 +786,18 @@ class ObfProcessor extends BaseProcessor {
         throw new Error('No pages to save');
       }
 
-      const obfBoard = this.createObfBoardFromPage(rootPage, 'Exported Board', tree.metadata);
+      const obfBoard = this.createObfBoardFromPage(
+        rootPage,
+        'Exported Board',
+        tree.metadata,
+        embedData
+      );
       await writeTextToPath(outputPath, JSON.stringify(obfBoard, null, 2));
     } else {
-      const getPageFilename = (id: string): string => (id.endsWith('.obf') ? id : `${id}.obf`);
       const files = Object.values(tree.pages).map((page) => {
-        const obfBoard = this.createObfBoardFromPage(page, 'Board', tree.metadata);
+        const obfBoard = this.createObfBoardFromPage(page, 'Board', tree.metadata, embedData);
         const obfContent = JSON.stringify(obfBoard, null, 2);
-        const name = getPageFilename(page.id);
+        const name = this.getPageFilename(page.id, tree.metadata);
         return {
           name,
           data: new TextEncoder().encode(obfContent),
@@ -748,7 +808,10 @@ class ObfProcessor extends BaseProcessor {
         root: tree.metadata.defaultHomePageId,
         paths: {
           boards: Object.fromEntries(
-            Object.entries(tree.pages).map(([id, page]) => [id, getPageFilename(page.id)])
+            Object.entries(tree.pages).map(([id, page]) => [
+              id,
+              this.getPageFilename(page.id, tree.metadata),
+            ])
           ),
           images: {}, //TODO Add support for saving images as files
           sounds: {}, //TODO Add support for saving sounds as files
@@ -758,13 +821,24 @@ class ObfProcessor extends BaseProcessor {
         name: 'manifest.json',
         data: new TextEncoder().encode(JSON.stringify(manifest)),
       });
-      const fileExists = await pathExists(outputPath);
-      this.zipFile = await this.options.zipAdapter(
-        fileExists ? outputPath : undefined,
-        this.options.fileAdapter
-      );
-      const zipData = await this.zipFile.writeFiles(files);
-      await writeBinaryToPath(outputPath, zipData);
+
+      if (outputPath.endsWith('.obz') || outputPath.endsWith('.zip')) {
+        console.log('[OBF] Saving to ZIP file:', outputPath);
+        const fileExists = await pathExists(outputPath);
+        this.zipFile = await this.options.zipAdapter(
+          fileExists ? outputPath : undefined,
+          this.options.fileAdapter
+        );
+        const zipData = await this.zipFile.writeFiles(files);
+        await writeBinaryToPath(outputPath, zipData);
+      } else {
+        console.log('[OBF] Saving to directory:', outputPath);
+        if (!(await pathExists(outputPath))) await mkDir(outputPath);
+        for (const file of files) {
+          const filePath = join(outputPath, file.name);
+          await writeBinaryToPath(filePath, file.data);
+        }
+      }
     }
   }
 
@@ -796,8 +870,6 @@ class ObfProcessor extends BaseProcessor {
     const originalZip = new AdmZip(originalPath);
     const outputZip = new AdmZip();
 
-    const getPageFilename = (id: string): string => (id.endsWith('.obf') ? id : `${id}.obf`);
-
     // Track which .obf files we're modifying
     const modifiedObfFiles = new Set<string>();
 
@@ -805,7 +877,7 @@ class ObfProcessor extends BaseProcessor {
     const newObfFiles = new Map<string, string>();
 
     for (const page of Object.values(tree.pages)) {
-      const obfFilename = getPageFilename(page.id);
+      const obfFilename = this.getPageFilename(page.id, tree.metadata);
       modifiedObfFiles.add(obfFilename);
 
       const obfBoard = this.createObfBoardFromPage(page, 'Board', tree.metadata);
@@ -822,7 +894,10 @@ class ObfProcessor extends BaseProcessor {
         root: tree.metadata.defaultHomePageId,
         paths: {
           boards: Object.fromEntries(
-            Object.entries(tree.pages).map(([id, page]) => [id, getPageFilename(page.id)])
+            Object.entries(tree.pages).map(([id, page]) => [
+              id,
+              this.getPageFilename(page.id, tree.metadata),
+            ])
           ),
           images: {},
           sounds: {},
