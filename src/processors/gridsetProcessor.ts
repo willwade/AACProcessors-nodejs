@@ -29,6 +29,12 @@ import {
   type ZipEntry,
 } from './gridset/password';
 import { decryptGridsetEntry } from './gridset/crypto';
+import { formatGrid3XmlComplete } from './gridset/xmlFormatter';
+import {
+  calculateColumnDefinitions as calcColumnDefs,
+  calculateRowDefinitions as calcRowDefs,
+} from './gridset/gridCalculations';
+import { findButtonPosition as findButtonPos } from './gridset/cellHelpers';
 import { GridsetValidator } from '../validation/gridsetValidator';
 import { ValidationResult } from '../validation/validationTypes';
 // New imports for enhanced Grid 3 support
@@ -2481,18 +2487,7 @@ class GridsetProcessor extends BaseProcessor {
   private calculateColumnDefinitions(page: AACPage): {
     ColumnDefinition: any[];
   } {
-    let maxCols = 4; // Default minimum
-
-    if (page.grid && page.grid.length > 0) {
-      maxCols = Math.max(maxCols, page.grid[0]?.length || 0);
-    } else {
-      // Fallback: estimate from button count
-      maxCols = Math.max(4, Math.ceil(Math.sqrt(page.buttons.length)));
-    }
-
-    return {
-      ColumnDefinition: Array(maxCols).fill({}),
-    };
+    return calcColumnDefs(page);
   }
 
   // Helper method to calculate row definitions based on page layout
@@ -2500,20 +2495,7 @@ class GridsetProcessor extends BaseProcessor {
     page: AACPage,
     addWorkspaceOffset = false
   ): { RowDefinition: any[] } {
-    let maxRows = 4; // Default minimum
-    const offset = addWorkspaceOffset ? 1 : 0;
-
-    if (page.grid && page.grid.length > 0) {
-      maxRows = Math.max(maxRows, page.grid.length + offset);
-    } else {
-      // Fallback: estimate from button count
-      const estimatedCols = Math.ceil(Math.sqrt(page.buttons.length));
-      maxRows = Math.max(4, Math.ceil(page.buttons.length / estimatedCols)) + offset;
-    }
-
-    return {
-      RowDefinition: Array(maxRows).fill({}),
-    };
+    return calcRowDefs(page, addWorkspaceOffset);
   }
 
   /**
@@ -2693,6 +2675,10 @@ class GridsetProcessor extends BaseProcessor {
         }
       }
 
+      // DO NOT create new cells - the system should only modify existing content
+      // Personalized vocabulary is added to WordList cells via the WordList.Items array
+      // Creating new cells would corrupt the grid structure
+
       // Update the page's WordList with new words from modified buttons
       // Collect all modified buttons that should be added to the WordList
       const newWordListItems: any[] = [];
@@ -2708,9 +2694,21 @@ class GridsetProcessor extends BaseProcessor {
             : [];
 
         const cell = cellArray.find((c: any) => {
-          const cellX = parseInt(String(c['@_X'] || '0'), 10);
-          const cellY = parseInt(String(c['@_Y'] || '0'), 10);
-          return cellX === pos.x && cellY === pos.y;
+          const cellY = parseInt(String(c['@_Y'] || c['@_Row'] || '0'), 10);
+          // Check Y position first
+          if (cellY !== pos.y) {
+            return false;
+          }
+
+          const cellX = c['@_X'] !== undefined ? parseInt(String(c['@_X']), 10) : undefined;
+
+          // If cell has no X attribute (full-width cell), it matches any button at this Y
+          if (cellX === undefined) {
+            return true;
+          }
+
+          // Otherwise, check exact X match
+          return cellX === pos.x;
         });
 
         if (cell) {
@@ -2723,11 +2721,14 @@ class GridsetProcessor extends BaseProcessor {
 
           if (isWordListCell) {
             // Add this button to the WordList with proper Grid 3 format
-            // Format: <Text><s><r>label</r></s></Text>
+            // Format: <Text><p><s><r>label</r></s></p></Text>
+            // Note: <p> wrapper is required by Grid 3's WordList format
             newWordListItems.push({
               Text: {
-                s: {
-                  r: button.label,
+                p: {
+                  s: {
+                    r: button.label,
+                  },
                 },
               },
               Image: '', // No image for user-added words
@@ -2759,23 +2760,9 @@ class GridsetProcessor extends BaseProcessor {
         }
       }
 
-      // Build the updated grid XML and convert to Windows line endings
+      // Build the updated grid XML and format for Grid 3 compatibility
       let builtXml = gridBuilder.build(originalGrid);
-      // Convert Unix line endings to Windows (\r\n) for Grid 3 compatibility
-      builtXml = builtXml.replace(/\n/g, '\r\n');
-      // Expand self-closing tags to full opening/closing tags for Grid 3 compatibility
-      // Grid 3 cannot parse <AudioDescription /> - it requires <AudioDescription></AudioDescription>
-      builtXml = builtXml.replace(/<(\w+)(\s+[^>]*)?\s*\/>/g, '<$1$2></$1>');
-      // Convert empty/whitespace captions to CDATA format for Grid 3 compatibility
-      // Grid 3 requires <![CDATA[ ]]> for empty captions, not plain text
-      builtXml = builtXml.replace(/<Caption><\/Caption>/g, '<Caption><![CDATA[ ]]></Caption>');
-      builtXml = builtXml.replace(/<Caption> <\/Caption>/g, '<Caption><![CDATA[ ]]></Caption>');
-      builtXml = builtXml.replace(/<Caption> {2}<\/Caption>/g, '<Caption><![CDATA[ ]]></Caption>');
-      // Preserve CDATA in <r> tags for text parameters
-      // Spaces in <r> tags must use CDATA or they get stripped during rendering
-      // e.g., <r> </r> becomes <r><![CDATA[ ]]></r>
-      builtXml = builtXml.replace(/<r> <\/r>/g, '<r><![CDATA[ ]]></r>');
-      builtXml = builtXml.replace(/<r> {2}<\/r>/g, '<r><![CDATA[  ]]></r>');
+      builtXml = formatGrid3XmlComplete(builtXml);
       newGridFiles.set(gridPath, builtXml);
     }
 
@@ -2855,11 +2842,9 @@ class GridsetProcessor extends BaseProcessor {
       suppressBooleanAttributes: false,
     });
 
-    // Build the grid XML and convert to Windows line endings for Grid 3 compatibility
+    // Build the grid XML and format for Grid 3 compatibility
     let builtXml = gridBuilder.build(gridData);
-    builtXml = builtXml.replace(/\n/g, '\r\n');
-    // Expand self-closing tags to full opening/closing tags for Grid 3 compatibility
-    builtXml = builtXml.replace(/<(\w+)(\s+[^>]*)?\s*\/>/g, '<$1$2></$1>');
+    builtXml = formatGrid3XmlComplete(builtXml);
     return builtXml;
   }
 
@@ -2874,50 +2859,7 @@ class GridsetProcessor extends BaseProcessor {
     columnSpan: number;
     rowSpan: number;
   } {
-    if (page.grid && page.grid.length > 0) {
-      // Search for button in grid layout and calculate span
-      for (let y = 0; y < page.grid.length; y++) {
-        for (let x = 0; x < page.grid[y].length; x++) {
-          const current = page.grid[y][x];
-          if (current && current.id === button.id) {
-            // Calculate span by checking how far the same button extends
-            let columnSpan = 1;
-            let rowSpan = 1;
-
-            // Check column span (rightward)
-            while (x + columnSpan < page.grid[y].length) {
-              const right = page.grid[y][x + columnSpan];
-              if (right && right.id === button.id) {
-                columnSpan++;
-              } else {
-                break;
-              }
-            }
-
-            // Check row span (downward)
-            while (y + rowSpan < page.grid.length) {
-              const below = page.grid[y + rowSpan][x];
-              if (below && below.id === button.id) {
-                rowSpan++;
-              } else {
-                break;
-              }
-            }
-
-            return { x, y, columnSpan, rowSpan };
-          }
-        }
-      }
-    }
-
-    // Fallback positioning
-    const gridCols = page.grid?.[0]?.length || Math.ceil(Math.sqrt(page.buttons.length));
-    return {
-      x: fallbackIndex % gridCols,
-      y: Math.floor(fallbackIndex / gridCols),
-      columnSpan: 1,
-      rowSpan: 1,
-    };
+    return findButtonPos(page, button, fallbackIndex);
   }
 
   /**

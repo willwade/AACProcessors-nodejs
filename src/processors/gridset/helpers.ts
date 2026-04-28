@@ -219,7 +219,10 @@ export function getCommonDocumentsPath(): string {
     const child_process = getNodeRequire()('child_process') as typeof import('child_process');
     const command =
       'REG.EXE QUERY "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders" /V "Common Documents"';
-    const output = child_process.execSync(command, { encoding: 'utf-8', windowsHide: true });
+    const output = child_process.execSync(command, {
+      encoding: 'utf-8',
+      windowsHide: true,
+    });
 
     // Parse the output to extract the path
     const match = output.match(/Common Documents\s+REG_SZ\s+(.+)/);

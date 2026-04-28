@@ -47,10 +47,10 @@ await processor.processLLMTranslations(file, translations, output);
 
 ```typescript
 // Before
-const result = analyze(file, format);  // Returns { tree }
+const result = analyze(file, format); // Returns { tree }
 
 // After
-const result = await analyze(file, format);  // Returns Promise<{ tree }>
+const result = await analyze(file, format); // Returns Promise<{ tree }>
 ```
 
 ### Migration Guide
@@ -154,6 +154,7 @@ async function processMultipleFiles(files: string[]) {
 ### Browser Compatibility Progress
 
 This change enables the following browser-compatible processors:
+
 - ✅ DotProcessor
 - ✅ OpmlProcessor
 - ✅ ObfProcessor (JSZip migration complete!)
@@ -164,6 +165,7 @@ This change enables the following browser-compatible processors:
 **Note:** Gridset `.gridsetx` encrypted files require Node.js for crypto operations. Regular `.gridset` files work in browser.
 
 Still Node-only (deferred):
+
 - ❌ SnapProcessor (sqlite - needs wasm sqlite)
 - ❌ TouchChatProcessor (sqlite - needs wasm sqlite)
 - ❌ ExcelProcessor (fs dependencies - needs audit)
@@ -314,10 +316,10 @@ npm install aac-processors@2.x
 
 ```javascript
 // Old (CommonJS)
-const { DotProcessor } = require("aac-processors/dist/processors");
+const { DotProcessor } = require('aac-processors/dist/processors');
 
 // New (ES Modules + TypeScript)
-import { DotProcessor, getProcessor } from "aac-processors";
+import { DotProcessor, getProcessor } from 'aac-processors';
 ```
 
 ### API Changes
@@ -325,23 +327,23 @@ import { DotProcessor, getProcessor } from "aac-processors";
 ```typescript
 // Old
 const processor = new DotProcessor();
-const tree = processor.loadIntoTree("file.dot");
+const tree = processor.loadIntoTree('file.dot');
 
 // New (same API, but with TypeScript support)
 const processor = new DotProcessor();
-const tree: AACTree = processor.loadIntoTree("file.dot");
+const tree: AACTree = processor.loadIntoTree('file.dot');
 
 // New factory pattern
-const processor = getProcessor("file.dot"); // Auto-detects format
+const processor = getProcessor('file.dot'); // Auto-detects format
 ```
 
 ### New Translation Workflow
 
 ```typescript
 // New in 2.x
-const texts = processor.extractTexts("file.dot");
-const translations = new Map([["Hello", "Hola"]]);
-const result = processor.processTexts("file.dot", translations, "output.dot");
+const texts = processor.extractTexts('file.dot');
+const translations = new Map([['Hello', 'Hola']]);
+const result = processor.processTexts('file.dot', translations, 'output.dot');
 ```
 
 For detailed migration assistance, see the [Migration Guide](docs/MIGRATION.md).

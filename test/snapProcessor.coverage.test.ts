@@ -72,7 +72,9 @@ describe('SnapProcessor Coverage', () => {
 
       const processor = new SnapProcessor();
       const audioMappings = new Map<number, { audioData: Uint8Array; metadata?: string }>();
-      audioMappings.set(1, { audioData: new Uint8Array(Buffer.from('new audio')) });
+      audioMappings.set(1, {
+        audioData: new Uint8Array(Buffer.from('new audio')),
+      });
 
       await processor.createAudioEnhancedPageset(exampleFile, enhancedDbPath, audioMappings);
 

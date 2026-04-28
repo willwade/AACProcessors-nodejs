@@ -83,8 +83,16 @@ describe('Validation - additional formats', () => {
 
   it('validates OBFSet bundles', async () => {
     const obfset = [
-      { id: 'board1', buttons: [{ id: 'b1', label: 'Hi' }], grid: { rows: 1, columns: 1 } },
-      { id: 'board2', buttons: [{ id: 'b2', label: 'There' }], grid: { rows: 1, columns: 1 } },
+      {
+        id: 'board1',
+        buttons: [{ id: 'b1', label: 'Hi' }],
+        grid: { rows: 1, columns: 1 },
+      },
+      {
+        id: 'board2',
+        buttons: [{ id: 'b2', label: 'There' }],
+        grid: { rows: 1, columns: 1 },
+      },
     ];
     const buffer = Buffer.from(JSON.stringify(obfset));
     const result = await validateFileOrBuffer(buffer, defaultFileAdapter, 'bundle.obfset');

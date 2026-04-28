@@ -115,7 +115,9 @@ export async function openSqliteDatabase(
       throw new Error('SQLite file paths are not supported in browser environments.');
     }
     const Database = getBetterSqlite3();
-    const db = new Database(input, { readonly: options.readonly ?? true }) as SqliteDatabaseAdapter;
+    const db = new Database(input, {
+      readonly: options.readonly ?? true,
+    }) as SqliteDatabaseAdapter;
     return { db };
   }
 
@@ -132,7 +134,9 @@ export async function openSqliteDatabase(
   await writeBinaryToPath(dbPath, data);
 
   const Database = getBetterSqlite3();
-  const db = new Database(dbPath, { readonly: options.readonly ?? true }) as SqliteDatabaseAdapter;
+  const db = new Database(dbPath, {
+    readonly: options.readonly ?? true,
+  }) as SqliteDatabaseAdapter;
   const cleanup = async (): Promise<void> => {
     try {
       db.close();

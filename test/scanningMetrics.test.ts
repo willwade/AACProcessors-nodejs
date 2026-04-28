@@ -13,9 +13,27 @@ describe('Scanning Metrics', () => {
     });
 
     // Target button is #3 (linear index 2)
-    const btn1 = new AACButton({ id: 'btn1', label: '1', type: 'SPEAK', x: 0, y: 0 });
-    const btn2 = new AACButton({ id: 'btn2', label: '2', type: 'SPEAK', x: 1, y: 0 });
-    const btn3 = new AACButton({ id: 'btn3', label: '3', type: 'SPEAK', x: 0, y: 1 }); // Target
+    const btn1 = new AACButton({
+      id: 'btn1',
+      label: '1',
+      type: 'SPEAK',
+      x: 0,
+      y: 0,
+    });
+    const btn2 = new AACButton({
+      id: 'btn2',
+      label: '2',
+      type: 'SPEAK',
+      x: 1,
+      y: 0,
+    });
+    const btn3 = new AACButton({
+      id: 'btn3',
+      label: '3',
+      type: 'SPEAK',
+      x: 0,
+      y: 1,
+    }); // Target
 
     page.grid[0][0] = btn1;
     page.grid[0][1] = btn2;
@@ -52,7 +70,13 @@ describe('Scanning Metrics', () => {
     });
 
     // Target button at row 3 (index 2), col 4 (index 3)
-    const btn = new AACButton({ id: 'target', label: 'Target', type: 'SPEAK', x: 3, y: 2 });
+    const btn = new AACButton({
+      id: 'target',
+      label: 'Target',
+      type: 'SPEAK',
+      x: 3,
+      y: 2,
+    });
     page.grid[2][3] = btn;
     page.addButton(btn);
 

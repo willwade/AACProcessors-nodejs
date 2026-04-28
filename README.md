@@ -13,6 +13,7 @@ npm install @willwade/aac-processors
 ## Dual Build Targets
 
 ### Node.js (default)
+
 Full feature set, including filesystem access, SQLite-backed formats, and
 ZIP/encrypted formats.
 
@@ -27,6 +28,7 @@ const texts = await snap.extractTexts('board.sps');
 ```
 
 ### Browser
+
 Browser-safe entry that avoids Node-only dependencies. It expects `Buffer`,
 `Uint8Array`, or `ArrayBuffer` inputs rather than file paths.
 
@@ -82,7 +84,8 @@ const translations = new Map([
 
 await processor.processTexts('board.dot', translations, 'board-es.dot');
 ```
-NB: Please use [https://aactools.co.uk](https://aactools.co.uk) for a far more comphrensive translation logic - where we do far far more than this...  
+
+NB: Please use [https://aactools.co.uk](https://aactools.co.uk) for a far more comphrensive translation logic - where we do far far more than this...
 
 ## Documentation
 

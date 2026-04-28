@@ -281,7 +281,11 @@ class ObfProcessor extends BaseProcessor {
         }
 
         // Build parameters object for Grid3 export compatibility
-        const buttonParameters: { imageData?: Buffer; image_id?: string; [key: string]: any } = {};
+        const buttonParameters: {
+          imageData?: Buffer;
+          image_id?: string;
+          [key: string]: any;
+        } = {};
         if (imageBuffer) {
           buttonParameters.imageData = imageBuffer;
         }
@@ -706,7 +710,10 @@ class ObfProcessor extends BaseProcessor {
         order,
       },
       buttons: page.buttons.map((button) => {
-        const extraButtonInfo = button as AACButton & { image_id?: string; imageId?: string };
+        const extraButtonInfo = button as AACButton & {
+          image_id?: string;
+          imageId?: string;
+        };
         const imageId =
           button.parameters?.image_id ||
           button.parameters?.imageId ||

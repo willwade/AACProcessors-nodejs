@@ -176,7 +176,10 @@ describe('src/core Coverage Boost', () => {
       const processor = new MockProcessor({ excludeSystemButtons: true });
       const editBtn = new AACButton({
         id: 'edit',
-        semanticAction: { intent: 'ANY', category: AACSemanticCategory.TEXT_EDITING },
+        semanticAction: {
+          intent: 'ANY',
+          category: AACSemanticCategory.TEXT_EDITING,
+        },
       });
       expect(processor.callShouldFilter(editBtn)).toBe(true);
     });

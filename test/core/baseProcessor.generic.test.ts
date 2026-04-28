@@ -69,7 +69,11 @@ class DummyProcessor extends BaseProcessor {
 function createTree(): AACTree {
   const tree = new AACTree();
   const page = new AACPage({ id: 'page-1', name: 'Home' });
-  const yesButton = new AACButton({ id: 'btn-1', label: 'Yes', message: 'Yes' });
+  const yesButton = new AACButton({
+    id: 'btn-1',
+    label: 'Yes',
+    message: 'Yes',
+  });
   const noButton = new AACButton({ id: 'btn-2', label: 'No', message: 'Nope' });
   page.buttons.push(yesButton, noButton);
   tree.addPage(page);
@@ -154,10 +158,18 @@ describe('BaseProcessor generic helpers', () => {
     const tree = createTree();
     const processor = new DummyProcessor(tree);
     const sourceStrings: SourceString[] = [
-      { id: 1, sourcestring: 'Hello', vocabplacementmetadata: { vocabLocations: [] } },
+      {
+        id: 1,
+        sourcestring: 'Hello',
+        vocabplacementmetadata: { vocabLocations: [] },
+      },
     ];
     const translatedStrings: TranslatedString[] = [
-      { sourcestringid: 1, overridestring: 'Hola', translatedstring: 'Bonjour' },
+      {
+        sourcestringid: 1,
+        overridestring: 'Hola',
+        translatedstring: 'Bonjour',
+      },
     ];
 
     const outputPath = await processor.generateTranslatedGeneric(

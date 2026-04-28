@@ -89,9 +89,10 @@ export function wordlistToXml(wordlist: WordList): string {
   const items = wordlist.items.map((item) => ({
     WordListItem: {
       Text: {
-        s: {
-          '@_Image': item.image || '',
-          r: item.text,
+        p: {
+          s: {
+            r: item.text,
+          },
         },
       },
       Image: item.image || '',
@@ -174,7 +175,8 @@ export async function extractWordlists(
               : [];
 
           const items: WordListItem[] = itemArray.map((item: any) => ({
-            text: item.Text?.s?.r || item.text?.s?.r || '',
+            text:
+              item.Text?.p?.s?.r || item.Text?.s?.r || item.text?.p?.s?.r || item.text?.s?.r || '',
             image: item.Image || item.image || undefined,
             partOfSpeech: item.PartOfSpeech || item.partOfSpeech || 'Unknown',
           }));
@@ -253,9 +255,10 @@ export async function updateWordlist(
           const items = wordlist.items.map((item) => ({
             WordListItem: {
               Text: {
-                s: {
-                  '@_Image': item.image || '',
-                  r: item.text,
+                p: {
+                  s: {
+                    r: item.text,
+                  },
                 },
               },
               Image: item.image || '',
