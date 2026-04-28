@@ -1,15 +1,15 @@
 // Test for OBFProcessor (Open Board Format/Zip)
 // Test for OBFProcessor (Open Board Format/Zip)
-import path from "path";
-import { ObfProcessor } from "../src/processors/obfProcessor";
-import { AACTree } from "../src/core/treeStructure";
+import path from 'path';
+import { ObfProcessor } from '../src/processors/obfProcessor';
+import { AACTree } from '../src/core/treeStructure';
 
 jest.setTimeout(30000);
 
-describe("OBFProcessor", () => {
-  const obzPath: string = path.join(__dirname, "assets/obz/example.obz");
+describe('OBFProcessor', () => {
+  const obzPath: string = path.join(__dirname, 'assets/obz/example.obz');
 
-  it("can process .obz (zip) files with manifest", async () => {
+  it('can process .obz (zip) files with manifest', async () => {
     const processor = new ObfProcessor();
     const tree: AACTree = await processor.loadIntoTree(obzPath);
     expect(tree).toBeInstanceOf(AACTree);
@@ -19,7 +19,7 @@ describe("OBFProcessor", () => {
     let navFound = false;
     tree.traverse((page) => {
       page.buttons.forEach((btn) => {
-        if (btn.type === "NAVIGATE" && btn.targetPageId) navFound = true;
+        if (btn.type === 'NAVIGATE' && btn.targetPageId) navFound = true;
       });
     });
     expect(navFound).toBe(true);
@@ -30,7 +30,7 @@ describe("OBFProcessor", () => {
       const imgBtn = rootPage.buttons.find((b: any) => b.image);
       if (imgBtn) {
         // Image should now be a data URL string (from embedded OBZ images)
-        expect(typeof imgBtn.image).toBe("string");
+        expect(typeof imgBtn.image).toBe('string');
         expect(imgBtn.image).toMatch(/^data:image\//);
         // resolvedImageEntry should also be set
         expect(imgBtn.resolvedImageEntry).toBe(imgBtn.image);
@@ -38,15 +38,12 @@ describe("OBFProcessor", () => {
     }
   });
 
-  describe("saveModifiedTree", () => {
-    const tempOutputPath = path.join(__dirname, "temp_obz_modified.obz");
-    const tempSaveFromTreePath = path.join(
-      __dirname,
-      "temp_obz_saveFromTree.obz",
-    );
+  describe('saveModifiedTree', () => {
+    const tempOutputPath = path.join(__dirname, 'temp_obz_modified.obz');
+    const tempSaveFromTreePath = path.join(__dirname, 'temp_obz_saveFromTree.obz');
 
     afterEach(async () => {
-      const fs = await import("fs");
+      const fs = await import('fs');
       if (fs.existsSync(tempOutputPath)) {
         fs.unlinkSync(tempOutputPath);
       }
@@ -55,9 +52,9 @@ describe("OBFProcessor", () => {
       }
     });
 
-    it("should preserve original file size better than saveFromTree for OBZ files", async () => {
+    it('should preserve original file size better than saveFromTree for OBZ files', async () => {
       const processor = new ObfProcessor();
-      const fs = await import("fs");
+      const fs = await import('fs');
 
       // Load the original file
       const tree = await processor.loadIntoTree(obzPath);
@@ -78,7 +75,7 @@ describe("OBFProcessor", () => {
       expect(modifiedSize / originalSize).toBeGreaterThan(0.8);
     });
 
-    it("should produce a valid loadable OBZ file", async () => {
+    it('should produce a valid loadable OBZ file', async () => {
       const processor = new ObfProcessor();
 
       // Load the original file
@@ -96,9 +93,9 @@ describe("OBFProcessor", () => {
       expect(savedTree.rootId).toBe(tree.rootId);
     });
 
-    it("should handle empty tree by copying original", async () => {
+    it('should handle empty tree by copying original', async () => {
       const processor = new ObfProcessor();
-      const fs = await import("fs");
+      const fs = await import('fs');
 
       // Create an empty tree
       const emptyTree: AACTree = {
@@ -108,7 +105,7 @@ describe("OBFProcessor", () => {
         dashboardId: null,
         metadata: {},
         addPage() {
-          throw new Error("Not implemented");
+          throw new Error('Not implemented');
         },
         getPage() {
           return undefined;

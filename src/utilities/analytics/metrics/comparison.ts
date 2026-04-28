@@ -5,15 +5,12 @@
  * analyze vocabulary differences, and generate CARE component scores.
  */
 
-import { MetricsResult, ButtonMetrics, ComparisonResult } from "./types";
-import { SentenceAnalyzer } from "./sentence";
-import { VocabularyAnalyzer } from "./vocabulary";
-import {
-  ReferenceLoader,
-  type ReferenceDataProvider,
-} from "../reference/index";
-import { spellingEffort, predictionEffort } from "./effort";
-import { MetricsOptions } from "./types";
+import { MetricsResult, ButtonMetrics, ComparisonResult } from './types';
+import { SentenceAnalyzer } from './sentence';
+import { VocabularyAnalyzer } from './vocabulary';
+import { ReferenceLoader, type ReferenceDataProvider } from '../reference/index';
+import { spellingEffort, predictionEffort } from './effort';
+import { MetricsOptions } from './types';
 
 export class ComparisonAnalyzer {
   private vocabAnalyzer: VocabularyAnalyzer;
@@ -30,7 +27,7 @@ export class ComparisonAnalyzer {
     return word
       .toLowerCase()
       .trim()
-      .replace(/[.?!,]/g, "");
+      .replace(/[.?!,]/g, '');
   }
 
   /**
@@ -42,7 +39,7 @@ export class ComparisonAnalyzer {
     options?: {
       includeSentences?: boolean;
       locale?: string;
-    } & Partial<MetricsOptions>,
+    } & Partial<MetricsOptions>
   ): Promise<ComparisonResult> {
     // Create base result from target
     const baseResult = { ...targetResult };
@@ -108,7 +105,7 @@ export class ComparisonAnalyzer {
       targetResult,
       compareResult,
       overlappingWords,
-      options,
+      options
     );
 
     // Analyze high/low effort words
@@ -132,20 +129,16 @@ export class ComparisonAnalyzer {
     highEffortWords.sort((a, b) => {
       const targetBtnA = targetWords.get(a);
       const targetBtnB = targetWords.get(b);
-      const diffA =
-        (targetBtnA?.effort || 0) - (compareWords.get(a)?.effort || 0);
-      const diffB =
-        (targetBtnB?.effort || 0) - (compareWords.get(b)?.effort || 0);
+      const diffA = (targetBtnA?.effort || 0) - (compareWords.get(a)?.effort || 0);
+      const diffB = (targetBtnB?.effort || 0) - (compareWords.get(b)?.effort || 0);
       return diffB - diffA;
     });
 
     lowEffortWords.sort((a, b) => {
       const targetBtnA = targetWords.get(a);
       const targetBtnB = targetWords.get(b);
-      const diffA =
-        (compareWords.get(a)?.effort || 0) - (targetBtnA?.effort || 0);
-      const diffB =
-        (compareWords.get(b)?.effort || 0) - (targetBtnB?.effort || 0);
+      const diffA = (compareWords.get(a)?.effort || 0) - (targetBtnA?.effort || 0);
+      const diffB = (compareWords.get(b)?.effort || 0) - (targetBtnB?.effort || 0);
       return diffB - diffA;
     });
 
@@ -153,14 +146,8 @@ export class ComparisonAnalyzer {
     let sentences: any[] = [];
     if (options?.includeSentences) {
       const testSentences = await this.referenceLoader.loadSentences();
-      const targetSentences = this.sentenceAnalyzer.analyzeSentences(
-        targetResult,
-        testSentences,
-      );
-      const compareSentences = this.sentenceAnalyzer.analyzeSentences(
-        compareResult,
-        testSentences,
-      );
+      const targetSentences = this.sentenceAnalyzer.analyzeSentences(targetResult, testSentences);
+      const compareSentences = this.sentenceAnalyzer.analyzeSentences(compareResult, testSentences);
 
       sentences = targetSentences.map((ts, idx) => ({
         sentence: ts.sentence,
@@ -229,10 +216,7 @@ export class ComparisonAnalyzer {
 
     // Fringe vocabulary analysis
     const fringeWords = await this.analyzeFringe(targetWords, compareWords);
-    const commonFringeWords = await this.analyzeCommonFringe(
-      targetWords,
-      compareWords,
-    );
+    const commonFringeWords = await this.analyzeCommonFringe(targetWords, compareWords);
 
     return {
       ...baseResult,
@@ -292,8 +276,8 @@ export class ComparisonAnalyzer {
     options?: {
       includeSentences?: boolean;
       locale?: string;
-    } & Partial<MetricsOptions>,
-  ): Promise<ComparisonResult["care_components"]> {
+    } & Partial<MetricsOptions>
+  ): Promise<ComparisonResult['care_components']> {
     // Load common words with baseline efforts (matching Ruby line 527-534)
     const commonWordsData = await this.referenceLoader.loadCommonWords();
     const commonWords = new Map<string, number>();
@@ -304,13 +288,13 @@ export class ComparisonAnalyzer {
     // Determine prediction settings (default: use common words efforts, not prediction)
     const usePrediction = options?.usePrediction || false; // Default FALSE (use common words)
     const predictionSelections = options?.predictionSelections || 1.5;
-    const debugMode = process.env.DEBUG_METRICS === "true";
+    const debugMode = process.env.DEBUG_METRICS === 'true';
 
     // Helper function to calculate fallback effort
     const getFallbackEffort = (
       word: string,
       hasPrediction: boolean,
-      spellingBaseEffort?: number,
+      spellingBaseEffort?: number
     ): number => {
       const wordLower = word.toLowerCase();
 
@@ -322,12 +306,7 @@ export class ComparisonAnalyzer {
 
       // If usePrediction is true and prediction is available, use prediction
       if (usePrediction && hasPrediction && spellingBaseEffort !== undefined) {
-        return predictionEffort(
-          spellingBaseEffort,
-          2.5,
-          predictionSelections,
-          2,
-        );
+        return predictionEffort(spellingBaseEffort, 2.5, predictionSelections, 2);
       }
 
       // Fallback to manual spelling (matching Ruby spelling_effort: 10 + word.length * 2.5)
@@ -336,18 +315,16 @@ export class ComparisonAnalyzer {
 
     // Debug: Check settings
     const targetHasPrediction =
-      targetResult.has_dynamic_prediction &&
-      targetResult.spelling_effort_base !== undefined;
+      targetResult.has_dynamic_prediction && targetResult.spelling_effort_base !== undefined;
     const _compareHasPrediction =
-      compareResult.has_dynamic_prediction &&
-      compareResult.spelling_effort_base !== undefined;
+      compareResult.has_dynamic_prediction && compareResult.spelling_effort_base !== undefined;
     if (debugMode) {
       console.log(`\n🔍 DEBUG Fallback Effort Settings:`);
       console.log(`  Common words loaded: ${commonWords.size}`);
       console.log(`  usePrediction option: ${usePrediction}`);
       console.log(`  Target has prediction capability: ${targetHasPrediction}`);
       console.log(
-        `  Target spelling_base: ${targetResult.spelling_effort_base?.toFixed(2) || "undefined"}`,
+        `  Target spelling_base: ${targetResult.spelling_effort_base?.toFixed(2) || 'undefined'}`
       );
     }
     // Create word maps with normalized keys
@@ -398,7 +375,7 @@ export class ComparisonAnalyzer {
         targetCoreEffort += getFallbackEffort(
           word,
           targetResult.has_dynamic_prediction || false,
-          targetResult.spelling_effort_base,
+          targetResult.spelling_effort_base
         );
       }
 
@@ -409,15 +386,13 @@ export class ComparisonAnalyzer {
         compCoreEffort += getFallbackEffort(
           word,
           compareResult.has_dynamic_prediction || false,
-          compareResult.spelling_effort_base,
+          compareResult.spelling_effort_base
         );
       }
     });
 
-    const avgCoreEffort =
-      allCoreWords.size > 0 ? targetCoreEffort / allCoreWords.size : 0;
-    const avgCompCoreEffort =
-      allCoreWords.size > 0 ? compCoreEffort / allCoreWords.size : 0;
+    const avgCoreEffort = allCoreWords.size > 0 ? targetCoreEffort / allCoreWords.size : 0;
+    const avgCompCoreEffort = allCoreWords.size > 0 ? compCoreEffort / allCoreWords.size : 0;
 
     // Calculate core component scores (matching Ruby lines 644-647)
     const coreScore = avgCoreEffort * 5.0;
@@ -442,7 +417,7 @@ export class ComparisonAnalyzer {
           targetSentenceEffort += getFallbackEffort(
             word,
             targetResult.has_dynamic_prediction || false,
-            targetResult.spelling_effort_base,
+            targetResult.spelling_effort_base
           );
         }
 
@@ -452,7 +427,7 @@ export class ComparisonAnalyzer {
           compSentenceEffort += getFallbackEffort(
             word,
             compareResult.has_dynamic_prediction || false,
-            compareResult.spelling_effort_base,
+            compareResult.spelling_effort_base
           );
         }
       });
@@ -468,8 +443,7 @@ export class ComparisonAnalyzer {
         : 0;
     const compAvgSentenceEffort =
       compSentenceEfforts.length > 0
-        ? compSentenceEfforts.reduce((a, b) => a + b, 0) /
-          compSentenceEfforts.length
+        ? compSentenceEfforts.reduce((a, b) => a + b, 0) / compSentenceEfforts.length
         : 0;
 
     // Sentence component scores (matching Ruby line 665-668)
@@ -495,8 +469,8 @@ export class ComparisonAnalyzer {
           getFallbackEffort(
             word,
             targetResult.has_dynamic_prediction || false,
-            targetResult.spelling_effort_base,
-          ),
+            targetResult.spelling_effort_base
+          )
         );
       }
 
@@ -508,8 +482,8 @@ export class ComparisonAnalyzer {
           getFallbackEffort(
             word,
             compareResult.has_dynamic_prediction || false,
-            compareResult.spelling_effort_base,
-          ),
+            compareResult.spelling_effort_base
+          )
         );
       }
     });
@@ -520,8 +494,7 @@ export class ComparisonAnalyzer {
         : 0;
     const avgCompFringeEffort =
       compFringeEfforts.length > 0
-        ? compFringeEfforts.reduce((a, b) => a + b, 0) /
-          compFringeEfforts.length
+        ? compFringeEfforts.reduce((a, b) => a + b, 0) / compFringeEfforts.length
         : 0;
 
     // Fringe component scores (matching Ruby line 684-687)
@@ -547,13 +520,11 @@ export class ComparisonAnalyzer {
 
     const avgCommonFringeEffort =
       commonFringeEfforts.length > 0
-        ? commonFringeEfforts.reduce((a, b) => a + b, 0) /
-          commonFringeEfforts.length
+        ? commonFringeEfforts.reduce((a, b) => a + b, 0) / commonFringeEfforts.length
         : 0;
     const avgCompCommonFringeEffort =
       compCommonFringeEfforts.length > 0
-        ? compCommonFringeEfforts.reduce((a, b) => a + b, 0) /
-          compCommonFringeEfforts.length
+        ? compCommonFringeEfforts.reduce((a, b) => a + b, 0) / compCommonFringeEfforts.length
         : 0;
 
     // Common fringe component scores (matching Ruby line 702-705)
@@ -565,11 +536,7 @@ export class ComparisonAnalyzer {
     const targetEffortTally =
       coreScore + sentenceScore + fringeScore + commonFringeScore + PLACEHOLDER;
     const compEffortTally =
-      compCoreScore +
-      compSentenceScore +
-      compFringeScore +
-      compCommonFringeScore +
-      PLACEHOLDER;
+      compCoreScore + compSentenceScore + compFringeScore + compCommonFringeScore + PLACEHOLDER;
 
     // Calculate final CARE scores (matching Ruby line 710-711)
     // res[:target_effort_score] = [0.0, 350.0 - target_effort_tally].max
@@ -596,11 +563,10 @@ export class ComparisonAnalyzer {
    */
   private async analyzeFringe(
     targetWords: Map<string, ButtonMetrics>,
-    compareWords: Map<string, ButtonMetrics>,
+    compareWords: Map<string, ButtonMetrics>
   ): Promise<Array<{ word: string; effort: number; comp_effort: number }>> {
     const fringe = await this.referenceLoader.loadFringe();
-    const result: Array<{ word: string; effort: number; comp_effort: number }> =
-      [];
+    const result: Array<{ word: string; effort: number; comp_effort: number }> = [];
 
     fringe.forEach((word) => {
       const key = this.normalize(word);
@@ -625,11 +591,10 @@ export class ComparisonAnalyzer {
    */
   private async analyzeCommonFringe(
     targetWords: Map<string, ButtonMetrics>,
-    compareWords: Map<string, ButtonMetrics>,
+    compareWords: Map<string, ButtonMetrics>
   ): Promise<Array<{ word: string; effort: number; comp_effort: number }>> {
     const fringe = await this.referenceLoader.loadFringe();
-    const result: Array<{ word: string; effort: number; comp_effort: number }> =
-      [];
+    const result: Array<{ word: string; effort: number; comp_effort: number }> = [];
 
     fringe.forEach((word) => {
       const key = this.normalize(word);

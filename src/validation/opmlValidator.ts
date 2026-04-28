@@ -1,14 +1,14 @@
 /* eslint-disable @typescript-eslint/require-await */
-import { XMLParser, XMLValidator } from "fast-xml-parser";
-import { BaseValidator } from "./baseValidator";
-import { ValidationResult } from "./validationTypes";
+import { XMLParser, XMLValidator } from 'fast-xml-parser';
+import { BaseValidator } from './baseValidator';
+import { ValidationResult } from './validationTypes';
 import {
   decodeText,
   defaultFileAdapter,
   FileAdapter,
   getBasename,
   toUint8Array,
-} from "../utils/io";
+} from '../utils/io';
 
 /**
  * Validator for OPML files
@@ -16,37 +16,30 @@ import {
 export class OpmlValidator extends BaseValidator {
   static async validateFile(
     filePath: string,
-    fileAdapter?: FileAdapter,
+    fileAdapter?: FileAdapter
   ): Promise<ValidationResult> {
-    const { readBinaryFromInput, getFileSize } =
-      fileAdapter ?? defaultFileAdapter;
+    const { readBinaryFromInput, getFileSize } = fileAdapter ?? defaultFileAdapter;
     const validator = new OpmlValidator();
     const content = await readBinaryFromInput(filePath);
     const size = await getFileSize(filePath);
     return validator.validate(content, getBasename(filePath), size);
   }
 
-  static async identifyFormat(
-    content: any,
-    filename: string,
-  ): Promise<boolean> {
+  static async identifyFormat(content: any, filename: string): Promise<boolean> {
     const name = filename.toLowerCase();
-    if (name.endsWith(".opml")) {
+    if (name.endsWith('.opml')) {
       return true;
     }
 
     try {
       if (
-        typeof content !== "string" &&
+        typeof content !== 'string' &&
         !(content instanceof ArrayBuffer) &&
         !(content instanceof Uint8Array)
       ) {
         return false;
       }
-      const str =
-        typeof content === "string"
-          ? content
-          : decodeText(toUint8Array(content));
+      const str = typeof content === 'string' ? content : decodeText(toUint8Array(content));
       const validation = XMLValidator.validate(str);
       if (validation !== true) {
         return false;
@@ -62,38 +55,38 @@ export class OpmlValidator extends BaseValidator {
   async validate(
     content: Buffer | Uint8Array,
     filename: string,
-    filesize: number,
+    filesize: number
   ): Promise<ValidationResult> {
     this.reset();
     const parser = new XMLParser({ ignoreAttributes: false });
 
-    await this.add_check("filename", "file extension", async () => {
-      if (!filename.toLowerCase().endsWith(".opml")) {
-        this.warn("filename should end with .opml");
+    await this.add_check('filename', 'file extension', async () => {
+      if (!filename.toLowerCase().endsWith('.opml')) {
+        this.warn('filename should end with .opml');
       }
     });
 
-    let text = "";
-    await this.add_check("content", "non-empty content", async () => {
+    let text = '';
+    await this.add_check('content', 'non-empty content', async () => {
       text = decodeText(content);
       if (!text.trim()) {
-        this.err("OPML file is empty", true);
+        this.err('OPML file is empty', true);
       }
     });
 
-    await this.add_check("xml", "valid XML", async () => {
+    await this.add_check('xml', 'valid XML', async () => {
       const validation = XMLValidator.validate(text);
       if (validation !== true) {
-        const msg = String((validation as any)?.err?.msg || "Invalid OPML XML");
+        const msg = String((validation as any)?.err?.msg || 'Invalid OPML XML');
         this.err(msg, true);
       }
     });
 
     let parsed: any = null;
-    await this.add_check("structure", "outline structure", async () => {
+    await this.add_check('structure', 'outline structure', async () => {
       parsed = parser.parse(text);
       if (!parsed?.opml?.body?.outline) {
-        this.err("missing body.outline", true);
+        this.err('missing body.outline', true);
       }
     });
 
@@ -101,21 +94,18 @@ export class OpmlValidator extends BaseValidator {
       const outlines = Array.isArray(parsed.opml.body.outline)
         ? parsed.opml.body.outline
         : [parsed.opml.body.outline];
-      await this.add_check("outline_nodes", "outline nodes", async () => {
+      await this.add_check('outline_nodes', 'outline nodes', async () => {
         const hasText = outlines.some((node: any) => {
           const textValue =
-            node?.["@_text"] ||
-            node?._attributes?.text ||
-            node?.text ||
-            node?.["@_title"];
-          return typeof textValue === "string" && textValue.trim().length > 0;
+            node?.['@_text'] || node?._attributes?.text || node?.text || node?.['@_title'];
+          return typeof textValue === 'string' && textValue.trim().length > 0;
         });
         if (!hasText) {
-          this.err("outline nodes missing text attributes");
+          this.err('outline nodes missing text attributes');
         }
       });
     }
 
-    return this.buildResult(filename, filesize, "opml");
+    return this.buildResult(filename, filesize, 'opml');
   }
 }

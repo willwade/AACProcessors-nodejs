@@ -1,5 +1,5 @@
-import { FileAdapter, ProcessorInput } from "../utils/io";
-import { ZipAdapter } from "../utils/zip";
+import { FileAdapter, ProcessorInput } from '../utils/io';
+import { ZipAdapter } from '../utils/zip';
 
 /**
  * Custom error class for validation errors
@@ -10,7 +10,7 @@ export class ValidationError extends Error {
 
   constructor(message: string, blocker = false) {
     super(message);
-    this.name = "ValidationError";
+    this.name = 'ValidationError';
     this.blocker = blocker;
   }
 }
@@ -88,13 +88,9 @@ export class ValidationFailureError extends Error {
   validationResult: ValidationResult;
   originalError?: unknown;
 
-  constructor(
-    message: string,
-    validationResult: ValidationResult,
-    originalError?: unknown,
-  ) {
+  constructor(message: string, validationResult: ValidationResult, originalError?: unknown) {
     super(message);
-    this.name = "ValidationFailureError";
+    this.name = 'ValidationFailureError';
     this.validationResult = validationResult;
     this.originalError = originalError;
   }
@@ -122,8 +118,8 @@ export function buildValidationResultFromMessage(params: {
     warnings: 0,
     results: [
       {
-        type: params.type || "parse",
-        description: params.description || "parse",
+        type: params.type || 'parse',
+        description: params.description || 'parse',
         valid: false,
         error: params.message,
       },

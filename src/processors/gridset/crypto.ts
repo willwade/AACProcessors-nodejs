@@ -14,28 +14,23 @@
  */
 export function decryptGridsetEntry(buffer: Buffer, password?: string): Buffer {
   const nodeRequire =
-    typeof require === "function"
-      ? require
-      : (undefined as undefined | ((id: string) => any));
+    typeof require === 'function' ? require : (undefined as undefined | ((id: string) => any));
   if (!nodeRequire) {
-    throw new Error("Crypto utilities are not available in this environment.");
+    throw new Error('Crypto utilities are not available in this environment.');
   }
   // Dynamic require to avoid breaking in browser environments
-  const cryptoModule = "crypto";
-  const zlibModule = "zlib";
+  const cryptoModule = 'crypto';
+  const zlibModule = 'zlib';
   const crypto = nodeRequire(cryptoModule);
   const zlib = nodeRequire(zlibModule);
 
-  const pwd = (password || "Chocolate").padEnd(32, " ");
-  const key = Buffer.from(pwd.slice(0, 32), "utf8");
-  const iv = Buffer.from(pwd.slice(0, 16), "utf8");
+  const pwd = (password || 'Chocolate').padEnd(32, ' ');
+  const key = Buffer.from(pwd.slice(0, 32), 'utf8');
+  const iv = Buffer.from(pwd.slice(0, 16), 'utf8');
 
   try {
-    const decipher = crypto.createDecipheriv("aes-256-cbc", key, iv);
-    const decrypted = Buffer.concat([
-      decipher.update(buffer),
-      decipher.final(),
-    ]);
+    const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
+    const decrypted = Buffer.concat([decipher.update(buffer), decipher.final()]);
     try {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return zlib.inflateSync(decrypted);
@@ -54,12 +49,10 @@ export function decryptGridsetEntry(buffer: Buffer, password?: string): Buffer {
 export function isCryptoAvailable(): boolean {
   try {
     const nodeRequire =
-      typeof require === "function"
-        ? require
-        : (undefined as undefined | ((id: string) => any));
+      typeof require === 'function' ? require : (undefined as undefined | ((id: string) => any));
     if (!nodeRequire) return false;
-    const cryptoModule = "crypto";
-    const zlibModule = "zlib";
+    const cryptoModule = 'crypto';
+    const zlibModule = 'zlib';
     nodeRequire(cryptoModule);
     nodeRequire(zlibModule);
     return true;

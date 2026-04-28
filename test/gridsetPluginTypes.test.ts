@@ -8,47 +8,47 @@ import {
   isLiveCell,
   isAutoContentCell,
   isRegularCell,
-} from "../src/processors/gridset/pluginTypes";
+} from '../src/processors/gridset/pluginTypes';
 
-describe("Grid 3 Plugin Type Detection", () => {
-  describe("Workspace Detection", () => {
-    it("should detect Workspace cell from ContentType", async () => {
+describe('Grid 3 Plugin Type Detection', () => {
+  describe('Workspace Detection', () => {
+    it('should detect Workspace cell from ContentType', async () => {
       const content = {
-        ContentType: "Workspace",
-        ContentSubType: "Chat",
+        ContentType: 'Workspace',
+        ContentSubType: 'Chat',
       };
       const metadata = detectPluginCellType(content);
       expect(metadata.cellType).toBe(Grid3CellType.Workspace);
-      expect(metadata.subType).toBe("Chat");
-      expect(metadata.pluginId).toBe("Grid3.Chat");
+      expect(metadata.subType).toBe('Chat');
+      expect(metadata.pluginId).toBe('Grid3.Chat');
     });
 
-    it("should detect Workspace cell from Style", async () => {
+    it('should detect Workspace cell from Style', async () => {
       const content = {
         Style: {
-          BasedOnStyle: "Workspace",
+          BasedOnStyle: 'Workspace',
         },
-        ContentSubType: "Email",
+        ContentSubType: 'Email',
       };
       const metadata = detectPluginCellType(content);
       expect(metadata.cellType).toBe(Grid3CellType.Workspace);
-      expect(metadata.subType).toBe("Email");
+      expect(metadata.subType).toBe('Email');
     });
 
-    it("should infer correct plugin IDs for various workspaces", async () => {
+    it('should infer correct plugin IDs for various workspaces', async () => {
       const workspaces = [
-        { sub: WORKSPACE_TYPES.EMAIL, expected: "Grid3.Email" },
+        { sub: WORKSPACE_TYPES.EMAIL, expected: 'Grid3.Email' },
         {
           sub: WORKSPACE_TYPES.WORD_PROCESSOR,
-          expected: "Grid3.WordProcessor",
+          expected: 'Grid3.WordProcessor',
         },
-        { sub: WORKSPACE_TYPES.WEB_BROWSER, expected: "Grid3.WebBrowser" },
-        { sub: WORKSPACE_TYPES.SETTINGS, expected: "Grid3.Settings" },
+        { sub: WORKSPACE_TYPES.WEB_BROWSER, expected: 'Grid3.WebBrowser' },
+        { sub: WORKSPACE_TYPES.SETTINGS, expected: 'Grid3.Settings' },
       ];
 
       workspaces.forEach(({ sub, expected }) => {
         const metadata = detectPluginCellType({
-          ContentType: "Workspace",
+          ContentType: 'Workspace',
           ContentSubType: sub,
         });
         expect(metadata.pluginId).toBe(expected);
@@ -56,71 +56,71 @@ describe("Grid 3 Plugin Type Detection", () => {
     });
   });
 
-  describe("LiveCell Detection", () => {
-    it("should detect LiveCell from ContentType", async () => {
+  describe('LiveCell Detection', () => {
+    it('should detect LiveCell from ContentType', async () => {
       const content = {
-        ContentType: "LiveCell",
-        ContentSubType: "DigitalClock",
+        ContentType: 'LiveCell',
+        ContentSubType: 'DigitalClock',
       };
       const metadata = detectPluginCellType(content);
       expect(metadata.cellType).toBe(Grid3CellType.LiveCell);
-      expect(metadata.liveCellType).toBe("DigitalClock");
-      expect(metadata.pluginId).toBe("Grid3.Clock");
+      expect(metadata.liveCellType).toBe('DigitalClock');
+      expect(metadata.pluginId).toBe('Grid3.Clock');
     });
 
-    it("should infer correct plugin IDs for live cells", async () => {
+    it('should infer correct plugin IDs for live cells', async () => {
       expect(
         detectPluginCellType({
-          ContentType: "LiveCell",
+          ContentType: 'LiveCell',
           ContentSubType: LIVECELL_TYPES.BATTERY,
-        }).pluginId,
-      ).toBe("Grid3.Battery");
+        }).pluginId
+      ).toBe('Grid3.Battery');
       expect(
         detectPluginCellType({
-          ContentType: "LiveCell",
+          ContentType: 'LiveCell',
           ContentSubType: LIVECELL_TYPES.WIFI_STRENGTH,
-        }).pluginId,
-      ).toBe("Grid3.Wifi");
+        }).pluginId
+      ).toBe('Grid3.Wifi');
     });
   });
 
-  describe("AutoContent Detection", () => {
-    it("should detect AutoContent from ContentType", async () => {
+  describe('AutoContent Detection', () => {
+    it('should detect AutoContent from ContentType', async () => {
       const content = {
-        ContentType: "AutoContent",
+        ContentType: 'AutoContent',
         Commands: {
           Command: [
             {
-              "@_ID": "AutoContent.Activate",
-              Parameter: { "@_Key": "autocontenttype", "#text": "Prediction" },
+              '@_ID': 'AutoContent.Activate',
+              Parameter: { '@_Key': 'autocontenttype', '#text': 'Prediction' },
             },
           ],
         },
       };
       const metadata = detectPluginCellType(content);
       expect(metadata.cellType).toBe(Grid3CellType.AutoContent);
-      expect(metadata.autoContentType).toBe("Prediction");
-      expect(metadata.pluginId).toBe("Grid3.Prediction");
+      expect(metadata.autoContentType).toBe('Prediction');
+      expect(metadata.pluginId).toBe('Grid3.Prediction');
     });
 
-    it("should detect AutoContent from Style", async () => {
+    it('should detect AutoContent from Style', async () => {
       const content = {
-        Style: { BasedOnStyle: "AutoContent" },
+        Style: { BasedOnStyle: 'AutoContent' },
         Commands: {
           Command: {
-            "@_ID": "AutoContent.Activate",
-            Parameter: { "@_Key": "autocontenttype", "#text": "Grammar" },
+            '@_ID': 'AutoContent.Activate',
+            Parameter: { '@_Key': 'autocontenttype', '#text': 'Grammar' },
           },
         },
       };
       const metadata = detectPluginCellType(content);
       expect(metadata.cellType).toBe(Grid3CellType.AutoContent);
-      expect(metadata.autoContentType).toBe("Grammar");
+      expect(metadata.autoContentType).toBe('Grammar');
     });
 
-    it("should return undefined pluginId for unknown types", async () => {
+    it('should return undefined pluginId for unknown types', async () => {
       const metadata = detectPluginCellType({
-        ContentType: "AutoContent",
+        ContentType: 'AutoContent',
         Commands: {},
       });
       expect(metadata.cellType).toBe(Grid3CellType.AutoContent);
@@ -128,25 +128,23 @@ describe("Grid 3 Plugin Type Detection", () => {
     });
   });
 
-  describe("Regular Cell Detection", () => {
-    it("should detect regular cells", async () => {
-      const content = { Label: "Hello" };
+  describe('Regular Cell Detection', () => {
+    it('should detect regular cells', async () => {
+      const content = { Label: 'Hello' };
       const metadata = detectPluginCellType(content);
       expect(metadata.cellType).toBe(Grid3CellType.Regular);
     });
   });
 
-  describe("Utility Functions", () => {
-    it("getCellTypeDisplayName should return correct names", async () => {
-      expect(getCellTypeDisplayName(Grid3CellType.Workspace)).toBe("Workspace");
-      expect(getCellTypeDisplayName(Grid3CellType.LiveCell)).toBe("Live Cell");
-      expect(getCellTypeDisplayName(Grid3CellType.AutoContent)).toBe(
-        "Auto Content",
-      );
-      expect(getCellTypeDisplayName(Grid3CellType.Regular)).toBe("Regular");
+  describe('Utility Functions', () => {
+    it('getCellTypeDisplayName should return correct names', async () => {
+      expect(getCellTypeDisplayName(Grid3CellType.Workspace)).toBe('Workspace');
+      expect(getCellTypeDisplayName(Grid3CellType.LiveCell)).toBe('Live Cell');
+      expect(getCellTypeDisplayName(Grid3CellType.AutoContent)).toBe('Auto Content');
+      expect(getCellTypeDisplayName(Grid3CellType.Regular)).toBe('Regular');
     });
 
-    it("type checking functions should work", async () => {
+    it('type checking functions should work', async () => {
       const workspace = { cellType: Grid3CellType.Workspace };
       const live = { cellType: Grid3CellType.LiveCell };
       const auto = { cellType: Grid3CellType.AutoContent };

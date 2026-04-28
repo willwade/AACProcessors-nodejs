@@ -5,7 +5,7 @@
  */
 
 // Processor class
-export { OpmlProcessor } from "./processors/opmlProcessor";
+export { OpmlProcessor } from './processors/opmlProcessor';
 
 // Note: OPML doesn't currently have platform-specific helpers
 // Future helper functions can be added here

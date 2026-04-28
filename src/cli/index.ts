@@ -1,20 +1,19 @@
 #!/usr/bin/env node
-import { program } from "commander";
-import { prettyPrintTree } from "./prettyPrint";
-import { getProcessor } from "../core/analyze";
-import { ProcessorOptions } from "../core/baseProcessor";
+import { program } from 'commander';
+import { prettyPrintTree } from './prettyPrint';
+import { getProcessor } from '../core/analyze';
+import { ProcessorOptions } from '../core/baseProcessor';
 import {
   exportHistoryToBaton,
   readGrid3History,
   readSnapUsage,
-} from "../utilities/analytics/history";
-import { ComparisonAnalyzer, MetricsCalculator } from "../utilities/analytics";
-import { CellScanningOrder, ScanningSelectionMethod } from "../types/aac";
-import { defaultFileAdapter, extname } from "../utils/io";
-import { readFileSync } from "node:fs";
+} from '../utilities/analytics/history';
+import { ComparisonAnalyzer, MetricsCalculator } from '../utilities/analytics';
+import { CellScanningOrder, ScanningSelectionMethod } from '../types/aac';
+import { defaultFileAdapter, extname } from '../utils/io';
+import { readFileSync } from 'node:fs';
 
-const { pathExists, isDirectory, join, basename, writeTextToPath } =
-  defaultFileAdapter;
+const { pathExists, isDirectory, join, basename, writeTextToPath } = defaultFileAdapter;
 
 // Helper function to detect format from file/folder path
 async function detectFormat(filePath: string): Promise<string> {
@@ -22,17 +21,17 @@ async function detectFormat(filePath: string): Promise<string> {
   if (
     (await pathExists(filePath)) &&
     (await isDirectory(filePath)) &&
-    filePath.endsWith(".ascconfig")
+    filePath.endsWith('.ascconfig')
   ) {
-    return "ascconfig";
+    return 'ascconfig';
   }
 
   // Map multi-file formats to their base processor
-  if (filePath.endsWith(".obfset")) {
-    return "obf"; // Use ObfProcessor for .obfset files
+  if (filePath.endsWith('.obfset')) {
+    return 'obf'; // Use ObfProcessor for .obfset files
   }
-  if (filePath.endsWith(".gridset")) {
-    return "gridset";
+  if (filePath.endsWith('.gridset')) {
+    return 'gridset';
   }
 
   // Otherwise use file extension
@@ -70,19 +69,17 @@ function parseFilteringOptions(options: {
   // Handle custom button exclusion list
   if (options.excludeButtons) {
     const excludeList = options.excludeButtons
-      .split(",")
+      .split(',')
       .map((s) => s.trim().toLowerCase())
       .filter((s) => s.length > 0);
 
     if (excludeList.length > 0) {
       processorOptions.customButtonFilter = (button) => {
-        const label = button.label?.toLowerCase() || "";
-        const message = button.message?.toLowerCase() || "";
+        const label = button.label?.toLowerCase() || '';
+        const message = button.message?.toLowerCase() || '';
 
         // Exclude if button label or message contains any of the excluded terms
-        return !excludeList.some(
-          (term) => label.includes(term) || message.includes(term),
-        );
+        return !excludeList.some((term) => label.includes(term) || message.includes(term));
       };
     }
   }
@@ -91,37 +88,20 @@ function parseFilteringOptions(options: {
 }
 
 // Set version from package.json
-const packageJson = JSON.parse(
-  readFileSync(join(__dirname, "../../package.json"), "utf8"),
-) as {
+const packageJson = JSON.parse(readFileSync(join(__dirname, '../../package.json'), 'utf8')) as {
   version: string;
 };
 program.version(packageJson.version);
 
 program
-  .command("analyze <file>")
-  .option("--format <format>", "Format type (auto-detected if not specified)")
-  .option("--pretty", "Pretty print output")
-  .option(
-    "--preserve-all-buttons",
-    "Preserve all buttons including navigation/system buttons",
-  )
-  .option(
-    "--no-exclude-navigation",
-    "Don't exclude navigation buttons (Home, Back)",
-  )
-  .option(
-    "--no-exclude-system",
-    "Don't exclude system buttons (Delete, Clear, etc.)",
-  )
-  .option(
-    "--exclude-buttons <list>",
-    "Comma-separated list of button labels/terms to exclude",
-  )
-  .option(
-    "--gridset-password <password>",
-    "Password for encrypted Grid3 archives (.gridsetx)",
-  )
+  .command('analyze <file>')
+  .option('--format <format>', 'Format type (auto-detected if not specified)')
+  .option('--pretty', 'Pretty print output')
+  .option('--preserve-all-buttons', 'Preserve all buttons including navigation/system buttons')
+  .option('--no-exclude-navigation', "Don't exclude navigation buttons (Home, Back)")
+  .option('--no-exclude-system', "Don't exclude system buttons (Delete, Clear, etc.)")
+  .option('--exclude-buttons <list>', 'Comma-separated list of button labels/terms to exclude')
+  .option('--gridset-password <password>', 'Password for encrypted Grid3 archives (.gridsetx)')
   .action(
     async (
       file: string,
@@ -133,7 +113,7 @@ program
         excludeSystem?: boolean;
         excludeButtons?: string;
         gridsetPassword?: string;
-      },
+      }
     ) => {
       try {
         // Parse filtering options
@@ -157,39 +137,24 @@ program
         }
       } catch (error) {
         console.error(
-          "Error analyzing file:",
-          error instanceof Error ? error.message : String(error),
+          'Error analyzing file:',
+          error instanceof Error ? error.message : String(error)
         );
         process.exit(1);
       }
-    },
+    }
   );
 
 program
-  .command("extract <file>")
-  .option("--format <format>", "Format type (auto-detected if not specified)")
-  .option("--verbose", "Verbose output")
-  .option("--quiet", "Quiet output")
-  .option(
-    "--preserve-all-buttons",
-    "Preserve all buttons including navigation/system buttons",
-  )
-  .option(
-    "--no-exclude-navigation",
-    "Don't exclude navigation buttons (Home, Back)",
-  )
-  .option(
-    "--no-exclude-system",
-    "Don't exclude system buttons (Delete, Clear, etc.)",
-  )
-  .option(
-    "--exclude-buttons <list>",
-    "Comma-separated list of button labels/terms to exclude",
-  )
-  .option(
-    "--gridset-password <password>",
-    "Password for encrypted Grid3 archives (.gridsetx)",
-  )
+  .command('extract <file>')
+  .option('--format <format>', 'Format type (auto-detected if not specified)')
+  .option('--verbose', 'Verbose output')
+  .option('--quiet', 'Quiet output')
+  .option('--preserve-all-buttons', 'Preserve all buttons including navigation/system buttons')
+  .option('--no-exclude-navigation', "Don't exclude navigation buttons (Home, Back)")
+  .option('--no-exclude-system', "Don't exclude system buttons (Delete, Clear, etc.)")
+  .option('--exclude-buttons <list>', 'Comma-separated list of button labels/terms to exclude')
+  .option('--gridset-password <password>', 'Password for encrypted Grid3 archives (.gridsetx)')
   .action(
     async (
       file: string,
@@ -202,7 +167,7 @@ program
         excludeSystem?: boolean;
         excludeButtons?: string;
         gridsetPassword?: string;
-      },
+      }
     ) => {
       try {
         // Parse filtering options
@@ -220,18 +185,14 @@ program
 
             // Show filtering info in verbose mode
             if (filteringOptions.preserveAllButtons) {
-              console.log("Filtering: All buttons preserved");
+              console.log('Filtering: All buttons preserved');
             } else {
               const filters = [];
-              if (filteringOptions.excludeNavigationButtons !== false)
-                filters.push("navigation");
-              if (filteringOptions.excludeSystemButtons !== false)
-                filters.push("system");
-              if (filteringOptions.customButtonFilter) filters.push("custom");
+              if (filteringOptions.excludeNavigationButtons !== false) filters.push('navigation');
+              if (filteringOptions.excludeSystemButtons !== false) filters.push('system');
+              if (filteringOptions.customButtonFilter) filters.push('custom');
               if (filters.length > 0) {
-                console.log(
-                  `Filtering: Excluding ${filters.join(", ")} buttons`,
-                );
+                console.log(`Filtering: Excluding ${filters.join(', ')} buttons`);
               }
             }
           }
@@ -241,37 +202,22 @@ program
         texts.forEach((text) => console.log(text));
       } catch (error) {
         console.error(
-          "Error extracting texts:",
-          error instanceof Error ? error.message : String(error),
+          'Error extracting texts:',
+          error instanceof Error ? error.message : String(error)
         );
         process.exit(1);
       }
-    },
+    }
   );
 
 program
-  .command("convert <input> <output>")
-  .option("--format <format>", "Output format (required)")
-  .option(
-    "--preserve-all-buttons",
-    "Preserve all buttons including navigation/system buttons",
-  )
-  .option(
-    "--no-exclude-navigation",
-    "Don't exclude navigation buttons (Home, Back)",
-  )
-  .option(
-    "--no-exclude-system",
-    "Don't exclude system buttons (Delete, Clear, etc.)",
-  )
-  .option(
-    "--exclude-buttons <list>",
-    "Comma-separated list of button labels/terms to exclude",
-  )
-  .option(
-    "--gridset-password <password>",
-    "Password for encrypted Grid3 archives (.gridsetx)",
-  )
+  .command('convert <input> <output>')
+  .option('--format <format>', 'Output format (required)')
+  .option('--preserve-all-buttons', 'Preserve all buttons including navigation/system buttons')
+  .option('--no-exclude-navigation', "Don't exclude navigation buttons (Home, Back)")
+  .option('--no-exclude-system', "Don't exclude system buttons (Delete, Clear, etc.)")
+  .option('--exclude-buttons <list>', 'Comma-separated list of button labels/terms to exclude')
+  .option('--gridset-password <password>', 'Password for encrypted Grid3 archives (.gridsetx)')
   .action(
     async (
       input: string,
@@ -283,13 +229,11 @@ program
         excludeSystem?: boolean;
         excludeButtons?: string;
         gridsetPassword?: string;
-      },
+      }
     ) => {
       try {
         if (!options.format) {
-          console.error(
-            "Error: --format option is required for convert command",
-          );
+          console.error('Error: --format option is required for convert command');
           process.exit(1);
         }
 
@@ -308,44 +252,39 @@ program
         await outputProcessor.saveFromTree(tree, output);
 
         // Show filtering summary
-        let filteringSummary = "";
+        let filteringSummary = '';
         if (filteringOptions.preserveAllButtons) {
-          filteringSummary = " (all buttons preserved)";
+          filteringSummary = ' (all buttons preserved)';
         } else {
           const filters = [];
-          if (filteringOptions.excludeNavigationButtons !== false)
-            filters.push("navigation");
-          if (filteringOptions.excludeSystemButtons !== false)
-            filters.push("system");
-          if (filteringOptions.customButtonFilter) filters.push("custom");
+          if (filteringOptions.excludeNavigationButtons !== false) filters.push('navigation');
+          if (filteringOptions.excludeSystemButtons !== false) filters.push('system');
+          if (filteringOptions.customButtonFilter) filters.push('custom');
           if (filters.length > 0) {
-            filteringSummary = ` (filtered: ${filters.join(", ")} buttons)`;
+            filteringSummary = ` (filtered: ${filters.join(', ')} buttons)`;
           }
         }
 
         console.log(
-          `Successfully converted ${input} to ${output} (${options.format} format)${filteringSummary}`,
+          `Successfully converted ${input} to ${output} (${options.format} format)${filteringSummary}`
         );
       } catch (error) {
         console.error(
-          "Error converting file:",
-          error instanceof Error ? error.message : String(error),
+          'Error converting file:',
+          error instanceof Error ? error.message : String(error)
         );
         process.exit(1);
       }
-    },
+    }
   );
 
 program
-  .command("validate <file>")
-  .description("Validate an AAC file format")
-  .option("--format <format>", "Format type (auto-detected if not specified)")
-  .option("--json", "Output results as JSON")
-  .option("--quiet", "Only output validation result (valid/invalid)")
-  .option(
-    "--gridset-password <password>",
-    "Password for encrypted Grid3 archives (.gridsetx)",
-  )
+  .command('validate <file>')
+  .description('Validate an AAC file format')
+  .option('--format <format>', 'Format type (auto-detected if not specified)')
+  .option('--json', 'Output results as JSON')
+  .option('--quiet', 'Only output validation result (valid/invalid)')
+  .option('--gridset-password <password>', 'Password for encrypted Grid3 archives (.gridsetx)')
   .action(
     async (
       file: string,
@@ -354,7 +293,7 @@ program
         json?: boolean;
         quiet?: boolean;
         gridsetPassword?: string;
-      },
+      }
     ) => {
       try {
         // Auto-detect format if not specified
@@ -370,9 +309,7 @@ program
 
         // Check if processor supports validation
         if (!processor.validate) {
-          console.error(
-            `Error: Validation not supported for format '${format}'`,
-          );
+          console.error(`Error: Validation not supported for format '${format}'`);
           process.exit(1);
         }
 
@@ -381,7 +318,7 @@ program
 
         // Output results
         if (options.quiet) {
-          console.log(result.valid ? "valid" : "invalid");
+          console.log(result.valid ? 'valid' : 'invalid');
         } else if (options.json) {
           console.log(JSON.stringify(result, null, 2));
         } else {
@@ -389,13 +326,13 @@ program
           console.log(`\nValidation Results for: ${result.filename}`);
           console.log(`Format: ${result.format}`);
           console.log(`File size: ${result.filesize} bytes`);
-          console.log(`Status: ${result.valid ? "✓ VALID" : "✗ INVALID"}`);
+          console.log(`Status: ${result.valid ? '✓ VALID' : '✗ INVALID'}`);
           console.log(`Errors: ${result.errors}`);
           console.log(`Warnings: ${result.warnings}\n`);
 
           if (result.errors > 0 || result.warnings > 0) {
             if (result.errors > 0) {
-              console.log("Errors:");
+              console.log('Errors:');
               result.results
                 .filter((r) => !r.valid)
                 .forEach((check) => {
@@ -407,7 +344,7 @@ program
             }
 
             if (result.warnings > 0) {
-              console.log("\nWarnings:");
+              console.log('\nWarnings:');
               result.results.forEach((check) => {
                 if (check.warnings && check.warnings.length > 0) {
                   console.log(`  ⚠ ${check.description}`);
@@ -421,39 +358,39 @@ program
 
           // Show sub-results if available
           if (result.sub_results && result.sub_results.length > 0) {
-            console.log("\nSub-results:");
+            console.log('\nSub-results:');
             result.sub_results.forEach((sub, idx) => {
               console.log(`  [${idx + 1}] ${sub.filename}`);
               console.log(
-                `      Status: ${sub.valid ? "✓" : "✗"} (${sub.errors} errors, ${sub.warnings} warnings)`,
+                `      Status: ${sub.valid ? '✓' : '✗'} (${sub.errors} errors, ${sub.warnings} warnings)`
               );
             });
           }
 
-          console.log("");
+          console.log('');
         }
 
         // Exit with appropriate code
         process.exit(result.valid ? 0 : 1);
       } catch (error) {
         console.error(
-          "Error validating file:",
-          error instanceof Error ? error.message : String(error),
+          'Error validating file:',
+          error instanceof Error ? error.message : String(error)
         );
         process.exit(1);
       }
-    },
+    }
   );
 
 program
-  .command("history <input>")
-  .option("--format <format>", "Output format: raw or baton", "raw")
-  .option("--out <path>", "Write output to a file instead of stdout")
-  .option("--source <source>", "History source: auto, grid3, snap", "auto")
-  .option("--anonymous-uuid <uuid>", "Anonymous UUID for baton export")
-  .option("--export-date <iso>", "Export date for baton export (ISO string)")
-  .option("--encryption <mode>", "Encryption label for baton export", "none")
-  .option("--version <version>", "Baton export version", "1.0")
+  .command('history <input>')
+  .option('--format <format>', 'Output format: raw or baton', 'raw')
+  .option('--out <path>', 'Write output to a file instead of stdout')
+  .option('--source <source>', 'History source: auto, grid3, snap', 'auto')
+  .option('--anonymous-uuid <uuid>', 'Anonymous UUID for baton export')
+  .option('--export-date <iso>', 'Export date for baton export (ISO string)')
+  .option('--encryption <mode>', 'Encryption label for baton export', 'none')
+  .option('--version <version>', 'Baton export version', '1.0')
   .action(
     async (
       input: string,
@@ -465,48 +402,38 @@ program
         exportDate?: string;
         encryption?: string;
         version?: string;
-      },
+      }
     ) => {
       try {
         if (!(await pathExists(input))) {
           throw new Error(`File not found: ${input}`);
         }
 
-        const normalizedSource = (options.source || "auto").toLowerCase();
+        const normalizedSource = (options.source || 'auto').toLowerCase();
         const ext = extname(input).toLowerCase();
-        const isGrid3Db =
-          ext === ".sqlite" ||
-          basename(input).toLowerCase() === "history.sqlite";
-        const isSnap = ext === ".sps" || ext === ".spb";
+        const isGrid3Db = ext === '.sqlite' || basename(input).toLowerCase() === 'history.sqlite';
+        const isSnap = ext === '.sps' || ext === '.spb';
 
         let entries;
-        if (
-          normalizedSource === "grid3" ||
-          (normalizedSource === "auto" && isGrid3Db)
-        ) {
+        if (normalizedSource === 'grid3' || (normalizedSource === 'auto' && isGrid3Db)) {
           entries = await readGrid3History(input);
-        } else if (
-          normalizedSource === "snap" ||
-          (normalizedSource === "auto" && isSnap)
-        ) {
+        } else if (normalizedSource === 'snap' || (normalizedSource === 'auto' && isSnap)) {
           entries = await readSnapUsage(input);
         } else {
-          throw new Error(
-            "Unable to detect history source. Use --source grid3 or --source snap.",
-          );
+          throw new Error('Unable to detect history source. Use --source grid3 or --source snap.');
         }
 
-        const format = (options.format || "raw").toLowerCase();
+        const format = (options.format || 'raw').toLowerCase();
         let payload: unknown = entries;
 
-        if (format === "baton") {
+        if (format === 'baton') {
           payload = exportHistoryToBaton(entries, {
             version: options.version,
             exportDate: options.exportDate,
             encryption: options.encryption,
             anonymousUUID: options.anonymousUuid,
           });
-        } else if (format !== "raw") {
+        } else if (format !== 'raw') {
           throw new Error(`Unsupported format: ${format}`);
         }
 
@@ -518,54 +445,35 @@ program
         }
       } catch (error) {
         console.error(
-          "Error exporting history:",
-          error instanceof Error ? error.message : String(error),
+          'Error exporting history:',
+          error instanceof Error ? error.message : String(error)
         );
         process.exit(1);
       }
-    },
+    }
   );
 
 program
-  .command("metrics <file>")
-  .option("--format <format>", "Format type (auto-detected if not specified)")
-  .option("--pretty", "Pretty print JSON output")
-  .option("--out <path>", "Write output to a file instead of stdout")
+  .command('metrics <file>')
+  .option('--format <format>', 'Format type (auto-detected if not specified)')
+  .option('--pretty', 'Pretty print JSON output')
+  .option('--out <path>', 'Write output to a file instead of stdout')
+  .option('--preserve-all-buttons', 'Preserve all buttons including navigation/system buttons')
+  .option('--no-exclude-navigation', "Don't exclude navigation buttons (Home, Back)")
+  .option('--no-exclude-system', "Don't exclude system buttons (Delete, Clear, etc.)")
+  .option('--exclude-buttons <list>', 'Comma-separated list of button labels/terms to exclude')
+  .option('--gridset-password <password>', 'Password for encrypted Grid3 archives (.gridsetx)')
+  .option('--access-method <method>', 'direct or scanning', 'direct')
+  .option('--scanning-pattern <pattern>', 'linear, row-column, or block', 'row-column')
   .option(
-    "--preserve-all-buttons",
-    "Preserve all buttons including navigation/system buttons",
+    '--selection-method <method>',
+    'auto-1-switch, step-1-switch, or step-2-switch',
+    'auto-1-switch'
   )
-  .option(
-    "--no-exclude-navigation",
-    "Don't exclude navigation buttons (Home, Back)",
-  )
-  .option(
-    "--no-exclude-system",
-    "Don't exclude system buttons (Delete, Clear, etc.)",
-  )
-  .option(
-    "--exclude-buttons <list>",
-    "Comma-separated list of button labels/terms to exclude",
-  )
-  .option(
-    "--gridset-password <password>",
-    "Password for encrypted Grid3 archives (.gridsetx)",
-  )
-  .option("--access-method <method>", "direct or scanning", "direct")
-  .option(
-    "--scanning-pattern <pattern>",
-    "linear, row-column, or block",
-    "row-column",
-  )
-  .option(
-    "--selection-method <method>",
-    "auto-1-switch, step-1-switch, or step-2-switch",
-    "auto-1-switch",
-  )
-  .option("--error-correction", "Enable scanning error correction", false)
-  .option("--use-prediction", "Enable prediction in CARE scoring", false)
-  .option("--no-smart-grammar", "Disable smart grammar word forms")
-  .option("--care", "Include CARE comparison output", false)
+  .option('--error-correction', 'Enable scanning error correction', false)
+  .option('--use-prediction', 'Enable prediction in CARE scoring', false)
+  .option('--no-smart-grammar', 'Disable smart grammar word forms')
+  .option('--care', 'Include CARE comparison output', false)
   .action(
     async (
       file: string,
@@ -585,7 +493,7 @@ program
         usePrediction?: boolean;
         smartGrammar?: boolean;
         care?: boolean;
-      },
+      }
     ) => {
       try {
         const filteringOptions = parseFilteringOptions(options);
@@ -593,52 +501,44 @@ program
         const processor = getProcessor(format, filteringOptions);
         const tree = await processor.loadIntoTree(file);
 
-        const accessMethod = (options.accessMethod || "direct").toLowerCase();
-        const scanningPattern = (
-          options.scanningPattern || "row-column"
-        ).toLowerCase();
-        const selectionMethodParam = (
-          options.selectionMethod || "auto-1-switch"
-        ).toLowerCase();
+        const accessMethod = (options.accessMethod || 'direct').toLowerCase();
+        const scanningPattern = (options.scanningPattern || 'row-column').toLowerCase();
+        const selectionMethodParam = (options.selectionMethod || 'auto-1-switch').toLowerCase();
         const errorCorrection = !!options.errorCorrection;
 
         let scanningConfig = undefined;
-        if (accessMethod === "scanning") {
+        if (accessMethod === 'scanning') {
           let cellScanningOrder = CellScanningOrder.SimpleScan;
           let blockScanEnabled = false;
 
           switch (scanningPattern) {
-            case "linear":
+            case 'linear':
               cellScanningOrder = CellScanningOrder.SimpleScan;
               break;
-            case "row-column":
+            case 'row-column':
               cellScanningOrder = CellScanningOrder.RowColumnScan;
               break;
-            case "block":
+            case 'block':
               cellScanningOrder = CellScanningOrder.RowColumnScan;
               blockScanEnabled = true;
               break;
             default:
-              throw new Error(
-                `Unsupported scanning pattern: ${scanningPattern}`,
-              );
+              throw new Error(`Unsupported scanning pattern: ${scanningPattern}`);
           }
 
           let selectionMethod = ScanningSelectionMethod.AutoScan;
           switch (selectionMethodParam) {
-            case "auto-1-switch":
+            case 'auto-1-switch':
               selectionMethod = ScanningSelectionMethod.AutoScan;
               break;
-            case "step-1-switch":
+            case 'step-1-switch':
               selectionMethod = ScanningSelectionMethod.StepScan1Switch;
               break;
-            case "step-2-switch":
+            case 'step-2-switch':
               selectionMethod = ScanningSelectionMethod.StepScan2Switch;
               break;
             default:
-              throw new Error(
-                `Unsupported selection method: ${selectionMethodParam}`,
-              );
+              throw new Error(`Unsupported selection method: ${selectionMethodParam}`);
           }
 
           scanningConfig = {
@@ -677,9 +577,7 @@ program
           care,
         };
 
-        const output = options.pretty
-          ? JSON.stringify(result, null, 2)
-          : JSON.stringify(result);
+        const output = options.pretty ? JSON.stringify(result, null, 2) : JSON.stringify(result);
         if (options.out) {
           await writeTextToPath(options.out, output);
         } else {
@@ -687,12 +585,12 @@ program
         }
       } catch (error) {
         console.error(
-          "Error calculating metrics:",
-          error instanceof Error ? error.message : String(error),
+          'Error calculating metrics:',
+          error instanceof Error ? error.message : String(error)
         );
         process.exit(1);
       }
-    },
+    }
   );
 
 // Show help if no command provided

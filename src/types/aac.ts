@@ -7,19 +7,19 @@
  */
 export enum ScanningSelectionMethod {
   /** Automatically advance through items at timed intervals (1 Switch) */
-  AutoScan = "AutoScan",
+  AutoScan = 'AutoScan',
   /** Automatic scanning with overscan (two-stage scanning) */
-  AutoScanWithOverscan = "AutoScanWithOverscan",
+  AutoScanWithOverscan = 'AutoScanWithOverscan',
   /** Hold switch to advance, release to select */
-  HoldToAdvance = "HoldToAdvance",
+  HoldToAdvance = 'HoldToAdvance',
   /** Hold to advance with overscan */
-  HoldToAdvanceWithOverscan = "HoldToAdvanceWithOverscan",
+  HoldToAdvanceWithOverscan = 'HoldToAdvanceWithOverscan',
   /** Tap switch to advance, tap again to select (Automatic) */
-  TapToAdvance = "TapToAdvance",
+  TapToAdvance = 'TapToAdvance',
   /** Tap switch to advance, another switch to select (2 Switch Step Scan) */
-  StepScan2Switch = "StepScan2Switch",
+  StepScan2Switch = 'StepScan2Switch',
   /** Tap switch 1 to advance, tap switch 1 again to select (1 Switch Step Scan) */
-  StepScan1Switch = "StepScan1Switch",
+  StepScan1Switch = 'StepScan1Switch',
 }
 
 /**
@@ -28,13 +28,13 @@ export enum ScanningSelectionMethod {
  */
 export enum CellScanningOrder {
   /** Simple linear scan across rows (left-to-right, top-to-bottom) */
-  SimpleScan = "SimpleScan",
+  SimpleScan = 'SimpleScan',
   /** Simple linear scan down columns (top-to-bottom, left-to-right) */
-  SimpleScanColumnsFirst = "SimpleScanColumnsFirst",
+  SimpleScanColumnsFirst = 'SimpleScanColumnsFirst',
   /** Row-group scanning: highlight rows first, then cells within selected row */
-  RowColumnScan = "RowColumnScan",
+  RowColumnScan = 'RowColumnScan',
   /** Column-group scanning: highlight columns first, then cells within selected column */
-  ColumnRowScan = "ColumnRowScan",
+  ColumnRowScan = 'ColumnRowScan',
 }
 
 /**
@@ -55,7 +55,7 @@ export interface ScanningConfig {
   /** Time in milliseconds to wait before auto-accepting selection */
   dwellTime?: number;
   /** How the selection is accepted */
-  acceptScanMethod?: "Switch" | "Timeout" | "Hold";
+  acceptScanMethod?: 'Switch' | 'Timeout' | 'Hold';
   /** Whether to factor in error correction effort (e.g., missed hits) */
   errorCorrectionEnabled?: boolean;
   /** Maximum number of loops before the scan times out */
@@ -92,7 +92,7 @@ export interface AACButton {
     metadata?: string;
   };
   // Extended properties for advanced platforms
-  contentType?: "Normal" | "AutoContent" | "Workspace" | "LiveCell";
+  contentType?: 'Normal' | 'AutoContent' | 'Workspace' | 'LiveCell';
   contentSubType?: string;
   image?: string;
   resolvedImageEntry?: string; // normalized zip path to resolved image, if present
@@ -114,12 +114,7 @@ export interface AACButton {
    * Reduces scanning effort by grouping buttons
    */
   scanBlock?: number;
-  visibility?:
-    | "Visible"
-    | "Hidden"
-    | "Disabled"
-    | "PointerAndTouchOnly"
-    | "Empty";
+  visibility?: 'Visible' | 'Hidden' | 'Disabled' | 'PointerAndTouchOnly' | 'Empty';
   directActivate?: boolean;
   audioDescription?: string;
   parameters?: { [key: string]: any };
@@ -184,7 +179,7 @@ export interface AACTreeMetadata {
  * Snap-specific metadata
  */
 export interface SnapMetadata extends AACTreeMetadata {
-  format: "snap";
+  format: 'snap';
   dashboardId?: string;
 }
 
@@ -192,7 +187,7 @@ export interface SnapMetadata extends AACTreeMetadata {
  * GridSet-specific metadata
  */
 export interface GridSetMetadata extends AACTreeMetadata {
-  format: "gridset";
+  format: 'gridset';
   isSmartBox?: boolean;
   passwordProtected?: boolean;
   pictureSearchKeys?: string[];
@@ -210,7 +205,7 @@ export interface GridSetMetadata extends AACTreeMetadata {
  * Asterics-specific metadata
  */
 export interface AstericsGridMetadata extends AACTreeMetadata {
-  format: "asterics";
+  format: 'asterics';
   hasGlobalGrid?: boolean;
   globalGridId?: string;
 }
@@ -219,7 +214,7 @@ export interface AstericsGridMetadata extends AACTreeMetadata {
  * TouchChat-specific metadata
  */
 export interface TouchChatMetadata extends AACTreeMetadata {
-  format: "touchchat";
+  format: 'touchchat';
 }
 
 export interface AACTree {

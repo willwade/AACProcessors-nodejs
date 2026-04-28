@@ -5,7 +5,7 @@
  * and calculating cell spans in grid layouts.
  */
 
-import type { AACPage, AACButton } from "../../core/treeStructure";
+import type { AACPage, AACButton } from '../../core/treeStructure';
 
 /**
  * Cell position with span information
@@ -39,7 +39,7 @@ export interface CellPosition {
 export function findButtonPosition(
   page: AACPage,
   button: AACButton,
-  fallbackIndex: number,
+  fallbackIndex: number
 ): CellPosition {
   if (page.grid && page.grid.length > 0) {
     // Search for button in grid layout and calculate span
@@ -78,8 +78,7 @@ export function findButtonPosition(
   }
 
   // Fallback positioning
-  const gridCols =
-    page.grid?.[0]?.length || Math.ceil(Math.sqrt(page.buttons.length));
+  const gridCols = page.grid?.[0]?.length || Math.ceil(Math.sqrt(page.buttons.length));
   return {
     x: fallbackIndex % gridCols,
     y: Math.floor(fallbackIndex / gridCols),
@@ -118,6 +117,6 @@ export function cellPositionKey(x: number, y: number): string {
  * console.log(pos); // { x: 5, y: 3 }
  */
 export function parseCellPositionKey(key: string): { x: number; y: number } {
-  const [x, y] = key.split(",").map(Number);
+  const [x, y] = key.split(',').map(Number);
   return { x, y };
 }

@@ -1,23 +1,20 @@
-import { dotNetTicksToDate } from "../../utils/dotnetTicks";
+import { dotNetTicksToDate } from '../../utils/dotnetTicks';
 import {
   findGrid3Users,
   Grid3UserPath,
   readAllGrid3History as readAllGrid3HistoryImpl,
   readGrid3History as readGrid3HistoryImpl,
   readGrid3HistoryForUser as readGrid3HistoryForUserImpl,
-} from "../../processors/gridset/helpers";
+} from '../../processors/gridset/helpers';
 import {
   findSnapUsers,
   readSnapUsage as readSnapUsageImpl,
   readSnapUsageForUser as readSnapUsageForUserImpl,
   SnapUserInfo,
-} from "../../processors/snap/helpers";
-import {
-  AACSemanticCategory,
-  AACSemanticIntent,
-} from "../../core/treeStructure";
+} from '../../processors/snap/helpers';
+import { AACSemanticCategory, AACSemanticIntent } from '../../core/treeStructure';
 
-export type HistorySource = "Grid" | "Snap" | "OBL" | string;
+export type HistorySource = 'Grid' | 'Snap' | 'OBL' | string;
 
 export interface HistoryOccurrence {
   timestamp: Date;
@@ -33,7 +30,7 @@ export interface HistoryOccurrence {
   vocalization?: string;
   imageUrl?: string;
   actions?: any[]; // For OBL actions
-  type?: "button" | "action" | "utterance" | "note" | "other";
+  type?: 'button' | 'action' | 'utterance' | 'note' | 'other';
   // Semantic semantic alignment
   intent?: AACSemanticIntent | string;
   category?: AACSemanticCategory;
@@ -81,14 +78,12 @@ export interface BatonExport {
 }
 
 const generateUuid = (): string => {
-  if (typeof globalThis.crypto?.randomUUID === "function") {
+  if (typeof globalThis.crypto?.randomUUID === 'function') {
     return globalThis.crypto.randomUUID();
   }
   // RFC4122-ish fallback for Node without crypto.randomUUID
-  const hex = "0123456789abcdef";
-  const bytes = Array.from({ length: 16 }, () =>
-    Math.floor(Math.random() * 256),
-  );
+  const hex = '0123456789abcdef';
+  const bytes = Array.from({ length: 16 }, () => Math.floor(Math.random() * 256));
   bytes[6] = (bytes[6] & 0x0f) | 0x40;
   bytes[8] = (bytes[8] & 0x3f) | 0x80;
   const toHex = (b: number): string => hex[(b >> 4) & 0x0f] + hex[b & 0x0f];
@@ -97,16 +92,16 @@ const generateUuid = (): string => {
     toHex(bytes[1]) +
     toHex(bytes[2]) +
     toHex(bytes[3]) +
-    "-" +
+    '-' +
     toHex(bytes[4]) +
     toHex(bytes[5]) +
-    "-" +
+    '-' +
     toHex(bytes[6]) +
     toHex(bytes[7]) +
-    "-" +
+    '-' +
     toHex(bytes[8]) +
     toHex(bytes[9]) +
-    "-" +
+    '-' +
     toHex(bytes[10]) +
     toHex(bytes[11]) +
     toHex(bytes[12]) +
@@ -123,7 +118,7 @@ export function exportHistoryToBaton(
     exportDate?: string | Date;
     encryption?: string;
     anonymousUUID?: string;
-  },
+  }
 ): BatonExport {
   const exportDate =
     options?.exportDate instanceof Date
@@ -143,9 +138,9 @@ export function exportHistoryToBaton(
   }));
 
   return {
-    version: options?.version || "1.0",
+    version: options?.version || '1.0',
     exportDate,
-    encryption: options?.encryption || "none",
+    encryption: options?.encryption || 'none',
     sentenceCount: sentences.length,
     sentences,
   };
@@ -154,13 +149,11 @@ export function exportHistoryToBaton(
 /**
  * Read Grid 3 phrase history from a history.sqlite database and tag entries with their source.
  */
-export async function readGrid3History(
-  historyDbPath: string,
-): Promise<HistoryEntry[]> {
+export async function readGrid3History(historyDbPath: string): Promise<HistoryEntry[]> {
   const history = await readGrid3HistoryImpl(historyDbPath);
   return history.map((e) => ({
     ...e,
-    source: "Grid",
+    source: 'Grid',
   }));
 }
 
@@ -169,12 +162,12 @@ export async function readGrid3History(
  */
 export async function readGrid3HistoryForUser(
   userName: string,
-  langCode?: string,
+  langCode?: string
 ): Promise<HistoryEntry[]> {
   const history = await readGrid3HistoryForUserImpl(userName, langCode);
   return history.map((e) => ({
     ...e,
-    source: "Grid",
+    source: 'Grid',
   }));
 }
 
@@ -183,17 +176,15 @@ export async function readGrid3HistoryForUser(
  */
 export async function readAllGrid3History(): Promise<HistoryEntry[]> {
   const history = await readAllGrid3HistoryImpl();
-  return history.map((e) => ({ ...e, source: "Grid" }));
+  return history.map((e) => ({ ...e, source: 'Grid' }));
 }
 
 /**
  * Read Snap button usage from a pageset database and tag entries with source.
  */
-export async function readSnapUsage(
-  pagesetPath: string,
-): Promise<HistoryEntry[]> {
+export async function readSnapUsage(pagesetPath: string): Promise<HistoryEntry[]> {
   const usage = await readSnapUsageImpl(pagesetPath);
-  return usage.map((e) => ({ ...e, source: "Snap" }));
+  return usage.map((e) => ({ ...e, source: 'Snap' }));
 }
 
 /**
@@ -201,12 +192,12 @@ export async function readSnapUsage(
  */
 export async function readSnapUsageForUser(
   userId?: string,
-  packageNamePattern = "TobiiDynavox",
+  packageNamePattern = 'TobiiDynavox'
 ): Promise<HistoryEntry[]> {
   const usage = await readSnapUsageForUserImpl(userId, packageNamePattern);
   return usage.map((e) => ({
     ...e,
-    source: "Snap",
+    source: 'Snap',
   }));
 }
 
@@ -229,7 +220,7 @@ export async function collectUnifiedHistory(): Promise<HistoryEntry[]> {
   const gridHistory = await readAllGrid3History();
   const users = await findSnapUsers();
   const snapHistory = await Promise.all(
-    users.map(async (u) => await readSnapUsageForUser(u.userId)),
+    users.map(async (u) => await readSnapUsageForUser(u.userId))
   );
   return [...gridHistory, ...snapHistory.flat()];
 }

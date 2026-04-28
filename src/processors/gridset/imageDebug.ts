@@ -5,16 +5,11 @@
  * correctly in Grid3 gridsets.
  */
 
-import { getZipEntriesFromAdapter } from "./password";
-import { resolveGridsetPasswordFromEnv } from "./password";
-import { XMLParser } from "fast-xml-parser";
-import {
-  decodeText,
-  defaultFileAdapter,
-  FileAdapter,
-  type ProcessorInput,
-} from "../../utils/io";
-import { getZipAdapter, ZipAdapter } from "../../utils/zip";
+import { getZipEntriesFromAdapter } from './password';
+import { resolveGridsetPasswordFromEnv } from './password';
+import { XMLParser } from 'fast-xml-parser';
+import { decodeText, defaultFileAdapter, FileAdapter, type ProcessorInput } from '../../utils/io';
+import { getZipAdapter, ZipAdapter } from '../../utils/zip';
 
 export interface ImageIssue {
   gridName: string;
@@ -22,7 +17,7 @@ export interface ImageIssue {
   cellY: number;
   declaredImage: string | undefined;
   expectedPaths: string[];
-  issue: "not_found" | "symbol_library" | "external_reference";
+  issue: 'not_found' | 'symbol_library' | 'external_reference';
   suggestion: string;
 }
 
@@ -52,7 +47,7 @@ export async function auditGridsetImages(
   gridsetBuffer: Uint8Array,
   password = resolveGridsetPasswordFromEnv(),
   fileAdapter: FileAdapter = defaultFileAdapter,
-  zipAdapter?: (input: ProcessorInput) => Promise<ZipAdapter>,
+  zipAdapter?: (input: ProcessorInput) => Promise<ZipAdapter>
 ): Promise<ImageAuditResult> {
   const issues: ImageIssue[] = [];
   const availableImages = new Set<string>();
@@ -70,15 +65,7 @@ export async function auditGridsetImages(
     const parser = new XMLParser();
 
     // Collect all image files in the gridset
-    const imageExtensions = [
-      ".png",
-      ".jpg",
-      ".jpeg",
-      ".bmp",
-      ".gif",
-      ".emf",
-      ".wmf",
-    ];
+    const imageExtensions = ['.png', '.jpg', '.jpeg', '.bmp', '.gif', '.emf', '.wmf'];
     for (const entry of entries) {
       const name = entry.entryName.toLowerCase();
       if (imageExtensions.some((ext) => name.endsWith(ext))) {
@@ -88,10 +75,7 @@ export async function auditGridsetImages(
 
     // Process each grid file
     for (const entry of entries) {
-      if (
-        !entry.entryName.startsWith("Grids/") ||
-        !entry.entryName.endsWith("grid.xml")
-      ) {
+      if (!entry.entryName.startsWith('Grids/') || !entry.entryName.endsWith('grid.xml')) {
         continue;
       }
 
@@ -104,37 +88,27 @@ export async function auditGridsetImages(
         const gridNameMatch = entry.entryName.match(/^Grids\/([^/]+)\//);
         const gridName = gridNameMatch ? gridNameMatch[1] : entry.entryName;
 
-        const gridEntryPath = entry.entryName.replace(/\\/g, "/");
-        const baseDir = gridEntryPath.replace(/\/grid\.xml$/, "/");
+        const gridEntryPath = entry.entryName.replace(/\\/g, '/');
+        const baseDir = gridEntryPath.replace(/\/grid\.xml$/, '/');
 
         // Check for FileMap.xml
-        const fileMapEntry = entries.find(
-          (e) => e.entryName === baseDir + "FileMap.xml",
-        );
+        const fileMapEntry = entries.find((e) => e.entryName === baseDir + 'FileMap.xml');
 
         const dynamicFilesMap = new Map<string, string[]>();
         if (fileMapEntry) {
           try {
             const fmXml = decodeText(await fileMapEntry.getData());
             const fmData = parser.parse(fmXml);
-            const fileEntries =
-              fmData?.FileMap?.Entries?.Entry ||
-              fmData?.fileMap?.entries?.entry;
+            const fileEntries = fmData?.FileMap?.Entries?.Entry || fmData?.fileMap?.entries?.entry;
             if (fileEntries) {
-              const arr = Array.isArray(fileEntries)
-                ? fileEntries
-                : [fileEntries];
+              const arr = Array.isArray(fileEntries) ? fileEntries : [fileEntries];
               for (const ent of arr) {
-                const rawStaticFile =
-                  ent["@_StaticFile"] || ent.StaticFile || ent.staticFile;
+                const rawStaticFile = ent['@_StaticFile'] || ent.StaticFile || ent.staticFile;
                 const staticFile =
-                  typeof rawStaticFile === "string"
-                    ? rawStaticFile.replace(/\\/g, "/")
-                    : "";
+                  typeof rawStaticFile === 'string' ? rawStaticFile.replace(/\\/g, '/') : '';
                 if (!staticFile) continue;
                 const df = ent.DynamicFiles || ent.dynamicFiles;
-                const candidates =
-                  df?.File || df?.file || df?.Files || df?.files;
+                const candidates = df?.File || df?.file || df?.Files || df?.files;
                 const list: string[] = Array.isArray(candidates)
                   ? candidates
                   : candidates
@@ -159,8 +133,7 @@ export async function auditGridsetImages(
           const content = cell.Content;
           if (!content) continue;
 
-          const captionAndImage =
-            content.CaptionAndImage || content.captionAndImage;
+          const captionAndImage = content.CaptionAndImage || content.captionAndImage;
           const imageCandidate =
             captionAndImage?.Image ||
             captionAndImage?.image ||
@@ -171,14 +144,8 @@ export async function auditGridsetImages(
 
           cellsWithImages++;
 
-          const cellX = Math.max(
-            0,
-            parseInt(String(cell["@_X"] || "1"), 10) - 1,
-          );
-          const cellY = Math.max(
-            0,
-            parseInt(String(cell["@_Y"] || "1"), 10) - 1,
-          );
+          const cellX = Math.max(0, parseInt(String(cell['@_X'] || '1'), 10) - 1);
+          const cellY = Math.max(0, parseInt(String(cell['@_Y'] || '1'), 10) - 1);
 
           // Try to resolve the image
           const imageName = String(imageCandidate).trim();
@@ -199,38 +166,30 @@ export async function auditGridsetImages(
               `${baseDir}${cellX + 1}-${cellY + 1}.png`,
             ];
 
-            let issue: ImageIssue["issue"];
+            let issue: ImageIssue['issue'];
             let suggestion: string;
 
-            if (imageName.startsWith("[")) {
+            if (imageName.startsWith('[')) {
               // Check if it's a symbol library reference
-              if (
-                imageName.includes("widgit") ||
-                imageName.includes("Widgit")
-              ) {
-                issue = "symbol_library";
+              if (imageName.includes('widgit') || imageName.includes('Widgit')) {
+                issue = 'symbol_library';
                 suggestion =
-                  "This is a Widgit symbol library reference. These symbols are not stored in the gridset - they require the Widgit Symbols to be installed on the system.";
-              } else if (
-                imageName.includes("grid3x") ||
-                imageName.includes("Grid3")
-              ) {
-                issue = "external_reference";
+                  'This is a Widgit symbol library reference. These symbols are not stored in the gridset - they require the Widgit Symbols to be installed on the system.';
+              } else if (imageName.includes('grid3x') || imageName.includes('Grid3')) {
+                issue = 'external_reference';
                 suggestion =
-                  "This is a built-in Grid3 resource reference. These images are not included in the gridset file.";
+                  'This is a built-in Grid3 resource reference. These images are not included in the gridset file.';
               } else {
-                issue = "symbol_library";
+                issue = 'symbol_library';
                 suggestion = `External symbol library reference: ${imageName}. Symbol libraries are not embedded in gridset files.`;
               }
             } else {
-              issue = "not_found";
+              issue = 'not_found';
               const similarImages = Array.from(availableImages).filter((img) =>
-                img
-                  .toLowerCase()
-                  .includes(imageName.toLowerCase().substring(0, 10)),
+                img.toLowerCase().includes(imageName.toLowerCase().substring(0, 10))
               );
               if (similarImages.length > 0) {
-                suggestion = `Image not found. Did you mean one of these?\n  ${similarImages.slice(0, 3).join("\n  ")}`;
+                suggestion = `Image not found. Did you mean one of these?\n  ${similarImages.slice(0, 3).join('\n  ')}`;
               } else {
                 suggestion = `Image file not found in gridset. The file may have been excluded or the path is incorrect.`;
               }
@@ -272,19 +231,19 @@ export async function auditGridsetImages(
 export function formatImageAuditSummary(audit: ImageAuditResult): string {
   const lines: string[] = [];
 
-  lines.push("=== Grid3 Image Audit Summary ===");
+  lines.push('=== Grid3 Image Audit Summary ===');
   lines.push(`Total cells: ${audit.totalCells}`);
   lines.push(`Cells with images: ${audit.cellsWithImages}`);
   lines.push(`Resolved images: ${audit.resolvedImages}`);
   lines.push(`Unresolved images: ${audit.unresolvedImages}`);
   lines.push(`Available image files: ${audit.availableImages.length}`);
-  lines.push("");
+  lines.push('');
 
   if (audit.issues.length > 0) {
-    lines.push("=== Image Issues ===");
+    lines.push('=== Image Issues ===');
 
     // Group by issue type
-    const byType = new Map<ImageIssue["issue"], ImageIssue[]>();
+    const byType = new Map<ImageIssue['issue'], ImageIssue[]>();
     for (const issue of audit.issues) {
       const list = byType.get(issue.issue) || [];
       list.push(issue);
@@ -296,7 +255,7 @@ export function formatImageAuditSummary(audit: ImageAuditResult): string {
       for (const issue of issues.slice(0, 5)) {
         // Show first 5 of each type
         lines.push(
-          `  [${issue.gridName}] Cell (${issue.cellX}, ${issue.cellY}): ${issue.declaredImage}`,
+          `  [${issue.gridName}] Cell (${issue.cellX}, ${issue.cellY}): ${issue.declaredImage}`
         );
         lines.push(`    → ${issue.suggestion}`);
       }
@@ -306,5 +265,5 @@ export function formatImageAuditSummary(audit: ImageAuditResult): string {
     }
   }
 
-  return lines.join("\n");
+  return lines.join('\n');
 }

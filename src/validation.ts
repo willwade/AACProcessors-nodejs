@@ -14,26 +14,26 @@ export {
   ValidationRule,
   ValidationFailureError,
   buildValidationResultFromMessage,
-} from "./validation/validationTypes";
+} from './validation/validationTypes';
 
 // Base validator
-export { BaseValidator } from "./validation/baseValidator";
+export { BaseValidator } from './validation/baseValidator';
 
 // Format-specific validators
-export { ObfValidator } from "./validation/obfValidator";
-export { GridsetValidator } from "./validation/gridsetValidator";
-export { SnapValidator } from "./validation/snapValidator";
-export { TouchChatValidator } from "./validation/touchChatValidator";
-export { AstericsGridValidator } from "./validation/astericsValidator";
-export { ExcelValidator } from "./validation/excelValidator";
-export { OpmlValidator } from "./validation/opmlValidator";
-export { DotValidator } from "./validation/dotValidator";
-export { ApplePanelsValidator } from "./validation/applePanelsValidator";
-export { ObfsetValidator } from "./validation/obfsetValidator";
+export { ObfValidator } from './validation/obfValidator';
+export { GridsetValidator } from './validation/gridsetValidator';
+export { SnapValidator } from './validation/snapValidator';
+export { TouchChatValidator } from './validation/touchChatValidator';
+export { AstericsGridValidator } from './validation/astericsValidator';
+export { ExcelValidator } from './validation/excelValidator';
+export { OpmlValidator } from './validation/opmlValidator';
+export { DotValidator } from './validation/dotValidator';
+export { ApplePanelsValidator } from './validation/applePanelsValidator';
+export { ObfsetValidator } from './validation/obfsetValidator';
 
 // Validator factory functions
 export {
   getValidatorForFormat,
   getValidatorForFile,
   validateFileOrBuffer,
-} from "./validation/index";
+} from './validation/index';

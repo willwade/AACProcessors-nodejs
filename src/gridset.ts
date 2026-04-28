@@ -6,7 +6,7 @@
  */
 
 // Processor class
-export { GridsetProcessor } from "./processors/gridsetProcessor";
+export { GridsetProcessor } from './processors/gridsetProcessor';
 
 // === User & File System Helpers ===
 export {
@@ -29,7 +29,7 @@ export {
   type Grid3UserPath,
   type Grid3VocabularyPath,
   type Grid3HistoryEntry,
-} from "./processors/gridset/helpers";
+} from './processors/gridset/helpers';
 
 // === Wordlist Management ===
 export {
@@ -39,7 +39,7 @@ export {
   wordlistToXml,
   type WordList,
   type WordListItem,
-} from "./processors/gridset/wordlistHelpers";
+} from './processors/gridset/wordlistHelpers';
 
 // === Color Utilities ===
 export {
@@ -52,7 +52,7 @@ export {
   darkenColor,
   normalizeColor,
   ensureAlphaChannel,
-} from "./processors/gridset/colorUtils";
+} from './processors/gridset/colorUtils';
 
 // === Style Helpers ===
 export {
@@ -63,7 +63,7 @@ export {
   CellBackgroundShape,
   SHAPE_NAMES,
   ensureAlphaChannel as ensureAlphaChannelFromStyles,
-} from "./processors/gridset/styleHelpers";
+} from './processors/gridset/styleHelpers';
 
 // === Plugin & Workspace Detection ===
 export {
@@ -78,7 +78,7 @@ export {
   WORKSPACE_TYPES,
   LIVECELL_TYPES,
   AUTOCONTENT_TYPES,
-} from "./processors/gridset/pluginTypes";
+} from './processors/gridset/pluginTypes';
 
 // === Command Detection ===
 export {
@@ -94,7 +94,7 @@ export {
   type CommandParameter,
   type ExtractedParameters,
   Grid3CommandCategory,
-} from "./processors/gridset/commands";
+} from './processors/gridset/commands';
 
 // === Symbol Libraries ===
 export {
@@ -121,7 +121,7 @@ export {
   // Backward compatibility
   getSymbolsDir,
   getSymbolSearchDir,
-} from "./processors/gridset/index";
+} from './processors/gridset/index';
 
 // === Symbol Extraction ===
 export {
@@ -132,7 +132,7 @@ export {
   suggestExtractionStrategy,
   exportSymbolReferencesToCsv,
   createSymbolManifest,
-} from "./processors/gridset/symbolExtractor";
+} from './processors/gridset/symbolExtractor';
 
 // === Symbol Search ===
 export {
@@ -146,13 +146,13 @@ export {
   getSearchSuggestions,
   countLibrarySymbols,
   getSymbolSearchStats,
-} from "./processors/gridset/symbolSearch";
+} from './processors/gridset/symbolSearch';
 
 // === Password Management ===
 export {
   resolveGridsetPassword,
   resolveGridsetPasswordFromEnv,
-} from "./processors/gridset/password";
+} from './processors/gridset/password';
 
 // === Image Debugging ===
 export {
@@ -160,4 +160,4 @@ export {
   formatImageAuditSummary,
   type ImageAuditResult,
   type ImageIssue,
-} from "./processors/gridset/imageDebug";
+} from './processors/gridset/imageDebug';

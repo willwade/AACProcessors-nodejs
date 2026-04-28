@@ -5,7 +5,7 @@
  * based on page layout and button count.
  */
 
-import type { AACPage } from "../../core/treeStructure";
+import type { AACPage } from '../../core/treeStructure';
 
 /**
  * Grid definition structure for Grid 3 XML
@@ -60,10 +60,7 @@ export function calculateColumnDefinitions(page: AACPage): GridDefinitions {
  * const rows = calculateRowDefinitions(page, false);
  * // Returns: { RowDefinition: [{}, {}, {}, {}] } for 4 rows
  */
-export function calculateRowDefinitions(
-  page: AACPage,
-  addWorkspaceOffset = false,
-): RowDefinitions {
+export function calculateRowDefinitions(page: AACPage, addWorkspaceOffset = false): RowDefinitions {
   let maxRows = 4; // Default minimum
   const offset = addWorkspaceOffset ? 1 : 0;
 
@@ -72,8 +69,7 @@ export function calculateRowDefinitions(
   } else {
     // Fallback: estimate from button count
     const estimatedCols = Math.ceil(Math.sqrt(page.buttons.length));
-    maxRows =
-      Math.max(4, Math.ceil(page.buttons.length / estimatedCols)) + offset;
+    maxRows = Math.max(4, Math.ceil(page.buttons.length / estimatedCols)) + offset;
   }
 
   return {

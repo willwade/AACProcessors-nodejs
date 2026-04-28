@@ -5,11 +5,11 @@
  */
 
 // Processor class
-export { TouchChatProcessor } from "./processors/touchchatProcessor";
+export { TouchChatProcessor } from './processors/touchchatProcessor';
 
 // === TouchChat Helpers ===
 export {
   getPageTokenImageMap,
   getAllowedImageEntries,
   openImage,
-} from "./processors/touchchat/helpers";
+} from './processors/touchchat/helpers';

@@ -3,16 +3,16 @@
  * These are pre-extracted board sets in JSON array format
  */
 
-import { AACTree } from "../core/treeStructure";
+import { AACTree } from '../core/treeStructure';
 import {
   AACPage,
   AACButton,
   AACSemanticAction,
   AACSemanticCategory,
   AACSemanticIntent,
-} from "../core/treeStructure";
-import { BaseProcessor, ProcessorOptions } from "../core/baseProcessor";
-import { ProcessorInput } from "../utils/io";
+} from '../core/treeStructure';
+import { BaseProcessor, ProcessorOptions } from '../core/baseProcessor';
+import { ProcessorInput } from '../utils/io';
 
 interface ObfsetButton {
   id: string;
@@ -64,7 +64,7 @@ export class ObfsetProcessor extends BaseProcessor {
   async loadIntoTree(filePathOrBuffer: ProcessorInput): Promise<AACTree> {
     const { readTextFromInput } = this.options.fileAdapter;
     const tree = new AACTree();
-    tree.metadata.format = "obfset";
+    tree.metadata.format = 'obfset';
     const content = await readTextFromInput(filePathOrBuffer);
 
     const boards: ObfsetBoard[] = JSON.parse(content);
@@ -98,9 +98,7 @@ export class ObfsetProcessor extends BaseProcessor {
       const cols = boardData.grid?.columns || 6;
 
       // Initialize grid with nulls
-      page.grid = Array.from({ length: rows }, () =>
-        Array.from({ length: cols }, () => null),
-      );
+      page.grid = Array.from({ length: rows }, () => Array.from({ length: cols }, () => null));
 
       // Create button map by ID
       const buttonMap = new Map<string, any>();
@@ -129,14 +127,14 @@ export class ObfsetProcessor extends BaseProcessor {
                 intent: AACSemanticIntent.NAVIGATE_TO,
                 targetId: btnData.load_board.id,
                 fallback: {
-                  type: "NAVIGATE",
+                  type: 'NAVIGATE',
                   targetPageId: btnData.load_board.id,
                   add_to_sentence: btnData.load_board.add_to_sentence,
                   temporary_home: btnData.load_board.temporary_home,
                 },
                 platformData: {
                   grid3: {
-                    commandId: "GO_TO_BOARD",
+                    commandId: 'GO_TO_BOARD',
                     parameters: {
                       add_to_sentence: btnData.load_board.add_to_sentence,
                       temporary_home: btnData.load_board.temporary_home,
@@ -149,15 +147,15 @@ export class ObfsetProcessor extends BaseProcessor {
               semanticAction = {
                 category: AACSemanticCategory.COMMUNICATION,
                 intent: AACSemanticIntent.SPEAK_TEXT,
-                text: btnData.label || "",
-                fallback: { type: "SPEAK", message: btnData.label || "" },
+                text: btnData.label || '',
+                fallback: { type: 'SPEAK', message: btnData.label || '' },
               };
             }
 
             const button = new AACButton({
               id: btnData.id,
-              label: btnData.label || "",
-              message: btnData.label || "",
+              label: btnData.label || '',
+              message: btnData.label || '',
               targetPageId: btnData.load_board?.id,
               semanticAction,
               semantic_id: btnData.semantic_id,
@@ -210,10 +208,10 @@ export class ObfsetProcessor extends BaseProcessor {
   async processTexts(
     _filePathOrBuffer: ProcessorInput,
     _translations: Map<string, string>,
-    _outputPath: string,
+    _outputPath: string
   ): Promise<Uint8Array> {
     await Promise.resolve();
-    throw new Error("processTexts is not supported for .obfset currently");
+    throw new Error('processTexts is not supported for .obfset currently');
   }
 
   /**
@@ -221,10 +219,10 @@ export class ObfsetProcessor extends BaseProcessor {
    */
   async saveFromTree(_tree: AACTree, _outputPath: string): Promise<void> {
     await Promise.resolve();
-    throw new Error("saveFromTree is not supported for .obfset currently");
+    throw new Error('saveFromTree is not supported for .obfset currently');
   }
 
   supportsExtension(extension: string): boolean {
-    return extension === ".obfset";
+    return extension === '.obfset';
   }
 }

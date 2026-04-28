@@ -1,16 +1,13 @@
 // Unit tests for GridsetProcessor
-import { GridsetProcessor } from "../src/processors/gridsetProcessor";
-import { AACTree } from "../src/core/treeStructure";
-import path from "path";
-import fs from "fs";
+import { GridsetProcessor } from '../src/processors/gridsetProcessor';
+import { AACTree } from '../src/core/treeStructure';
+import path from 'path';
+import fs from 'fs';
 
-describe("GridsetProcessor", () => {
-  const exampleFile: string = path.join(
-    __dirname,
-    "assets/gridset/example.gridset",
-  );
+describe('GridsetProcessor', () => {
+  const exampleFile: string = path.join(__dirname, 'assets/gridset/example.gridset');
 
-  it("should load a .gridset file into a tree", async () => {
+  it('should load a .gridset file into a tree', async () => {
     const processor = new GridsetProcessor();
     const fileBuffer = fs.readFileSync(exampleFile);
     const tree: AACTree = await processor.loadIntoTree(fileBuffer);
@@ -18,7 +15,7 @@ describe("GridsetProcessor", () => {
     expect(Object.keys(tree.pages).length).toBeGreaterThan(0);
   });
 
-  it("should extract all texts from a .gridset file", async () => {
+  it('should extract all texts from a .gridset file', async () => {
     const processor = new GridsetProcessor();
     const fileBuffer = fs.readFileSync(exampleFile);
     const texts: string[] = await processor.extractTexts(fileBuffer);
@@ -26,28 +23,28 @@ describe("GridsetProcessor", () => {
     expect(texts.length).toBeGreaterThan(0);
   });
 
-  describe("Error Handling", () => {
-    it("should throw error for non-existent file", async () => {
+  describe('Error Handling', () => {
+    it('should throw error for non-existent file', async () => {
       expect(() => {
-        fs.readFileSync("/non/existent/file.gridset");
+        fs.readFileSync('/non/existent/file.gridset');
       }).toThrow();
     });
 
-    it("should handle invalid zip content", async () => {
+    it('should handle invalid zip content', async () => {
       const processor = new GridsetProcessor();
-      const invalidBuffer = Buffer.from("not a zip file");
+      const invalidBuffer = Buffer.from('not a zip file');
       await expect(processor.loadIntoTree(invalidBuffer)).rejects.toThrow();
     });
 
-    it("should handle empty buffer", async () => {
+    it('should handle empty buffer', async () => {
       const processor = new GridsetProcessor();
       const emptyBuffer = Buffer.alloc(0);
       await expect(processor.loadIntoTree(emptyBuffer)).rejects.toThrow();
     });
   });
 
-  describe("Home Page Preservation", () => {
-    const tempOutputPath = path.join(__dirname, "temp_gridset_test.gridset");
+  describe('Home Page Preservation', () => {
+    const tempOutputPath = path.join(__dirname, 'temp_gridset_test.gridset');
 
     afterEach(async () => {
       if (fs.existsSync(tempOutputPath)) {
@@ -55,7 +52,7 @@ describe("GridsetProcessor", () => {
       }
     });
 
-    it("should preserve home page (tree.rootId) through roundtrip", async () => {
+    it('should preserve home page (tree.rootId) through roundtrip', async () => {
       const processor = new GridsetProcessor();
 
       // Load the original file
@@ -87,15 +84,9 @@ describe("GridsetProcessor", () => {
     });
   });
 
-  describe("saveModifiedTree", () => {
-    const tempOutputPath = path.join(
-      __dirname,
-      "temp_gridset_modified.gridset",
-    );
-    const tempSaveFromTreePath = path.join(
-      __dirname,
-      "temp_gridset_saveFromTree.gridset",
-    );
+  describe('saveModifiedTree', () => {
+    const tempOutputPath = path.join(__dirname, 'temp_gridset_modified.gridset');
+    const tempSaveFromTreePath = path.join(__dirname, 'temp_gridset_saveFromTree.gridset');
 
     afterEach(async () => {
       if (fs.existsSync(tempOutputPath)) {
@@ -106,7 +97,7 @@ describe("GridsetProcessor", () => {
       }
     });
 
-    it("should preserve original file size better than saveFromTree", async () => {
+    it('should preserve original file size better than saveFromTree', async () => {
       const processor = new GridsetProcessor();
 
       // Load the original file
@@ -129,7 +120,7 @@ describe("GridsetProcessor", () => {
       expect(modifiedSize / originalSize).toBeGreaterThan(0.8);
     });
 
-    it("should produce a valid loadable gridset", async () => {
+    it('should produce a valid loadable gridset', async () => {
       const processor = new GridsetProcessor();
 
       // Load the original file
@@ -149,7 +140,7 @@ describe("GridsetProcessor", () => {
       expect(savedTree.rootId).toBe(tree.rootId);
     });
 
-    it("should handle empty tree by copying original", async () => {
+    it('should handle empty tree by copying original', async () => {
       const processor = new GridsetProcessor();
 
       // Create an empty tree
@@ -160,7 +151,7 @@ describe("GridsetProcessor", () => {
         dashboardId: null,
         metadata: {},
         addPage() {
-          throw new Error("Not implemented");
+          throw new Error('Not implemented');
         },
         getPage() {
           return undefined;

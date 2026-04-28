@@ -13,9 +13,9 @@ import {
   AACButton,
   AACSemanticCategory,
   AACScanType,
-} from "../../../core/treeStructure";
-import { CellScanningOrder, ScanningSelectionMethod } from "../../../types/aac";
-import { ButtonMetrics, MetricsOptions, MetricsResult } from "./types";
+} from '../../../core/treeStructure';
+import { CellScanningOrder, ScanningSelectionMethod } from '../../../types/aac';
+import { ButtonMetrics, MetricsOptions, MetricsResult } from './types';
 import {
   baseBoardEffort,
   distanceEffort,
@@ -23,8 +23,8 @@ import {
   EFFORT_CONSTANTS,
   localScanEffort,
   scanningEffort,
-} from "./effort";
-import { MorphologyEngine } from "../morphology";
+} from './effort';
+import { MorphologyEngine } from '../morphology';
 
 interface ToVisitItem {
   board: AACPage;
@@ -38,7 +38,7 @@ interface ToVisitItem {
 }
 
 export class MetricsCalculator {
-  private locale: string = "en";
+  private locale: string = 'en';
 
   /**
    * Main analysis function - calculates metrics for an AAC tree
@@ -57,10 +57,10 @@ export class MetricsCalculator {
       rootBoard = Object.values(tree.pages).find((p: AACPage) => !p.parentId);
     }
     if (!rootBoard) {
-      throw new Error("No root board found in tree");
+      throw new Error('No root board found in tree');
     }
 
-    this.locale = tree.metadata?.locale || (rootBoard as any).locale || "en";
+    this.locale = tree.metadata?.locale || (rootBoard as any).locale || 'en';
 
     // Step 1: Build semantic/clone reference maps
     const { setRefs, setPcts } = this.buildReferenceMaps(tree);
@@ -74,9 +74,9 @@ export class MetricsCalculator {
         if (btn.targetPageId && btn.semanticAction) {
           // Check for temporary_home in platformData or fallback
           const tempHome =
-            btn.semanticAction.platformData?.grid3?.parameters
-              ?.temporary_home || btn.semanticAction.fallback?.temporary_home;
-          if (tempHome === "prior") {
+            btn.semanticAction.platformData?.grid3?.parameters?.temporary_home ||
+            btn.semanticAction.fallback?.temporary_home;
+          if (tempHome === 'prior') {
             startBoards.push(board);
           } else if (tempHome === true && btn.targetPageId) {
             const targetBoard = tree.getPage(btn.targetPageId);
@@ -98,13 +98,7 @@ export class MetricsCalculator {
 
     // Analyze from each starting board
     startBoards.forEach((startBoard) => {
-      const result = this.analyzeFrom(
-        tree,
-        startBoard,
-        setPcts,
-        startBoard === rootBoard,
-        options,
-      );
+      const result = this.analyzeFrom(tree, startBoard, setPcts, startBoard === rootBoard, options);
 
       result.buttons.forEach((btn) => {
         const existing = knownButtons.get(btn.label);
@@ -123,13 +117,10 @@ export class MetricsCalculator {
     });
 
     // Update buttons using dynamic spelling effort if applicable
-    const buttons = Array.from(knownButtons.values()).sort(
-      (a, b) => a.effort - b.effort,
-    );
+    const buttons = Array.from(knownButtons.values()).sort((a, b) => a.effort - b.effort);
 
     // Expand morphological predictions from POS tags if enabled or auto-detected
-    const useSmartGrammar =
-      options.useSmartGrammar === true || this.treeHasPosTags(tree);
+    const useSmartGrammar = options.useSmartGrammar === true || this.treeHasPosTags(tree);
     if (useSmartGrammar) {
       this.expandMorphologicalPredictions(tree, options);
     }
@@ -138,13 +129,11 @@ export class MetricsCalculator {
       const { wordFormMetrics, replacedLabels } = this.calculateWordFormMetrics(
         tree,
         buttons,
-        options,
+        options
       );
 
       // Remove buttons that were replaced by lower-effort word forms
-      const filteredButtons = buttons.filter(
-        (btn) => !replacedLabels.has(btn.label.toLowerCase()),
-      );
+      const filteredButtons = buttons.filter((btn) => !replacedLabels.has(btn.label.toLowerCase()));
 
       // Add word forms and re-sort
       filteredButtons.push(...wordFormMetrics);
@@ -165,20 +154,12 @@ export class MetricsCalculator {
     // A page is prediction-capable if it has an AutoContent Prediction button reachable from root
     // We already have analyzed from rootBoard
     if (rootBoard) {
-      const rootAnalysis = this.analyzeFrom(
-        tree,
-        rootBoard,
-        setPcts,
-        true,
-        options,
-      );
+      const rootAnalysis = this.analyzeFrom(tree, rootBoard, setPcts, true, options);
       // Scan reached pages for prediction slots
       for (const [pageId, _] of rootAnalysis.visitedBoardEfforts) {
         const page = tree.getPage(pageId);
         const hasPredictionSlot = page?.buttons.some(
-          (b) =>
-            b.contentType === "AutoContent" &&
-            b.contentSubType === "Prediction",
+          (b) => b.contentType === 'AutoContent' && b.contentSubType === 'Prediction'
         );
         if (hasPredictionSlot) {
           hasDynamicPrediction = true;
@@ -189,7 +170,7 @@ export class MetricsCalculator {
     }
 
     return {
-      analysis_version: "0.2",
+      analysis_version: '0.2',
       locale: this.locale,
       total_boards: Object.keys(tree.pages).length,
       total_buttons: totalButtons,
@@ -212,7 +193,7 @@ export class MetricsCalculator {
   private identifySpellingMetrics(
     tree: AACTree,
     options: MetricsOptions,
-    setPcts: { [id: string]: number },
+    setPcts: { [id: string]: number }
   ): {
     spellingPage: AACPage | null;
     spellingBaseEffort: number;
@@ -233,11 +214,7 @@ export class MetricsCalculator {
       spellingPage =
         Object.values(tree.pages).find((p) => {
           const name = p.name.toLowerCase();
-          return (
-            name.includes("keyboard") ||
-            name.includes("spelling") ||
-            name.includes("abc")
-          );
+          return name.includes('keyboard') || name.includes('spelling') || name.includes('abc');
         }) || null;
     }
 
@@ -262,33 +239,24 @@ export class MetricsCalculator {
 
     // Analyze specifically to find the lowest effort path to the spelling page
     const result = this.analyzeFrom(tree, rootBoard, setPcts, true, options);
-    const spellingBaseEffort =
-      result.visitedBoardEfforts.get(spellingPage.id) ?? 10;
+    const spellingBaseEffort = result.visitedBoardEfforts.get(spellingPage.id) ?? 10;
 
     // Calculate average effort of alphabetical buttons on that page
     const letters = spellingPage.buttons.filter(
-      (b) => b.label.length === 1 && /[a-zA-Z]/.test(b.label),
+      (b) => b.label.length === 1 && /[a-zA-Z]/.test(b.label)
     );
     let avgEffort = 2.5;
 
     if (letters.length > 0) {
       // We need to calculate the effort of these buttons relative to the spelling page itself
       // (as if the user is already on the keyboard)
-      const keyboardResult = this.analyzeFrom(
-        tree,
-        spellingPage,
-        setPcts,
-        false,
-        options,
-      );
+      const keyboardResult = this.analyzeFrom(tree, spellingPage, setPcts, false, options);
       const keyboardLetters = keyboardResult.buttons.filter(
-        (b) => b.label.length === 1 && /[a-zA-Z]/.test(b.label),
+        (b) => b.label.length === 1 && /[a-zA-Z]/.test(b.label)
       );
 
       if (keyboardLetters.length > 0) {
-        avgEffort =
-          keyboardLetters.reduce((sum, b) => sum + b.effort, 0) /
-          keyboardLetters.length;
+        avgEffort = keyboardLetters.reduce((sum, b) => sum + b.effort, 0) / keyboardLetters.length;
       }
     }
 
@@ -339,7 +307,7 @@ export class MetricsCalculator {
 
     Object.entries(setRefs).forEach(([id, count]) => {
       // Extract location from ID (Ruby uses id.split(/-/)[1])
-      const parts = id.split("-");
+      const parts = id.split('-');
       if (parts.length >= 2) {
         const loc = parts[1];
         const cellCount = cellRefs[loc] || totalBoards;
@@ -364,7 +332,7 @@ export class MetricsCalculator {
     board: AACPage,
     currentRowIndex: number,
     currentColIndex: number,
-    priorScanBlocks: Set<number>,
+    priorScanBlocks: Set<number>
   ): number {
     // Block scanning: count unique scan blocks before current position
     // Reuse the priorScanBlocks set from the parent scope
@@ -372,15 +340,12 @@ export class MetricsCalculator {
       const row = board.grid[r];
       if (!row) continue;
       for (let c = 0; c < row.length; c++) {
-        if (r === currentRowIndex && c === currentColIndex)
-          return priorScanBlocks.size;
+        if (r === currentRowIndex && c === currentColIndex) return priorScanBlocks.size;
         const btn = row[c];
         if (btn && (btn.label || btn.id).length > 0) {
           const block =
             btn.scanBlock ||
-            (btn.scanBlocks && btn.scanBlocks.length > 0
-              ? btn.scanBlocks[0]
-              : null);
+            (btn.scanBlocks && btn.scanBlocks.length > 0 ? btn.scanBlocks[0] : null);
           if (block !== null) priorScanBlocks.add(block);
         }
       }
@@ -396,7 +361,7 @@ export class MetricsCalculator {
     brd: AACPage,
     setPcts: { [id: string]: number },
     _isRoot: boolean,
-    options: MetricsOptions = {},
+    options: MetricsOptions = {}
   ): {
     buttons: ButtonMetrics[];
     levels: { [level: number]: ButtonMetrics[] };
@@ -420,14 +385,7 @@ export class MetricsCalculator {
     while (toVisit.length > 0) {
       const item = toVisit.shift();
       if (!item) break;
-      const {
-        board,
-        level,
-        entryX,
-        entryY,
-        priorEffort = 0,
-        temporaryHomeId,
-      } = item;
+      const { board, level, entryX, entryY, priorEffort = 0, temporaryHomeId } = item;
 
       // Skip if already visited at a lower level with equal or better prior effort
       // Skip if already visited at a strictly lower level
@@ -453,13 +411,10 @@ export class MetricsCalculator {
           if (!btn) return;
 
           if (btn.clone_id && setPcts[btn.clone_id]) {
-            reuseDiscount +=
-              EFFORT_CONSTANTS.REUSED_CLONE_FROM_OTHER_BONUS *
-              setPcts[btn.clone_id];
+            reuseDiscount += EFFORT_CONSTANTS.REUSED_CLONE_FROM_OTHER_BONUS * setPcts[btn.clone_id];
           } else if (btn.semantic_id && setPcts[btn.semantic_id]) {
             reuseDiscount +=
-              EFFORT_CONSTANTS.REUSED_SEMANTIC_FROM_OTHER_BONUS *
-              setPcts[btn.semantic_id];
+              EFFORT_CONSTANTS.REUSED_SEMANTIC_FROM_OTHER_BONUS * setPcts[btn.semantic_id];
           }
         });
       });
@@ -503,14 +458,12 @@ export class MetricsCalculator {
           let buttonEffort = boardEffort;
 
           // Debug for specific button (disabled for production)
-          const debugSpecificButton = btn.label === "$938c2cc0dc";
+          const debugSpecificButton = btn.label === '$938c2cc0dc';
           if (debugSpecificButton) {
             console.log(
-              `\n🔍 DEBUG Button ${btn.label} at [${rowIndex},${colIndex}] on ${board.id}:`,
+              `\n🔍 DEBUG Button ${btn.label} at [${rowIndex},${colIndex}] on ${board.id}:`
             );
-            console.log(
-              `   Entry point: (${entryX.toFixed(4)}, ${entryY.toFixed(4)})`,
-            );
+            console.log(`   Entry point: (${entryX.toFixed(4)}, ${entryY.toFixed(4)})`);
             console.log(`   Current level: ${level}`);
             console.log(`   Prior positions: ${priorItems}`);
             console.log(`   Starting effort: ${buttonEffort.toFixed(6)}`);
@@ -519,18 +472,14 @@ export class MetricsCalculator {
           // Apply semantic_id discounts
           if (btn.semantic_id && boardPcts[btn.semantic_id]) {
             const discount =
-              EFFORT_CONSTANTS.SAME_LOCATION_AS_PRIOR_DISCOUNT /
-              boardPcts[btn.semantic_id];
+              EFFORT_CONSTANTS.SAME_LOCATION_AS_PRIOR_DISCOUNT / boardPcts[btn.semantic_id];
             const old = buttonEffort;
             buttonEffort = Math.min(buttonEffort, buttonEffort * discount);
             if (debugSpecificButton)
               console.log(
-                `   Semantic board discount: ${old.toFixed(6)} -> ${buttonEffort.toFixed(6)} (pct=${boardPcts[btn.semantic_id].toFixed(4)})`,
+                `   Semantic board discount: ${old.toFixed(6)} -> ${buttonEffort.toFixed(6)} (pct=${boardPcts[btn.semantic_id].toFixed(4)})`
               );
-          } else if (
-            btn.semantic_id &&
-            boardPcts[`upstream-${btn.semantic_id}`]
-          ) {
+          } else if (btn.semantic_id && boardPcts[`upstream-${btn.semantic_id}`]) {
             const discount =
               EFFORT_CONSTANTS.RECOGNIZABLE_SEMANTIC_FROM_PRIOR_DISCOUNT /
               boardPcts[`upstream-${btn.semantic_id}`];
@@ -538,15 +487,14 @@ export class MetricsCalculator {
             buttonEffort = Math.min(buttonEffort, buttonEffort * discount);
             if (debugSpecificButton)
               console.log(
-                `   Semantic upstream discount: ${old.toFixed(6)} -> ${buttonEffort.toFixed(6)} (pct=${boardPcts[`upstream-${btn.semantic_id}`].toFixed(4)})`,
+                `   Semantic upstream discount: ${old.toFixed(6)} -> ${buttonEffort.toFixed(6)} (pct=${boardPcts[`upstream-${btn.semantic_id}`].toFixed(4)})`
               );
           }
 
           // Apply clone_id discounts
           if (btn.clone_id && boardPcts[btn.clone_id]) {
             const discount =
-              EFFORT_CONSTANTS.SAME_LOCATION_AS_PRIOR_DISCOUNT /
-              boardPcts[btn.clone_id];
+              EFFORT_CONSTANTS.SAME_LOCATION_AS_PRIOR_DISCOUNT / boardPcts[btn.clone_id];
             buttonEffort = Math.min(buttonEffort, buttonEffort * discount);
           } else if (btn.clone_id && boardPcts[`upstream-${btn.clone_id}`]) {
             const discount =
@@ -563,42 +511,31 @@ export class MetricsCalculator {
               btn,
               rowIndex,
               colIndex,
-              scanningConfig,
+              scanningConfig
             );
 
             // Determine effective costs based on selection method
-            let currentStepCost =
-              options.scanStepCost ?? EFFORT_CONSTANTS.SCAN_STEP_COST;
+            let currentStepCost = options.scanStepCost ?? EFFORT_CONSTANTS.SCAN_STEP_COST;
             const currentSelectionCost =
               options.scanSelectionCost ?? EFFORT_CONSTANTS.SCAN_SELECTION_COST;
 
             // Step Scan 2 Switch: Every step is a physical selection with Switch 1
-            if (
-              scanningConfig?.selectionMethod ===
-              ScanningSelectionMethod.StepScan2Switch
-            ) {
+            if (scanningConfig?.selectionMethod === ScanningSelectionMethod.StepScan2Switch) {
               // The cost of moving is now a selection cost
               currentStepCost = currentSelectionCost;
             } else if (
-              scanningConfig?.selectionMethod ===
-              ScanningSelectionMethod.StepScan1Switch
+              scanningConfig?.selectionMethod === ScanningSelectionMethod.StepScan1Switch
             ) {
               // Single switch step scan: every step is a physical selection
               currentStepCost = currentSelectionCost;
             }
 
-            let sEffort = scanningEffort(
-              steps,
-              selections,
-              currentStepCost,
-              currentSelectionCost,
-            );
+            let sEffort = scanningEffort(steps, selections, currentStepCost, currentSelectionCost);
 
             // Factor in error correction if enabled
             if (scanningConfig?.errorCorrectionEnabled) {
               const errorRate =
-                scanningConfig.errorRate ??
-                EFFORT_CONSTANTS.DEFAULT_SCAN_ERROR_RATE;
+                scanningConfig.errorRate ?? EFFORT_CONSTANTS.DEFAULT_SCAN_ERROR_RATE;
               // A "miss" results in needing to wait for a loop (or part of one)
               // We model this as errorRate * (loopSteps * stepCost)
               const retryPenalty = loopSteps * currentStepCost;
@@ -608,13 +545,11 @@ export class MetricsCalculator {
             // Apply discounts to scanning effort (similar to touch)
             if (btn.semantic_id && boardPcts[btn.semantic_id]) {
               const discount =
-                EFFORT_CONSTANTS.SAME_LOCATION_AS_PRIOR_DISCOUNT /
-                boardPcts[btn.semantic_id];
+                EFFORT_CONSTANTS.SAME_LOCATION_AS_PRIOR_DISCOUNT / boardPcts[btn.semantic_id];
               sEffort = Math.min(sEffort, sEffort * discount);
             } else if (btn.clone_id && boardPcts[btn.clone_id]) {
               const discount =
-                EFFORT_CONSTANTS.SAME_LOCATION_AS_PRIOR_DISCOUNT /
-                boardPcts[btn.clone_id];
+                EFFORT_CONSTANTS.SAME_LOCATION_AS_PRIOR_DISCOUNT / boardPcts[btn.clone_id];
               sEffort = Math.min(sEffort, sEffort * discount);
             }
 
@@ -627,8 +562,7 @@ export class MetricsCalculator {
             if (btn.semantic_id) {
               if (boardPcts[btn.semantic_id]) {
                 const discount =
-                  EFFORT_CONSTANTS.SAME_LOCATION_AS_PRIOR_DISCOUNT /
-                  boardPcts[btn.semantic_id];
+                  EFFORT_CONSTANTS.SAME_LOCATION_AS_PRIOR_DISCOUNT / boardPcts[btn.semantic_id];
                 distance = Math.min(distance, distance * discount);
               } else if (boardPcts[`upstream-${btn.semantic_id}`]) {
                 const discount =
@@ -645,8 +579,7 @@ export class MetricsCalculator {
             if (btn.clone_id) {
               if (boardPcts[btn.clone_id]) {
                 const discount =
-                  EFFORT_CONSTANTS.SAME_LOCATION_AS_PRIOR_DISCOUNT /
-                  boardPcts[btn.clone_id];
+                  EFFORT_CONSTANTS.SAME_LOCATION_AS_PRIOR_DISCOUNT / boardPcts[btn.clone_id];
                 distance = Math.min(distance, distance * discount);
               } else if (boardPcts[`upstream-${btn.clone_id}`]) {
                 const discount =
@@ -655,8 +588,7 @@ export class MetricsCalculator {
                 distance = Math.min(distance, distance * discount);
               } else if (level > 0 && setPcts[btn.clone_id]) {
                 const discount =
-                  EFFORT_CONSTANTS.RECOGNIZABLE_CLONE_FROM_OTHER_DISCOUNT /
-                  setPcts[btn.clone_id];
+                  EFFORT_CONSTANTS.RECOGNIZABLE_CLONE_FROM_OTHER_DISCOUNT / setPcts[btn.clone_id];
                 distance = Math.min(distance, distance * discount);
               }
             }
@@ -665,8 +597,7 @@ export class MetricsCalculator {
 
             // Add visual scan or local scan effort
             if (
-              distance >
-                EFFORT_CONSTANTS.DISTANCE_THRESHOLD_TO_SKIP_VISUAL_SCAN ||
+              distance > EFFORT_CONSTANTS.DISTANCE_THRESHOLD_TO_SKIP_VISUAL_SCAN ||
               (entryX === 1.0 && entryY === 1.0)
             ) {
               buttonEffort += visualScanEffort(priorItems);
@@ -694,14 +625,11 @@ export class MetricsCalculator {
               // The visitedBoardIds map stores the *lowest* level a board was visited.
               // If it's already in the map, it means we've processed it or scheduled it at a lower level.
               if (visitedBoardIds.get(nextBoard.id) === undefined) {
-                const changeEffort =
-                  EFFORT_CONSTANTS.BOARD_CHANGE_PROCESSING_EFFORT;
+                const changeEffort = EFFORT_CONSTANTS.BOARD_CHANGE_PROCESSING_EFFORT;
                 const tempHomeId =
-                  btn.semanticAction?.platformData?.grid3?.parameters
-                    ?.temporary_home === "prior"
+                  btn.semanticAction?.platformData?.grid3?.parameters?.temporary_home === 'prior'
                     ? board.id
-                    : btn.semanticAction?.platformData?.grid3?.parameters
-                          ?.temporary_home === true
+                    : btn.semanticAction?.platformData?.grid3?.parameters?.temporary_home === true
                       ? btn.targetPageId
                       : temporaryHomeId;
 
@@ -721,29 +649,26 @@ export class MetricsCalculator {
 
           // Track word if it speaks or adds to sentence
           const isSpeak =
-            btn.semanticAction?.category ===
-              AACSemanticCategory.COMMUNICATION && !btn.targetPageId; // Must not be a navigation button
+            btn.semanticAction?.category === AACSemanticCategory.COMMUNICATION && !btn.targetPageId; // Must not be a navigation button
           const addToSentence =
-            btn.semanticAction?.platformData?.grid3?.parameters
-              ?.add_to_sentence ||
+            btn.semanticAction?.platformData?.grid3?.parameters?.add_to_sentence ||
             btn.semanticAction?.fallback?.add_to_sentence;
 
           if (isSpeak || addToSentence) {
             let finalEffort = buttonEffort;
 
             // Apply Board Change Processing Effort Discount (matching Ruby lines 347-350)
-            const changeEffort =
-              EFFORT_CONSTANTS.BOARD_CHANGE_PROCESSING_EFFORT;
+            const changeEffort = EFFORT_CONSTANTS.BOARD_CHANGE_PROCESSING_EFFORT;
             if (btn.clone_id && boardPcts[btn.clone_id]) {
               const discount = Math.min(
                 changeEffort,
-                (changeEffort * 0.3) / boardPcts[btn.clone_id],
+                (changeEffort * 0.3) / boardPcts[btn.clone_id]
               );
               finalEffort -= discount;
             } else if (btn.semantic_id && boardPcts[btn.semantic_id]) {
               const discount = Math.min(
                 changeEffort,
-                (changeEffort * 0.5) / boardPcts[btn.semantic_id],
+                (changeEffort * 0.5) / boardPcts[btn.semantic_id]
               );
               finalEffort -= discount;
             }
@@ -779,10 +704,7 @@ export class MetricsCalculator {
 
     // Calculate total_buttons as sum of all button counts (matching Ruby line 136)
     // Ruby: total_buttons: buttons.map{|b| b[:count] || 1}.sum
-    const calculatedTotalButtons = buttons.reduce(
-      (sum, btn) => sum + (btn.count || 1),
-      0,
-    );
+    const calculatedTotalButtons = buttons.reduce((sum, btn) => sum + (btn.count || 1), 0);
 
     return {
       buttons,
@@ -795,10 +717,7 @@ export class MetricsCalculator {
   /**
    * Calculate what percentage of links to this board match semantic_id/clone_id
    */
-  private calculateBoardLinkPercentages(
-    tree: AACTree,
-    board: AACPage,
-  ): { [id: string]: number } {
+  private calculateBoardLinkPercentages(tree: AACTree, board: AACPage): { [id: string]: number } {
     const boardPcts: { [id: string]: number } = {};
     let totalLinks = 0;
 
@@ -815,12 +734,10 @@ export class MetricsCalculator {
 
           // Also count IDs present on the source board that links to this one
           sourceBoard.semantic_ids?.forEach((id: string) => {
-            boardPcts[`upstream-${id}`] =
-              (boardPcts[`upstream-${id}`] || 0) + 1;
+            boardPcts[`upstream-${id}`] = (boardPcts[`upstream-${id}`] || 0) + 1;
           });
           sourceBoard.clone_ids?.forEach((id: string) => {
-            boardPcts[`upstream-${id}`] =
-              (boardPcts[`upstream-${id}`] || 0) + 1;
+            boardPcts[`upstream-${id}`] = (boardPcts[`upstream-${id}`] || 0) + 1;
           });
         }
       });
@@ -833,7 +750,7 @@ export class MetricsCalculator {
       });
     }
 
-    boardPcts["all"] = totalLinks;
+    boardPcts['all'] = totalLinks;
     return boardPcts;
   }
 
@@ -845,7 +762,7 @@ export class MetricsCalculator {
     for (const page of Object.values(tree.pages)) {
       for (const row of page.grid) {
         for (const btn of row) {
-          if (btn?.pos && btn.pos !== "Unknown" && btn.pos !== "Ignore") {
+          if (btn?.pos && btn.pos !== 'Unknown' && btn.pos !== 'Ignore') {
             return true;
           }
         }
@@ -862,95 +779,92 @@ export class MetricsCalculator {
    * button's predictions array. This is done as a pre-processing step
    * before calculateWordFormMetrics assigns effort to each form.
    */
-  private expandMorphologicalPredictions(
-    tree: AACTree,
-    options: MetricsOptions,
-  ): void {
-    const locale = options.morphologyLocale || "en-gb";
+  private expandMorphologicalPredictions(tree: AACTree, options: MetricsOptions): void {
+    const locale = options.morphologyLocale || 'en-gb';
     const morph = new MorphologyEngine(locale);
 
     // Words that should never be POS-inferred (function words, determiners, etc.)
     const skipInference = new Set([
-      "a",
-      "an",
-      "the",
-      "to",
-      "in",
-      "on",
-      "at",
-      "of",
-      "for",
-      "and",
-      "or",
-      "but",
-      "not",
-      "no",
-      "yes",
-      "is",
-      "am",
-      "are",
-      "was",
-      "were",
-      "be",
-      "been",
-      "being",
-      "has",
-      "have",
-      "had",
-      "do",
-      "does",
-      "did",
-      "will",
-      "would",
-      "could",
-      "should",
-      "shall",
-      "may",
-      "might",
-      "can",
-      "must",
-      "with",
-      "from",
-      "by",
-      "up",
-      "down",
-      "out",
-      "off",
-      "over",
-      "under",
-      "again",
-      "then",
-      "than",
-      "so",
-      "if",
-      "when",
-      "where",
-      "how",
-      "what",
-      "who",
-      "which",
-      "that",
-      "this",
-      "these",
-      "those",
-      "here",
-      "there",
-      "now",
-      "very",
-      "just",
-      "more",
-      "also",
-      "too",
-      "please",
-      "thank",
-      "hi",
-      "hello",
-      "bye",
-      "goodbye",
-      "okay",
-      "oh",
-      "wow",
-      "sorry",
+      'a',
+      'an',
+      'the',
+      'to',
+      'in',
+      'on',
+      'at',
+      'of',
+      'for',
+      'and',
+      'or',
+      'but',
+      'not',
+      'no',
+      'yes',
+      'is',
+      'am',
+      'are',
+      'was',
+      'were',
+      'be',
+      'been',
+      'being',
+      'has',
+      'have',
+      'had',
+      'do',
+      'does',
+      'did',
+      'will',
+      'would',
+      'could',
+      'should',
+      'shall',
+      'may',
+      'might',
+      'can',
+      'must',
+      'with',
+      'from',
+      'by',
+      'up',
+      'down',
+      'out',
+      'off',
+      'over',
+      'under',
+      'again',
+      'then',
+      'than',
+      'so',
+      'if',
+      'when',
+      'where',
+      'how',
+      'what',
+      'who',
+      'which',
+      'that',
+      'this',
+      'these',
+      'those',
+      'here',
+      'there',
+      'now',
+      'very',
+      'just',
+      'more',
+      'also',
+      'too',
+      'please',
+      'thank',
+      'hi',
+      'hello',
+      'bye',
+      'goodbye',
+      'okay',
+      'oh',
+      'wow',
+      'sorry',
     ]);
 
     for (const page of Object.values(tree.pages)) {
@@ -965,15 +879,11 @@ export class MetricsCalculator {
           // they are clearly nouns (e.g., "bird", "tree", "cloud").
           // Strategy: check irregular tables first for confident POS,
           // then fall back to Noun for single-word content labels.
-          if (!pos || pos === "Unknown" || pos === "Ignore") {
+          if (!pos || pos === 'Unknown' || pos === 'Ignore') {
             const lower = btn.label.toLowerCase();
 
             // Skip function words and multi-word labels
-            if (
-              !skipInference.has(lower) &&
-              !lower.includes(" ") &&
-              lower.length > 1
-            ) {
+            if (!skipInference.has(lower) && !lower.includes(' ') && lower.length > 1) {
               // Check irregular tables for confident POS assignment
               const inferredPOS = morph.inferPOS(lower);
               if (inferredPOS) {
@@ -982,13 +892,13 @@ export class MetricsCalculator {
               } else {
                 // Default to Noun for untagged content words.
                 // This generates plurals (e.g., bird → birds, tree → trees).
-                pos = "Noun";
-                btn.pos = "Noun";
+                pos = 'Noun';
+                btn.pos = 'Noun';
               }
             }
           }
 
-          if (!pos || pos === "Unknown" || pos === "Ignore") continue;
+          if (!pos || pos === 'Unknown' || pos === 'Ignore') continue;
 
           const forms = morph.inflect(btn.label, pos);
           if (forms.length > 0) {
@@ -1020,7 +930,7 @@ export class MetricsCalculator {
   private calculateWordFormMetrics(
     tree: AACTree,
     buttons: ButtonMetrics[],
-    _options: MetricsOptions = {},
+    _options: MetricsOptions = {}
   ): { wordFormMetrics: ButtonMetrics[]; replacedLabels: Set<string> } {
     const wordFormMetrics: ButtonMetrics[] = [];
     const replacedLabels = new Set<string>();
@@ -1038,7 +948,7 @@ export class MetricsCalculator {
         row.forEach((btn: AACButton | null) => {
           if (!btn || !btn.label) return;
           const lower = btn.label.toLowerCase();
-          if (btn.pos && btn.pos !== "Unknown" && btn.pos !== "Ignore") {
+          if (btn.pos && btn.pos !== 'Unknown' && btn.pos !== 'Ignore') {
             treePosMap.set(lower, btn.pos);
           }
           if (btn.predictions && btn.predictions.length > 0) {
@@ -1055,7 +965,7 @@ export class MetricsCalculator {
     // propagate the POS tag so it's available in the output.
     buttons.forEach((btn) => {
       const lower = btn.label.toLowerCase();
-      if (!btn.pos || btn.pos === "Unknown" || btn.pos === "Ignore") {
+      if (!btn.pos || btn.pos === 'Unknown' || btn.pos === 'Ignore') {
         const treePos = treePosMap.get(lower);
         if (treePos) btn.pos = treePos;
       }
@@ -1083,9 +993,7 @@ export class MetricsCalculator {
           // These require an extra confirmation tap from the user. Smart grammar
           // morphology outcomes are generated automatically and need no extra tap.
           const suggestWordsSet = new Set<string>(
-            ((btn.parameters?.predictions || []) as string[]).map((w) =>
-              w.toLowerCase(),
-            ),
+            ((btn.parameters?.predictions || []) as string[]).map((w) => w.toLowerCase())
           );
 
           // Calculate effort for each word form
@@ -1102,8 +1010,7 @@ export class MetricsCalculator {
             // Using similar logic to button scanning effort
             const predictionPriorItems =
               predictionRowIndex * predictionsGridCols + predictionColIndex;
-            const predictionSelectionEffort =
-              visualScanEffort(predictionPriorItems);
+            const predictionSelectionEffort = visualScanEffort(predictionPriorItems);
 
             // Add confirmation cost for Suggest Words outcomes only.
             // Suggest Words requires an explicit tap on the prediction bar,
@@ -1114,9 +1021,7 @@ export class MetricsCalculator {
 
             // Word form effort = parent button's cumulative effort + selection effort + confirmation
             const wordFormEffort =
-              parentMetrics.effort +
-              predictionSelectionEffort +
-              suggestWordsConfirmation;
+              parentMetrics.effort + predictionSelectionEffort + suggestWordsConfirmation;
 
             // Check if this word already exists as a regular button
             const existingBtn = existingLabels.get(wordFormLower);
@@ -1157,8 +1062,8 @@ export class MetricsCalculator {
     console.log(
       `📝 Calculated ${wordFormMetrics.length} word form metrics` +
         (replacedLabels.size > 0
-          ? ` (${replacedLabels.size} replaced higher-effort buttons: ${Array.from(replacedLabels).join(", ")})`
-          : ""),
+          ? ` (${replacedLabels.size} replaced higher-effort buttons: ${Array.from(replacedLabels).join(', ')})`
+          : '')
     );
 
     return { wordFormMetrics, replacedLabels };
@@ -1195,7 +1100,7 @@ export class MetricsCalculator {
     btn: AACButton,
     rowIndex: number,
     colIndex: number,
-    overrideConfig?: any,
+    overrideConfig?: any
   ): { steps: number; selections: number; loopSteps: number } {
     const config = overrideConfig || board.scanningConfig;
     // Determine scanning type from local scanType or scanningConfig
@@ -1203,14 +1108,10 @@ export class MetricsCalculator {
     if (config?.cellScanningOrder) {
       const order = config.cellScanningOrder;
       // String matching for CellScanningOrder
-      if (order === CellScanningOrder.RowColumnScan)
-        type = AACScanType.ROW_COLUMN;
-      else if (order === CellScanningOrder.ColumnRowScan)
-        type = AACScanType.COLUMN_ROW;
-      else if (order === CellScanningOrder.SimpleScanColumnsFirst)
-        type = AACScanType.COLUMN_ROW;
-      else if (order === CellScanningOrder.SimpleScan)
-        type = AACScanType.LINEAR;
+      if (order === CellScanningOrder.RowColumnScan) type = AACScanType.ROW_COLUMN;
+      else if (order === CellScanningOrder.ColumnRowScan) type = AACScanType.COLUMN_ROW;
+      else if (order === CellScanningOrder.SimpleScanColumnsFirst) type = AACScanType.COLUMN_ROW;
+      else if (order === CellScanningOrder.SimpleScan) type = AACScanType.LINEAR;
     }
 
     // Force block scan if enabled in config
@@ -1221,10 +1122,7 @@ export class MetricsCalculator {
 
     if (isBlockScan) {
       const blockId =
-        btn.scanBlock ||
-        (btn.scanBlocks && btn.scanBlocks.length > 0
-          ? btn.scanBlocks[0]
-          : null);
+        btn.scanBlock || (btn.scanBlocks && btn.scanBlocks.length > 0 ? btn.scanBlocks[0] : null);
 
       // If no block assigned, treat as its own block at the end (fallback)
       if (blockId === null) {
@@ -1277,7 +1175,7 @@ export class MetricsCalculator {
         for (let r = 0; r < board.grid.length; r++) {
           for (let c = 0; c < board.grid[r].length; c++) {
             const b = board.grid[r][c];
-            if (b && (b.label || "").length > 0) {
+            if (b && (b.label || '').length > 0) {
               totalVisible++;
               if (!found) {
                 if (b === btn) {

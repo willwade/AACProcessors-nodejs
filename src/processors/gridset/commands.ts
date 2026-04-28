@@ -16,23 +16,23 @@
  * Command categories in Grid 3
  */
 export enum Grid3CommandCategory {
-  NAVIGATION = "navigation",
-  COMMUNICATION = "communication",
-  TEXT_EDITING = "text_editing",
-  COMPUTER_CONTROL = "computer_control",
-  WEB_BROWSER = "web_browser",
-  EMAIL = "email",
-  PHONE = "phone",
-  SMS = "sms",
-  SYSTEM = "system",
-  SETTINGS = "settings",
-  SPEECH = "speech",
-  AUTO_CONTENT = "auto_content",
-  ENVIRONMENT_CONTROL = "environment_control",
-  MOUSE = "mouse",
-  WINDOW = "window",
-  MEDIA = "media",
-  CUSTOM = "custom",
+  NAVIGATION = 'navigation',
+  COMMUNICATION = 'communication',
+  TEXT_EDITING = 'text_editing',
+  COMPUTER_CONTROL = 'computer_control',
+  WEB_BROWSER = 'web_browser',
+  EMAIL = 'email',
+  PHONE = 'phone',
+  SMS = 'sms',
+  SYSTEM = 'system',
+  SETTINGS = 'settings',
+  SPEECH = 'speech',
+  AUTO_CONTENT = 'auto_content',
+  ENVIRONMENT_CONTROL = 'environment_control',
+  MOUSE = 'mouse',
+  WINDOW = 'window',
+  MEDIA = 'media',
+  CUSTOM = 'custom',
 }
 
 /**
@@ -40,7 +40,7 @@ export enum Grid3CommandCategory {
  */
 export interface CommandParameter {
   key: string;
-  type: "string" | "number" | "boolean" | "grid" | "color" | "font";
+  type: 'string' | 'number' | 'boolean' | 'grid' | 'color' | 'font';
   required: boolean;
   description?: string;
 }
@@ -55,7 +55,7 @@ export interface Grid3CommandDefinition {
   displayName: string;
   description: string;
   parameters?: CommandParameter[];
-  platforms?: ("desktop" | "ios" | "medicare" | "medicareBionics")[];
+  platforms?: ('desktop' | 'ios' | 'medicare' | 'medicareBionics')[];
   deprecated?: boolean;
 }
 
@@ -67,50 +67,50 @@ export const GRID3_COMMANDS: Record<string, Grid3CommandDefinition> = {
   // ========================================
   // NAVIGATION COMMANDS
   // ========================================
-  "Jump.To": {
-    id: "Jump.To",
+  'Jump.To': {
+    id: 'Jump.To',
     category: Grid3CommandCategory.NAVIGATION,
-    pluginId: "navigation",
-    displayName: "Jump To",
-    description: "Navigate to a specific grid",
+    pluginId: 'navigation',
+    displayName: 'Jump To',
+    description: 'Navigate to a specific grid',
     parameters: [
       {
-        key: "grid",
-        type: "grid",
+        key: 'grid',
+        type: 'grid',
         required: true,
-        description: "Target grid name",
+        description: 'Target grid name',
       },
     ],
-    platforms: ["desktop", "ios", "medicare", "medicareBionics"],
+    platforms: ['desktop', 'ios', 'medicare', 'medicareBionics'],
   },
-  "Jump.Back": {
-    id: "Jump.Back",
+  'Jump.Back': {
+    id: 'Jump.Back',
     category: Grid3CommandCategory.NAVIGATION,
-    pluginId: "navigation",
-    displayName: "Jump Back",
-    description: "Navigate to the previous grid",
-    platforms: ["desktop", "ios", "medicare", "medicareBionics"],
+    pluginId: 'navigation',
+    displayName: 'Jump Back',
+    description: 'Navigate to the previous grid',
+    platforms: ['desktop', 'ios', 'medicare', 'medicareBionics'],
   },
-  "Jump.Home": {
-    id: "Jump.Home",
+  'Jump.Home': {
+    id: 'Jump.Home',
     category: Grid3CommandCategory.NAVIGATION,
-    pluginId: "navigation",
-    displayName: "Jump Home",
-    description: "Navigate to the home/start grid",
-    platforms: ["desktop", "ios", "medicare", "medicareBionics"],
+    pluginId: 'navigation',
+    displayName: 'Jump Home',
+    description: 'Navigate to the home/start grid',
+    platforms: ['desktop', 'ios', 'medicare', 'medicareBionics'],
   },
-  "Jump.Favorite": {
-    id: "Jump.Favorite",
+  'Jump.Favorite': {
+    id: 'Jump.Favorite',
     category: Grid3CommandCategory.NAVIGATION,
-    pluginId: "navigation",
-    displayName: "Jump To Favorite",
-    description: "Navigate to a favorite grid",
+    pluginId: 'navigation',
+    displayName: 'Jump To Favorite',
+    description: 'Navigate to a favorite grid',
     parameters: [
       {
-        key: "favorite",
-        type: "number",
+        key: 'favorite',
+        type: 'number',
         required: true,
-        description: "Favorite slot number",
+        description: 'Favorite slot number',
       },
     ],
   },
@@ -118,56 +118,56 @@ export const GRID3_COMMANDS: Record<string, Grid3CommandDefinition> = {
   // ========================================
   // COMMUNICATION COMMANDS
   // ========================================
-  "Action.Speak": {
-    id: "Action.Speak",
+  'Action.Speak': {
+    id: 'Action.Speak',
     category: Grid3CommandCategory.COMMUNICATION,
-    pluginId: "speech",
-    displayName: "Speak",
-    description: "Speak the current message bar contents",
+    pluginId: 'speech',
+    displayName: 'Speak',
+    description: 'Speak the current message bar contents',
     parameters: [
       {
-        key: "unit",
-        type: "string",
+        key: 'unit',
+        type: 'string',
         required: false,
-        description: "Speaking unit (sentence/word/character)",
+        description: 'Speaking unit (sentence/word/character)',
       },
       {
-        key: "movecaret",
-        type: "boolean",
+        key: 'movecaret',
+        type: 'boolean',
         required: false,
-        description: "Move caret after speaking",
+        description: 'Move caret after speaking',
       },
     ],
-    platforms: ["desktop", "ios", "medicare", "medicareBionics"],
+    platforms: ['desktop', 'ios', 'medicare', 'medicareBionics'],
   },
-  "Action.InsertText": {
-    id: "Action.InsertText",
+  'Action.InsertText': {
+    id: 'Action.InsertText',
     category: Grid3CommandCategory.COMMUNICATION,
-    pluginId: "core",
-    displayName: "Insert Text",
-    description: "Insert text into the message bar",
+    pluginId: 'core',
+    displayName: 'Insert Text',
+    description: 'Insert text into the message bar',
     parameters: [
       {
-        key: "text",
-        type: "string",
+        key: 'text',
+        type: 'string',
         required: true,
-        description: "Text to insert",
+        description: 'Text to insert',
       },
     ],
-    platforms: ["desktop", "ios", "medicare", "medicareBionics"],
+    platforms: ['desktop', 'ios', 'medicare', 'medicareBionics'],
   },
-  "Action.InsertTextAndSpeak": {
-    id: "Action.InsertTextAndSpeak",
+  'Action.InsertTextAndSpeak': {
+    id: 'Action.InsertTextAndSpeak',
     category: Grid3CommandCategory.COMMUNICATION,
-    pluginId: "core",
-    displayName: "Insert Text and Speak",
-    description: "Insert text and speak immediately",
+    pluginId: 'core',
+    displayName: 'Insert Text and Speak',
+    description: 'Insert text and speak immediately',
     parameters: [
       {
-        key: "text",
-        type: "string",
+        key: 'text',
+        type: 'string',
         required: true,
-        description: "Text to insert and speak",
+        description: 'Text to insert and speak',
       },
     ],
   },
@@ -175,750 +175,748 @@ export const GRID3_COMMANDS: Record<string, Grid3CommandDefinition> = {
   // ========================================
   // TEXT EDITING COMMANDS
   // ========================================
-  "Action.DeleteWord": {
-    id: "Action.DeleteWord",
+  'Action.DeleteWord': {
+    id: 'Action.DeleteWord',
     category: Grid3CommandCategory.TEXT_EDITING,
-    pluginId: "core",
-    displayName: "Delete Word",
-    description: "Delete the last word in the message bar",
-    platforms: ["desktop", "ios", "medicare", "medicareBionics"],
+    pluginId: 'core',
+    displayName: 'Delete Word',
+    description: 'Delete the last word in the message bar',
+    platforms: ['desktop', 'ios', 'medicare', 'medicareBionics'],
   },
-  "Action.DeleteLetter": {
-    id: "Action.DeleteLetter",
+  'Action.DeleteLetter': {
+    id: 'Action.DeleteLetter',
     category: Grid3CommandCategory.TEXT_EDITING,
-    pluginId: "core",
-    displayName: "Delete Letter",
-    description: "Delete the last character in the message bar",
-    platforms: ["desktop", "ios", "medicare", "medicareBionics"],
+    pluginId: 'core',
+    displayName: 'Delete Letter',
+    description: 'Delete the last character in the message bar',
+    platforms: ['desktop', 'ios', 'medicare', 'medicareBionics'],
   },
-  "Action.Clear": {
-    id: "Action.Clear",
+  'Action.Clear': {
+    id: 'Action.Clear',
     category: Grid3CommandCategory.TEXT_EDITING,
-    pluginId: "core",
-    displayName: "Clear",
-    description: "Clear the message bar",
-    platforms: ["desktop", "ios", "medicare", "medicareBionics"],
+    pluginId: 'core',
+    displayName: 'Clear',
+    description: 'Clear the message bar',
+    platforms: ['desktop', 'ios', 'medicare', 'medicareBionics'],
   },
-  "Action.Letter": {
-    id: "Action.Letter",
+  'Action.Letter': {
+    id: 'Action.Letter',
     category: Grid3CommandCategory.TEXT_EDITING,
-    pluginId: "core",
-    displayName: "Insert Letter",
-    description: "Insert a single letter",
+    pluginId: 'core',
+    displayName: 'Insert Letter',
+    description: 'Insert a single letter',
     parameters: [
       {
-        key: "letter",
-        type: "string",
+        key: 'letter',
+        type: 'string',
         required: true,
-        description: "Letter to insert",
+        description: 'Letter to insert',
       },
     ],
   },
-  "Action.Space": {
-    id: "Action.Space",
+  'Action.Space': {
+    id: 'Action.Space',
     category: Grid3CommandCategory.TEXT_EDITING,
-    pluginId: "core",
-    displayName: "Space",
-    description: "Insert a space",
-    platforms: ["desktop", "ios", "medicare", "medicareBionics"],
+    pluginId: 'core',
+    displayName: 'Space',
+    description: 'Insert a space',
+    platforms: ['desktop', 'ios', 'medicare', 'medicareBionics'],
   },
-  "Action.Backspace": {
-    id: "Action.Backspace",
+  'Action.Backspace': {
+    id: 'Action.Backspace',
     category: Grid3CommandCategory.TEXT_EDITING,
-    pluginId: "core",
-    displayName: "Backspace",
-    description: "Delete character before cursor",
-    platforms: ["desktop", "ios", "medicare", "medicareBionics"],
+    pluginId: 'core',
+    displayName: 'Backspace',
+    description: 'Delete character before cursor',
+    platforms: ['desktop', 'ios', 'medicare', 'medicareBionics'],
   },
 
   // ========================================
   // SPEECH COMMANDS
   // ========================================
-  "Speech.ChangePublicVoice": {
-    id: "Speech.ChangePublicVoice",
+  'Speech.ChangePublicVoice': {
+    id: 'Speech.ChangePublicVoice',
     category: Grid3CommandCategory.SPEECH,
-    pluginId: "speech",
-    displayName: "Change Voice",
-    description: "Change the public speaking voice",
+    pluginId: 'speech',
+    displayName: 'Change Voice',
+    description: 'Change the public speaking voice',
     parameters: [
       {
-        key: "voice",
-        type: "string",
+        key: 'voice',
+        type: 'string',
         required: true,
-        description: "Voice name or ID",
+        description: 'Voice name or ID',
       },
     ],
   },
-  "Speech.ChangePublicSpeed": {
-    id: "Speech.ChangePublicSpeed",
+  'Speech.ChangePublicSpeed': {
+    id: 'Speech.ChangePublicSpeed',
     category: Grid3CommandCategory.SPEECH,
-    pluginId: "speech",
-    displayName: "Change Speech Speed",
-    description: "Change the speaking speed",
+    pluginId: 'speech',
+    displayName: 'Change Speech Speed',
+    description: 'Change the speaking speed',
     parameters: [
       {
-        key: "speed",
-        type: "number",
+        key: 'speed',
+        type: 'number',
         required: true,
-        description: "Speed percentage (50-200)",
+        description: 'Speed percentage (50-200)',
       },
     ],
   },
-  "Speech.ChangePublicPitch": {
-    id: "Speech.ChangePublicPitch",
+  'Speech.ChangePublicPitch': {
+    id: 'Speech.ChangePublicPitch',
     category: Grid3CommandCategory.SPEECH,
-    pluginId: "speech",
-    displayName: "Change Speech Pitch",
-    description: "Change the voice pitch",
+    pluginId: 'speech',
+    displayName: 'Change Speech Pitch',
+    description: 'Change the voice pitch',
     parameters: [
       {
-        key: "pitch",
-        type: "number",
+        key: 'pitch',
+        type: 'number',
         required: true,
-        description: "Pitch value",
+        description: 'Pitch value',
       },
     ],
   },
-  "Speech.ChangePublicVolume": {
-    id: "Speech.ChangePublicVolume",
+  'Speech.ChangePublicVolume': {
+    id: 'Speech.ChangePublicVolume',
     category: Grid3CommandCategory.SPEECH,
-    pluginId: "speech",
-    displayName: "Change Speech Volume",
-    description: "Change the speech volume",
+    pluginId: 'speech',
+    displayName: 'Change Speech Volume',
+    description: 'Change the speech volume',
     parameters: [
       {
-        key: "volume",
-        type: "number",
+        key: 'volume',
+        type: 'number',
         required: true,
-        description: "Volume percentage (0-100)",
+        description: 'Volume percentage (0-100)',
       },
     ],
   },
-  "Speech.SpeakNothing": {
-    id: "Action.SpeakNothing",
+  'Speech.SpeakNothing': {
+    id: 'Action.SpeakNothing',
     category: Grid3CommandCategory.SPEECH,
-    pluginId: "speech",
-    displayName: "Speak Nothing",
-    description: "Speak without inserting text",
-    platforms: ["desktop", "ios", "medicare", "medicareBionics"],
+    pluginId: 'speech',
+    displayName: 'Speak Nothing',
+    description: 'Speak without inserting text',
+    platforms: ['desktop', 'ios', 'medicare', 'medicareBionics'],
   },
 
   // ========================================
   // COMPUTER CONTROL COMMANDS
   // ========================================
-  "ComputerControl.LeftClick": {
-    id: "ComputerControl.LeftClick",
+  'ComputerControl.LeftClick': {
+    id: 'ComputerControl.LeftClick',
     category: Grid3CommandCategory.COMPUTER_CONTROL,
-    pluginId: "computercontrol",
-    displayName: "Left Click",
-    description: "Perform left mouse click",
-    platforms: ["desktop", "medicareBionics"],
+    pluginId: 'computercontrol',
+    displayName: 'Left Click',
+    description: 'Perform left mouse click',
+    platforms: ['desktop', 'medicareBionics'],
   },
-  "ComputerControl.RightClick": {
-    id: "ComputerControl.RightClick",
+  'ComputerControl.RightClick': {
+    id: 'ComputerControl.RightClick',
     category: Grid3CommandCategory.COMPUTER_CONTROL,
-    pluginId: "computercontrol",
-    displayName: "Right Click",
-    description: "Perform right mouse click",
-    platforms: ["desktop", "medicareBionics"],
+    pluginId: 'computercontrol',
+    displayName: 'Right Click',
+    description: 'Perform right mouse click',
+    platforms: ['desktop', 'medicareBionics'],
   },
-  "ComputerControl.DoubleClick": {
-    id: "ComputerControl.DoubleClick",
+  'ComputerControl.DoubleClick': {
+    id: 'ComputerControl.DoubleClick',
     category: Grid3CommandCategory.COMPUTER_CONTROL,
-    pluginId: "computercontrol",
-    displayName: "Double Click",
-    description: "Perform double mouse click",
-    platforms: ["desktop", "medicareBionics"],
+    pluginId: 'computercontrol',
+    displayName: 'Double Click',
+    description: 'Perform double mouse click',
+    platforms: ['desktop', 'medicareBionics'],
   },
-  "ComputerControl.MouseMove": {
-    id: "ComputerControl.MouseMove",
+  'ComputerControl.MouseMove': {
+    id: 'ComputerControl.MouseMove',
     category: Grid3CommandCategory.COMPUTER_CONTROL,
-    pluginId: "computercontrol",
-    displayName: "Move Mouse",
-    description: "Move mouse pointer",
+    pluginId: 'computercontrol',
+    displayName: 'Move Mouse',
+    description: 'Move mouse pointer',
     parameters: [
-      { key: "x", type: "number", required: true, description: "X coordinate" },
-      { key: "y", type: "number", required: true, description: "Y coordinate" },
+      { key: 'x', type: 'number', required: true, description: 'X coordinate' },
+      { key: 'y', type: 'number', required: true, description: 'Y coordinate' },
     ],
-    platforms: ["desktop", "medicareBionics"],
+    platforms: ['desktop', 'medicareBionics'],
   },
-  "ComputerControl.SendKeys": {
-    id: "ComputerControl.SendKeys",
+  'ComputerControl.SendKeys': {
+    id: 'ComputerControl.SendKeys',
     category: Grid3CommandCategory.COMPUTER_CONTROL,
-    pluginId: "computercontrol",
-    displayName: "Send Keys",
-    description: "Send keyboard input",
+    pluginId: 'computercontrol',
+    displayName: 'Send Keys',
+    description: 'Send keyboard input',
     parameters: [
       {
-        key: "keys",
-        type: "string",
+        key: 'keys',
+        type: 'string',
         required: true,
-        description: "Key sequence to send",
+        description: 'Key sequence to send',
       },
     ],
-    platforms: ["desktop", "medicareBionics"],
+    platforms: ['desktop', 'medicareBionics'],
   },
-  "ComputerControl.WindowsKey": {
-    id: "ComputerControl.WindowsKey",
+  'ComputerControl.WindowsKey': {
+    id: 'ComputerControl.WindowsKey',
     category: Grid3CommandCategory.COMPUTER_CONTROL,
-    pluginId: "computercontrol",
-    displayName: "Windows Key",
-    description: "Press Windows key",
-    platforms: ["desktop"],
+    pluginId: 'computercontrol',
+    displayName: 'Windows Key',
+    description: 'Press Windows key',
+    platforms: ['desktop'],
   },
-  "ComputerControl.MenuKey": {
-    id: "ComputerControl.MenuKey",
+  'ComputerControl.MenuKey': {
+    id: 'ComputerControl.MenuKey',
     category: Grid3CommandCategory.COMPUTER_CONTROL,
-    pluginId: "computercontrol",
-    displayName: "Menu Key",
-    description: "Press context menu key",
-    platforms: ["desktop"],
+    pluginId: 'computercontrol',
+    displayName: 'Menu Key',
+    description: 'Press context menu key',
+    platforms: ['desktop'],
   },
 
   // ========================================
   // WEB BROWSER COMMANDS
   // ========================================
-  "WebBrowser.Navigate": {
-    id: "WebBrowser.Navigate",
+  'WebBrowser.Navigate': {
+    id: 'WebBrowser.Navigate',
     category: Grid3CommandCategory.WEB_BROWSER,
-    pluginId: "webbrowser",
-    displayName: "Navigate to URL",
-    description: "Open a URL in the web browser",
+    pluginId: 'webbrowser',
+    displayName: 'Navigate to URL',
+    description: 'Open a URL in the web browser',
     parameters: [
       {
-        key: "url",
-        type: "string",
+        key: 'url',
+        type: 'string',
         required: true,
-        description: "URL to navigate to",
+        description: 'URL to navigate to',
       },
     ],
-    platforms: ["desktop", "ios"],
+    platforms: ['desktop', 'ios'],
   },
-  "WebBrowser.Back": {
-    id: "WebBrowser.Back",
+  'WebBrowser.Back': {
+    id: 'WebBrowser.Back',
     category: Grid3CommandCategory.WEB_BROWSER,
-    pluginId: "webbrowser",
-    displayName: "Browser Back",
-    description: "Go back in browser history",
-    platforms: ["desktop", "ios"],
+    pluginId: 'webbrowser',
+    displayName: 'Browser Back',
+    description: 'Go back in browser history',
+    platforms: ['desktop', 'ios'],
   },
-  "WebBrowser.Forward": {
-    id: "WebBrowser.Forward",
+  'WebBrowser.Forward': {
+    id: 'WebBrowser.Forward',
     category: Grid3CommandCategory.WEB_BROWSER,
-    pluginId: "webbrowser",
-    displayName: "Browser Forward",
-    description: "Go forward in browser history",
-    platforms: ["desktop", "ios"],
+    pluginId: 'webbrowser',
+    displayName: 'Browser Forward',
+    description: 'Go forward in browser history',
+    platforms: ['desktop', 'ios'],
   },
-  "WebBrowser.Refresh": {
-    id: "WebBrowser.Refresh",
+  'WebBrowser.Refresh': {
+    id: 'WebBrowser.Refresh',
     category: Grid3CommandCategory.WEB_BROWSER,
-    pluginId: "webbrowser",
-    displayName: "Refresh Page",
-    description: "Refresh the current page",
-    platforms: ["desktop", "ios"],
+    pluginId: 'webbrowser',
+    displayName: 'Refresh Page',
+    description: 'Refresh the current page',
+    platforms: ['desktop', 'ios'],
   },
-  "WebBrowser.Home": {
-    id: "WebBrowser.Home",
+  'WebBrowser.Home': {
+    id: 'WebBrowser.Home',
     category: Grid3CommandCategory.WEB_BROWSER,
-    pluginId: "webbrowser",
-    displayName: "Browser Home",
-    description: "Navigate to browser home page",
-    platforms: ["desktop", "ios"],
+    pluginId: 'webbrowser',
+    displayName: 'Browser Home',
+    description: 'Navigate to browser home page',
+    platforms: ['desktop', 'ios'],
   },
-  "WebBrowser.FavoriteAdd": {
-    id: "WebBrowser.FavoriteAdd",
+  'WebBrowser.FavoriteAdd': {
+    id: 'WebBrowser.FavoriteAdd',
     category: Grid3CommandCategory.WEB_BROWSER,
-    pluginId: "webbrowser",
-    displayName: "Add Favorite",
-    description: "Add current page to favorites",
-    platforms: ["desktop", "ios"],
+    pluginId: 'webbrowser',
+    displayName: 'Add Favorite',
+    description: 'Add current page to favorites',
+    platforms: ['desktop', 'ios'],
   },
-  "WebBrowser.ZoomIn": {
-    id: "WebBrowser.ZoomIn",
+  'WebBrowser.ZoomIn': {
+    id: 'WebBrowser.ZoomIn',
     category: Grid3CommandCategory.WEB_BROWSER,
-    pluginId: "webbrowser",
-    displayName: "Zoom In",
-    description: "Zoom in the page",
-    platforms: ["desktop", "ios"],
+    pluginId: 'webbrowser',
+    displayName: 'Zoom In',
+    description: 'Zoom in the page',
+    platforms: ['desktop', 'ios'],
   },
-  "WebBrowser.ZoomOut": {
-    id: "WebBrowser.ZoomOut",
+  'WebBrowser.ZoomOut': {
+    id: 'WebBrowser.ZoomOut',
     category: Grid3CommandCategory.WEB_BROWSER,
-    pluginId: "webbrowser",
-    displayName: "Zoom Out",
-    description: "Zoom out the page",
-    platforms: ["desktop", "ios"],
+    pluginId: 'webbrowser',
+    displayName: 'Zoom Out',
+    description: 'Zoom out the page',
+    platforms: ['desktop', 'ios'],
   },
 
   // ========================================
   // EMAIL COMMANDS
   // ========================================
-  "Email.SendTo": {
-    id: "Email.SendTo",
+  'Email.SendTo': {
+    id: 'Email.SendTo',
     category: Grid3CommandCategory.EMAIL,
-    pluginId: "email",
-    displayName: "Send Email To",
-    description: "Send email to a recipient",
+    pluginId: 'email',
+    displayName: 'Send Email To',
+    description: 'Send email to a recipient',
     parameters: [
       {
-        key: "recipient",
-        type: "string",
+        key: 'recipient',
+        type: 'string',
         required: true,
-        description: "Recipient email address",
+        description: 'Recipient email address',
       },
       {
-        key: "subject",
-        type: "string",
+        key: 'subject',
+        type: 'string',
         required: false,
-        description: "Email subject",
+        description: 'Email subject',
       },
     ],
-    platforms: ["desktop", "medicare", "medicareBionics"],
+    platforms: ['desktop', 'medicare', 'medicareBionics'],
   },
-  "Email.AddRecipient": {
-    id: "Email.AddRecipient",
+  'Email.AddRecipient': {
+    id: 'Email.AddRecipient',
     category: Grid3CommandCategory.EMAIL,
-    pluginId: "email",
-    displayName: "Add Recipient",
-    description: "Add a recipient to the email",
+    pluginId: 'email',
+    displayName: 'Add Recipient',
+    description: 'Add a recipient to the email',
     parameters: [
       {
-        key: "recipient",
-        type: "string",
+        key: 'recipient',
+        type: 'string',
         required: true,
-        description: "Recipient email address",
+        description: 'Recipient email address',
       },
     ],
-    platforms: ["desktop", "medicare", "medicareBionics"],
+    platforms: ['desktop', 'medicare', 'medicareBionics'],
   },
-  "Email.SetSubject": {
-    id: "Email.SetSubject",
+  'Email.SetSubject': {
+    id: 'Email.SetSubject',
     category: Grid3CommandCategory.EMAIL,
-    pluginId: "email",
-    displayName: "Set Subject",
-    description: "Set the email subject",
+    pluginId: 'email',
+    displayName: 'Set Subject',
+    description: 'Set the email subject',
     parameters: [
       {
-        key: "subject",
-        type: "string",
+        key: 'subject',
+        type: 'string',
         required: true,
-        description: "Email subject",
+        description: 'Email subject',
       },
     ],
-    platforms: ["desktop", "medicare", "medicareBionics"],
+    platforms: ['desktop', 'medicare', 'medicareBionics'],
   },
-  "Email.AttachFile": {
-    id: "Email.AttachFile",
+  'Email.AttachFile': {
+    id: 'Email.AttachFile',
     category: Grid3CommandCategory.EMAIL,
-    pluginId: "email",
-    displayName: "Attach File",
-    description: "Attach a file to the email",
+    pluginId: 'email',
+    displayName: 'Attach File',
+    description: 'Attach a file to the email',
     parameters: [
       {
-        key: "filepath",
-        type: "string",
+        key: 'filepath',
+        type: 'string',
         required: true,
-        description: "Path to file",
+        description: 'Path to file',
       },
     ],
-    platforms: ["desktop", "medicare", "medicareBionics"],
+    platforms: ['desktop', 'medicare', 'medicareBionics'],
   },
 
   // ========================================
   // PHONE COMMANDS
   // ========================================
-  "Phone.Call": {
-    id: "Phone.Call",
+  'Phone.Call': {
+    id: 'Phone.Call',
     category: Grid3CommandCategory.PHONE,
-    pluginId: "phone",
-    displayName: "Make Call",
-    description: "Initiate a phone call",
+    pluginId: 'phone',
+    displayName: 'Make Call',
+    description: 'Initiate a phone call',
     parameters: [
       {
-        key: "number",
-        type: "string",
+        key: 'number',
+        type: 'string',
         required: true,
-        description: "Phone number to call",
+        description: 'Phone number to call',
       },
     ],
-    platforms: ["desktop", "medicare", "medicareBionics"],
+    platforms: ['desktop', 'medicare', 'medicareBionics'],
   },
-  "Phone.Answer": {
-    id: "Phone.Answer",
+  'Phone.Answer': {
+    id: 'Phone.Answer',
     category: Grid3CommandCategory.PHONE,
-    pluginId: "phone",
-    displayName: "Answer Call",
-    description: "Answer incoming call",
-    platforms: ["desktop", "medicare", "medicareBionics"],
+    pluginId: 'phone',
+    displayName: 'Answer Call',
+    description: 'Answer incoming call',
+    platforms: ['desktop', 'medicare', 'medicareBionics'],
   },
-  "Phone.Hangup": {
-    id: "Phone.Hangup",
+  'Phone.Hangup': {
+    id: 'Phone.Hangup',
     category: Grid3CommandCategory.PHONE,
-    pluginId: "phone",
-    displayName: "End Call",
-    description: "End current call",
-    platforms: ["desktop", "medicare", "medicareBionics"],
+    pluginId: 'phone',
+    displayName: 'End Call',
+    description: 'End current call',
+    platforms: ['desktop', 'medicare', 'medicareBionics'],
   },
 
   // ========================================
   // SMS COMMANDS
   // ========================================
-  "Sms.SendTo": {
-    id: "Sms.SendTo",
+  'Sms.SendTo': {
+    id: 'Sms.SendTo',
     category: Grid3CommandCategory.SMS,
-    pluginId: "sms",
-    displayName: "Send SMS To",
-    description: "Send text message to a recipient",
+    pluginId: 'sms',
+    displayName: 'Send SMS To',
+    description: 'Send text message to a recipient',
     parameters: [
       {
-        key: "recipient",
-        type: "string",
+        key: 'recipient',
+        type: 'string',
         required: true,
-        description: "Phone number",
+        description: 'Phone number',
       },
       {
-        key: "message",
-        type: "string",
+        key: 'message',
+        type: 'string',
         required: false,
-        description: "Message text",
+        description: 'Message text',
       },
     ],
-    platforms: ["desktop", "medicare", "medicareBionics"],
+    platforms: ['desktop', 'medicare', 'medicareBionics'],
   },
-  "Sms.AddRecipient": {
-    id: "Sms.AddRecipient",
+  'Sms.AddRecipient': {
+    id: 'Sms.AddRecipient',
     category: Grid3CommandCategory.SMS,
-    pluginId: "sms",
-    displayName: "Add SMS Recipient",
-    description: "Add a recipient to the SMS",
+    pluginId: 'sms',
+    displayName: 'Add SMS Recipient',
+    description: 'Add a recipient to the SMS',
     parameters: [
       {
-        key: "recipient",
-        type: "string",
+        key: 'recipient',
+        type: 'string',
         required: true,
-        description: "Phone number",
+        description: 'Phone number',
       },
     ],
-    platforms: ["desktop", "medicare", "medicareBionics"],
+    platforms: ['desktop', 'medicare', 'medicareBionics'],
   },
 
   // ========================================
   // SYSTEM COMMANDS
   // ========================================
-  "System.LogOff": {
-    id: "System.LogOff",
+  'System.LogOff': {
+    id: 'System.LogOff',
     category: Grid3CommandCategory.SYSTEM,
-    pluginId: "computersession",
-    displayName: "Log Off",
-    description: "Log off from Windows",
-    platforms: ["desktop", "medicare", "medicareBionics"],
+    pluginId: 'computersession',
+    displayName: 'Log Off',
+    description: 'Log off from Windows',
+    platforms: ['desktop', 'medicare', 'medicareBionics'],
   },
-  "System.Lock": {
-    id: "System.Lock",
+  'System.Lock': {
+    id: 'System.Lock',
     category: Grid3CommandCategory.SYSTEM,
-    pluginId: "computersession",
-    displayName: "Lock Computer",
-    description: "Lock the computer",
-    platforms: ["desktop", "medicare", "medicareBionics"],
+    pluginId: 'computersession',
+    displayName: 'Lock Computer',
+    description: 'Lock the computer',
+    platforms: ['desktop', 'medicare', 'medicareBionics'],
   },
-  "System.Sleep": {
-    id: "System.Sleep",
+  'System.Sleep': {
+    id: 'System.Sleep',
     category: Grid3CommandCategory.SYSTEM,
-    pluginId: "computersession",
-    displayName: "Sleep",
-    description: "Put computer to sleep",
-    platforms: ["desktop", "medicare", "medicareBionics"],
+    pluginId: 'computersession',
+    displayName: 'Sleep',
+    description: 'Put computer to sleep',
+    platforms: ['desktop', 'medicare', 'medicareBionics'],
   },
-  "System.Restart": {
-    id: "System.Restart",
+  'System.Restart': {
+    id: 'System.Restart',
     category: Grid3CommandCategory.SYSTEM,
-    pluginId: "computersession",
-    displayName: "Restart",
-    description: "Restart the computer",
-    platforms: ["desktop", "medicare", "medicareBionics"],
+    pluginId: 'computersession',
+    displayName: 'Restart',
+    description: 'Restart the computer',
+    platforms: ['desktop', 'medicare', 'medicareBionics'],
   },
-  "System.ShutDown": {
-    id: "System.ShutDown",
+  'System.ShutDown': {
+    id: 'System.ShutDown',
     category: Grid3CommandCategory.SYSTEM,
-    pluginId: "computersession",
-    displayName: "Shut Down",
-    description: "Shut down the computer",
-    platforms: ["desktop", "medicare", "medicareBionics"],
+    pluginId: 'computersession',
+    displayName: 'Shut Down',
+    description: 'Shut down the computer',
+    platforms: ['desktop', 'medicare', 'medicareBionics'],
   },
 
   // ========================================
   // SETTINGS COMMANDS
   // ========================================
-  "Settings.RestoreAll": {
-    id: "Settings.RestoreAll",
+  'Settings.RestoreAll': {
+    id: 'Settings.RestoreAll',
     category: Grid3CommandCategory.SETTINGS,
-    pluginId: "settings",
-    displayName: "Restore All Settings",
-    description: "Restore all settings to defaults",
+    pluginId: 'settings',
+    displayName: 'Restore All Settings',
+    description: 'Restore all settings to defaults',
     parameters: [
       {
-        key: "indicatorenabled",
-        type: "boolean",
+        key: 'indicatorenabled',
+        type: 'boolean',
         required: false,
-        description: "Show indicator",
+        description: 'Show indicator',
       },
       {
-        key: "action",
-        type: "string",
+        key: 'action',
+        type: 'string',
         required: false,
-        description: "Action to perform",
+        description: 'Action to perform',
       },
     ],
-    platforms: ["desktop", "ios", "medicare", "medicareBionics"],
+    platforms: ['desktop', 'ios', 'medicare', 'medicareBionics'],
   },
-  "Settings.Open": {
-    id: "Settings.Open",
+  'Settings.Open': {
+    id: 'Settings.Open',
     category: Grid3CommandCategory.SETTINGS,
-    pluginId: "settings",
-    displayName: "Open Settings",
-    description: "Open the settings window",
-    platforms: ["desktop", "ios", "medicare", "medicareBionics"],
+    pluginId: 'settings',
+    displayName: 'Open Settings',
+    description: 'Open the settings window',
+    platforms: ['desktop', 'ios', 'medicare', 'medicareBionics'],
   },
-  "Scanning.Start": {
-    id: "Scanning.Start",
+  'Scanning.Start': {
+    id: 'Scanning.Start',
     category: Grid3CommandCategory.SETTINGS,
-    pluginId: "access",
-    displayName: "Start Scanning",
-    description: "Start scanning access method",
-    platforms: ["desktop", "ios", "medicare", "medicareBionics"],
+    pluginId: 'access',
+    displayName: 'Start Scanning',
+    description: 'Start scanning access method',
+    platforms: ['desktop', 'ios', 'medicare', 'medicareBionics'],
   },
-  "Scanning.Stop": {
-    id: "Scanning.Stop",
+  'Scanning.Stop': {
+    id: 'Scanning.Stop',
     category: Grid3CommandCategory.SETTINGS,
-    pluginId: "access",
-    displayName: "Stop Scanning",
-    description: "Stop scanning access method",
-    platforms: ["desktop", "ios", "medicare", "medicareBionics"],
+    pluginId: 'access',
+    displayName: 'Stop Scanning',
+    description: 'Stop scanning access method',
+    platforms: ['desktop', 'ios', 'medicare', 'medicareBionics'],
   },
 
   // ========================================
   // AUTO CONTENT COMMANDS
   // ========================================
-  "AutoContent.Activate": {
-    id: "AutoContent.Activate",
+  'AutoContent.Activate': {
+    id: 'AutoContent.Activate',
     category: Grid3CommandCategory.AUTO_CONTENT,
-    pluginId: "autocontent",
-    displayName: "Activate Auto Content",
-    description: "Activate an auto content cell",
+    pluginId: 'autocontent',
+    displayName: 'Activate Auto Content',
+    description: 'Activate an auto content cell',
     parameters: [
       {
-        key: "autocontenttype",
-        type: "string",
+        key: 'autocontenttype',
+        type: 'string',
         required: true,
-        description: "Type of auto content",
+        description: 'Type of auto content',
       },
     ],
-    platforms: ["desktop", "ios", "medicare", "medicareBionics"],
+    platforms: ['desktop', 'ios', 'medicare', 'medicareBionics'],
   },
-  "Prediction.Clear": {
-    id: "Prediction.Clear",
+  'Prediction.Clear': {
+    id: 'Prediction.Clear',
     category: Grid3CommandCategory.AUTO_CONTENT,
-    pluginId: "prediction",
-    displayName: "Clear Prediction",
-    description: "Clear word prediction buffer",
-    platforms: ["desktop", "ios", "medicare", "medicareBionics"],
+    pluginId: 'prediction',
+    displayName: 'Clear Prediction',
+    description: 'Clear word prediction buffer',
+    platforms: ['desktop', 'ios', 'medicare', 'medicareBionics'],
   },
-  "Prediction.PredictThis": {
-    id: "Prediction.PredictThis",
+  'Prediction.PredictThis': {
+    id: 'Prediction.PredictThis',
     category: Grid3CommandCategory.AUTO_CONTENT,
-    pluginId: "prediction",
-    displayName: "Predict This",
-    description: "Provide suggestions based on word list",
+    pluginId: 'prediction',
+    displayName: 'Predict This',
+    description: 'Provide suggestions based on word list',
     parameters: [
       {
-        key: "wordlist",
-        type: "string", // Actually highly structured, but string type is a placeholder
+        key: 'wordlist',
+        type: 'string', // Actually highly structured, but string type is a placeholder
         required: true,
-        description: "Word list for prediction",
+        description: 'Word list for prediction',
       },
     ],
   },
-  "Grammar.Change": {
-    id: "Grammar.Change",
+  'Grammar.Change': {
+    id: 'Grammar.Change',
     category: Grid3CommandCategory.AUTO_CONTENT,
-    pluginId: "grammar",
-    displayName: "Change Grammar",
-    description: "Change grammar context",
+    pluginId: 'grammar',
+    displayName: 'Change Grammar',
+    description: 'Change grammar context',
     parameters: [
       {
-        key: "context",
-        type: "string",
+        key: 'context',
+        type: 'string',
         required: true,
-        description: "Grammar context",
+        description: 'Grammar context',
       },
     ],
-    platforms: ["desktop", "ios", "medicare", "medicareBionics"],
+    platforms: ['desktop', 'ios', 'medicare', 'medicareBionics'],
   },
 
   // ========================================
   // ENVIRONMENT CONTROL COMMANDS
   // ========================================
-  "EnvControl.Send": {
-    id: "EnvControl.Send",
+  'EnvControl.Send': {
+    id: 'EnvControl.Send',
     category: Grid3CommandCategory.ENVIRONMENT_CONTROL,
-    pluginId: "environmentcontrol",
-    displayName: "Send Environment Control",
-    description: "Send environment control command",
+    pluginId: 'environmentcontrol',
+    displayName: 'Send Environment Control',
+    description: 'Send environment control command',
     parameters: [
       {
-        key: "code",
-        type: "string",
+        key: 'code',
+        type: 'string',
         required: true,
-        description: "IR/EC code to send",
+        description: 'IR/EC code to send',
       },
     ],
-    platforms: ["desktop", "medicare", "medicareBionics"],
+    platforms: ['desktop', 'medicare', 'medicareBionics'],
   },
-  "EnvControl.Learn": {
-    id: "EnvControl.Learn",
+  'EnvControl.Learn': {
+    id: 'EnvControl.Learn',
     category: Grid3CommandCategory.ENVIRONMENT_CONTROL,
-    pluginId: "environmentcontrol",
-    displayName: "Learn Environment Control",
-    description: "Learn environment control code",
-    platforms: ["desktop", "medicare", "medicareBionics"],
+    pluginId: 'environmentcontrol',
+    displayName: 'Learn Environment Control',
+    description: 'Learn environment control code',
+    platforms: ['desktop', 'medicare', 'medicareBionics'],
   },
 
   // ========================================
   // MOUSE COMMANDS
   // ========================================
-  "Mouse.LeftClick": {
-    id: "Mouse.LeftClick",
+  'Mouse.LeftClick': {
+    id: 'Mouse.LeftClick',
     category: Grid3CommandCategory.MOUSE,
-    pluginId: "computercontrol",
-    displayName: "Mouse Left Click",
-    description: "Left mouse click",
-    platforms: ["desktop", "medicareBionics"],
+    pluginId: 'computercontrol',
+    displayName: 'Mouse Left Click',
+    description: 'Left mouse click',
+    platforms: ['desktop', 'medicareBionics'],
   },
-  "Mouse.RightClick": {
-    id: "Mouse.RightClick",
+  'Mouse.RightClick': {
+    id: 'Mouse.RightClick',
     category: Grid3CommandCategory.MOUSE,
-    pluginId: "computercontrol",
-    displayName: "Mouse Right Click",
-    description: "Right mouse click",
-    platforms: ["desktop", "medicareBionics"],
+    pluginId: 'computercontrol',
+    displayName: 'Mouse Right Click',
+    description: 'Right mouse click',
+    platforms: ['desktop', 'medicareBionics'],
   },
-  "Mouse.DoubleClick": {
-    id: "Mouse.DoubleClick",
+  'Mouse.DoubleClick': {
+    id: 'Mouse.DoubleClick',
     category: Grid3CommandCategory.MOUSE,
-    pluginId: "computercontrol",
-    displayName: "Mouse Double Click",
-    description: "Double mouse click",
-    platforms: ["desktop", "medicareBionics"],
+    pluginId: 'computercontrol',
+    displayName: 'Mouse Double Click',
+    description: 'Double mouse click',
+    platforms: ['desktop', 'medicareBionics'],
   },
-  "Mouse.Move": {
-    id: "Mouse.Move",
+  'Mouse.Move': {
+    id: 'Mouse.Move',
     category: Grid3CommandCategory.MOUSE,
-    pluginId: "computercontrol",
-    displayName: "Move Mouse",
-    description: "Move mouse pointer",
+    pluginId: 'computercontrol',
+    displayName: 'Move Mouse',
+    description: 'Move mouse pointer',
     parameters: [
-      { key: "x", type: "number", required: true, description: "X coordinate" },
-      { key: "y", type: "number", required: true, description: "Y coordinate" },
+      { key: 'x', type: 'number', required: true, description: 'X coordinate' },
+      { key: 'y', type: 'number', required: true, description: 'Y coordinate' },
     ],
-    platforms: ["desktop", "medicareBionics"],
+    platforms: ['desktop', 'medicareBionics'],
   },
 
   // ========================================
   // WINDOW COMMANDS
   // ========================================
-  "Window.Minimize": {
-    id: "Window.Minimize",
+  'Window.Minimize': {
+    id: 'Window.Minimize',
     category: Grid3CommandCategory.WINDOW,
-    pluginId: "computercontrol",
-    displayName: "Minimize Window",
-    description: "Minimize active window",
-    platforms: ["desktop", "medicareBionics"],
+    pluginId: 'computercontrol',
+    displayName: 'Minimize Window',
+    description: 'Minimize active window',
+    platforms: ['desktop', 'medicareBionics'],
   },
-  "Window.Maximize": {
-    id: "Window.Maximize",
+  'Window.Maximize': {
+    id: 'Window.Maximize',
     category: Grid3CommandCategory.WINDOW,
-    pluginId: "computercontrol",
-    displayName: "Maximize Window",
-    description: "Maximize active window",
-    platforms: ["desktop", "medicareBionics"],
+    pluginId: 'computercontrol',
+    displayName: 'Maximize Window',
+    description: 'Maximize active window',
+    platforms: ['desktop', 'medicareBionics'],
   },
-  "Window.Close": {
-    id: "Window.Close",
+  'Window.Close': {
+    id: 'Window.Close',
     category: Grid3CommandCategory.WINDOW,
-    pluginId: "computercontrol",
-    displayName: "Close Window",
-    description: "Close active window",
-    platforms: ["desktop", "medicareBionics"],
+    pluginId: 'computercontrol',
+    displayName: 'Close Window',
+    description: 'Close active window',
+    platforms: ['desktop', 'medicareBionics'],
   },
-  "Window.Switch": {
-    id: "Window.Switch",
+  'Window.Switch': {
+    id: 'Window.Switch',
     category: Grid3CommandCategory.WINDOW,
-    pluginId: "computercontrol",
-    displayName: "Switch Window",
-    description: "Switch to next window",
-    platforms: ["desktop", "medicareBionics"],
+    pluginId: 'computercontrol',
+    displayName: 'Switch Window',
+    description: 'Switch to next window',
+    platforms: ['desktop', 'medicareBionics'],
   },
 
   // ========================================
   // MEDIA COMMANDS
   // ========================================
-  "Media.PlayPause": {
-    id: "Media.PlayPause",
+  'Media.PlayPause': {
+    id: 'Media.PlayPause',
     category: Grid3CommandCategory.MEDIA,
-    pluginId: "musicvideo",
-    displayName: "Play/Pause",
-    description: "Toggle play/pause media",
-    platforms: ["desktop", "ios"],
+    pluginId: 'musicvideo',
+    displayName: 'Play/Pause',
+    description: 'Toggle play/pause media',
+    platforms: ['desktop', 'ios'],
   },
-  "Media.Next": {
-    id: "Media.Next",
+  'Media.Next': {
+    id: 'Media.Next',
     category: Grid3CommandCategory.MEDIA,
-    pluginId: "musicvideo",
-    displayName: "Next Track",
-    description: "Skip to next track",
-    platforms: ["desktop", "ios"],
+    pluginId: 'musicvideo',
+    displayName: 'Next Track',
+    description: 'Skip to next track',
+    platforms: ['desktop', 'ios'],
   },
-  "Media.Previous": {
-    id: "Media.Previous",
+  'Media.Previous': {
+    id: 'Media.Previous',
     category: Grid3CommandCategory.MEDIA,
-    pluginId: "musicvideo",
-    displayName: "Previous Track",
-    description: "Go to previous track",
-    platforms: ["desktop", "ios"],
+    pluginId: 'musicvideo',
+    displayName: 'Previous Track',
+    description: 'Go to previous track',
+    platforms: ['desktop', 'ios'],
   },
-  "Media.Stop": {
-    id: "Media.Stop",
+  'Media.Stop': {
+    id: 'Media.Stop',
     category: Grid3CommandCategory.MEDIA,
-    pluginId: "musicvideo",
-    displayName: "Stop",
-    description: "Stop media playback",
-    platforms: ["desktop", "ios"],
+    pluginId: 'musicvideo',
+    displayName: 'Stop',
+    description: 'Stop media playback',
+    platforms: ['desktop', 'ios'],
   },
-  "Media.VolumeUp": {
-    id: "Media.VolumeUp",
+  'Media.VolumeUp': {
+    id: 'Media.VolumeUp',
     category: Grid3CommandCategory.MEDIA,
-    pluginId: "musicvideo",
-    displayName: "Volume Up",
-    description: "Increase volume",
-    platforms: ["desktop", "ios"],
+    pluginId: 'musicvideo',
+    displayName: 'Volume Up',
+    description: 'Increase volume',
+    platforms: ['desktop', 'ios'],
   },
-  "Media.VolumeDown": {
-    id: "Media.VolumeDown",
+  'Media.VolumeDown': {
+    id: 'Media.VolumeDown',
     category: Grid3CommandCategory.MEDIA,
-    pluginId: "musicvideo",
-    displayName: "Volume Down",
-    description: "Decrease volume",
-    platforms: ["desktop", "ios"],
+    pluginId: 'musicvideo',
+    displayName: 'Volume Down',
+    description: 'Decrease volume',
+    platforms: ['desktop', 'ios'],
   },
 };
 
 /**
  * Get command definition by ID
  */
-export function getCommandDefinition(
-  commandId: string,
-): Grid3CommandDefinition | undefined {
+export function getCommandDefinition(commandId: string): Grid3CommandDefinition | undefined {
   return GRID3_COMMANDS[commandId];
 }
 
@@ -932,23 +930,15 @@ export function isKnownCommand(commandId: string): boolean {
 /**
  * Get all commands for a specific plugin
  */
-export function getCommandsByPlugin(
-  pluginId: string,
-): Grid3CommandDefinition[] {
-  return Object.values(GRID3_COMMANDS).filter(
-    (cmd) => cmd.pluginId === pluginId,
-  );
+export function getCommandsByPlugin(pluginId: string): Grid3CommandDefinition[] {
+  return Object.values(GRID3_COMMANDS).filter((cmd) => cmd.pluginId === pluginId);
 }
 
 /**
  * Get all commands in a category
  */
-export function getCommandsByCategory(
-  category: Grid3CommandCategory,
-): Grid3CommandDefinition[] {
-  return Object.values(GRID3_COMMANDS).filter(
-    (cmd) => cmd.category === category,
-  );
+export function getCommandsByCategory(category: Grid3CommandCategory): Grid3CommandDefinition[] {
+  return Object.values(GRID3_COMMANDS).filter((cmd) => cmd.category === category);
 }
 
 /**
@@ -962,9 +952,7 @@ export function getAllCommandIds(): string[] {
  * Get all plugin IDs that have commands
  */
 export function getAllPluginIds(): string[] {
-  const plugins = new Set(
-    Object.values(GRID3_COMMANDS).map((cmd) => cmd.pluginId),
-  );
+  const plugins = new Set(Object.values(GRID3_COMMANDS).map((cmd) => cmd.pluginId));
   return Array.from(plugins).sort();
 }
 
@@ -984,18 +972,18 @@ export function extractCommandParameters(command: any): ExtractedParameters {
   const paramArray = Array.isArray(params) ? params : [params];
 
   for (const param of paramArray) {
-    const key = param["@_Key"] || param.Key || param.key;
-    let value = param["#text"] ?? param.text ?? param.value;
+    const key = param['@_Key'] || param.Key || param.key;
+    let value = param['#text'] ?? param.text ?? param.value;
 
     if (key && value !== undefined) {
       // Try to convert to number if it looks numeric
-      if (typeof value === "string" && /^\d+$/.test(value)) {
+      if (typeof value === 'string' && /^\d+$/.test(value)) {
         value = parseInt(value, 10);
-      } else if (typeof value === "string" && /^\d+\.\d+$/.test(value)) {
+      } else if (typeof value === 'string' && /^\d+\.\d+$/.test(value)) {
         value = parseFloat(value);
-      } else if (value === "true") {
+      } else if (value === 'true') {
         value = true;
-      } else if (value === "false") {
+      } else if (value === 'false') {
         value = false;
       }
 
@@ -1013,19 +1001,17 @@ export function detectCommand(commandObj: any): {
   id: string;
   definition?: Grid3CommandDefinition;
   parameters: ExtractedParameters;
-  category: Grid3CommandCategory | "unknown";
-  pluginId: string | "unknown";
+  category: Grid3CommandCategory | 'unknown';
+  pluginId: string | 'unknown';
 } {
-  const commandId = String(
-    commandObj["@_ID"] || commandObj.ID || commandObj.id || "",
-  );
+  const commandId = String(commandObj['@_ID'] || commandObj.ID || commandObj.id || '');
 
   if (!commandId) {
     return {
-      id: "unknown",
+      id: 'unknown',
       parameters: {},
-      category: "unknown" as any,
-      pluginId: "unknown",
+      category: 'unknown' as any,
+      pluginId: 'unknown',
     };
   }
 
@@ -1036,7 +1022,7 @@ export function detectCommand(commandObj: any): {
     id: commandId,
     definition,
     parameters,
-    category: definition?.category || ("unknown" as any),
-    pluginId: definition?.pluginId || "unknown",
+    category: definition?.category || ('unknown' as any),
+    pluginId: definition?.pluginId || 'unknown',
   };
 }

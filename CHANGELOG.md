@@ -27,11 +27,7 @@ processor.saveFromTree(tree, output);
 // After (v3.x)
 const tree: AACTree = await processor.loadIntoTree(file);
 const texts: string[] = await processor.extractTexts(file);
-const result: Uint8Array = await processor.processTexts(
-  file,
-  translations,
-  output,
-);
+const result: Uint8Array = await processor.processTexts(file, translations, output);
 await processor.saveFromTree(tree, output);
 ```
 
@@ -43,8 +39,7 @@ const symbols: ButtonForTranslation[] = processor.extractSymbolsForLLM(file);
 processor.processLLMTranslations(file, translations, output);
 
 // After
-const symbols: ButtonForTranslation[] =
-  await processor.extractSymbolsForLLM(file);
+const symbols: ButtonForTranslation[] = await processor.extractSymbolsForLLM(file);
 await processor.processLLMTranslations(file, translations, output);
 ```
 
@@ -108,7 +103,7 @@ async function processMultipleFiles(files: string[]) {
       const processor = getProcessor(file);
       const tree = await processor.loadIntoTree(file);
       return tree;
-    }),
+    })
   );
   return results;
 }
@@ -321,10 +316,10 @@ npm install aac-processors@2.x
 
 ```javascript
 // Old (CommonJS)
-const { DotProcessor } = require("aac-processors/dist/processors");
+const { DotProcessor } = require('aac-processors/dist/processors');
 
 // New (ES Modules + TypeScript)
-import { DotProcessor, getProcessor } from "aac-processors";
+import { DotProcessor, getProcessor } from 'aac-processors';
 ```
 
 ### API Changes
@@ -332,23 +327,23 @@ import { DotProcessor, getProcessor } from "aac-processors";
 ```typescript
 // Old
 const processor = new DotProcessor();
-const tree = processor.loadIntoTree("file.dot");
+const tree = processor.loadIntoTree('file.dot');
 
 // New (same API, but with TypeScript support)
 const processor = new DotProcessor();
-const tree: AACTree = processor.loadIntoTree("file.dot");
+const tree: AACTree = processor.loadIntoTree('file.dot');
 
 // New factory pattern
-const processor = getProcessor("file.dot"); // Auto-detects format
+const processor = getProcessor('file.dot'); // Auto-detects format
 ```
 
 ### New Translation Workflow
 
 ```typescript
 // New in 2.x
-const texts = processor.extractTexts("file.dot");
-const translations = new Map([["Hello", "Hola"]]);
-const result = processor.processTexts("file.dot", translations, "output.dot");
+const texts = processor.extractTexts('file.dot');
+const translations = new Map([['Hello', 'Hola']]);
+const result = processor.processTexts('file.dot', translations, 'output.dot');
 ```
 
 For detailed migration assistance, see the [Migration Guide](docs/MIGRATION.md).

@@ -4,7 +4,7 @@
  * Defines the data structures used for AAC metrics analysis
  */
 
-import { ScanningConfig } from "../../../types/aac";
+import { ScanningConfig } from '../../../types/aac';
 
 // import { AACTree } from '../../../types/aac';
 

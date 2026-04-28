@@ -3,16 +3,16 @@ import {
   AACSemanticCategory,
   AACSemanticIntent,
   AACButton,
-} from "../../core/treeStructure";
-import { dotNetTicksToDate } from "../../utils/dotnetTicks";
+} from '../../core/treeStructure';
+import { dotNetTicksToDate } from '../../utils/dotnetTicks';
 import {
   defaultFileAdapter,
   extname,
   FileAdapter,
   getNodeRequire,
   ProcessorInput,
-} from "../../utils/io";
-import { requireBetterSqlite3 } from "../../utils/sqlite";
+} from '../../utils/io';
+import { requireBetterSqlite3 } from '../../utils/sqlite';
 
 // Minimal Snap helpers (stubs) to align with processors/<engine>/helpers pattern
 // NOTE: Snap files can store different types of image data in PageSetData:
@@ -27,13 +27,11 @@ async function collectFiles(
   root: string,
   matcher: (fullPath: string) => boolean,
   maxDepth = 3,
-  fileAdapter: FileAdapter = defaultFileAdapter,
+  fileAdapter: FileAdapter = defaultFileAdapter
 ): Promise<string[]> {
   const { listDir, join, isDirectory } = fileAdapter;
   const results = new Set<string>();
-  const stack: Array<{ dir: string; depth: number }> = [
-    { dir: root, depth: 0 },
-  ];
+  const stack: Array<{ dir: string; depth: number }> = [{ dir: root, depth: 0 }];
 
   while (stack.length > 0) {
     const current = stack.pop();
@@ -64,10 +62,7 @@ async function collectFiles(
  * Build a map of button IDs to resolved image entries for a specific page.
  * Mirrors the Grid helper for consumers that expect image reference data.
  */
-export function getPageTokenImageMap(
-  tree: AACTree,
-  pageId: string,
-): Map<string, string> {
+export function getPageTokenImageMap(tree: AACTree, pageId: string): Map<string, string> {
   const map = new Map<string, string>();
   const page = tree.getPage(pageId);
   if (!page) return map;
@@ -86,19 +81,13 @@ export function getAllowedImageEntries(tree: AACTree): Set<string> {
   Object.values(tree.pages).forEach((page) => {
     page.buttons.forEach((btn: AACButton) => {
       // Extract image_id from parameters if it exists
-      if (
-        btn.parameters?.image_id &&
-        typeof btn.parameters.image_id === "string"
-      ) {
+      if (btn.parameters?.image_id && typeof btn.parameters.image_id === 'string') {
         out.add(btn.parameters.image_id);
       }
       // Also add resolvedImageEntry if it's a symbol identifier
-      if (
-        btn.resolvedImageEntry &&
-        typeof btn.resolvedImageEntry === "string"
-      ) {
+      if (btn.resolvedImageEntry && typeof btn.resolvedImageEntry === 'string') {
         const entry = btn.resolvedImageEntry;
-        if (entry.startsWith("SYM:")) {
+        if (entry.startsWith('SYM:')) {
           out.add(entry);
         }
       }
@@ -116,38 +105,33 @@ export function getAllowedImageEntries(tree: AACTree): Set<string> {
 export async function openImage(
   dbOrFile: ProcessorInput,
   entryPath: string,
-  fileAdapter: FileAdapter = defaultFileAdapter,
+  fileAdapter: FileAdapter = defaultFileAdapter
 ): Promise<Buffer | null> {
-  const { mkTempDir, join, writeBinaryToPath, removePath, dirname } =
-    fileAdapter;
+  const { mkTempDir, join, writeBinaryToPath, removePath, dirname } = fileAdapter;
   let dbPath: string;
   let cleanupNeeded = false;
 
   // Handle Buffer input by writing to temp file
   if (Buffer.isBuffer(dbOrFile)) {
-    const tempDir = await mkTempDir(join(process.cwd(), "snap-"));
-    dbPath = join(tempDir, "temp.sps");
+    const tempDir = await mkTempDir(join(process.cwd(), 'snap-'));
+    dbPath = join(tempDir, 'temp.sps');
     await writeBinaryToPath(dbPath, dbOrFile);
     cleanupNeeded = true;
-  } else if (typeof dbOrFile === "string") {
+  } else if (typeof dbOrFile === 'string') {
     dbPath = dbOrFile;
   } else {
     return null;
   }
 
-  const better_sqlite3 = getNodeRequire()("better-sqlite3");
+  const better_sqlite3 = getNodeRequire()('better-sqlite3');
   let db = null;
   try {
     db = new better_sqlite3.Database(dbPath, { readonly: true });
 
     // Query PageSetData for the symbol
     const row = db
-      .prepare(
-        "SELECT Id, Identifier, Data FROM PageSetData WHERE Identifier = ?",
-      )
-      .get(entryPath) as
-      | { Id: number; Identifier: string; Data: Buffer }
-      | undefined;
+      .prepare('SELECT Id, Identifier, Data FROM PageSetData WHERE Identifier = ?')
+      .get(entryPath) as { Id: number; Identifier: string; Data: Buffer } | undefined;
 
     if (row && row.Data && row.Data.length > 0) {
       // Snap files can store different types of image data:
@@ -197,7 +181,7 @@ export interface SnapUsageEntry {
     timestamp: Date;
     modeling?: boolean;
     accessMethod?: number | null;
-    type?: "button" | "action" | "utterance" | "note" | "other";
+    type?: 'button' | 'action' | 'utterance' | 'note' | 'other';
     buttonId?: string | null;
     intent?: AACSemanticIntent | string;
     category?: AACSemanticCategory;
@@ -216,14 +200,14 @@ export interface SnapUsageEntry {
  * @returns Array of Snap package path information
  */
 export async function findSnapPackages(
-  packageNamePattern = "TobiiDynavox",
-  fileAdapter: FileAdapter = defaultFileAdapter,
+  packageNamePattern = 'TobiiDynavox',
+  fileAdapter: FileAdapter = defaultFileAdapter
 ): Promise<SnapPackagePath[]> {
   const { join, listDir, isDirectory, pathExists } = fileAdapter;
   const results: SnapPackagePath[] = [];
 
   // Only works on Windows
-  if (process.platform !== "win32") {
+  if (process.platform !== 'win32') {
     return results;
   }
 
@@ -233,7 +217,7 @@ export async function findSnapPackages(
       return results;
     }
 
-    const packagesPath = join(localAppData, "Packages");
+    const packagesPath = join(localAppData, 'Packages');
 
     // Check if Packages directory exists
     if (!(await pathExists(packagesPath))) {
@@ -270,8 +254,8 @@ export async function findSnapPackages(
  * @returns Path to the first matching Snap package, or null if not found
  */
 export async function findSnapPackagePath(
-  packageNamePattern = "TobiiDynavox",
-  fileAdapter?: FileAdapter,
+  packageNamePattern = 'TobiiDynavox',
+  fileAdapter?: FileAdapter
 ): Promise<string | null> {
   const packages = await findSnapPackages(packageNamePattern, fileAdapter);
   return packages.length > 0 ? packages[0].packagePath : null;
@@ -285,25 +269,22 @@ export async function findSnapPackagePath(
  * @returns Array of user info with vocab paths
  */
 export async function findSnapUsers(
-  packageNamePattern = "TobiiDynavox",
-  fileAdapter: FileAdapter = defaultFileAdapter,
+  packageNamePattern = 'TobiiDynavox',
+  fileAdapter: FileAdapter = defaultFileAdapter
 ): Promise<SnapUserInfo[]> {
   const { join, listDir, isDirectory, pathExists } = fileAdapter;
   const results: SnapUserInfo[] = [];
 
-  if (process.platform !== "win32") {
+  if (process.platform !== 'win32') {
     return results;
   }
 
-  const packagePath = await findSnapPackagePath(
-    packageNamePattern,
-    fileAdapter,
-  );
+  const packagePath = await findSnapPackagePath(packageNamePattern, fileAdapter);
   if (!packagePath) {
     return results;
   }
 
-  const usersRoot = join(packagePath, "LocalState", "Users");
+  const usersRoot = join(packagePath, 'LocalState', 'Users');
   if (!(await pathExists(usersRoot))) {
     return results;
   }
@@ -311,17 +292,17 @@ export async function findSnapUsers(
   const entries = await listDir(usersRoot);
   for (const entry of entries) {
     if (!(await isDirectory(entry))) continue;
-    if (entry.toLowerCase().startsWith("swiftkey")) continue;
+    if (entry.toLowerCase().startsWith('swiftkey')) continue;
 
     const userPath = join(usersRoot, entry);
     const vocabPaths = await collectFiles(
       userPath,
       (full) => {
         const ext = extname(full).toLowerCase();
-        return ext === ".sps" || ext === ".spb";
+        return ext === '.sps' || ext === '.spb';
       },
       2,
-      fileAdapter,
+      fileAdapter
     );
 
     results.push({
@@ -342,8 +323,8 @@ export async function findSnapUsers(
  */
 export async function findSnapUserVocabularies(
   userId?: string,
-  packageNamePattern = "TobiiDynavox",
-  fileAdapter?: FileAdapter,
+  packageNamePattern = 'TobiiDynavox',
+  fileAdapter?: FileAdapter
 ): Promise<string[]> {
   const allUsers = await findSnapUsers(packageNamePattern, fileAdapter);
   const users = allUsers.filter((u) => !userId || u.userId === userId);
@@ -359,8 +340,8 @@ export async function findSnapUserVocabularies(
  */
 export async function findSnapUserHistory(
   userId: string,
-  packageNamePattern = "TobiiDynavox",
-  fileAdapter: FileAdapter = defaultFileAdapter,
+  packageNamePattern = 'TobiiDynavox',
+  fileAdapter: FileAdapter = defaultFileAdapter
 ): Promise<string[]> {
   const { basename } = fileAdapter;
   const allUsers = await findSnapUsers(packageNamePattern, fileAdapter);
@@ -369,17 +350,17 @@ export async function findSnapUserHistory(
 
   return await collectFiles(
     user.userPath,
-    (full) => basename(full).toLowerCase().includes("history"),
+    (full) => basename(full).toLowerCase().includes('history'),
     2,
-    fileAdapter,
+    fileAdapter
   );
 }
 
 /**
  * Check whether TD Snap appears to be installed (Windows only)
  */
-export function isSnapInstalled(packageNamePattern = "TobiiDynavox"): boolean {
-  if (process.platform !== "win32") return false;
+export function isSnapInstalled(packageNamePattern = 'TobiiDynavox'): boolean {
+  if (process.platform !== 'win32') return false;
   return Boolean(findSnapPackagePath(packageNamePattern));
 }
 
@@ -388,7 +369,7 @@ export function isSnapInstalled(packageNamePattern = "TobiiDynavox"): boolean {
  */
 export async function readSnapUsage(
   pagesetPath: string,
-  fileAdapter: FileAdapter = defaultFileAdapter,
+  fileAdapter: FileAdapter = defaultFileAdapter
 ): Promise<SnapUsageEntry[]> {
   const { pathExists } = fileAdapter;
   if (!(await pathExists(pagesetPath))) return [];
@@ -398,7 +379,7 @@ export async function readSnapUsage(
 
   const tableCheck = db
     .prepare(
-      "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('ButtonUsage','Button')",
+      "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('ButtonUsage','Button')"
     )
     .all();
   if (tableCheck.length < 2) return [];
@@ -417,7 +398,7 @@ export async function readSnapUsage(
       LEFT JOIN Button b ON bu.ButtonUniqueId = b.UniqueId
       WHERE bu.Timestamp IS NOT NULL
       ORDER BY bu.Timestamp ASC
-    `,
+    `
     )
     .all() as Array<{
     ButtonId?: string;
@@ -431,10 +412,10 @@ export async function readSnapUsage(
   const events = new Map<string, SnapUsageEntry>();
 
   for (const row of rows) {
-    const buttonId: string = row.ButtonId ?? "unknown";
+    const buttonId: string = row.ButtonId ?? 'unknown';
     const label = row.Label ?? undefined;
     const message = row.Message ?? undefined;
-    const content = message || label || "";
+    const content = message || label || '';
 
     const entry =
       events.get(buttonId) ??
@@ -453,7 +434,7 @@ export async function readSnapUsage(
       timestamp: dotNetTicksToDate(BigInt(row.TickValue ?? 0)),
       modeling: row.Modeling === 1,
       accessMethod: row.AccessMethod ?? null,
-      type: "button",
+      type: 'button',
       buttonId: row.ButtonId,
       intent: AACSemanticIntent.SPEAK_TEXT,
       category: AACSemanticCategory.COMMUNICATION,
@@ -470,13 +451,11 @@ export async function readSnapUsage(
  */
 export async function readSnapUsageForUser(
   userId?: string,
-  packageNamePattern = "TobiiDynavox",
+  packageNamePattern = 'TobiiDynavox'
 ): Promise<SnapUsageEntry[]> {
   const allUsers = await findSnapUsers(packageNamePattern);
   const users = allUsers.filter((u) => !userId || u.userId === userId);
   const pagesets = users.flatMap((u) => u.vocabPaths);
-  const usage = await Promise.all(
-    pagesets.map(async (p) => await readSnapUsage(p)),
-  );
+  const usage = await Promise.all(pagesets.map(async (p) => await readSnapUsage(p)));
   return usage.flat();
 }

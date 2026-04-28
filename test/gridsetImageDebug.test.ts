@@ -1,25 +1,22 @@
-import AdmZip from "adm-zip";
-import {
-  auditGridsetImages,
-  formatImageAuditSummary,
-} from "../src/processors/gridset/imageDebug";
+import AdmZip from 'adm-zip';
+import { auditGridsetImages, formatImageAuditSummary } from '../src/processors/gridset/imageDebug';
 
-describe("Image Debugging Utilities", () => {
+describe('Image Debugging Utilities', () => {
   function createMinimalGridset(
     options: {
       includeImages?: boolean;
       includeBrokenImages?: boolean;
       includeSymbolLibrary?: boolean;
-    } = {},
+    } = {}
   ): Buffer {
     const zip = new AdmZip();
 
     // Add Settings
     zip.addFile(
-      "Settings0/settings.xml",
+      'Settings0/settings.xml',
       Buffer.from(
-        '<?xml version="1.0"?><Settings><Workspaces><Workspace /></Workspaces></Settings>',
-      ),
+        '<?xml version="1.0"?><Settings><Workspaces><Workspace /></Workspaces></Settings>'
+      )
     );
 
     // Create a simple grid with images
@@ -68,24 +65,24 @@ describe("Image Debugging Utilities", () => {
   </Cells>
 </Grid>`;
 
-    zip.addFile("Grids/Test Grid/grid.xml", Buffer.from(gridXml));
+    zip.addFile('Grids/Test Grid/grid.xml', Buffer.from(gridXml));
 
     // Add image files
     if (options.includeImages) {
-      zip.addFile("Grids/Test Grid/test-image.png", Buffer.from("PNG-DATA"));
-      zip.addFile("Grids/Test Grid/another-image.png", Buffer.from("PNG-DATA"));
+      zip.addFile('Grids/Test Grid/test-image.png', Buffer.from('PNG-DATA'));
+      zip.addFile('Grids/Test Grid/another-image.png', Buffer.from('PNG-DATA'));
     }
 
     if (options.includeBrokenImages) {
       // Add image with coordinate prefix
-      zip.addFile("Grids/Test Grid/1-1-0-text-0.png", Buffer.from("PNG-DATA"));
+      zip.addFile('Grids/Test Grid/1-1-0-text-0.png', Buffer.from('PNG-DATA'));
     }
 
     return zip.toBuffer();
   }
 
-  describe("auditGridsetImages", () => {
-    it("should audit gridset with all images resolved", async () => {
+  describe('auditGridsetImages', () => {
+    it('should audit gridset with all images resolved', async () => {
       const buffer = createMinimalGridset({ includeImages: true });
       const audit = await auditGridsetImages(buffer);
 
@@ -97,7 +94,7 @@ describe("Image Debugging Utilities", () => {
       expect(audit.availableImages.length).toBeGreaterThan(0);
     });
 
-    it("should detect broken image references", async () => {
+    it('should detect broken image references', async () => {
       const buffer = createMinimalGridset({ includeBrokenImages: true });
       const audit = await auditGridsetImages(buffer);
 
@@ -105,64 +102,60 @@ describe("Image Debugging Utilities", () => {
       expect(audit.issues.length).toBeGreaterThan(0);
 
       const issue = audit.issues[0];
-      expect(issue.issue).toBe("not_found");
-      expect(issue.gridName).toBe("Test Grid");
+      expect(issue.issue).toBe('not_found');
+      expect(issue.gridName).toBe('Test Grid');
       expect(issue.cellX).toBe(1);
       expect(issue.cellY).toBe(1);
     });
 
-    it("should identify symbol library references", async () => {
+    it('should identify symbol library references', async () => {
       const buffer = createMinimalGridset({ includeSymbolLibrary: true });
       const audit = await auditGridsetImages(buffer);
 
       expect(audit.unresolvedImages).toBeGreaterThan(0);
 
-      const issue = audit.issues.find(
-        (i: { issue: string }) => i.issue === "symbol_library",
-      );
+      const issue = audit.issues.find((i: { issue: string }) => i.issue === 'symbol_library');
       expect(issue).toBeDefined();
-      expect(issue?.declaredImage).toContain("widgit");
-      expect(issue?.suggestion).toContain("symbol library");
+      expect(issue?.declaredImage).toContain('widgit');
+      expect(issue?.suggestion).toContain('symbol library');
     });
 
-    it("should provide available images list", async () => {
+    it('should provide available images list', async () => {
       const buffer = createMinimalGridset({ includeImages: true });
       const audit = await auditGridsetImages(buffer);
 
-      expect(audit.availableImages).toContain("Grids/Test Grid/test-image.png");
-      expect(audit.availableImages).toContain(
-        "Grids/Test Grid/another-image.png",
-      );
+      expect(audit.availableImages).toContain('Grids/Test Grid/test-image.png');
+      expect(audit.availableImages).toContain('Grids/Test Grid/another-image.png');
     });
   });
 
-  describe("formatImageAuditSummary", () => {
-    it("should format audit results as readable text", async () => {
+  describe('formatImageAuditSummary', () => {
+    it('should format audit results as readable text', async () => {
       const buffer = createMinimalGridset({ includeImages: true });
       const audit = await auditGridsetImages(buffer);
       const summary = formatImageAuditSummary(audit);
 
-      expect(summary).toContain("Grid3 Image Audit Summary");
-      expect(summary).toContain("Total cells: 2");
-      expect(summary).toContain("Resolved images: 2");
-      expect(summary).toContain("Unresolved images: 0");
+      expect(summary).toContain('Grid3 Image Audit Summary');
+      expect(summary).toContain('Total cells: 2');
+      expect(summary).toContain('Resolved images: 2');
+      expect(summary).toContain('Unresolved images: 0');
     });
 
-    it("should include issue details when problems exist", async () => {
+    it('should include issue details when problems exist', async () => {
       const buffer = createMinimalGridset({ includeBrokenImages: true });
       const audit = await auditGridsetImages(buffer);
       const summary = formatImageAuditSummary(audit);
 
-      expect(summary).toContain("Image Issues");
-      expect(summary).toContain("NOT_FOUND");
+      expect(summary).toContain('Image Issues');
+      expect(summary).toContain('NOT_FOUND');
     });
 
-    it("should group issues by type", async () => {
+    it('should group issues by type', async () => {
       const buffer = createMinimalGridset({ includeSymbolLibrary: true });
       const audit = await auditGridsetImages(buffer);
       const summary = formatImageAuditSummary(audit);
 
-      expect(summary).toContain("SYMBOL_LIBRARY");
+      expect(summary).toContain('SYMBOL_LIBRARY');
     });
   });
 });

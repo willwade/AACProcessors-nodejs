@@ -79,7 +79,7 @@ export function normalizeButtonForTranslation(
     pageId?: string;
     pageName?: string;
   },
-  grammar?: any,
+  grammar?: any
 ): ButtonForTranslation {
   return {
     buttonId,
@@ -103,15 +103,12 @@ export function normalizeButtonForTranslation(
  * @param button - Button object from any AAC format
  * @returns Array of symbol info, or undefined if no symbols
  */
-export function extractSymbolsFromButton(
-  button: any,
-): SymbolInfo[] | undefined {
+export function extractSymbolsFromButton(button: any): SymbolInfo[] | undefined {
   const symbols: SymbolInfo[] = [];
 
   // Method 1: Check for semanticAction.richText.symbols (gridset format)
   if (button.semanticAction?.richText?.symbols) {
-    const richTextSymbols = button.semanticAction.richText
-      .symbols as SymbolInfo[];
+    const richTextSymbols = button.semanticAction.richText.symbols as SymbolInfo[];
     if (Array.isArray(richTextSymbols) && richTextSymbols.length > 0) {
       symbols.push(...richTextSymbols);
       return symbols;
@@ -119,7 +116,7 @@ export function extractSymbolsFromButton(
   }
 
   // Determine the text to attach symbol to
-  const text = button.label || button.message || "";
+  const text = button.label || button.message || '';
   if (!text) {
     return undefined;
   }
@@ -136,11 +133,7 @@ export function extractSymbolsFromButton(
   }
 
   // Method 3: Check if image field contains a symbol reference
-  if (
-    button.image &&
-    typeof button.image === "string" &&
-    button.image.startsWith("[")
-  ) {
+  if (button.image && typeof button.image === 'string' && button.image.startsWith('[')) {
     symbols.push({
       text,
       image: button.image,
@@ -164,18 +157,16 @@ export function extractSymbolsFromButton(
  */
 export function extractAllButtonsForTranslation(
   buttons: any[],
-  contextFn?: (button: any) => { pageId?: string; pageName?: string },
+  contextFn?: (button: any) => { pageId?: string; pageName?: string }
 ): ButtonForTranslation[] {
   const results: ButtonForTranslation[] = [];
 
   for (const button of buttons) {
     if (!button) continue;
 
-    const buttonId = (button.id ||
-      button.buttonId ||
-      `button_${results.length}`) as string;
-    const label = (button.label || "") as string;
-    const message = (button.message || "") as string;
+    const buttonId = (button.id || button.buttonId || `button_${results.length}`) as string;
+    const label = (button.label || '') as string;
+    const message = (button.message || '') as string;
     const symbols = extractSymbolsFromButton(button);
 
     // Only include buttons that have text to translate
@@ -185,14 +176,7 @@ export function extractAllButtonsForTranslation(
     const grammar = button.parameters?.grammar || undefined;
 
     results.push(
-      normalizeButtonForTranslation(
-        buttonId,
-        label,
-        message,
-        symbols || [],
-        context,
-        grammar,
-      ),
+      normalizeButtonForTranslation(buttonId, label, message, symbols || [], context, grammar)
     );
   }
 
@@ -211,7 +195,7 @@ export function extractAllButtonsForTranslation(
  */
 export function createTranslationPrompt(
   buttons: ButtonForTranslation[],
-  targetLanguage: string,
+  targetLanguage: string
 ): string {
   const buttonsData = JSON.stringify(buttons, null, 2);
 
@@ -264,10 +248,10 @@ Ensure all symbol image references are preserved exactly as provided.`;
 export function validateTranslationResults(
   translations: LLMLTranslationResult[],
   originalButtonIds?: string[],
-  options?: { allowPartial?: boolean },
+  options?: { allowPartial?: boolean }
 ): void {
   if (!Array.isArray(translations)) {
-    throw new Error("Translation results must be an array");
+    throw new Error('Translation results must be an array');
   }
 
   const translatedIds = new Set(translations.map((t) => t.buttonId));
@@ -284,12 +268,10 @@ export function validateTranslationResults(
   // Check each translation has required fields
   for (const trans of translations) {
     if (!trans.buttonId) {
-      throw new Error("Translation missing buttonId");
+      throw new Error('Translation missing buttonId');
     }
     if (!trans.translatedMessage && !trans.translatedLabel) {
-      throw new Error(
-        `Translation for ${trans.buttonId} has no translated text`,
-      );
+      throw new Error(`Translation for ${trans.buttonId} has no translated text`);
     }
   }
 }

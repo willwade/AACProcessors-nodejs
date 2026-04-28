@@ -5,16 +5,16 @@
  * Use this for analyzing AAC trees, not end-user usage logs.
  */
 
-export * from "./utilities/analytics/metrics/types";
-export * from "./utilities/analytics/metrics/effort";
-export * from "./utilities/analytics/metrics/obl-types";
-export { OblUtil, OblAnonymizer } from "./utilities/analytics/metrics/obl";
-export { MetricsCalculator } from "./utilities/analytics/metrics/core";
-export { VocabularyAnalyzer } from "./utilities/analytics/metrics/vocabulary";
-export { SentenceAnalyzer } from "./utilities/analytics/metrics/sentence";
-export { ComparisonAnalyzer } from "./utilities/analytics/metrics/comparison";
-export { MorphologyEngine } from "./utilities/analytics/morphology";
-export { WordFormGenerator } from "./utilities/analytics/morphology";
+export * from './utilities/analytics/metrics/types';
+export * from './utilities/analytics/metrics/effort';
+export * from './utilities/analytics/metrics/obl-types';
+export { OblUtil, OblAnonymizer } from './utilities/analytics/metrics/obl';
+export { MetricsCalculator } from './utilities/analytics/metrics/core';
+export { VocabularyAnalyzer } from './utilities/analytics/metrics/vocabulary';
+export { SentenceAnalyzer } from './utilities/analytics/metrics/sentence';
+export { ComparisonAnalyzer } from './utilities/analytics/metrics/comparison';
+export { MorphologyEngine } from './utilities/analytics/morphology';
+export { WordFormGenerator } from './utilities/analytics/morphology';
 export type {
   MorphRuleSet,
   MorphRule,
@@ -23,12 +23,12 @@ export type {
   AstericsWordForm,
   VerbFormWithConditions,
   Grid3VerbFormsDetailed,
-} from "./utilities/analytics/morphology";
-export { ReferenceLoader } from "./utilities/analytics/reference";
+} from './utilities/analytics/morphology';
+export { ReferenceLoader } from './utilities/analytics/reference';
 export {
   InMemoryReferenceLoader,
   createBrowserReferenceLoader,
   loadReferenceDataFromUrl,
   type ReferenceData,
-} from "./utilities/analytics/reference/browser";
-export * from "./utilities/analytics/utils/idGenerator";
+} from './utilities/analytics/reference/browser';
+export * from './utilities/analytics/utils/idGenerator';

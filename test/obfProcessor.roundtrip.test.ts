@@ -1,16 +1,16 @@
 // Round-trip test for OBFProcessor: load, save, reload, and compare structure
-import fs from "fs";
-import path from "path";
-import { ObfProcessor } from "../src/processors/obfProcessor";
-import { AACTree, AACPage, AACButton } from "../src/core/treeStructure";
+import fs from 'fs';
+import path from 'path';
+import { ObfProcessor } from '../src/processors/obfProcessor';
+import { AACTree, AACPage, AACButton } from '../src/core/treeStructure';
 
-jest.setTimeout(process.platform === "win32" ? 60000 : 30000);
+jest.setTimeout(process.platform === 'win32' ? 60000 : 30000);
 
-describe("OBFProcessor round-trip", () => {
-  const obfPath: string = path.join(__dirname, "assets/obf/example.obf");
-  const obzPath: string = path.join(__dirname, "assets/obz/example.obz");
-  const outObfPath: string = path.join(__dirname, "out.obf");
-  const outObzPath: string = path.join(__dirname, "out.obz");
+describe('OBFProcessor round-trip', () => {
+  const obfPath: string = path.join(__dirname, 'assets/obf/example.obf');
+  const obzPath: string = path.join(__dirname, 'assets/obz/example.obz');
+  const outObfPath: string = path.join(__dirname, 'out.obf');
+  const outObzPath: string = path.join(__dirname, 'out.obz');
 
   afterAll(async () => {
     [outObfPath, outObzPath].forEach((file) => {
@@ -18,9 +18,9 @@ describe("OBFProcessor round-trip", () => {
     });
   });
 
-  it("round-trips OBF JSON without losing pages or navigation", async () => {
+  it('round-trips OBF JSON without losing pages or navigation', async () => {
     if (!fs.existsSync(obfPath)) {
-      console.log("Skipping OBF test - example file not found");
+      console.log('Skipping OBF test - example file not found');
       return;
     }
 
@@ -33,9 +33,7 @@ describe("OBFProcessor round-trip", () => {
     const tree2: AACTree = await processor.loadIntoTree(outObfPath);
 
     // Compare basic structure
-    expect(Object.keys(tree1.pages).length).toBe(
-      Object.keys(tree2.pages).length,
-    );
+    expect(Object.keys(tree1.pages).length).toBe(Object.keys(tree2.pages).length);
 
     // Compare metadata
     expect(tree2.metadata.name).toBe(tree1.metadata.name);
@@ -59,9 +57,9 @@ describe("OBFProcessor round-trip", () => {
     }
   });
 
-  it("round-trips OBZ (zip) format without losing data", async () => {
+  it('round-trips OBZ (zip) format without losing data', async () => {
     if (!fs.existsSync(obzPath)) {
-      console.log("Skipping OBZ test - example file not found");
+      console.log('Skipping OBZ test - example file not found');
       return;
     }
 
@@ -75,31 +73,29 @@ describe("OBFProcessor round-trip", () => {
 
     // Compare structure
     expect(Object.keys(tree2.pages).length).toBeGreaterThan(0);
-    expect(Object.keys(tree1.pages).length).toBe(
-      Object.keys(tree2.pages).length,
-    );
+    expect(Object.keys(tree1.pages).length).toBe(Object.keys(tree2.pages).length);
 
     // Compare metadata from root board
     expect(tree2.metadata.name).toBe(tree1.metadata.name);
     expect(tree2.metadata.locale).toBe(tree1.metadata.locale);
   });
 
-  it("can save and load a simple constructed tree", async () => {
+  it('can save and load a simple constructed tree', async () => {
     const processor = new ObfProcessor();
 
     // Create a simple tree programmatically
     const tree1 = new AACTree();
     const page = new AACPage({
-      id: "test-page",
-      name: "Test Page",
+      id: 'test-page',
+      name: 'Test Page',
       buttons: [],
     });
 
     const button = new AACButton({
-      id: "test-button",
-      label: "Test Button",
-      message: "Hello World",
-      type: "SPEAK",
+      id: 'test-button',
+      label: 'Test Button',
+      message: 'Hello World',
+      type: 'SPEAK',
     });
 
     page.addButton(button);
@@ -111,37 +107,37 @@ describe("OBFProcessor round-trip", () => {
 
     // Verify structure
     expect(Object.keys(tree2.pages)).toHaveLength(1);
-    const reloadedPage = tree2.pages["test-page"];
+    const reloadedPage = tree2.pages['test-page'];
     expect(reloadedPage).toBeDefined();
-    expect(reloadedPage.name).toBe("Test Page");
+    expect(reloadedPage.name).toBe('Test Page');
     expect(reloadedPage.buttons).toHaveLength(1);
-    expect(reloadedPage.buttons[0].label).toBe("Test Button");
+    expect(reloadedPage.buttons[0].label).toBe('Test Button');
   });
 
-  it("includes required OBF metadata fields when saving a tree", async () => {
+  it('includes required OBF metadata fields when saving a tree', async () => {
     const processor = new ObfProcessor();
     const tree = new AACTree();
 
     const page = new AACPage({
-      id: "meta-page",
-      name: "Meta Page",
+      id: 'meta-page',
+      name: 'Meta Page',
       grid: [
         [null, null],
         [null, null],
       ],
-      locale: "en",
+      locale: 'en',
     });
 
     const AACButtonCtor = AACButton;
     const buttonA = new AACButtonCtor({
-      id: "btn-a",
-      label: "A",
-      message: "A",
+      id: 'btn-a',
+      label: 'A',
+      message: 'A',
     });
     const buttonB = new AACButtonCtor({
-      id: "btn-b",
-      label: "B",
-      message: "B",
+      id: 'btn-b',
+      label: 'B',
+      message: 'B',
     });
 
     page.addButton(buttonA);
@@ -155,16 +151,16 @@ describe("OBFProcessor round-trip", () => {
     tree.rootId = page.id;
 
     await processor.saveFromTree(tree, outObfPath);
-    const savedObf = JSON.parse(fs.readFileSync(outObfPath, "utf8"));
+    const savedObf = JSON.parse(fs.readFileSync(outObfPath, 'utf8'));
 
-    expect(savedObf.format).toBe("open-board-0.1");
-    expect(savedObf.description_html).toBe("Meta Page");
-    expect(savedObf.locale).toBe("en");
+    expect(savedObf.format).toBe('open-board-0.1');
+    expect(savedObf.description_html).toBe('Meta Page');
+    expect(savedObf.locale).toBe('en');
     expect(savedObf.grid).toEqual({
       rows: 2,
       columns: 2,
       order: [
-        ["btn-a", "btn-b"],
+        ['btn-a', 'btn-b'],
         [null, null],
       ],
     });

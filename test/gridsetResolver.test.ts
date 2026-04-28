@@ -1,7 +1,7 @@
-import AdmZip from "adm-zip";
-import { resolveGrid3CellImage } from "../src/processors/gridset/resolver";
+import AdmZip from 'adm-zip';
+import { resolveGrid3CellImage } from '../src/processors/gridset/resolver';
 
-describe("resolveGrid3CellImage", () => {
+describe('resolveGrid3CellImage', () => {
   function mkZip(entries: Record<string, Buffer | string>): AdmZip {
     const zip = new AdmZip();
     for (const [name, data] of Object.entries(entries)) {
@@ -10,99 +10,99 @@ describe("resolveGrid3CellImage", () => {
     return zip;
   }
 
-  it("resolves declared image in Images/ subfolder", async () => {
+  it('resolves declared image in Images/ subfolder', async () => {
     const zip = mkZip({
-      "Grids/Home/Images/dog.png": "PNGDATA",
+      'Grids/Home/Images/dog.png': 'PNGDATA',
     });
     const p = resolveGrid3CellImage(zip, {
-      baseDir: "Grids/Home/",
-      imageName: "dog.png",
+      baseDir: 'Grids/Home/',
+      imageName: 'dog.png',
     });
-    expect(p).toBe("Grids/Home/Images/dog.png");
+    expect(p).toBe('Grids/Home/Images/dog.png');
   });
 
-  it("uses FileMap dynamic files with coordinate prefix", async () => {
+  it('uses FileMap dynamic files with coordinate prefix', async () => {
     const zip = mkZip({
-      "Grids/Home/1-5-0-text-0.jpeg": "IMG",
-      "Grids/Home/1-5.jpeg": "ALT",
+      'Grids/Home/1-5-0-text-0.jpeg': 'IMG',
+      'Grids/Home/1-5.jpeg': 'ALT',
     });
     const p = resolveGrid3CellImage(zip, {
-      baseDir: "Grids/Home/",
+      baseDir: 'Grids/Home/',
       x: 1,
       y: 5,
-      dynamicFiles: ["Grids/Home/1-5-0-text-0.jpeg"],
+      dynamicFiles: ['Grids/Home/1-5-0-text-0.jpeg'],
     });
-    expect(p).toBe("Grids/Home/1-5-0-text-0.jpeg");
+    expect(p).toBe('Grids/Home/1-5-0-text-0.jpeg');
   });
 
-  it("falls back to coordinate guesses when no name or map", async () => {
+  it('falls back to coordinate guesses when no name or map', async () => {
     const zip = mkZip({
-      "Grids/Home/1-1.jpeg": "IMG",
+      'Grids/Home/1-1.jpeg': 'IMG',
     });
     const p = resolveGrid3CellImage(zip, {
-      baseDir: "Grids/Home/",
+      baseDir: 'Grids/Home/',
       x: 1,
       y: 1,
     });
-    expect(p).toBe("Grids/Home/1-1.jpeg");
+    expect(p).toBe('Grids/Home/1-1.jpeg');
   });
 
-  it("treats built-in [grid3x] names as non-zip assets unless mapped", async () => {
+  it('treats built-in [grid3x] names as non-zip assets unless mapped', async () => {
     const zip = mkZip({});
     const p1 = resolveGrid3CellImage(zip, {
-      baseDir: "Grids/Home/",
-      imageName: "[grid3x]Home",
+      baseDir: 'Grids/Home/',
+      imageName: '[grid3x]Home',
     });
     expect(p1).toBeNull();
 
     const p2 = resolveGrid3CellImage(zip, {
-      baseDir: "Grids/Home/",
-      imageName: "[grid3x]Home",
-      builtinHandler: () => "builtin://home",
+      baseDir: 'Grids/Home/',
+      imageName: '[grid3x]Home',
+      builtinHandler: () => 'builtin://home',
     });
-    expect(p2).toBe("builtin://home");
+    expect(p2).toBe('builtin://home');
   });
 
   it('resolves coordinate-prefixed image names starting with "-"', async () => {
     const zip = mkZip({
-      "Grids/Home/1-4-0-text-0.jpeg": "IMG",
-      "Grids/Home/2-3-0-text-0.png": "PNG",
+      'Grids/Home/1-4-0-text-0.jpeg': 'IMG',
+      'Grids/Home/2-3-0-text-0.png': 'PNG',
     });
     const p1 = resolveGrid3CellImage(zip, {
-      baseDir: "Grids/Home/",
-      imageName: "-0-text-0.jpeg",
+      baseDir: 'Grids/Home/',
+      imageName: '-0-text-0.jpeg',
       x: 1,
       y: 4,
     });
-    expect(p1).toBe("Grids/Home/1-4-0-text-0.jpeg");
+    expect(p1).toBe('Grids/Home/1-4-0-text-0.jpeg');
 
     const p2 = resolveGrid3CellImage(zip, {
-      baseDir: "Grids/Home/",
-      imageName: "-0-text-0.png",
+      baseDir: 'Grids/Home/',
+      imageName: '-0-text-0.png',
       x: 2,
       y: 3,
     });
-    expect(p2).toBe("Grids/Home/2-3-0-text-0.png");
+    expect(p2).toBe('Grids/Home/2-3-0-text-0.png');
   });
 
-  it("returns null for coordinate-prefixed names when file does not exist", async () => {
+  it('returns null for coordinate-prefixed names when file does not exist', async () => {
     const zip = mkZip({});
     const p = resolveGrid3CellImage(zip, {
-      baseDir: "Grids/Home/",
-      imageName: "-0-text-0.png",
+      baseDir: 'Grids/Home/',
+      imageName: '-0-text-0.png',
       x: 1,
       y: 4,
     });
     expect(p).toBeNull();
   });
 
-  it("returns null for coordinate-prefixed names when coordinates are missing", async () => {
+  it('returns null for coordinate-prefixed names when coordinates are missing', async () => {
     const zip = mkZip({
-      "Grids/Home/1-4-0-text-0.jpeg": "IMG",
+      'Grids/Home/1-4-0-text-0.jpeg': 'IMG',
     });
     const p = resolveGrid3CellImage(zip, {
-      baseDir: "Grids/Home/",
-      imageName: "-0-text-0.jpeg",
+      baseDir: 'Grids/Home/',
+      imageName: '-0-text-0.jpeg',
       // No x, y provided
     });
     expect(p).toBeNull();

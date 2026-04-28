@@ -4,7 +4,7 @@ import {
   ProcessorInput,
   FileAdapter,
   defaultFileAdapter,
-} from "./io";
+} from './io';
 
 export interface ZipAdapter {
   listFiles(): string[];
@@ -19,15 +19,15 @@ export interface ZipFile {
 
 export async function getZipAdapter(
   input?: ProcessorInput,
-  fileAdapter?: FileAdapter,
+  fileAdapter?: FileAdapter
 ): Promise<ZipAdapter> {
   const adapter = fileAdapter ?? defaultFileAdapter;
   if (isNodeRuntime()) {
-    const AdmZip = getNodeRequire()("adm-zip") as typeof import("adm-zip");
+    const AdmZip = getNodeRequire()('adm-zip') as typeof import('adm-zip');
     const zip =
       input === undefined
         ? new AdmZip(input)
-        : typeof input === "string"
+        : typeof input === 'string'
           ? new AdmZip(input)
           : new AdmZip(Buffer.from(await adapter.readBinaryFromInput(input)));
     return {
@@ -51,12 +51,10 @@ export async function getZipAdapter(
     };
   }
 
-  const module = await import("jszip");
+  const module = await import('jszip');
   const JSZip = module.default || module;
 
-  const zip = input
-    ? await JSZip.loadAsync(await adapter.readBinaryFromInput(input))
-    : new JSZip();
+  const zip = input ? await JSZip.loadAsync(await adapter.readBinaryFromInput(input)) : new JSZip();
   return {
     listFiles: (): string[] => {
       return Object.entries(zip.files)
@@ -66,13 +64,13 @@ export async function getZipAdapter(
     readFile: async (name: string): Promise<Uint8Array> => {
       const file = zip.file(name);
       if (!file) throw new Error(`Zip entry not found: ${name}`);
-      return file.async("uint8array");
+      return file.async('uint8array');
     },
     writeFiles: async (files: ZipFile[]): Promise<Uint8Array> => {
       files.forEach((file) => {
         zip.file(file.name, file.data);
       });
-      return await zip.generateAsync({ type: "uint8array" });
+      return await zip.generateAsync({ type: 'uint8array' });
     },
   };
 }

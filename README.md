@@ -18,13 +18,13 @@ Full feature set, including filesystem access, SQLite-backed formats, and
 ZIP/encrypted formats.
 
 ```ts
-import { getProcessor, SnapProcessor } from "@willwade/aac-processors";
+import { getProcessor, SnapProcessor } from '@willwade/aac-processors';
 
-const processor = getProcessor("board.sps");
-const tree = await processor.loadIntoTree("board.sps");
+const processor = getProcessor('board.sps');
+const tree = await processor.loadIntoTree('board.sps');
 
 const snap = new SnapProcessor();
-const texts = await snap.extractTexts("board.sps");
+const texts = await snap.extractTexts('board.sps');
 ```
 
 ### Browser
@@ -38,10 +38,7 @@ and either include `<script src="sql-wasm.js"></script>` in your HTML, or
 `window.initSqlJs = require('sql.js');` in your app.
 
 ```ts
-import {
-  configureSqlJs,
-  SnapProcessor,
-} from "@willwade/aac-processors/browser";
+import { configureSqlJs, SnapProcessor } from '@willwade/aac-processors/browser';
 
 configureSqlJs({
   locateFile: (file) => new URL(`./${file}`, import.meta.url).toString(),
@@ -52,7 +49,7 @@ const tree = await snap.loadIntoTree(snapUint8Array);
 ```
 
 ```ts
-import { GridsetProcessor } from "@willwade/aac-processors/browser";
+import { GridsetProcessor } from '@willwade/aac-processors/browser';
 
 const processor = new GridsetProcessor();
 const tree = await processor.loadIntoTree(gridsetUint8Array);
@@ -75,17 +72,17 @@ const tree = await processor.loadIntoTree(gridsetUint8Array);
 All processors implement `processTexts()` to get all strings eg
 
 ```ts
-import { DotProcessor } from "@willwade/aac-processors";
+import { DotProcessor } from '@willwade/aac-processors';
 
 const processor = new DotProcessor();
-const texts = await processor.extractTexts("board.dot");
+const texts = await processor.extractTexts('board.dot');
 
 const translations = new Map([
-  ["Hello", "Hola"],
-  ["Food", "Comida"],
+  ['Hello', 'Hola'],
+  ['Food', 'Comida'],
 ]);
 
-await processor.processTexts("board.dot", translations, "board-es.dot");
+await processor.processTexts('board.dot', translations, 'board-es.dot');
 ```
 
 NB: Please use [https://aactools.co.uk](https://aactools.co.uk) for a far more comphrensive translation logic - where we do far far more than this...

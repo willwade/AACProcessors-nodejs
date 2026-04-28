@@ -20,7 +20,7 @@ export {
   type SymbolInfo,
   type ButtonForTranslation,
   type LLMLTranslationResult,
-} from "./utilities/translation/translationProcessor";
+} from './utilities/translation/translationProcessor';
 
 // Translation types
-export { type TranslatedString, type SourceString } from "./core/baseProcessor";
+export { type TranslatedString, type SourceString } from './core/baseProcessor';

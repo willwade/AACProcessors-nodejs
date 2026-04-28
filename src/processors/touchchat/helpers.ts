@@ -1,4 +1,4 @@
-import { AACTree } from "../../core/treeStructure";
+import { AACTree } from '../../core/treeStructure';
 
 // Minimal TouchChat helpers (stubs) to align with processors/<engine>/helpers pattern
 // NOTE: TouchChat buttons currently do not populate resolvedImageEntry; these helpers
@@ -8,10 +8,7 @@ import { AACTree } from "../../core/treeStructure";
  * Build a map of button IDs to resolved image entry strings for a page.
  * Returns an empty map when no images are present.
  */
-export function getPageTokenImageMap(
-  tree: AACTree,
-  pageId: string,
-): Map<string, string> {
+export function getPageTokenImageMap(tree: AACTree, pageId: string): Map<string, string> {
   const map = new Map<string, string>();
   const page = tree.getPage(pageId);
   if (!page) return map;
@@ -33,9 +30,6 @@ export function getAllowedImageEntries(_tree: AACTree): Set<string> {
  * Read a binary asset from a .ce file.
  * Not implemented yet; provided for API symmetry with other processors.
  */
-export function openImage(
-  _ceFile: string | Buffer,
-  _entryPath: string,
-): Buffer | null {
+export function openImage(_ceFile: string | Buffer, _entryPath: string): Buffer | null {
   return null;
 }

@@ -4,7 +4,7 @@ import {
   ExtractStringsResult,
   TranslatedString,
   SourceString,
-} from "../core/baseProcessor";
+} from '../core/baseProcessor';
 import {
   AACTree,
   AACPage,
@@ -13,12 +13,12 @@ import {
   AACSemanticCategory,
   AACSemanticIntent,
   SnapMetadata,
-} from "../core/treeStructure";
-import { generateCloneId } from "../utilities/analytics/utils/idGenerator";
-import { SnapValidator } from "../validation/snapValidator";
-import { ValidationResult } from "../validation/validationTypes";
-import { ProcessorInput, getNodeRequire, isNodeRuntime } from "../utils/io";
-import { openSqliteDatabase, requireBetterSqlite3 } from "../utils/sqlite";
+} from '../core/treeStructure';
+import { generateCloneId } from '../utilities/analytics/utils/idGenerator';
+import { SnapValidator } from '../validation/snapValidator';
+import { ValidationResult } from '../validation/validationTypes';
+import { ProcessorInput, getNodeRequire, isNodeRuntime } from '../utils/io';
+import { openSqliteDatabase, requireBetterSqlite3 } from '../utils/sqlite';
 
 /**
  * Convert a Buffer or Uint8Array to base64 string (browser and Node compatible)
@@ -27,13 +27,13 @@ import { openSqliteDatabase, requireBetterSqlite3 } from "../utils/sqlite";
  */
 function arrayBufferToBase64(data: Buffer | Uint8Array): string {
   // Node.js environment - Buffer has built-in base64 encoding
-  if (typeof Buffer !== "undefined" && data instanceof Buffer) {
-    return data.toString("base64");
+  if (typeof Buffer !== 'undefined' && data instanceof Buffer) {
+    return data.toString('base64');
   }
 
   // Browser environment - use btoa with binary string conversion
   const bytes = new Uint8Array(data);
-  let binary = "";
+  let binary = '';
   const len = bytes.byteLength;
   for (let i = 0; i < len; i++) {
     binary += String.fromCharCode(bytes[i]);
@@ -66,13 +66,11 @@ interface SnapButton {
  * Snap: 0 = hidden, 1 (or non-zero) = visible
  * Maps to: 'Hidden' | 'Visible' | undefined
  */
-function mapSnapVisibility(
-  visible: number | null | undefined,
-): "Hidden" | "Visible" | undefined {
+function mapSnapVisibility(visible: number | null | undefined): 'Hidden' | 'Visible' | undefined {
   if (visible === null || visible === undefined) {
     return undefined; // Default to visible
   }
-  return visible === 0 ? "Hidden" : "Visible";
+  return visible === 0 ? 'Hidden' : 'Visible';
 }
 
 interface SnapPage {
@@ -86,24 +84,20 @@ interface SnapPage {
 class SnapProcessor extends BaseProcessor {
   private symbolResolver: unknown | null = null;
   private loadAudio: boolean = false;
-  private pageLayoutPreference: "largest" | "smallest" | "scanning" | number =
-    "scanning"; // Default to scanning for metrics
+  private pageLayoutPreference: 'largest' | 'smallest' | 'scanning' | number = 'scanning'; // Default to scanning for metrics
 
   constructor(
     symbolResolver: unknown | null = null,
     options?: ProcessorOptions & {
       loadAudio?: boolean;
-      pageLayoutPreference?: "largest" | "smallest" | "scanning" | number;
-    },
+      pageLayoutPreference?: 'largest' | 'smallest' | 'scanning' | number;
+    }
   ) {
     super(options);
     this.symbolResolver = symbolResolver;
-    this.loadAudio =
-      options?.loadAudio !== undefined ? options.loadAudio : true;
+    this.loadAudio = options?.loadAudio !== undefined ? options.loadAudio : true;
     this.pageLayoutPreference =
-      options?.pageLayoutPreference !== undefined
-        ? options.pageLayoutPreference
-        : "scanning"; // Default to scanning
+      options?.pageLayoutPreference !== undefined ? options.pageLayoutPreference : 'scanning'; // Default to scanning
   }
 
   async extractTexts(filePathOrBuffer: ProcessorInput): Promise<string[]> {
@@ -126,8 +120,7 @@ class SnapProcessor extends BaseProcessor {
   }
 
   async loadIntoTree(filePathOrBuffer: ProcessorInput): Promise<AACTree> {
-    const { writeBinaryToPath, removePath, mkTempDir, basename, join } =
-      this.options.fileAdapter;
+    const { writeBinaryToPath, removePath, mkTempDir, basename, join } = this.options.fileAdapter;
     const tree = new AACTree();
     let dbResult: Awaited<ReturnType<typeof openSqliteDatabase>> | null = null;
     let cleanupTempZip: (() => Promise<void>) | null = null;
@@ -136,23 +129,20 @@ class SnapProcessor extends BaseProcessor {
       // Handle .sub.zip files (Snap pageset backups containing .sps files)
       let inputFile = filePathOrBuffer;
 
-      if (typeof filePathOrBuffer === "string") {
+      if (typeof filePathOrBuffer === 'string') {
         const fileName = basename(filePathOrBuffer).toLowerCase();
-        if (
-          fileName.endsWith(".sub.zip") ||
-          filePathOrBuffer.endsWith(".sub")
-        ) {
+        if (fileName.endsWith('.sub.zip') || filePathOrBuffer.endsWith('.sub')) {
           // Extract .sub.zip to find the embedded .sps file
-          const tempDir = await mkTempDir("snap-sub-");
+          const tempDir = await mkTempDir('snap-sub-');
           const zip = await this.options.zipAdapter(filePathOrBuffer);
 
           // Find the .sps file in the archive
           const files = zip.listFiles();
-          const spsFile = files.find((f) => f.endsWith(".sps"));
+          const spsFile = files.find((f) => f.endsWith('.sps'));
 
           if (!spsFile) {
             await removePath(tempDir, { recursive: true, force: true });
-            throw new Error("No .sps file found in .sub.zip archive");
+            throw new Error('No .sps file found in .sub.zip archive');
           }
 
           // Extract the .sps file
@@ -175,9 +165,7 @@ class SnapProcessor extends BaseProcessor {
 
       const getTableColumns = (tableName: string): Set<string> => {
         try {
-          const rows = db
-            .prepare(`PRAGMA table_info(${tableName})`)
-            .all() as Array<{
+          const rows = db.prepare(`PRAGMA table_info(${tableName})`).all() as Array<{
             name: string;
           }>;
           return new Set(rows.map((row) => row.name));
@@ -187,7 +175,7 @@ class SnapProcessor extends BaseProcessor {
       };
 
       // Load pages first, using UniqueId as canonical id
-      const pages = db.prepare("SELECT * FROM Page").all();
+      const pages = db.prepare('SELECT * FROM Page').all();
 
       // Load PageSetProperties to find default Keyboard and Home pages
       let defaultKeyboardPageId: string | undefined;
@@ -195,7 +183,7 @@ class SnapProcessor extends BaseProcessor {
       let dashboardPageId: string | undefined;
       let toolbarId: string | undefined;
       try {
-        const properties = db.prepare("SELECT * FROM PageSetProperties").get();
+        const properties = db.prepare('SELECT * FROM PageSetProperties').get();
         if (properties) {
           defaultKeyboardPageId = properties.DefaultKeyboardPageUniqueId;
           defaultHomePageId = properties.DefaultHomePageUniqueId;
@@ -203,11 +191,11 @@ class SnapProcessor extends BaseProcessor {
           toolbarId = properties.ToolBarUniqueId;
 
           const hasGlobalToolbar =
-            toolbarId && toolbarId !== "00000000-0000-0000-0000-000000000000";
+            toolbarId && toolbarId !== '00000000-0000-0000-0000-000000000000';
 
           // Store metadata in tree
           const metadata: SnapMetadata = {
-            format: "snap",
+            format: 'snap',
             name: properties.Name || properties.PageSetName || undefined,
             description: properties.Description || undefined,
             author: properties.Author || undefined,
@@ -230,7 +218,7 @@ class SnapProcessor extends BaseProcessor {
           }
         }
       } catch (e) {
-        console.warn("[SnapProcessor] Failed to load PageSetProperties:", e);
+        console.warn('[SnapProcessor] Failed to load PageSetProperties:', e);
       }
 
       // If still no root, fallback to first page (but don't override a valid defaultHomePageId)
@@ -262,13 +250,10 @@ class SnapProcessor extends BaseProcessor {
       // Try to find toolbar page even if not set in PageSetProperties
       // Some SNAP files have a toolbar page but don't set ToolBarUniqueId
       // This must be done AFTER pages are added to the tree
-      if (
-        !tree.toolbarId ||
-        tree.toolbarId === "00000000-0000-0000-0000-000000000000"
-      ) {
+      if (!tree.toolbarId || tree.toolbarId === '00000000-0000-0000-0000-000000000000') {
         const toolbarPage = Object.values(tree.pages).find((p) => {
-          const name = (p.name || "").toLowerCase();
-          return name === "tool bar" || name === "toolbar";
+          const name = (p.name || '').toLowerCase();
+          return name === 'tool bar' || name === 'toolbar';
         });
         if (toolbarPage) {
           tree.toolbarId = toolbarPage.id;
@@ -290,9 +275,7 @@ class SnapProcessor extends BaseProcessor {
       const scanGroupsByPageLayout = new Map<number, SnapScanGroup[]>();
       try {
         const scanGroupRows = db
-          .prepare(
-            "SELECT Id, SerializedGridPositions, PageLayoutId FROM ScanGroup ORDER BY Id",
-          )
+          .prepare('SELECT Id, SerializedGridPositions, PageLayoutId FROM ScanGroup ORDER BY Id')
           .all() as {
           Id: number;
           SerializedGridPositions: string;
@@ -342,7 +325,7 @@ class SnapProcessor extends BaseProcessor {
         }
       } catch (e) {
         // No ScanGroups table or error loading, continue without scan blocks
-        console.warn("[SnapProcessor] Failed to load ScanGroups:", e);
+        console.warn('[SnapProcessor] Failed to load ScanGroups:', e);
       }
 
       // Load buttons per page, using UniqueId for page id
@@ -354,27 +337,25 @@ class SnapProcessor extends BaseProcessor {
         let selectedPageLayoutId: number | null = null;
         try {
           const pageLayouts = db
-            .prepare(
-              "SELECT Id, PageLayoutSetting FROM PageLayout WHERE PageId = ?",
-            )
+            .prepare('SELECT Id, PageLayoutSetting FROM PageLayout WHERE PageId = ?')
             .all(pageRow.Id) as { Id: number; PageLayoutSetting: string }[];
 
           if (pageLayouts && pageLayouts.length > 0) {
             // Parse PageLayoutSetting: "columns,rows,hasScanGroups,?"
             const layoutsWithInfo = pageLayouts.map((pl) => {
-              const parts = pl.PageLayoutSetting.split(",");
+              const parts = pl.PageLayoutSetting.split(',');
               const cols = parseInt(parts[0], 10) || 0;
               const rows = parseInt(parts[1], 10) || 0;
-              const hasScanning = parts[2] === "True";
+              const hasScanning = parts[2] === 'True';
               const size = cols * rows;
               return { id: pl.Id, cols, rows, size, hasScanning };
             });
 
             // Select based on preference
-            if (typeof this.pageLayoutPreference === "number") {
+            if (typeof this.pageLayoutPreference === 'number') {
               // Specific PageLayoutId
               selectedPageLayoutId = this.pageLayoutPreference;
-            } else if (this.pageLayoutPreference === "largest") {
+            } else if (this.pageLayoutPreference === 'largest') {
               // Select layout with largest grid size, prefer layouts with ScanGroups
               layoutsWithInfo.sort((a, b) => {
                 const sizeDiff = b.size - a.size;
@@ -385,7 +366,7 @@ class SnapProcessor extends BaseProcessor {
                 return (bHasScanning ? 1 : 0) - (aHasScanning ? 1 : 0);
               });
               selectedPageLayoutId = layoutsWithInfo[0].id;
-            } else if (this.pageLayoutPreference === "smallest") {
+            } else if (this.pageLayoutPreference === 'smallest') {
               // Select layout with smallest grid size, prefer layouts with ScanGroups
               layoutsWithInfo.sort((a, b) => {
                 const sizeDiff = a.size - b.size;
@@ -396,10 +377,10 @@ class SnapProcessor extends BaseProcessor {
                 return (bHasScanning ? 1 : 0) - (aHasScanning ? 1 : 0);
               });
               selectedPageLayoutId = layoutsWithInfo[0].id;
-            } else if (this.pageLayoutPreference === "scanning") {
+            } else if (this.pageLayoutPreference === 'scanning') {
               // Select layout with scanning enabled (check against actual ScanGroups)
               const scanningLayouts = layoutsWithInfo.filter((l) =>
-                scanGroupsByPageLayout.has(l.id),
+                scanGroupsByPageLayout.has(l.id)
               );
               if (scanningLayouts.length > 0) {
                 scanningLayouts.sort((a, b) => b.size - a.size);
@@ -413,134 +394,98 @@ class SnapProcessor extends BaseProcessor {
           }
         } catch (e) {
           // Error selecting PageLayout, will load all buttons
-          console.warn(
-            `[SnapProcessor] Failed to select PageLayout for page ${pageRow.Id}:`,
-            e,
-          );
+          console.warn(`[SnapProcessor] Failed to select PageLayout for page ${pageRow.Id}:`, e);
         }
 
         // Load buttons
         let buttons: any[] = [];
         try {
-          const buttonColumns = getTableColumns("Button");
+          const buttonColumns = getTableColumns('Button');
           const selectFields = [
-            "b.Id",
-            "b.Label",
-            "b.Message",
-            buttonColumns.has("LibrarySymbolId")
-              ? "b.LibrarySymbolId"
-              : "NULL AS LibrarySymbolId",
-            buttonColumns.has("PageSetImageId")
-              ? "b.PageSetImageId"
-              : "NULL AS PageSetImageId",
-            buttonColumns.has("BorderColor")
-              ? "b.BorderColor"
-              : "NULL AS BorderColor",
-            buttonColumns.has("BorderThickness")
-              ? "b.BorderThickness"
-              : "NULL AS BorderThickness",
-            buttonColumns.has("FontSize") ? "b.FontSize" : "NULL AS FontSize",
-            buttonColumns.has("FontFamily")
-              ? "b.FontFamily"
-              : "NULL AS FontFamily",
-            buttonColumns.has("FontStyle")
-              ? "b.FontStyle"
-              : "NULL AS FontStyle",
-            buttonColumns.has("LabelColor")
-              ? "b.LabelColor"
-              : "NULL AS LabelColor",
-            buttonColumns.has("BackgroundColor")
-              ? "b.BackgroundColor"
-              : "NULL AS BackgroundColor",
-            buttonColumns.has("NavigatePageId")
-              ? "b.NavigatePageId"
-              : "NULL AS NavigatePageId",
-            buttonColumns.has("ContentType")
-              ? "b.ContentType"
-              : "NULL AS ContentType",
+            'b.Id',
+            'b.Label',
+            'b.Message',
+            buttonColumns.has('LibrarySymbolId') ? 'b.LibrarySymbolId' : 'NULL AS LibrarySymbolId',
+            buttonColumns.has('PageSetImageId') ? 'b.PageSetImageId' : 'NULL AS PageSetImageId',
+            buttonColumns.has('BorderColor') ? 'b.BorderColor' : 'NULL AS BorderColor',
+            buttonColumns.has('BorderThickness') ? 'b.BorderThickness' : 'NULL AS BorderThickness',
+            buttonColumns.has('FontSize') ? 'b.FontSize' : 'NULL AS FontSize',
+            buttonColumns.has('FontFamily') ? 'b.FontFamily' : 'NULL AS FontFamily',
+            buttonColumns.has('FontStyle') ? 'b.FontStyle' : 'NULL AS FontStyle',
+            buttonColumns.has('LabelColor') ? 'b.LabelColor' : 'NULL AS LabelColor',
+            buttonColumns.has('BackgroundColor') ? 'b.BackgroundColor' : 'NULL AS BackgroundColor',
+            buttonColumns.has('NavigatePageId') ? 'b.NavigatePageId' : 'NULL AS NavigatePageId',
+            buttonColumns.has('ContentType') ? 'b.ContentType' : 'NULL AS ContentType',
           ];
 
           if (this.loadAudio) {
             selectFields.push(
-              buttonColumns.has("MessageRecordingId")
-                ? "b.MessageRecordingId"
-                : "NULL AS MessageRecordingId",
+              buttonColumns.has('MessageRecordingId')
+                ? 'b.MessageRecordingId'
+                : 'NULL AS MessageRecordingId'
             );
             selectFields.push(
-              buttonColumns.has("UseMessageRecording")
-                ? "b.UseMessageRecording"
-                : "NULL AS UseMessageRecording",
+              buttonColumns.has('UseMessageRecording')
+                ? 'b.UseMessageRecording'
+                : 'NULL AS UseMessageRecording'
             );
             selectFields.push(
-              buttonColumns.has("SerializedMessageSoundMetadata")
-                ? "b.SerializedMessageSoundMetadata"
-                : "NULL AS SerializedMessageSoundMetadata",
+              buttonColumns.has('SerializedMessageSoundMetadata')
+                ? 'b.SerializedMessageSoundMetadata'
+                : 'NULL AS SerializedMessageSoundMetadata'
             );
           }
 
-          const placementColumns = getTableColumns("ElementPlacement");
-          const hasButtonPageLink = getTableColumns("ButtonPageLink").size > 0;
+          const placementColumns = getTableColumns('ElementPlacement');
+          const hasButtonPageLink = getTableColumns('ButtonPageLink').size > 0;
 
           selectFields.push(
-            placementColumns.has("GridPosition")
-              ? "ep.GridPosition"
-              : "NULL AS GridPosition",
-            placementColumns.has("PageLayoutId")
-              ? "ep.PageLayoutId"
-              : "NULL AS PageLayoutId",
-            placementColumns.has("Visible") ? "ep.Visible" : "NULL AS Visible",
-            "er.PageId as ButtonPageId",
+            placementColumns.has('GridPosition') ? 'ep.GridPosition' : 'NULL AS GridPosition',
+            placementColumns.has('PageLayoutId') ? 'ep.PageLayoutId' : 'NULL AS PageLayoutId',
+            placementColumns.has('Visible') ? 'ep.Visible' : 'NULL AS Visible',
+            'er.PageId as ButtonPageId'
           );
 
           if (hasButtonPageLink) {
-            selectFields.push("bpl.PageUniqueId AS LinkedPageUniqueId");
+            selectFields.push('bpl.PageUniqueId AS LinkedPageUniqueId');
           } else {
-            selectFields.push("NULL AS LinkedPageUniqueId");
+            selectFields.push('NULL AS LinkedPageUniqueId');
           }
 
-          const hasCommandSequence =
-            getTableColumns("CommandSequence").size > 0;
+          const hasCommandSequence = getTableColumns('CommandSequence').size > 0;
           if (hasCommandSequence) {
-            selectFields.push("cs.SerializedCommands");
+            selectFields.push('cs.SerializedCommands');
           } else {
-            selectFields.push("NULL AS SerializedCommands");
+            selectFields.push('NULL AS SerializedCommands');
           }
 
           const buttonQuery = `
-             SELECT ${selectFields.join(", ")}
+             SELECT ${selectFields.join(', ')}
              FROM Button b
              INNER JOIN ElementReference er ON b.ElementReferenceId = er.Id
              LEFT JOIN ElementPlacement ep ON ep.ElementReferenceId = er.Id
-             ${hasButtonPageLink ? "LEFT JOIN ButtonPageLink bpl ON b.Id = bpl.ButtonId" : ""}
-             ${hasCommandSequence ? "LEFT JOIN CommandSequence cs ON b.Id = cs.ButtonId" : ""}
-             WHERE er.PageId = ? ${selectedPageLayoutId ? "AND ep.PageLayoutId = ?" : ""}
+             ${hasButtonPageLink ? 'LEFT JOIN ButtonPageLink bpl ON b.Id = bpl.ButtonId' : ''}
+             ${hasCommandSequence ? 'LEFT JOIN CommandSequence cs ON b.Id = cs.ButtonId' : ''}
+             WHERE er.PageId = ? ${selectedPageLayoutId ? 'AND ep.PageLayoutId = ?' : ''}
            `;
           if (selectedPageLayoutId) {
-            buttons = db
-              .prepare(buttonQuery)
-              .all(pageRow.Id, selectedPageLayoutId);
+            buttons = db.prepare(buttonQuery).all(pageRow.Id, selectedPageLayoutId);
           } else {
             buttons = db.prepare(buttonQuery).all(pageRow.Id);
           }
         } catch (err) {
           const errorMessage = err instanceof Error ? err.message : String(err);
           const errorCode =
-            err && typeof err === "object" && "code" in err
-              ? (err as any).code
-              : undefined;
+            err && typeof err === 'object' && 'code' in err ? (err as any).code : undefined;
           if (
-            errorCode === "SQLITE_CORRUPT" ||
-            errorCode === "SQLITE_NOTADB" ||
+            errorCode === 'SQLITE_CORRUPT' ||
+            errorCode === 'SQLITE_NOTADB' ||
             /malformed/i.test(errorMessage)
           ) {
-            throw new Error(
-              `Snap database is corrupted or incomplete: ${errorMessage}`,
-            );
+            throw new Error(`Snap database is corrupted or incomplete: ${errorMessage}`);
           }
 
-          console.warn(
-            `Failed to load buttons for page ${pageRow.Id}: ${errorMessage}`,
-          );
+          console.warn(`Failed to load buttons for page ${pageRow.Id}: ${errorMessage}`);
           // Skip this page instead of loading all buttons
           buttons = [];
         }
@@ -566,10 +511,7 @@ class SnapProcessor extends BaseProcessor {
         buttons.forEach((btnRow) => {
           // Determine navigation target UniqueId, if possible
           let targetPageUniqueId: string | undefined = undefined;
-          if (
-            btnRow.NavigatePageId &&
-            idToUniqueId[String(btnRow.NavigatePageId)]
-          ) {
+          if (btnRow.NavigatePageId && idToUniqueId[String(btnRow.NavigatePageId)]) {
             targetPageUniqueId = idToUniqueId[String(btnRow.NavigatePageId)];
           } else if (btnRow.LinkedPageUniqueId) {
             targetPageUniqueId = String(btnRow.LinkedPageUniqueId);
@@ -583,16 +525,16 @@ class SnapProcessor extends BaseProcessor {
               const commands = JSON.parse(btnRow.SerializedCommands as string);
               const values = commands.$values || [];
               for (const cmd of values) {
-                if (cmd.$type === "2" && cmd.LinkedPageId) {
+                if (cmd.$type === '2' && cmd.LinkedPageId) {
                   // Normal Navigation
                   targetPageUniqueId = String(cmd.LinkedPageId);
-                } else if (cmd.$type === "16") {
+                } else if (cmd.$type === '16') {
                   // Go to Home
                   targetPageUniqueId = defaultHomePageId;
-                } else if (cmd.$type === "17") {
+                } else if (cmd.$type === '17') {
                   // Go to Keyboard
                   targetPageUniqueId = defaultKeyboardPageId;
-                } else if (cmd.$type === "18") {
+                } else if (cmd.$type === '18') {
                   // Go to Dashboard
                   targetPageUniqueId = dashboardPageId;
                 }
@@ -603,27 +545,19 @@ class SnapProcessor extends BaseProcessor {
           }
 
           // Determine parent page association for this button
-          const parentPageId = btnRow.ButtonPageId
-            ? String(btnRow.ButtonPageId)
-            : undefined;
+          const parentPageId = btnRow.ButtonPageId ? String(btnRow.ButtonPageId) : undefined;
           const parentUniqueId =
-            parentPageId && idToUniqueId[parentPageId]
-              ? idToUniqueId[parentPageId]
-              : uniqueId;
+            parentPageId && idToUniqueId[parentPageId] ? idToUniqueId[parentPageId] : uniqueId;
 
           // Load audio recording if requested and available
           let audioRecording;
-          if (
-            this.loadAudio &&
-            btnRow.MessageRecordingId &&
-            btnRow.MessageRecordingId > 0
-          ) {
+          if (this.loadAudio && btnRow.MessageRecordingId && btnRow.MessageRecordingId > 0) {
             try {
               const recordingData = db
                 .prepare(
                   `
                 SELECT Id, Identifier, Data FROM PageSetData WHERE Id = ?
-              `,
+              `
                 )
                 .get(btnRow.MessageRecordingId) as
                 | { Id: number; Identifier: string; Data: Buffer }
@@ -638,10 +572,7 @@ class SnapProcessor extends BaseProcessor {
                 };
               }
             } catch (e) {
-              console.warn(
-                `[SnapProcessor] Failed to load audio for button ${btnRow.Id}:`,
-                e,
-              );
+              console.warn(`[SnapProcessor] Failed to load audio for button ${btnRow.Id}:`, e);
             }
           }
 
@@ -656,7 +587,7 @@ class SnapProcessor extends BaseProcessor {
                 .prepare(
                   `
                   SELECT Id, Identifier, Data FROM PageSetData WHERE Id = ?
-                `,
+                `
                 )
                 .get(btnRow.PageSetImageId) as
                 | { Id: number; Identifier: string; Data: Buffer }
@@ -677,14 +608,11 @@ class SnapProcessor extends BaseProcessor {
                   data[3] === 0x47;
                 // Check for JPEG: FF D8 FF
                 const isJpeg =
-                  data.length > 3 &&
-                  data[0] === 0xff &&
-                  data[1] === 0xd8 &&
-                  data[2] === 0xff;
+                  data.length > 3 && data[0] === 0xff && data[1] === 0xd8 && data[2] === 0xff;
 
                 if (isPng || isJpeg) {
                   // Actual PNG/JPEG image - can be displayed
-                  const mimeType = isPng ? "image/png" : "image/jpeg";
+                  const mimeType = isPng ? 'image/png' : 'image/jpeg';
                   const base64 = arrayBufferToBase64(data);
                   buttonImage = `data:${mimeType};base64,${base64}`;
                   buttonParameters.image_id = imageData.Identifier;
@@ -697,7 +625,7 @@ class SnapProcessor extends BaseProcessor {
             } catch (e) {
               console.warn(
                 `[SnapProcessor] Failed to load image for button ${btnRow.Id} (PageSetImageId: ${btnRow.PageSetImageId}):`,
-                e,
+                e
               );
             }
           }
@@ -717,7 +645,7 @@ class SnapProcessor extends BaseProcessor {
                 },
               },
               fallback: {
-                type: "NAVIGATE",
+                type: 'NAVIGATE',
                 targetPageId: targetPageUniqueId,
               },
             };
@@ -725,30 +653,28 @@ class SnapProcessor extends BaseProcessor {
             semanticAction = {
               category: AACSemanticCategory.COMMUNICATION,
               intent: AACSemanticIntent.SPEAK_TEXT,
-              text: btnRow.Message || btnRow.Label || "",
+              text: btnRow.Message || btnRow.Label || '',
               platformData: {
                 snap: {
                   elementReferenceId: btnRow.Id,
                 },
               },
               fallback: {
-                type: "SPEAK",
-                message: btnRow.Message || btnRow.Label || "",
+                type: 'SPEAK',
+                message: btnRow.Message || btnRow.Label || '',
               },
             };
           }
 
           const button = new AACButton({
             id: String(btnRow.Id),
-            label:
-              btnRow.Label || (btnRow.ContentType === 1 ? "[Prediction]" : ""),
+            label: btnRow.Label || (btnRow.ContentType === 1 ? '[Prediction]' : ''),
             message:
-              btnRow.Message ||
-              (btnRow.ContentType === 1 ? "[Prediction]" : btnRow.Label || ""),
+              btnRow.Message || (btnRow.ContentType === 1 ? '[Prediction]' : btnRow.Label || ''),
             targetPageId: targetPageUniqueId,
             semanticAction: semanticAction,
-            contentType: btnRow.ContentType === 1 ? "AutoContent" : undefined,
-            contentSubType: btnRow.ContentType === 1 ? "Prediction" : undefined,
+            contentType: btnRow.ContentType === 1 ? 'AutoContent' : undefined,
+            contentSubType: btnRow.ContentType === 1 ? 'Prediction' : undefined,
             audioRecording: audioRecording,
             visibility: mapSnapVisibility(btnRow.Visible as number),
             semantic_id: btnRow.LibrarySymbolId
@@ -756,21 +682,14 @@ class SnapProcessor extends BaseProcessor {
               : undefined, // Extract semantic_id from LibrarySymbolId
             image: buttonImage,
             resolvedImageEntry: buttonImage,
-            parameters:
-              Object.keys(buttonParameters).length > 0
-                ? buttonParameters
-                : undefined,
+            parameters: Object.keys(buttonParameters).length > 0 ? buttonParameters : undefined,
             style: {
               backgroundColor: btnRow.BackgroundColor
                 ? `#${btnRow.BackgroundColor.toString(16)}`
                 : undefined,
-              borderColor: btnRow.BorderColor
-                ? `#${btnRow.BorderColor.toString(16)}`
-                : undefined,
+              borderColor: btnRow.BorderColor ? `#${btnRow.BorderColor.toString(16)}` : undefined,
               borderWidth: btnRow.BorderThickness,
-              fontColor: btnRow.LabelColor
-                ? `#${btnRow.LabelColor.toString(16)}`
-                : undefined,
+              fontColor: btnRow.LabelColor ? `#${btnRow.LabelColor.toString(16)}` : undefined,
               fontSize: btnRow.FontSize,
               fontFamily: btnRow.FontFamily,
               fontStyle: btnRow.FontStyle?.toString(),
@@ -783,10 +702,10 @@ class SnapProcessor extends BaseProcessor {
             parentPage.addButton(button);
 
             // Add button to grid layout if position data is available
-            const gridPositionStr = String(btnRow.GridPosition || "");
-            if (gridPositionStr && gridPositionStr.includes(",")) {
+            const gridPositionStr = String(btnRow.GridPosition || '');
+            if (gridPositionStr && gridPositionStr.includes(',')) {
               // Parse comma-separated coordinates "x,y"
-              const [xStr, yStr] = gridPositionStr.split(",");
+              const [xStr, yStr] = gridPositionStr.split(',');
               const gridX = parseInt(xStr, 10);
               const gridY = parseInt(yStr, 10);
 
@@ -799,25 +718,18 @@ class SnapProcessor extends BaseProcessor {
                 // IMPORTANT: Only match against ScanGroups from the SAME PageLayout
                 // A button can exist in multiple layouts with different positions
                 const buttonPageLayoutId = btnRow.PageLayoutId as number;
-                if (
-                  buttonPageLayoutId &&
-                  scanGroupsByPageLayout.has(buttonPageLayoutId)
-                ) {
-                  const scanGroups =
-                    scanGroupsByPageLayout.get(buttonPageLayoutId);
+                if (buttonPageLayoutId && scanGroupsByPageLayout.has(buttonPageLayoutId)) {
+                  const scanGroups = scanGroupsByPageLayout.get(buttonPageLayoutId);
                   if (scanGroups && scanGroups.length > 0) {
                     // Find which ScanGroup contains this button's position
                     for (const scanGroup of scanGroups) {
                       // Skip if positions array is null or undefined
-                      if (
-                        !scanGroup.positions ||
-                        !Array.isArray(scanGroup.positions)
-                      ) {
+                      if (!scanGroup.positions || !Array.isArray(scanGroup.positions)) {
                         continue;
                       }
 
                       const foundInGroup = scanGroup.positions.some(
-                        (pos) => pos.Column === gridX && pos.Row === gridY,
+                        (pos) => pos.Column === gridX && pos.Row === gridY
                       );
 
                       if (foundInGroup) {
@@ -845,13 +757,7 @@ class SnapProcessor extends BaseProcessor {
                 // Generate clone_id for button at this position
                 const rows = pageGrid.length;
                 const cols = pageGrid[0] ? pageGrid[0].length : 10;
-                button.clone_id = generateCloneId(
-                  rows,
-                  cols,
-                  gridY,
-                  gridX,
-                  button.label,
-                );
+                button.clone_id = generateCloneId(rows, cols, gridY, gridX, button.label);
                 pageGrid[gridY][gridX] = button;
               }
             }
@@ -900,17 +806,15 @@ class SnapProcessor extends BaseProcessor {
       return tree;
     } catch (error: any) {
       const fileIdentifier =
-        typeof filePathOrBuffer === "string"
-          ? filePathOrBuffer
-          : "[buffer input]";
+        typeof filePathOrBuffer === 'string' ? filePathOrBuffer : '[buffer input]';
       // Provide more specific error messages
-      if (error.code === "SQLITE_NOTADB") {
+      if (error.code === 'SQLITE_NOTADB') {
         throw new Error(
-          `Invalid SQLite database file: ${typeof filePathOrBuffer === "string" ? filePathOrBuffer : "buffer"}`,
+          `Invalid SQLite database file: ${typeof filePathOrBuffer === 'string' ? filePathOrBuffer : 'buffer'}`
         );
-      } else if (error.code === "ENOENT") {
+      } else if (error.code === 'ENOENT') {
         throw new Error(`File not found: ${fileIdentifier}`);
-      } else if (error.code === "EACCES") {
+      } else if (error.code === 'EACCES') {
         throw new Error(`Permission denied accessing file: ${fileIdentifier}`);
       } else {
         throw new Error(`Failed to load Snap file: ${error.message}`);
@@ -926,10 +830,7 @@ class SnapProcessor extends BaseProcessor {
         try {
           await cleanupTempZip();
         } catch (e) {
-          console.warn(
-            "[SnapProcessor] Failed to clean up temporary .sps file:",
-            e,
-          );
+          console.warn('[SnapProcessor] Failed to clean up temporary .sps file:', e);
         }
       }
     }
@@ -938,23 +839,15 @@ class SnapProcessor extends BaseProcessor {
   async processTexts(
     filePathOrBuffer: ProcessorInput,
     translations: Map<string, string>,
-    outputPath: string,
+    outputPath: string
   ): Promise<Uint8Array> {
-    const {
-      pathExists,
-      mkDir,
-      writeBinaryToPath,
-      readBinaryFromInput,
-      removePath,
-      dirname,
-    } = this.options.fileAdapter;
+    const { pathExists, mkDir, writeBinaryToPath, readBinaryFromInput, removePath, dirname } =
+      this.options.fileAdapter;
     if (!isNodeRuntime()) {
-      throw new Error(
-        "processTexts is only supported in Node.js environments for Snap files.",
-      );
+      throw new Error('processTexts is only supported in Node.js environments for Snap files.');
     }
 
-    if (typeof filePathOrBuffer === "string") {
+    if (typeof filePathOrBuffer === 'string') {
       const inputPath = filePathOrBuffer;
       const outputDir = dirname(outputPath);
       const dirExists = await pathExists(outputDir);
@@ -971,9 +864,7 @@ class SnapProcessor extends BaseProcessor {
       try {
         const getColumns = (tableName: string): Set<string> => {
           try {
-            const rows = db
-              .prepare(`PRAGMA table_info(${tableName})`)
-              .all() as Array<{
+            const rows = db.prepare(`PRAGMA table_info(${tableName})`).all() as Array<{
               name: string;
             }>;
             return new Set(rows.map((row) => row.name));
@@ -982,36 +873,36 @@ class SnapProcessor extends BaseProcessor {
           }
         };
 
-        const pageColumns = getColumns("Page");
-        const buttonColumns = getColumns("Button");
+        const pageColumns = getColumns('Page');
+        const buttonColumns = getColumns('Button');
 
         const pageUpdates: string[] = [];
         const pageWhere: string[] = [];
-        const pageColumnsToUse: Array<"Name" | "Title"> = [];
+        const pageColumnsToUse: Array<'Name' | 'Title'> = [];
 
-        if (pageColumns.has("Name")) {
-          pageUpdates.push("Name = ?");
-          pageWhere.push("Name = ?");
-          pageColumnsToUse.push("Name");
+        if (pageColumns.has('Name')) {
+          pageUpdates.push('Name = ?');
+          pageWhere.push('Name = ?');
+          pageColumnsToUse.push('Name');
         }
-        if (pageColumns.has("Title")) {
-          pageUpdates.push("Title = ?");
-          pageWhere.push("Title = ?");
-          pageColumnsToUse.push("Title");
+        if (pageColumns.has('Title')) {
+          pageUpdates.push('Title = ?');
+          pageWhere.push('Title = ?');
+          pageColumnsToUse.push('Title');
         }
 
         const updatePage =
           pageUpdates.length > 0
             ? db.prepare(
-                `UPDATE Page SET ${pageUpdates.join(", ")} WHERE ${pageWhere.join(" OR ")}`,
+                `UPDATE Page SET ${pageUpdates.join(', ')} WHERE ${pageWhere.join(' OR ')}`
               )
             : null;
 
-        const updateLabel = buttonColumns.has("Label")
-          ? db.prepare("UPDATE Button SET Label = ? WHERE Label = ?")
+        const updateLabel = buttonColumns.has('Label')
+          ? db.prepare('UPDATE Button SET Label = ? WHERE Label = ?')
           : null;
-        const updateMessage = buttonColumns.has("Message")
-          ? db.prepare("UPDATE Button SET Message = ? WHERE Message = ?")
+        const updateMessage = buttonColumns.has('Message')
+          ? db.prepare('UPDATE Button SET Message = ? WHERE Message = ?')
           : null;
 
         const entries = Array.from(translations.entries());
@@ -1076,9 +967,7 @@ class SnapProcessor extends BaseProcessor {
   async saveFromTree(tree: AACTree, outputPath: string): Promise<void> {
     const { pathExists, mkDir, removePath, dirname } = this.options.fileAdapter;
     if (!isNodeRuntime()) {
-      throw new Error(
-        "saveFromTree is only supported in Node.js environments for Snap files.",
-      );
+      throw new Error('saveFromTree is only supported in Node.js environments for Snap files.');
     }
     const outputDir = dirname(outputPath);
     const dirExists = await pathExists(outputDir);
@@ -1166,10 +1055,10 @@ class SnapProcessor extends BaseProcessor {
       const pageIdMap = new Map<string, number>();
       const pageSetDataIdentifierMap = new Map<string, number>();
       const insertPageSetData = db.prepare(
-        "INSERT INTO PageSetData (Id, Identifier, Data, RefCount) VALUES (?, ?, ?, ?)",
+        'INSERT INTO PageSetData (Id, Identifier, Data, RefCount) VALUES (?, ?, ?, ?)'
       );
       const incrementRefCount = db.prepare(
-        "UPDATE PageSetData SET RefCount = RefCount + 1 WHERE Id = ?",
+        'UPDATE PageSetData SET RefCount = RefCount + 1 WHERE Id = ?'
       );
 
       // First pass: create all pages
@@ -1178,16 +1067,16 @@ class SnapProcessor extends BaseProcessor {
         pageIdMap.set(page.id, numericPageId);
 
         const insertPage = db.prepare(
-          "INSERT INTO Page (Id, UniqueId, Title, Name, BackgroundColor) VALUES (?, ?, ?, ?, ?)",
+          'INSERT INTO Page (Id, UniqueId, Title, Name, BackgroundColor) VALUES (?, ?, ?, ?, ?)'
         );
         insertPage.run(
           numericPageId,
           page.id,
-          page.name || "",
-          page.name || "",
+          page.name || '',
+          page.name || '',
           page.style?.backgroundColor
-            ? parseInt(page.style.backgroundColor.replace("#", ""), 16)
-            : null,
+            ? parseInt(page.style.backgroundColor.replace('#', ''), 16)
+            : null
         );
       });
 
@@ -1219,7 +1108,7 @@ class SnapProcessor extends BaseProcessor {
 
           // Insert ElementReference
           const insertElementRef = db.prepare(
-            "INSERT INTO ElementReference (Id, PageId) VALUES (?, ?)",
+            'INSERT INTO ElementReference (Id, PageId) VALUES (?, ?)'
           );
           insertElementRef.run(elementRefId, numericPageId);
 
@@ -1228,13 +1117,12 @@ class SnapProcessor extends BaseProcessor {
 
           // Use semantic action if available
           if (button.semanticAction?.intent === AACSemanticIntent.NAVIGATE_TO) {
-            const targetId =
-              button.semanticAction.targetId || button.targetPageId;
+            const targetId = button.semanticAction.targetId || button.targetPageId;
             navigatePageId = targetId ? pageIdMap.get(targetId) || null : null;
           }
 
           const insertButton = db.prepare(
-            "INSERT INTO Button (Id, Label, Message, NavigatePageId, ElementReferenceId, LibrarySymbolId, PageSetImageId, MessageRecordingId, SerializedMessageSoundMetadata, UseMessageRecording, LabelColor, BackgroundColor, BorderColor, BorderThickness, FontSize, FontFamily, FontStyle) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            'INSERT INTO Button (Id, Label, Message, NavigatePageId, ElementReferenceId, LibrarySymbolId, PageSetImageId, MessageRecordingId, SerializedMessageSoundMetadata, UseMessageRecording, LabelColor, BackgroundColor, BorderColor, BorderThickness, FontSize, FontFamily, FontStyle) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
           );
 
           const audio = button.audioRecording;
@@ -1264,23 +1152,14 @@ class SnapProcessor extends BaseProcessor {
 
           // Handle image data from button.parameters.imageData or button.image (data URL)
           let pageSetImageId: number | null = null;
-          if (
-            button.parameters?.imageData &&
-            Buffer.isBuffer(button.parameters.imageData)
-          ) {
+          if (button.parameters?.imageData && Buffer.isBuffer(button.parameters.imageData)) {
             // Use existing image data buffer
             const imageIdentifier: string =
-              (button.parameters.image_id as string) ||
-              `IMG_${buttonIdCounter}`;
+              (button.parameters.image_id as string) || `IMG_${buttonIdCounter}`;
             let imageId = pageSetDataIdentifierMap.get(imageIdentifier);
             if (!imageId) {
               imageId = pageSetDataIdCounter++;
-              insertPageSetData.run(
-                imageId,
-                imageIdentifier,
-                button.parameters.imageData,
-                1,
-              );
+              insertPageSetData.run(imageId, imageIdentifier, button.parameters.imageData, 1);
               pageSetDataIdentifierMap.set(imageIdentifier, imageId);
             } else {
               incrementRefCount.run(imageId);
@@ -1288,19 +1167,16 @@ class SnapProcessor extends BaseProcessor {
             pageSetImageId = imageId;
           } else if (
             button.image &&
-            typeof button.image === "string" &&
-            button.image.startsWith("data:image")
+            typeof button.image === 'string' &&
+            button.image.startsWith('data:image')
           ) {
             // Convert data URL to buffer
             try {
-              const matches = button.image.match(
-                /^data:image\/(\w+);base64,(.+)$/,
-              );
+              const matches = button.image.match(/^data:image\/(\w+);base64,(.+)$/);
               if (matches && matches[2]) {
-                const imageData = Buffer.from(matches[2], "base64");
+                const imageData = Buffer.from(matches[2], 'base64');
                 const imageIdentifier: string =
-                  (button.parameters?.image_id as string) ||
-                  `IMG_${buttonIdCounter}`;
+                  (button.parameters?.image_id as string) || `IMG_${buttonIdCounter}`;
                 let imageId = pageSetDataIdentifierMap.get(imageIdentifier);
                 if (!imageId) {
                   imageId = pageSetDataIdCounter++;
@@ -1314,7 +1190,7 @@ class SnapProcessor extends BaseProcessor {
             } catch (err) {
               console.warn(
                 `[SnapProcessor] Failed to convert data URL to Buffer for button ${button.id}:`,
-                err,
+                err
               );
             }
           }
@@ -1325,8 +1201,8 @@ class SnapProcessor extends BaseProcessor {
             try {
               insertButton.run(
                 buttonIdCounter++,
-                button.label || "",
-                button.message || button.label || "",
+                button.label || '',
+                button.message || button.label || '',
                 navigatePageId,
                 elementRefId,
                 null, // LibrarySymbolId - not used for embedded images
@@ -1335,24 +1211,22 @@ class SnapProcessor extends BaseProcessor {
                 serializedMetadata,
                 useMessageRecording,
                 button.style?.fontColor
-                  ? parseInt(button.style.fontColor.replace("#", ""), 16)
+                  ? parseInt(button.style.fontColor.replace('#', ''), 16)
                   : null,
                 button.style?.backgroundColor
-                  ? parseInt(button.style.backgroundColor.replace("#", ""), 16)
+                  ? parseInt(button.style.backgroundColor.replace('#', ''), 16)
                   : null,
                 button.style?.borderColor
-                  ? parseInt(button.style.borderColor.replace("#", ""), 16)
+                  ? parseInt(button.style.borderColor.replace('#', ''), 16)
                   : null,
                 button.style?.borderWidth,
                 button.style?.fontSize,
                 button.style?.fontFamily,
-                button.style?.fontStyle
-                  ? parseInt(button.style.fontStyle)
-                  : null,
+                button.style?.fontStyle ? parseInt(button.style.fontStyle) : null
               );
               break; // Success
             } catch (err: any) {
-              if (err.code === "SQLITE_IOERR" && retries > 1) {
+              if (err.code === 'SQLITE_IOERR' && retries > 1) {
                 retries--;
                 // Wait a bit before retrying
                 const now = Date.now();
@@ -1367,7 +1241,7 @@ class SnapProcessor extends BaseProcessor {
 
           // Insert ElementPlacement
           const insertPlacement = db.prepare(
-            "INSERT INTO ElementPlacement (Id, ElementReferenceId, GridPosition) VALUES (?, ?, ?)",
+            'INSERT INTO ElementPlacement (Id, ElementReferenceId, GridPosition) VALUES (?, ?, ?)'
           );
           insertPlacement.run(placementIdCounter++, elementRefId, gridPosition);
         });
@@ -1391,9 +1265,7 @@ class SnapProcessor extends BaseProcessor {
         tree.metadata?.defaultHomePageId || tree.rootId || null,
         tree.metadata?.defaultKeyboardPageId || null,
         tree.metadata?.dashboardId || null,
-        tree.metadata?.hasGlobalToolbar
-          ? tree.metadata.toolbarId || null
-          : null,
+        tree.metadata?.hasGlobalToolbar ? tree.metadata.toolbarId || null : null
       );
     } finally {
       db.close();
@@ -1407,15 +1279,13 @@ class SnapProcessor extends BaseProcessor {
     dbPath: string,
     buttonId: number,
     audioData: Uint8Array,
-    metadata?: string,
+    metadata?: string
   ): Promise<number> {
     if (!isNodeRuntime()) {
-      throw new Error(
-        "addAudioToButton is only supported in Node.js environments.",
-      );
+      throw new Error('addAudioToButton is only supported in Node.js environments.');
     }
     const Database = requireBetterSqlite3();
-    const crypto = getNodeRequire()("crypto") as typeof import("crypto");
+    const crypto = getNodeRequire()('crypto') as typeof import('crypto');
     const db = new Database(dbPath, { fileMustExist: true });
 
     try {
@@ -1429,16 +1299,13 @@ class SnapProcessor extends BaseProcessor {
         `);
 
       // Generate SHA1 hash for the identifier
-      const sha1Hash = crypto
-        .createHash("sha1")
-        .update(audioData)
-        .digest("hex");
+      const sha1Hash = crypto.createHash('sha1').update(audioData).digest('hex');
       const identifier = `SND:${sha1Hash}`;
 
       // Check if audio with this identifier already exists
       let audioId;
       const existingAudio = db
-        .prepare("SELECT Id FROM PageSetData WHERE Identifier = ?")
+        .prepare('SELECT Id FROM PageSetData WHERE Identifier = ?')
         .get(identifier) as { Id: number } | undefined;
 
       if (existingAudio) {
@@ -1446,18 +1313,16 @@ class SnapProcessor extends BaseProcessor {
       } else {
         // Insert new audio data
         const result = db
-          .prepare("INSERT INTO PageSetData (Identifier, Data) VALUES (?, ?)")
+          .prepare('INSERT INTO PageSetData (Identifier, Data) VALUES (?, ?)')
           .run(identifier, audioData);
         audioId = Number(result.lastInsertRowid);
       }
 
       // Update button to reference the audio
       const updateButton = db.prepare(
-        "UPDATE Button SET MessageRecordingId = ?, UseMessageRecording = 1, SerializedMessageSoundMetadata = ? WHERE Id = ?",
+        'UPDATE Button SET MessageRecordingId = ?, UseMessageRecording = 1, SerializedMessageSoundMetadata = ? WHERE Id = ?'
       );
-      const metadataJson = metadata
-        ? JSON.stringify({ FileName: metadata })
-        : null;
+      const metadataJson = metadata ? JSON.stringify({ FileName: metadata }) : null;
       updateButton.run(audioId, metadataJson, buttonId);
 
       return Promise.resolve(audioId);
@@ -1472,28 +1337,18 @@ class SnapProcessor extends BaseProcessor {
   async createAudioEnhancedPageset(
     sourceDbPath: string,
     targetDbPath: string,
-    audioMappings: Map<number, { audioData: Uint8Array; metadata?: string }>,
+    audioMappings: Map<number, { audioData: Uint8Array; metadata?: string }>
   ): Promise<void> {
     const { writeBinaryToPath, readBinaryFromInput } = this.options.fileAdapter;
     if (!isNodeRuntime()) {
-      throw new Error(
-        "createAudioEnhancedPageset is only supported in Node.js environments.",
-      );
+      throw new Error('createAudioEnhancedPageset is only supported in Node.js environments.');
     }
     // Copy the source database to target
-    await writeBinaryToPath(
-      targetDbPath,
-      await readBinaryFromInput(sourceDbPath),
-    );
+    await writeBinaryToPath(targetDbPath, await readBinaryFromInput(sourceDbPath));
 
     // Add audio recordings to the copy
     for (const [buttonId, audioInfo] of audioMappings.entries()) {
-      await this.addAudioToButton(
-        targetDbPath,
-        buttonId,
-        audioInfo.audioData,
-        audioInfo.metadata,
-      );
+      await this.addAudioToButton(targetDbPath, buttonId, audioInfo.audioData, audioInfo.metadata);
     }
   }
 
@@ -1502,7 +1357,7 @@ class SnapProcessor extends BaseProcessor {
    */
   extractButtonsForAudio(
     dbPath: string,
-    pageUniqueId: string,
+    pageUniqueId: string
   ): Array<{
     id: number;
     label: string;
@@ -1510,18 +1365,16 @@ class SnapProcessor extends BaseProcessor {
     hasAudio: boolean;
   }> {
     if (!isNodeRuntime()) {
-      throw new Error(
-        "extractButtonsForAudio is only supported in Node.js environments.",
-      );
+      throw new Error('extractButtonsForAudio is only supported in Node.js environments.');
     }
     const Database = requireBetterSqlite3();
     const db = new Database(dbPath, { readonly: true });
 
     try {
       // Find the page by UniqueId
-      const page = db
-        .prepare("SELECT * FROM Page WHERE UniqueId = ?")
-        .get(pageUniqueId) as { Id: number } | undefined;
+      const page = db.prepare('SELECT * FROM Page WHERE UniqueId = ?').get(pageUniqueId) as
+        | { Id: number }
+        | undefined;
       if (!page) {
         throw new Error(`Page with UniqueId ${pageUniqueId} not found`);
       }
@@ -1535,7 +1388,7 @@ class SnapProcessor extends BaseProcessor {
         FROM Button b
         JOIN ElementReference er ON b.ElementReferenceId = er.Id
         WHERE er.PageId = ?
-      `,
+      `
         )
         .all(page.Id) as Array<{
         Id: number;
@@ -1547,8 +1400,8 @@ class SnapProcessor extends BaseProcessor {
 
       return buttons.map((btn) => ({
         id: btn.Id,
-        label: btn.Label || "",
-        message: btn.Message || btn.Label || "",
+        label: btn.Label || '',
+        message: btn.Message || btn.Label || '',
         hasAudio: !!(btn.MessageRecordingId && btn.MessageRecordingId > 0),
       }));
     } finally {
@@ -1560,9 +1413,7 @@ class SnapProcessor extends BaseProcessor {
    * Extract strings with metadata for aac-tools-platform compatibility
    * Uses the generic implementation from BaseProcessor
    */
-  async extractStringsWithMetadata(
-    filePath: string,
-  ): Promise<ExtractStringsResult> {
+  async extractStringsWithMetadata(filePath: string): Promise<ExtractStringsResult> {
     return this.extractStringsWithMetadataGeneric(filePath);
   }
 
@@ -1573,13 +1424,9 @@ class SnapProcessor extends BaseProcessor {
   async generateTranslatedDownload(
     filePath: string,
     translatedStrings: TranslatedString[],
-    sourceStrings: SourceString[],
+    sourceStrings: SourceString[]
   ): Promise<string> {
-    return this.generateTranslatedDownloadGeneric(
-      filePath,
-      translatedStrings,
-      sourceStrings,
-    );
+    return this.generateTranslatedDownloadGeneric(filePath, translatedStrings, sourceStrings);
   }
 
   /**
@@ -1598,15 +1445,11 @@ class SnapProcessor extends BaseProcessor {
    * @returns Promise resolving to available PageLayouts with their dimensions
    */
   async getAvailablePageLayouts(filePath: string): Promise<PageLayoutInfo[]> {
-    const { writeBinaryToPath, removePath, pathExists, join } =
-      this.options.fileAdapter;
+    const { writeBinaryToPath, removePath, pathExists, join } = this.options.fileAdapter;
     if (!isNodeRuntime()) {
-      throw new Error(
-        "getAvailablePageLayouts is only supported in Node.js environments.",
-      );
+      throw new Error('getAvailablePageLayouts is only supported in Node.js environments.');
     }
-    const dbPath =
-      typeof filePath === "string" ? filePath : join(process.cwd(), "temp.spb");
+    const dbPath = typeof filePath === 'string' ? filePath : join(process.cwd(), 'temp.spb');
 
     if (Buffer.isBuffer(filePath)) {
       await writeBinaryToPath(dbPath, filePath);
@@ -1627,16 +1470,16 @@ class SnapProcessor extends BaseProcessor {
           FROM PageLayout pl
           GROUP BY pl.PageLayoutSetting
           ORDER BY pl.PageLayoutSetting
-        `,
+        `
         )
         .all() as Array<{ Id: number; PageLayoutSetting: string }>;
 
       // Parse the PageLayoutSetting format: "columns,rows,hasScanGroups,?"
       const layouts: PageLayoutInfo[] = pageLayouts.map((pl) => {
-        const parts = pl.PageLayoutSetting.split(",");
+        const parts = pl.PageLayoutSetting.split(',');
         const cols = parseInt(parts[0], 10) || 0;
         const rows = parseInt(parts[1], 10) || 0;
-        const hasScanning = parts[2] === "True";
+        const hasScanning = parts[2] === 'True';
 
         return {
           id: pl.Id,
@@ -1644,7 +1487,7 @@ class SnapProcessor extends BaseProcessor {
           rows,
           size: cols * rows,
           hasScanning,
-          label: `${cols}×${rows}${hasScanning ? " (with scanning)" : ""}`,
+          label: `${cols}×${rows}${hasScanning ? ' (with scanning)' : ''}`,
         };
       });
 
@@ -1657,10 +1500,7 @@ class SnapProcessor extends BaseProcessor {
 
       return layouts;
     } catch (error) {
-      console.error(
-        "[SnapProcessor] Failed to get available page layouts:",
-        error,
-      );
+      console.error('[SnapProcessor] Failed to get available page layouts:', error);
       return [];
     } finally {
       if (db) {
@@ -1673,7 +1513,7 @@ class SnapProcessor extends BaseProcessor {
         try {
           await removePath(dbPath);
         } catch (e) {
-          console.warn("Failed to clean up temporary file:", e);
+          console.warn('Failed to clean up temporary file:', e);
         }
       }
     }

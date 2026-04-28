@@ -1,12 +1,12 @@
-import { SnapProcessor } from "../src/processors/snapProcessor";
-import { TreeFactory } from "./utils/testFactories";
-import path from "path";
-import fs from "fs";
-import Database from "better-sqlite3";
+import { SnapProcessor } from '../src/processors/snapProcessor';
+import { TreeFactory } from './utils/testFactories';
+import path from 'path';
+import fs from 'fs';
+import Database from 'better-sqlite3';
 
-describe("SnapProcessor Coverage", () => {
-  const exampleFile: string = path.join(__dirname, "assets/snap/example.sps");
-  const tempDbPath = path.join(__dirname, "temp_snap.db");
+describe('SnapProcessor Coverage', () => {
+  const exampleFile: string = path.join(__dirname, 'assets/snap/example.sps');
+  const tempDbPath = path.join(__dirname, 'temp_snap.db');
 
   beforeEach(async () => {
     if (fs.existsSync(tempDbPath)) {
@@ -20,103 +20,85 @@ describe("SnapProcessor Coverage", () => {
     }
   });
 
-  describe("Audio Handling", () => {
-    it("should load audio data when loadAudio is true", async () => {
+  describe('Audio Handling', () => {
+    it('should load audio data when loadAudio is true', async () => {
       const saveProcessor = new SnapProcessor();
       const tree = TreeFactory.createSimple();
       await saveProcessor.saveFromTree(tree, tempDbPath);
 
       const db = new Database(tempDbPath);
-      const firstButton = db
-        .prepare("SELECT Id FROM Button ORDER BY Id LIMIT 1")
-        .get() as {
+      const firstButton = db.prepare('SELECT Id FROM Button ORDER BY Id LIMIT 1').get() as {
         Id: number;
       };
       db.close();
 
-      const audioData = new Uint8Array(Buffer.from("audio data"));
-      await saveProcessor.addAudioToButton(
-        tempDbPath,
-        firstButton.Id,
-        audioData,
-        "test.wav",
-      );
+      const audioData = new Uint8Array(Buffer.from('audio data'));
+      await saveProcessor.addAudioToButton(tempDbPath, firstButton.Id, audioData, 'test.wav');
 
       const processor = new SnapProcessor(null, { loadAudio: true });
       const loadedTree = await processor.loadIntoTree(tempDbPath);
       const page = Object.values(loadedTree.pages)[0];
       expect(page).toBeDefined();
-      const buttonWithAudio = page?.buttons.find(
-        (button) => button.audioRecording,
-      );
+      const buttonWithAudio = page?.buttons.find((button) => button.audioRecording);
       expect(buttonWithAudio).toBeDefined();
       expect(Buffer.from(buttonWithAudio?.audioRecording?.data || [])).toEqual(
-        Buffer.from(audioData),
+        Buffer.from(audioData)
       );
     });
 
-    it("should add audio to a button", async () => {
+    it('should add audio to a button', async () => {
       // Use a real file to test against
       fs.copyFileSync(exampleFile, tempDbPath);
 
       const processor = new SnapProcessor();
-      const audioData = new Uint8Array(Buffer.from("new audio data"));
-      await processor.addAudioToButton(tempDbPath, 1, audioData, "test.wav");
+      const audioData = new Uint8Array(Buffer.from('new audio data'));
+      await processor.addAudioToButton(tempDbPath, 1, audioData, 'test.wav');
 
       const db = new Database(tempDbPath);
-      const row = db.prepare("SELECT * FROM Button WHERE Id = ?").get(1) as any;
+      const row = db.prepare('SELECT * FROM Button WHERE Id = ?').get(1) as any;
       expect(row.MessageRecordingId).toBeGreaterThan(0);
       const audioRow = db
-        .prepare("SELECT * FROM PageSetData WHERE Id = ?")
+        .prepare('SELECT * FROM PageSetData WHERE Id = ?')
         .get(row.MessageRecordingId) as any;
       expect(Buffer.from(audioRow.Data)).toEqual(Buffer.from(audioData));
       db.close();
     });
 
-    it("should create an audio-enhanced pageset", async () => {
-      const enhancedDbPath = path.join(__dirname, "enhanced.db");
+    it('should create an audio-enhanced pageset', async () => {
+      const enhancedDbPath = path.join(__dirname, 'enhanced.db');
       if (fs.existsSync(enhancedDbPath)) {
         fs.unlinkSync(enhancedDbPath);
       }
 
       const processor = new SnapProcessor();
-      const audioMappings = new Map<
-        number,
-        { audioData: Uint8Array; metadata?: string }
-      >();
+      const audioMappings = new Map<number, { audioData: Uint8Array; metadata?: string }>();
       audioMappings.set(1, {
-        audioData: new Uint8Array(Buffer.from("new audio")),
+        audioData: new Uint8Array(Buffer.from('new audio')),
       });
 
-      await processor.createAudioEnhancedPageset(
-        exampleFile,
-        enhancedDbPath,
-        audioMappings,
-      );
+      await processor.createAudioEnhancedPageset(exampleFile, enhancedDbPath, audioMappings);
 
       expect(fs.existsSync(enhancedDbPath)).toBe(true);
       const db = new Database(enhancedDbPath);
-      const row = db.prepare("SELECT * FROM Button WHERE Id = ?").get(1) as any;
+      const row = db.prepare('SELECT * FROM Button WHERE Id = ?').get(1) as any;
       expect(row.MessageRecordingId).toBeGreaterThan(0);
       db.close();
       fs.unlinkSync(enhancedDbPath);
     });
   });
 
-  describe("Database Corruption and Schema", () => {
-    it("should throw an error for a corrupted database file", async () => {
-      fs.writeFileSync(tempDbPath, "not a database");
+  describe('Database Corruption and Schema', () => {
+    it('should throw an error for a corrupted database file', async () => {
+      fs.writeFileSync(tempDbPath, 'not a database');
       const processor = new SnapProcessor();
       await expect(processor.loadIntoTree(tempDbPath)).rejects.toThrow(
-        "Invalid SQLite database file",
+        'Invalid SQLite database file'
       );
     });
 
-    it("should handle missing tables gracefully", async () => {
+    it('should handle missing tables gracefully', async () => {
       const db = new Database(tempDbPath);
-      db.exec(
-        "CREATE TABLE Page (Id INTEGER PRIMARY KEY, UniqueId TEXT, Name TEXT);",
-      );
+      db.exec('CREATE TABLE Page (Id INTEGER PRIMARY KEY, UniqueId TEXT, Name TEXT);');
       db.close();
 
       const processor = new SnapProcessor();

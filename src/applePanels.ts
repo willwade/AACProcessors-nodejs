@@ -5,7 +5,7 @@
  */
 
 // Processor class
-export { ApplePanelsProcessor } from "./processors/applePanelsProcessor";
+export { ApplePanelsProcessor } from './processors/applePanelsProcessor';
 
 // Note: Apple Panels doesn't currently have platform-specific helpers
 // Future helper functions can be added here

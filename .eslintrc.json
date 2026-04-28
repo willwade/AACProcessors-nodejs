@@ -82,10 +82,7 @@
       "parserOptions": {
         "project": "./tsconfig.test.json"
       },
-      "extends": [
-        "plugin:@typescript-eslint/recommended",
-        "plugin:prettier/recommended"
-      ],
+      "extends": ["plugin:@typescript-eslint/recommended", "plugin:prettier/recommended"],
       "rules": {
         "@typescript-eslint/explicit-function-return-type": "off",
         "@typescript-eslint/no-explicit-any": "off",
