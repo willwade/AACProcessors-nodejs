@@ -2593,9 +2593,13 @@ class GridsetProcessor extends BaseProcessor {
           const modifiedButton = buttonsByPosition.get(key);
           if (modifiedButton) {
             // Check if this is an AutoContent/WordList cell
-            const isWordListCell =
-              (cell.Content.ContentType === 'AutoContent' || cell.Content.ContentType === 'AutoContent') &&
-              (cell.Content.ContentSubType === 'WordList' || cell.Content.ContentSubType === 'WordList');
+            const contentType = cell.Content.ContentType || cell.Content.contentType;
+            const contentSubType = cell.Content.ContentSubType || cell.Content.contentsubtype;
+
+            const isWordListCell = contentType === 'AutoContent' && contentSubType === 'WordList';
+
+            const isPredictionCell =
+              contentType === 'AutoContent' && contentSubType === 'Prediction';
 
             if (isWordListCell) {
               // For WordList cells, we need to add the word to the page's WordList
@@ -2606,20 +2610,49 @@ class GridsetProcessor extends BaseProcessor {
               continue; // Skip cell modification for WordList cells
             }
 
-            // For regular cells, update the caption directly (no CDATA needed in cells)
+            if (isPredictionCell) {
+              // Prediction cells are populated dynamically by Grid 3's prediction system.
+              // They should remain as <CaptionAndImage xsi:nil="true" /> and not be modified.
+              continue; // Skip cell modification for Prediction cells
+            }
+
+            // For regular cells, update the caption directly
+            // CDATA wrapping for empty captions will be done in post-processing
             if (cell.Content.CaptionAndImage || cell.Content.captionAndImage) {
               const captionAndImage = cell.Content.CaptionAndImage || cell.Content.captionAndImage;
-              captionAndImage.Caption = modifiedButton.label || '';
 
-              // Remove xsi:nil attribute when adding content
-              if (captionAndImage['@_xsi:nil'] || captionAndImage['xsi:nil']) {
-                delete captionAndImage['@_xsi:nil'];
-                delete captionAndImage['xsi:nil'];
+              // Check if the label is a placeholder (generated during extraction)
+              const isPlaceholderLabel =
+                !modifiedButton.label ||
+                modifiedButton.label.startsWith('Cell_') ||
+                modifiedButton.label.startsWith('AutoContent_') ||
+                modifiedButton.label.startsWith('Prediction ');
+
+              if (!isPlaceholderLabel) {
+                // Only update caption with real content, not placeholders
+                captionAndImage.Caption = modifiedButton.label;
+
+                // Remove xsi:nil attribute when adding content
+                if (captionAndImage['@_xsi:nil'] || captionAndImage['xsi:nil']) {
+                  delete captionAndImage['@_xsi:nil'];
+                  delete captionAndImage['xsi:nil'];
+                }
               }
             }
 
             // Update the message if different from label
-            if (modifiedButton.message && modifiedButton.message !== modifiedButton.label) {
+            // But skip placeholder labels
+            const isPlaceholderMessage =
+              !modifiedButton.message ||
+              modifiedButton.message.startsWith('Cell_') ||
+              modifiedButton.message.startsWith('AutoContent_') ||
+              modifiedButton.message.startsWith('Prediction ');
+
+            if (
+              !isPlaceholderMessage &&
+              modifiedButton.message &&
+              modifiedButton.message !== modifiedButton.label
+            ) {
               // For simple text content
               if (!cell.Content.Commands) {
                 cell.Content['#text'] = modifiedButton.message;
@@ -2629,7 +2662,8 @@ class GridsetProcessor extends BaseProcessor {
             // Update image if present
             if (modifiedButton.image) {
               if (cell.Content.CaptionAndImage || cell.Content.captionAndImage) {
-                const captionAndImage = cell.Content.CaptionAndImage || cell.Content.captionAndImage;
+                const captionAndImage =
+                  cell.Content.CaptionAndImage || cell.Content.captionAndImage;
                 captionAndImage.Image = modifiedButton.image;
               }
             }
@@ -2643,7 +2677,6 @@ class GridsetProcessor extends BaseProcessor {
 
       for (const button of page.buttons) {
         const pos = this.findButtonPosition(page, button, 0);
-        const key = `${pos.x},${pos.y}`;
 
         // Check if this button corresponds to a WordList cell
         const cellArray = Array.isArray(originalGrid.Grid.Cells?.Cell)
@@ -2659,9 +2692,12 @@ class GridsetProcessor extends BaseProcessor {
         });
 
         if (cell) {
-          const isWordListCell =
-            (cell.Content?.ContentType === 'AutoContent' || cell.Content?.ContentType === 'AutoContent') &&
-            (cell.Content?.ContentSubType === 'WordList' || cell.Content?.ContentSubType === 'WordList');
+          const contentType = cell.Content?.ContentType || cell.Content?.contentType;
+          const contentSubType = cell.Content?.ContentSubType || cell.Content?.contentsubtype;
+
+          const isWordListCell = contentType === 'AutoContent' && contentSubType === 'WordList';
+
+          // Note: Prediction cells are already skipped earlier, so they won't reach here
 
           if (isWordListCell) {
             // Add this button to the WordList with proper Grid 3 format
@@ -2669,11 +2705,11 @@ class GridsetProcessor extends BaseProcessor {
             newWordListItems.push({
               Text: {
                 s: {
-                  r: button.label
-                }
+                  r: button.label,
+                },
               },
               Image: '', // No image for user-added words
-              PartOfSpeech: 'Unknown'
+              PartOfSpeech: 'Unknown',
             });
           }
         }
@@ -2683,9 +2719,8 @@ class GridsetProcessor extends BaseProcessor {
       if (newWordListItems.length > 0) {
         const existingWordList = originalGrid.Grid.WordList;
         if (existingWordList && existingWordList.Items) {
-          const existingItems = existingWordList.Items.WordListItem ||
-                                existingWordList.Items.wordlistitem ||
-                                [];
+          const existingItems =
+            existingWordList.Items.WordListItem || existingWordList.Items.wordlistitem || [];
           const itemsArray = Array.isArray(existingItems) ? existingItems : [existingItems];
 
           // Merge existing and new items
@@ -2706,8 +2741,19 @@ class GridsetProcessor extends BaseProcessor {
       let builtXml = gridBuilder.build(originalGrid);
       // Convert Unix line endings to Windows (\r\n) for Grid 3 compatibility
       builtXml = builtXml.replace(/\n/g, '\r\n');
-      // Add space before closing slash in self-closing tags for Grid 3 compatibility
-      builtXml = builtXml.replace(/<([^>\/]+)\/>/g, '<$1 />');
+      // Expand self-closing tags to full opening/closing tags for Grid 3 compatibility
+      // Grid 3 cannot parse <AudioDescription /> - it requires <AudioDescription></AudioDescription>
+      builtXml = builtXml.replace(/<(\w+)(\s+[^>]*)?\s*\/>/g, '<$1$2></$1>');
+      // Convert empty/whitespace captions to CDATA format for Grid 3 compatibility
+      // Grid 3 requires <![CDATA[ ]]> for empty captions, not plain text
+      builtXml = builtXml.replace(/<Caption><\/Caption>/g, '<Caption><![CDATA[ ]]></Caption>');
+      builtXml = builtXml.replace(/<Caption> <\/Caption>/g, '<Caption><![CDATA[ ]]></Caption>');
+      builtXml = builtXml.replace(/<Caption> {2}<\/Caption>/g, '<Caption><![CDATA[ ]]></Caption>');
+      // Preserve CDATA in <r> tags for text parameters
+      // Spaces in <r> tags must use CDATA or they get stripped during rendering
+      // e.g., <r> </r> becomes <r><![CDATA[ ]]></r>
+      builtXml = builtXml.replace(/<r> <\/r>/g, '<r><![CDATA[ ]]></r>');
+      builtXml = builtXml.replace(/<r> {2}<\/r>/g, '<r><![CDATA[  ]]></r>');
       newGridFiles.set(gridPath, builtXml);
     }
 
@@ -2790,7 +2836,8 @@ class GridsetProcessor extends BaseProcessor {
     // Build the grid XML and convert to Windows line endings for Grid 3 compatibility
     let builtXml = gridBuilder.build(gridData);
     builtXml = builtXml.replace(/\n/g, '\r\n');
-    builtXml = builtXml.replace(/<([^>\/]+)\/>/g, '<$1 />');
+    // Expand self-closing tags to full opening/closing tags for Grid 3 compatibility
+    builtXml = builtXml.replace(/<(\w+)(\s+[^>]*)?\s*\/>/g, '<$1$2></$1>');
     return builtXml;
   }
 
