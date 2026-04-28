@@ -839,6 +839,92 @@ class ObfProcessor extends BaseProcessor {
   }
 
   /**
+   * Save a modified tree while preserving all original files (images, sounds, assets)
+   * This method only updates the .obf files for pages in the tree, keeping everything else intact.
+   *
+   * @param originalPath - Path to the original OBF/OBZ file
+   * @param tree - Modified AACTree with pages to save
+   * @param outputPath - Path where the modified file should be saved
+   */
+  async saveModifiedTree(originalPath: string, tree: AACTree, outputPath: string): Promise<void> {
+    const { writeBinaryToPath, readBinaryFromInput } = this.options.fileAdapter;
+
+    // If output is .obf (single file), use regular save
+    if (outputPath.endsWith('.obf')) {
+      await this.saveFromTree(tree, outputPath);
+      return;
+    }
+
+    if (Object.keys(tree.pages).length === 0) {
+      // Empty tree, just copy the original
+      const originalBuffer = await readBinaryFromInput(originalPath);
+      await writeBinaryToPath(outputPath, originalBuffer);
+      return;
+    }
+
+    const AdmZip = (await import('adm-zip')).default;
+    const originalZip = new AdmZip(originalPath);
+    const outputZip = new AdmZip();
+
+    const getPageFilename = (id: string): string => (id.endsWith('.obf') ? id : `${id}.obf`);
+
+    // Track which .obf files we're modifying
+    const modifiedObfFiles = new Set<string>();
+
+    // Generate new .obf files for pages in the tree
+    const newObfFiles = new Map<string, string>();
+
+    for (const page of Object.values(tree.pages)) {
+      const obfFilename = getPageFilename(page.id);
+      modifiedObfFiles.add(obfFilename);
+
+      const obfBoard = this.createObfBoardFromPage(page, 'Board', tree.metadata);
+      const obfContent = JSON.stringify(obfBoard, null, 2);
+      newObfFiles.set(obfFilename, obfContent);
+    }
+
+    // Generate updated manifest if we have pages
+    if (Object.keys(tree.pages).length > 0) {
+      modifiedObfFiles.add('manifest.json');
+
+      const manifest: ObfManifest = {
+        format: OBF_FORMAT_VERSION,
+        root: tree.metadata.defaultHomePageId,
+        paths: {
+          boards: Object.fromEntries(
+            Object.entries(tree.pages).map(([id, page]) => [id, getPageFilename(page.id)])
+          ),
+          images: {},
+          sounds: {},
+        },
+      };
+
+      newObfFiles.set('manifest.json', JSON.stringify(manifest));
+    }
+
+    // Copy all files from original zip, replacing modified .obf files
+    for (const entry of originalZip.getEntries()) {
+      if (entry.isDirectory) continue;
+
+      // Skip .obf files that we're modifying
+      if (modifiedObfFiles.has(entry.entryName)) {
+        const newContent = newObfFiles.get(entry.entryName);
+        if (newContent) {
+          outputZip.addFile(entry.entryName, Buffer.from(newContent, 'utf8'));
+        }
+        continue;
+      }
+
+      // Copy all other files as-is (preserves images, sounds, etc.)
+      outputZip.addFile(entry.entryName, entry.getData());
+    }
+
+    // Write the output ZIP
+    const outputBuffer = outputZip.toBuffer();
+    await writeBinaryToPath(outputPath, outputBuffer);
+  }
+
+  /**
    * Extract strings with metadata for aac-tools-platform compatibility
    * Uses the generic implementation from BaseProcessor
    */
