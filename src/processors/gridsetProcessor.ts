@@ -2760,6 +2760,40 @@ class GridsetProcessor extends BaseProcessor {
         }
       }
 
+      // Process WordList items attached to the page (from personalisation)
+      // These are tracked separately and shouldn't create new cells
+      // Use a known symbol key to check for WordList items
+      const WORDLIST_ITEMS_KEY = 'wordListItems';
+      const wordListItems = (page as any)[WORDLIST_ITEMS_KEY] as
+        | Array<{ label: string; message: string }>
+        | undefined;
+
+      if (wordListItems && wordListItems.length > 0 && originalGrid.Grid?.WordList?.Items) {
+        const existingItems =
+          originalGrid.Grid.WordList.Items.WordListItem ||
+          originalGrid.Grid.WordList.Items.wordlistitem ||
+          [];
+        const itemsArray = Array.isArray(existingItems) ? existingItems : [existingItems];
+
+        // Add new WordList items with proper Grid 3 format
+        for (const item of wordListItems) {
+          itemsArray.push({
+            Text: {
+              p: {
+                s: {
+                  r: item.label,
+                },
+              },
+            },
+            Image: '',
+            PartOfSpeech: 'Unknown',
+          });
+        }
+
+        // Update the WordList
+        originalGrid.Grid.WordList.Items.WordListItem = itemsArray;
+      }
+
       // Build the updated grid XML and format for Grid 3 compatibility
       let builtXml = gridBuilder.build(originalGrid);
       builtXml = formatGrid3XmlComplete(builtXml);
