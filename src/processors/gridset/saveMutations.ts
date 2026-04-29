@@ -37,7 +37,7 @@ export class GridsetSaveHandler {
    * Save using mutation-based logic
    * Fixes bugs A, B, C by processing explicit mutations
    */
-  static async saveWithMutations(
+  static saveWithMutations(
     tree: AACTree,
     originalZip: any,
     outputZip: any,
@@ -77,8 +77,8 @@ export class GridsetSaveHandler {
       const cellArray = Array.isArray(originalGrid.Grid.Cells?.Cell)
         ? originalGrid.Grid.Cells.Cell
         : originalGrid.Grid.Cells?.Cell
-        ? [originalGrid.Grid.Cells.Cell]
-        : [];
+          ? [originalGrid.Grid.Cells.Cell]
+          : [];
 
       for (const cell of cellArray) {
         const x = cell['@_X'] !== undefined ? parseInt(String(cell['@_X']), 10) : undefined;
@@ -103,7 +103,7 @@ export class GridsetSaveHandler {
               // Bug C fix: warn instead of silently dropping
               console.warn(
                 `[Gridset] Cannot add button at (${x},${y}) - cell does not exist. ` +
-                `Use addWordListItem for dynamic content.`
+                  `Use addWordListItem for dynamic content.`
               );
             }
             break;
@@ -155,7 +155,7 @@ export class GridsetSaveHandler {
       }
 
       // Build and write the updated grid XML
-      let builtXml = gridBuilder.build(originalGrid);
+      let builtXml = gridBuilder.build(originalGrid) as string;
       builtXml = formatGrid3XmlComplete(builtXml);
       outputZip.addFile(gridPath, Buffer.from(builtXml, 'utf8'));
     }
@@ -225,7 +225,12 @@ export class GridsetSaveHandler {
 
     // De-duplicate by text
     const existingTexts = new Set(
-      itemsArray.map((item: any) => item.Text?.p?.s?.r || item.Text || '').filter(Boolean)
+      itemsArray
+        .map((item: { Text?: { p?: { s?: { r?: string } } } | string }) => {
+          if (typeof item.Text === 'string') return item.Text;
+          return item.Text?.p?.s?.r || '';
+        })
+        .filter(Boolean)
     );
 
     if (!existingTexts.has(item.text)) {
@@ -241,10 +246,7 @@ export class GridsetSaveHandler {
   /**
    * Remove items from the WordList
    */
-  static removeWordListItemFromGrid(
-    grid: any,
-    match: string | ((item: any) => boolean)
-  ): void {
+  static removeWordListItemFromGrid(grid: any, match: string | ((item: any) => boolean)): void {
     if (!grid.WordList || !grid.WordList.Items) {
       return;
     }

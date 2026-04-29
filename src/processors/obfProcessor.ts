@@ -14,6 +14,7 @@ import {
   AACSemanticIntent,
   AACTreeMetadata,
 } from '../core/treeStructure';
+import type { AACPageMutation } from '../types/aac';
 import { generateCloneId } from '../utilities/analytics/utils/idGenerator';
 import { ValidationResult } from '../validation/validationTypes';
 import {
@@ -681,6 +682,55 @@ class ObfProcessor extends BaseProcessor {
     return { rows: totalRows, columns: totalColumns, order, buttonPositions };
   }
 
+  /**
+   * Apply mutations to a buttons array for OBF export
+   * Returns a modified copy of the buttons array with mutations applied
+   *
+   * Note: addButton mutations are NOT applied because the button is already
+   * in the buttons array (added by page.addButton()). We only apply
+   * removeButton and updateButton mutations.
+   */
+  private applyMutationsToButtons(
+    buttons: AACButton[],
+    mutations: readonly AACPageMutation[]
+  ): AACButton[] {
+    let modifiedButtons = [...buttons];
+
+    for (const mutation of mutations) {
+      switch (mutation.type) {
+        case 'addButton':
+          // Skip - button is already in the array from page.addButton()
+          break;
+
+        case 'removeButton': {
+          modifiedButtons = modifiedButtons.filter((b) => b.id !== mutation.buttonId);
+          break;
+        }
+
+        case 'updateButton': {
+          modifiedButtons = modifiedButtons.map((b) => {
+            if (b.id === mutation.buttonId) {
+              // Create a new AACButton instance with the patched properties
+              const patched = Object.create(Object.getPrototypeOf(b) as object);
+              Object.assign(patched, b, mutation.patch);
+              return patched as AACButton;
+            }
+            return b;
+          });
+          break;
+        }
+
+        case 'addWordListItem':
+        case 'removeWordListItem':
+        case 'clearWordList':
+          // OBF doesn't have WordList - skip
+          break;
+      }
+    }
+
+    return modifiedButtons;
+  }
+
   private createObfBoardFromPage(
     page: AACPage,
     fallbackName: string,
@@ -700,6 +750,12 @@ class ObfProcessor extends BaseProcessor {
       });
     }
 
+    // Apply mutations if present
+    const buttons =
+      page.pendingMutations.length > 0
+        ? this.applyMutationsToButtons(page.buttons, page.pendingMutations)
+        : page.buttons;
+
     return {
       format: OBF_FORMAT_VERSION,
       id: page.id,
@@ -715,7 +771,7 @@ class ObfProcessor extends BaseProcessor {
         columns,
         order,
       },
-      buttons: page.buttons.map((button) => {
+      buttons: buttons.map((button) => {
         const extraButtonInfo = button as AACButton & {
           image_id?: string;
           imageId?: string;
@@ -893,21 +949,10 @@ class ObfProcessor extends BaseProcessor {
       const obfFilename = this.getPageFilename(page.id, tree.metadata);
       modifiedObfFiles.add(obfFilename);
 
-      // NEW: Check if page has mutations to apply
-      const hasMutations = page.pendingMutations && page.pendingMutations.length > 0;
-
-      if (hasMutations) {
-        // Apply mutations to the page before creating OBF board
-        const pageWithMutations = this.applyMutationsToPage(page);
-        const obfBoard = this.createObfBoardFromPage(pageWithMutations, 'Board', tree.metadata);
-        const obfContent = JSON.stringify(obfBoard, null, 2);
-        newObfFiles.set(obfFilename, obfContent);
-      } else {
-        // No mutations, use original page
-        const obfBoard = this.createObfBoardFromPage(page, 'Board', tree.metadata);
-        const obfContent = JSON.stringify(obfBoard, null, 2);
-        newObfFiles.set(obfFilename, obfContent);
-      }
+      // createObfBoardFromPage will automatically apply mutations if present
+      const obfBoard = this.createObfBoardFromPage(page, 'Board', tree.metadata);
+      const obfContent = JSON.stringify(obfBoard, null, 2);
+      newObfFiles.set(obfFilename, obfContent);
     }
 
     // Generate updated manifest if we have pages

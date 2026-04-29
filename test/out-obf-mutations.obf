@@ -1,0 +1,31 @@
+{
+  "format": "open-board-0.1",
+  "id": "test-page",
+  "locale": "en",
+  "name": "Test Page",
+  "description_html": "Test Page",
+  "grid": {
+    "rows": 2,
+    "columns": 2,
+    "order": [
+      [
+        null,
+        null
+      ],
+      [
+        null,
+        null
+      ]
+    ]
+  },
+  "buttons": [
+    {
+      "id": "btn-1",
+      "label": "Button 1",
+      "vocalization": "Message 1",
+      "hidden": false
+    }
+  ],
+  "images": [],
+  "sounds": []
+}

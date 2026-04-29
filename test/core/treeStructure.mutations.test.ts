@@ -1,4 +1,4 @@
-import { AACTree, AACPage, AACButton } from '../../src/index';
+import { AACPage, AACButton } from '../../src/index';
 
 describe('AACPage Mutations', () => {
   describe('addButton', () => {
