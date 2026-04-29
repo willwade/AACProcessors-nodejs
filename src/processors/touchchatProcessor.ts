@@ -108,6 +108,12 @@ function mapTouchChatVisibility(
 }
 
 class TouchChatProcessor extends BaseProcessor {
+  readonly capabilities = {
+    wordList: 'none' as const,
+    preservesAssetsOnSave: false,
+    newCellCreation: 'allowed' as const,
+  };
+
   private tree: AACTree | null = null;
   private sourceFile: ProcessorInput | null = null;
 

@@ -30,6 +30,7 @@ import {
 } from './gridset/password';
 import { decryptGridsetEntry } from './gridset/crypto';
 import { formatGrid3XmlComplete } from './gridset/xmlFormatter';
+import { GridsetSaveHandler } from './gridset/saveMutations';
 import {
   calculateColumnDefinitions as calcColumnDefs,
   calculateRowDefinitions as calcRowDefs,
@@ -48,6 +49,12 @@ import { ProcessorInput, decodeText } from '../utils/io';
 import { ZipFile } from '../utils/zip';
 
 class GridsetProcessor extends BaseProcessor {
+  readonly capabilities = {
+    wordList: 'native' as const,
+    preservesAssetsOnSave: true,
+    newCellCreation: 'restricted' as const,
+  };
+
   constructor(options?: ProcessorOptions) {
     super(options);
   }
@@ -2521,6 +2528,48 @@ class GridsetProcessor extends BaseProcessor {
     const originalZip = new AdmZip(originalPath);
     const outputZip = new AdmZip();
 
+    // Check if any page has pending mutations
+    const hasPendingMutations = Object.values(tree.pages).some(
+      (page) => page.pendingMutations.length > 0
+    );
+
+    if (hasPendingMutations) {
+      // NEW: Use mutation-based save path
+      const parser = new XMLParser({
+        ignoreAttributes: false,
+        attributeNamePrefix: '@_',
+      });
+      const gridBuilder = new XMLBuilder({
+        ignoreAttributes: false,
+        format: true,
+        indentBy: '  ',
+        suppressEmptyNode: true,
+        suppressBooleanAttributes: false,
+      });
+
+      GridsetSaveHandler.saveWithMutations(
+        tree,
+        originalZip,
+        outputZip,
+        parser,
+        gridBuilder,
+        (page) => this.createBasicGridXml(page)
+      );
+
+      // Copy remaining files
+      for (const entry of originalZip.getEntries()) {
+        if (entry.isDirectory) continue;
+        if (!outputZip.getEntry(entry.entryName)) {
+          outputZip.addFile(entry.entryName, entry.getData());
+        }
+      }
+
+      const outputBuffer = outputZip.toBuffer();
+      await writeBinaryToPath(outputPath, outputBuffer);
+      return;
+    }
+
+    // LEGACY: Original position-based logic continues below...
     // Create a map of pages by name for easy lookup
     const pagesByName = new Map<string, AACPage>();
     for (const page of Object.values(tree.pages)) {
@@ -2758,51 +2807,6 @@ class GridsetProcessor extends BaseProcessor {
           }
           originalGrid.Grid.WordList.Items.WordListItem = allItems;
         }
-      }
-
-      // Process WordList items attached to the page (from personalisation)
-      // These are tracked separately and shouldn't create new cells
-      // Use a known symbol key to check for WordList items
-      const WORDLIST_ITEMS_KEY = 'wordListItems';
-      const wordListItems = (page as any)[WORDLIST_ITEMS_KEY] as
-        | Array<{ label: string; message: string }>
-        | undefined;
-
-      if (wordListItems && wordListItems.length > 0) {
-        // Ensure WordList structure exists
-        if (!originalGrid.Grid) {
-          originalGrid.Grid = {};
-        }
-        if (!originalGrid.Grid.WordList) {
-          originalGrid.Grid.WordList = {};
-        }
-        if (!originalGrid.Grid.WordList.Items) {
-          originalGrid.Grid.WordList.Items = {};
-        }
-
-        const existingItems =
-          originalGrid.Grid.WordList.Items.WordListItem ||
-          originalGrid.Grid.WordList.Items.wordlistitem ||
-          [];
-        const itemsArray = Array.isArray(existingItems) ? existingItems : [existingItems];
-
-        // Add new WordList items with proper Grid 3 format
-        for (const item of wordListItems) {
-          itemsArray.push({
-            Text: {
-              p: {
-                s: {
-                  r: item.label,
-                },
-              },
-            },
-            Image: '',
-            PartOfSpeech: 'Unknown',
-          });
-        }
-
-        // Update the WordList
-        originalGrid.Grid.WordList.Items.WordListItem = itemsArray;
       }
 
       // Build the updated grid XML and format for Grid 3 compatibility

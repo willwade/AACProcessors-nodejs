@@ -15,6 +15,12 @@ import { AACStyle } from '../types/aac';
  * Supports visual styling, navigation links, and vocabulary analysis workflows
  */
 export class ExcelProcessor extends BaseProcessor {
+  readonly capabilities = {
+    wordList: 'none' as const,
+    preservesAssetsOnSave: false,
+    newCellCreation: 'allowed' as const,
+  };
+
   private static readonly NAVIGATION_BUTTONS = ['Home', 'Message Bar', 'Delete', 'Back', 'Clear'];
 
   /**

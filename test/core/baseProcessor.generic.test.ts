@@ -14,6 +14,12 @@ import {
 } from '../../src/core/treeStructure';
 
 class DummyProcessor extends BaseProcessor {
+  readonly capabilities = {
+    wordList: 'none' as const,
+    preservesAssetsOnSave: false,
+    newCellCreation: 'allowed' as const,
+  };
+
   private tree: AACTree;
   public lastTranslations: Map<string, string> | null = null;
   public lastOutputPath: string | null = null;
