@@ -2547,7 +2547,7 @@ class GridsetProcessor extends BaseProcessor {
         suppressBooleanAttributes: false,
       });
 
-      await GridsetSaveHandler.saveWithMutations(
+      GridsetSaveHandler.saveWithMutations(
         tree,
         originalZip,
         outputZip,

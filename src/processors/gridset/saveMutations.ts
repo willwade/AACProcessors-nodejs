@@ -44,7 +44,7 @@ export class GridsetSaveHandler {
     parser: any,
     gridBuilder: any,
     createBasicGridXml: (page: AACPage) => string
-  ): Promise<void> {
+  ): void {
     for (const page of Object.values(tree.pages)) {
       // Skip pages with no mutations
       if (page.pendingMutations.length === 0) {
