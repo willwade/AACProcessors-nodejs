@@ -494,6 +494,7 @@ export class AACPage {
    */
   _loadButton(button: AACButton): void {
     this.buttons.push(button);
+  }
 
   /**
    * Discard all recorded mutations on this page.
