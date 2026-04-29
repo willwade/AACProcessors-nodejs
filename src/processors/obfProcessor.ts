@@ -102,6 +102,12 @@ interface ObfBoard {
 }
 
 class ObfProcessor extends BaseProcessor {
+  readonly capabilities = {
+    wordList: 'none' as const,
+    preservesAssetsOnSave: true,
+    newCellCreation: 'allowed' as const,
+  };
+
   private zipFile?: ZipAdapter;
   private imageCache: Map<string, string> = new Map(); // Cache for data URLs
 

@@ -720,6 +720,12 @@ function mapAstericsVisibility(hidden: boolean | undefined): 'Hidden' | 'Visible
 }
 
 class AstericsGridProcessor extends BaseProcessor {
+  readonly capabilities = {
+    wordList: 'none' as const,
+    preservesAssetsOnSave: false,
+    newCellCreation: 'allowed' as const,
+  };
+
   private loadAudio: boolean = false;
 
   constructor(options: ProcessorOptions & { loadAudio?: boolean } = {}) {

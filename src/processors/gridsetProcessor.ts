@@ -48,6 +48,12 @@ import { ProcessorInput, decodeText } from '../utils/io';
 import { ZipFile } from '../utils/zip';
 
 class GridsetProcessor extends BaseProcessor {
+  readonly capabilities = {
+    wordList: 'native' as const,
+    preservesAssetsOnSave: true,
+    newCellCreation: 'restricted' as const,
+  };
+
   constructor(options?: ProcessorOptions) {
     super(options);
   }

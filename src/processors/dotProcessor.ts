@@ -24,6 +24,12 @@ interface DotEdge {
 }
 
 class DotProcessor extends BaseProcessor {
+  readonly capabilities = {
+    wordList: 'none' as const,
+    preservesAssetsOnSave: false,
+    newCellCreation: 'allowed' as const,
+  };
+
   constructor(options?: ProcessorOptions) {
     super(options);
   }

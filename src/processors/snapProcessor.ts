@@ -82,6 +82,12 @@ interface SnapPage {
 }
 
 class SnapProcessor extends BaseProcessor {
+  readonly capabilities = {
+    wordList: 'none' as const,
+    preservesAssetsOnSave: false,
+    newCellCreation: 'allowed' as const,
+  };
+
   private symbolResolver: unknown | null = null;
   private loadAudio: boolean = false;
   private pageLayoutPreference: 'largest' | 'smallest' | 'scanning' | number = 'scanning'; // Default to scanning for metrics

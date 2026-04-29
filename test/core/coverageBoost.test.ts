@@ -138,6 +138,12 @@ describe('src/core Coverage Boost', () => {
 
   describe('BaseProcessor features', () => {
     class MockProcessor extends BaseProcessor {
+      readonly capabilities = {
+        wordList: 'none' as const,
+        preservesAssetsOnSave: false,
+        newCellCreation: 'allowed' as const,
+      };
+
       async extractTexts() {
         return [];
       }

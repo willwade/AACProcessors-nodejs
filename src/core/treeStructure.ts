@@ -8,6 +8,9 @@ import type {
   TouchChatMetadata,
   CellScanningOrder,
   ScanningSelectionMethod,
+  AACWordListItem,
+  AACPageMutation,
+  ProcessorCapabilities,
 } from '../types/aac';
 
 // Re-export for consumers
@@ -20,6 +23,9 @@ export type {
   TouchChatMetadata,
   CellScanningOrder,
   ScanningSelectionMethod,
+  AACWordListItem,
+  AACPageMutation,
+  ProcessorCapabilities,
 };
 
 // Semantic action categories for cross-platform compatibility
@@ -414,6 +420,9 @@ export class AACPage {
   scanType?: AACScanType;
   scanBlocksConfig?: AACScanBlock[];
 
+  // Mutation tracking
+  private _pendingMutations: AACPageMutation[] = [];
+
   constructor({
     id,
     name = '',
@@ -474,6 +483,55 @@ export class AACPage {
 
   addButton(button: AACButton): void {
     this.buttons.push(button);
+    // Record the mutation
+    this._pendingMutations.push({ type: 'addButton', button });
+  }
+
+  /**
+   * Get the list of pending mutations for this page (read-only)
+   */
+  get pendingMutations(): readonly AACPageMutation[] {
+    return Object.freeze([...this._pendingMutations]);
+  }
+
+  /**
+   * Remove a button by ID
+   * @param buttonId - The ID of the button to remove
+   */
+  removeButton(buttonId: string): void {
+    this._pendingMutations.push({ type: 'removeButton', buttonId });
+  }
+
+  /**
+   * Update a button by merging a patch
+   * @param buttonId - The ID of the button to update
+   * @param patch - Partial button object with fields to update
+   */
+  updateButton(buttonId: string, patch: Partial<AACButton>): void {
+    this._pendingMutations.push({ type: 'updateButton', buttonId, patch });
+  }
+
+  /**
+   * Add an item to the page's WordList (for formats with dynamic content cells)
+   * @param item - WordList item to add
+   */
+  addWordListItem(item: AACWordListItem): void {
+    this._pendingMutations.push({ type: 'addWordListItem', item });
+  }
+
+  /**
+   * Remove items from the page's WordList
+   * @param textOrPredicate - Text to match or predicate function to filter items
+   */
+  removeWordListItem(textOrPredicate: string | ((item: AACWordListItem) => boolean)): void {
+    this._pendingMutations.push({ type: 'removeWordListItem', match: textOrPredicate });
+  }
+
+  /**
+   * Clear all items from the page's WordList
+   */
+  clearWordList(): void {
+    this._pendingMutations.push({ type: 'clearWordList' });
   }
 }
 

@@ -45,6 +45,7 @@ import { StringCasing, detectCasing, isNumericOrEmpty } from './stringCasing';
 import { ValidationResult } from '../validation/validationTypes';
 import { BinaryOutput, defaultFileAdapter, FileAdapter, ProcessorInput } from '../utils/io';
 import { getZipAdapter, ZipAdapter } from '../utils/zip';
+import type { ProcessorCapabilities } from '../types/aac';
 
 // Configuration options for processors
 export interface ProcessorConfig {
@@ -122,6 +123,7 @@ export interface SourceString {
 
 abstract class BaseProcessor {
   protected options: ProcessorConfig;
+  abstract readonly capabilities: ProcessorCapabilities;
 
   constructor(options: ProcessorOptions = {}) {
     // Default configuration: exclude navigation/system buttons

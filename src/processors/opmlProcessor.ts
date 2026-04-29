@@ -32,6 +32,12 @@ interface OpmlDocument {
 }
 
 class OpmlProcessor extends BaseProcessor {
+  readonly capabilities = {
+    wordList: 'none' as const,
+    preservesAssetsOnSave: false,
+    newCellCreation: 'allowed' as const,
+  };
+
   constructor(options?: ProcessorOptions) {
     super(options);
   }

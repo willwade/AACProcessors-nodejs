@@ -230,3 +230,50 @@ export interface AACProcessor {
   extractTexts(filePath: string | Buffer): Promise<string[]>;
   loadIntoTree(filePath: string | Buffer): Promise<AACTree>;
 }
+
+/**
+ * Word List Item for dynamic content cells (e.g., Grid 3 WordLists)
+ */
+export interface AACWordListItem {
+  text: string;
+  image?: string;
+  partOfSpeech?: string;
+}
+
+/**
+ * Mutation types for page modifications
+ */
+export type AACPageMutation =
+  | { type: 'addButton'; button: AACButton }
+  | { type: 'removeButton'; buttonId: string }
+  | { type: 'updateButton'; buttonId: string; patch: Partial<AACButton> }
+  | { type: 'addWordListItem'; item: AACWordListItem }
+  | { type: 'removeWordListItem'; match: string | ((item: AACWordListItem) => boolean) }
+  | { type: 'clearWordList' };
+
+/**
+ * Processor capabilities declaration
+ */
+export interface ProcessorCapabilities {
+  /**
+   * WordList support level
+   * - 'native': addWordListItem writes a real WordList structure on disk
+   * - 'fallback': addWordListItem becomes addButton (still useful, just not dynamic)
+   * - 'none': addWordListItem throws CapabilityError
+   */
+  wordList: 'native' | 'fallback' | 'none';
+
+  /**
+   * Whether the processor has a real saveModifiedTree that keeps original images/settings
+   * If false, saveModifiedTree falls back to saveFromTree with a warning
+   */
+  preservesAssetsOnSave: boolean;
+
+  /**
+   * Rules for creating new cells
+   * - 'allowed': addButton at any (x,y) creates a cell on save
+   * - 'restricted': addButton routes to a WordList if (x,y) is a WordList cell, else dropped with warning
+   * - 'forbidden': addButton requires explicit (x,y) of an existing cell; otherwise CapabilityError
+   */
+  newCellCreation: 'allowed' | 'restricted' | 'forbidden';
+}

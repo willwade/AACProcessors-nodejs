@@ -4,6 +4,12 @@ import { BaseValidator } from '../../src/validation/baseValidator';
 import { ValidationResult } from '../../src/validation/validationTypes';
 
 class TestProcessor extends BaseProcessor {
+  readonly capabilities = {
+    wordList: 'none' as const,
+    preservesAssetsOnSave: false,
+    newCellCreation: 'allowed' as const,
+  };
+
   async extractTexts(): Promise<string[]> {
     return [];
   }
