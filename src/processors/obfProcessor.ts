@@ -893,9 +893,21 @@ class ObfProcessor extends BaseProcessor {
       const obfFilename = this.getPageFilename(page.id, tree.metadata);
       modifiedObfFiles.add(obfFilename);
 
-      const obfBoard = this.createObfBoardFromPage(page, 'Board', tree.metadata);
-      const obfContent = JSON.stringify(obfBoard, null, 2);
-      newObfFiles.set(obfFilename, obfContent);
+      // NEW: Check if page has mutations to apply
+      const hasMutations = page.pendingMutations && page.pendingMutations.length > 0;
+
+      if (hasMutations) {
+        // Apply mutations to the page before creating OBF board
+        const pageWithMutations = this.applyMutationsToPage(page);
+        const obfBoard = this.createObfBoardFromPage(pageWithMutations, 'Board', tree.metadata);
+        const obfContent = JSON.stringify(obfBoard, null, 2);
+        newObfFiles.set(obfFilename, obfContent);
+      } else {
+        // No mutations, use original page
+        const obfBoard = this.createObfBoardFromPage(page, 'Board', tree.metadata);
+        const obfContent = JSON.stringify(obfBoard, null, 2);
+        newObfFiles.set(obfFilename, obfContent);
+      }
     }
 
     // Generate updated manifest if we have pages
