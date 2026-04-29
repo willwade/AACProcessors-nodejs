@@ -705,7 +705,8 @@ class SnapProcessor extends BaseProcessor {
           // Add to the intended parent page
           const parentPage = tree.getPage(parentUniqueId);
           if (parentPage) {
-            parentPage.addButton(button);
+            // Load path: do not record as a user mutation
+            parentPage._loadButton(button);
 
             // Add button to grid layout if position data is available
             const gridPositionStr = String(btnRow.GridPosition || '');

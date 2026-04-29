@@ -488,6 +488,23 @@ export class AACPage {
   }
 
   /**
+   * Internal load-path button push: adds a button to the page WITHOUT recording a mutation.
+   * Used by processors during loadIntoTree so the loaded baseline isn't treated as user changes.
+   * Not part of the public API — consumers should always use addButton.
+   */
+  _loadButton(button: AACButton): void {
+    this.buttons.push(button);
+  }
+
+  /**
+   * Discard all recorded mutations on this page.
+   * Useful as an escape hatch after loadIntoTree if the consumer wants a clean baseline.
+   */
+  clearMutations(): void {
+    this._pendingMutations = [];
+  }
+
+  /**
    * Get the list of pending mutations for this page (read-only)
    */
   get pendingMutations(): readonly AACPageMutation[] {

@@ -366,7 +366,8 @@ class ApplePanelsProcessor extends BaseProcessor {
               fontWeight: btn.DisplayImageWeight === 'bold' ? 'bold' : 'normal',
             },
           });
-          page.addButton(button);
+          // Load path: do not record as a user mutation
+          page._loadButton(button);
 
           if (btn.Rect) {
             const rect = this.parseRect(btn.Rect);

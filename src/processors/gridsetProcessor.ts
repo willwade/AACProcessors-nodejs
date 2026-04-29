@@ -1749,8 +1749,8 @@ class GridsetProcessor extends BaseProcessor {
               },
             });
 
-            // Add button to page
-            page.addButton(button);
+            // Add button to page (load path: do not record as a user mutation)
+            page._loadButton(button);
 
             // Place button in grid layout (handle colspan/rowspan)
             for (let r = cellY; r < cellY + rowSpan && r < maxRows; r++) {

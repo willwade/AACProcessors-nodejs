@@ -917,7 +917,8 @@ class AstericsGridProcessor extends BaseProcessor {
             colorConfig,
             activeColorSchemeDefinition
           );
-          page.addButton(button);
+          // Load path: do not record as a user mutation
+          page._loadButton(button);
 
           const buttonX = element.x || 0;
           const buttonY = element.y || 0;
