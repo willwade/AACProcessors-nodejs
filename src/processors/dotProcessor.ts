@@ -166,7 +166,8 @@ class DotProcessor extends BaseProcessor {
         tree.addPage(page);
 
         // Add a self button so single-node graphs yield one button
-        page.addButton(
+        // Load path: do not record as a user mutation
+        page._loadButton(
           new AACButton({
             id: `${node.id}_self`,
             label: node.label,
@@ -191,7 +192,8 @@ class DotProcessor extends BaseProcessor {
 
             targetPageId: edge.to,
           });
-          fromPage.addButton(button);
+          // Load path: do not record as a user mutation
+          fromPage._loadButton(button);
         }
       }
 

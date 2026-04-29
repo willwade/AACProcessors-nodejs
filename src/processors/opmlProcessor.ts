@@ -78,7 +78,8 @@ class OpmlProcessor extends BaseProcessor {
             message: '',
             targetPageId: childText.replace(/[^a-zA-Z0-9]/g, '_'),
           });
-          page.addButton(button);
+          // Load path: do not record as a user mutation
+          page._loadButton(button);
 
           const { page: childPage, childPages: grandChildren } = this.processOutline(
             child,

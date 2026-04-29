@@ -406,8 +406,8 @@ class TouchChatProcessor extends BaseProcessor {
               button.x = absoluteX;
               button.y = absoluteY;
 
-              // Add button to page
-              page.addButton(button);
+              // Add button to page (load path: do not record as a user mutation)
+              page._loadButton(button);
 
               // Place button in grid (handle span)
               for (let r = absoluteY; r < absoluteY + safeSpanY && r < 10; r++) {
@@ -518,7 +518,7 @@ class TouchChatProcessor extends BaseProcessor {
           const page = Object.values(tree.pages).find(
             (p) => p.id === (numericToRid.get(btnRow.id) || String(btnRow.id))
           );
-          if (page) page.addButton(button);
+          if (page) page._loadButton(button); // load path: do not record as a user mutation
         });
       } catch (_e) {
         // console.log('No direct page buttons found:', e);
