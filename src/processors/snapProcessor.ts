@@ -84,7 +84,7 @@ interface SnapPage {
 class SnapProcessor extends BaseProcessor {
   readonly capabilities = {
     wordList: 'none' as const,
-    preservesAssetsOnSave: false,
+    preservesAssetsOnSave: true,
     newCellCreation: 'allowed' as const,
   };
 
@@ -969,6 +969,382 @@ class SnapProcessor extends BaseProcessor {
 
     await this.saveFromTree(tree, outputPath);
     return await readBinaryFromInput(outputPath);
+  }
+
+  /**
+   * Save a modified tree while preserving the original SQLite schema and data.
+   *
+   * Strategy: copy the original .sps verbatim, then open the copy and replay
+   * `page.pendingMutations` as targeted SQL UPDATE/INSERT statements. Everything
+   * not in the mutation log (PageLayout, ScanGroup, image blobs, ContentTypeData,
+   * ButtonPageLink, etc.) is preserved byte-for-byte from the original.
+   *
+   * This is the asset-preserving counterpart to `saveFromTree` (which builds a
+   * stripped-down DB from scratch and is unsuitable for round-tripping real
+   * TD Snap page sets).
+   *
+   * Supported mutations:
+   * - updateButton(id, patch)  → UPDATE Button SET Label/Message WHERE Id = ?
+   * - removeButton(id)         → UPDATE ElementPlacement SET Visible = 0 for all
+   *                              placements pointing at the button's ElementReference
+   * - addButton(button)        → INSERT into ElementReference + Button + one
+   *                              ElementPlacement per existing PageLayout for
+   *                              the target page (so the button shows in every
+   *                              layout the user has). Image/audio not yet handled.
+   *
+   * WordList mutations are no-ops on Snap (capabilities.wordList === 'none').
+   */
+  async saveModifiedTree(originalPath: string, tree: AACTree, outputPath: string): Promise<void> {
+    const { pathExists, mkDir, removePath, dirname, readBinaryFromInput, writeBinaryToPath } =
+      this.options.fileAdapter;
+    if (!isNodeRuntime()) {
+      throw new Error('saveModifiedTree is only supported in Node.js for Snap files.');
+    }
+
+    const outputDir = dirname(outputPath);
+    if (!(await pathExists(outputDir))) {
+      await mkDir(outputDir, { recursive: true });
+    }
+    if (await pathExists(outputPath)) {
+      await removePath(outputPath);
+    }
+
+    // 1. Copy the original verbatim — preserves all 23+ tables, blobs, settings.
+    const originalBytes = await readBinaryFromInput(originalPath);
+    await writeBinaryToPath(outputPath, originalBytes);
+
+    // Short-circuit: if no page has any mutations, we're done.
+    const hasAnyMutations = Object.values(tree.pages).some(
+      (page) => page.pendingMutations.length > 0
+    );
+    if (!hasAnyMutations) {
+      return;
+    }
+
+    // 2. Open the copy.
+    const Database = requireBetterSqlite3();
+    const db = new Database(outputPath, { readonly: false });
+
+    try {
+      // 3. Schema introspection — different Snap versions have different optional columns.
+      const tableColumns = (table: string): Set<string> => {
+        try {
+          const rows = db.prepare(`PRAGMA table_info(${table})`).all() as Array<{
+            name: string;
+          }>;
+          return new Set(rows.map((r) => r.name));
+        } catch {
+          return new Set();
+        }
+      };
+      const buttonCols = tableColumns('Button');
+      const placementCols = tableColumns('ElementPlacement');
+      const hasPlacementVisible = placementCols.has('Visible');
+      const hasPlacementPageLayoutId = placementCols.has('PageLayoutId');
+
+      // 4. UniqueId → numeric Page.Id map.
+      const pageRows = db.prepare('SELECT Id, UniqueId FROM Page').all() as Array<{
+        Id: number;
+        UniqueId: string | null;
+      }>;
+      const uniqueIdToPageId = new Map<string, number>();
+      for (const row of pageRows) {
+        if (row.UniqueId) uniqueIdToPageId.set(String(row.UniqueId), row.Id);
+        // Allow lookup by stringified numeric Id too, since loadIntoTree falls back to it.
+        uniqueIdToPageId.set(String(row.Id), row.Id);
+      }
+
+      // Page.Id → list of PageLayout.Id, plus parsed dimensions, plus occupied cells per layout.
+      // PageLayoutSetting is a comma string like "4,3,False,0" → cols=4, rows=3.
+      interface LayoutInfo {
+        id: number;
+        cols: number;
+        rows: number;
+        occupied: Set<string>;
+      }
+      const layoutsByPage = new Map<number, LayoutInfo[]>();
+      try {
+        const layoutRows = db
+          .prepare('SELECT Id, PageId, PageLayoutSetting FROM PageLayout')
+          .all() as Array<{ Id: number; PageId: number; PageLayoutSetting: string | null }>;
+
+        // Pre-load occupied placements per layout so we can avoid (x,y) collisions.
+        const placementsByLayout = new Map<number, Set<string>>();
+        const placementRows = db
+          .prepare(
+            'SELECT PageLayoutId, GridPosition FROM ElementPlacement WHERE GridPosition IS NOT NULL AND PageLayoutId IS NOT NULL'
+          )
+          .all() as Array<{ PageLayoutId: number; GridPosition: string }>;
+        for (const r of placementRows) {
+          let set = placementsByLayout.get(r.PageLayoutId);
+          if (!set) {
+            set = new Set();
+            placementsByLayout.set(r.PageLayoutId, set);
+          }
+          set.add(r.GridPosition);
+        }
+
+        for (const row of layoutRows) {
+          const parts = String(row.PageLayoutSetting ?? '').split(',');
+          const cols = parseInt(parts[0], 10) || 4;
+          const rows = parseInt(parts[1], 10) || 4;
+          const info: LayoutInfo = {
+            id: row.Id,
+            cols,
+            rows,
+            occupied: placementsByLayout.get(row.Id) ?? new Set(),
+          };
+          const list = layoutsByPage.get(row.PageId);
+          if (list) list.push(info);
+          else layoutsByPage.set(row.PageId, [info]);
+        }
+      } catch {
+        // PageLayout table may not exist on older schemas — placements get NULL PageLayoutId.
+      }
+
+      // Find first empty cell on a layout, starting from a preferred (x,y).
+      // Returns null if the layout is fully occupied.
+      const findFreeCell = (info: LayoutInfo, prefX: number, prefY: number): string | null => {
+        const inBounds = (x: number, y: number): boolean =>
+          x >= 0 && x < info.cols && y >= 0 && y < info.rows;
+        if (inBounds(prefX, prefY)) {
+          const key = `${prefX},${prefY}`;
+          if (!info.occupied.has(key)) {
+            info.occupied.add(key);
+            return key;
+          }
+        }
+        for (let y = 0; y < info.rows; y++) {
+          for (let x = 0; x < info.cols; x++) {
+            const key = `${x},${y}`;
+            if (!info.occupied.has(key)) {
+              info.occupied.add(key);
+              return key;
+            }
+          }
+        }
+        return null;
+      };
+
+      // Generate a UUID for new Button.UniqueId. Required: Node has crypto.randomUUID since 14.17.
+      const nodeCrypto = getNodeRequire()?.('crypto') as typeof import('crypto') | undefined;
+      const uuid = (): string =>
+        nodeCrypto?.randomUUID
+          ? nodeCrypto.randomUUID()
+          : // Fallback (very unlikely path, but shouldn't break older Nodes)
+            'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+              const r = (Math.random() * 16) | 0;
+              const v = c === 'x' ? r : (r & 0x3) | 0x8;
+              return v.toString(16);
+            });
+
+      // 5. Next-available IDs for inserts.
+      const nextId = (table: string): number => {
+        const row = db.prepare(`SELECT COALESCE(MAX(Id), 0) AS maxId FROM ${table}`).get() as {
+          maxId: number;
+        };
+        return (row.maxId || 0) + 1;
+      };
+      let nextButtonId = nextId('Button');
+      let nextElementRefId = nextId('ElementReference');
+      let nextPlacementId = nextId('ElementPlacement');
+      // CommandSequence is optional but TD Snap crashes on some pages (e.g. dashboards
+      // like "Google Home Speaker") when a button has no CommandSequence row. Every
+      // button in the original DB has one. We track this only if the table exists.
+      const hasCommandSequence = tableColumns('CommandSequence').size > 0;
+      let nextCommandSequenceId = hasCommandSequence ? nextId('CommandSequence') : 0;
+
+      // 6. Replay mutations inside one transaction for atomicity + speed.
+      const replay = db.transaction(() => {
+        for (const page of Object.values(tree.pages)) {
+          if (page.pendingMutations.length === 0) continue;
+
+          const numericPageId = uniqueIdToPageId.get(String(page.id));
+          if (numericPageId === undefined) {
+            // eslint-disable-next-line no-console
+            console.warn(
+              `[Snap] saveModifiedTree: page "${page.name}" (${page.id}) not found in original DB; skipping ${page.pendingMutations.length} mutation(s)`
+            );
+            continue;
+          }
+
+          for (const mutation of page.pendingMutations) {
+            switch (mutation.type) {
+              case 'updateButton': {
+                const sets: string[] = [];
+                const args: unknown[] = [];
+                if (mutation.patch.label !== undefined && buttonCols.has('Label')) {
+                  sets.push('Label = ?');
+                  args.push(mutation.patch.label);
+                }
+                if (mutation.patch.message !== undefined && buttonCols.has('Message')) {
+                  sets.push('Message = ?');
+                  args.push(mutation.patch.message);
+                }
+                if (sets.length === 0) break;
+                args.push(Number(mutation.buttonId));
+                db.prepare(`UPDATE Button SET ${sets.join(', ')} WHERE Id = ?`).run(...args);
+                break;
+              }
+
+              case 'removeButton': {
+                // Hide all placements that reference the button's ElementReference.
+                const buttonRow = db
+                  .prepare('SELECT ElementReferenceId FROM Button WHERE Id = ?')
+                  .get(Number(mutation.buttonId)) as { ElementReferenceId: number } | undefined;
+                if (!buttonRow || buttonRow.ElementReferenceId == null) break;
+                if (hasPlacementVisible) {
+                  db.prepare(
+                    'UPDATE ElementPlacement SET Visible = 0 WHERE ElementReferenceId = ?'
+                  ).run(buttonRow.ElementReferenceId);
+                } else {
+                  // Older schemas without Visible: delete the placements outright.
+                  db.prepare('DELETE FROM ElementPlacement WHERE ElementReferenceId = ?').run(
+                    buttonRow.ElementReferenceId
+                  );
+                }
+                break;
+              }
+
+              case 'addButton': {
+                const button = mutation.button;
+                const elementRefId = nextElementRefId++;
+                const buttonId = nextButtonId++;
+
+                // ElementReference: TD Snap requires ElementType, ForegroundColor,
+                // BackgroundColor, and AudioCueRecordingId to be non-NULL on render
+                // — NULL values crash dashboard pages (e.g. "Google Home Speaker").
+                // Defaults below match the modal values across real Snap files
+                // (>99% of existing rows in Core First Scanning use them).
+                const erColumns = tableColumns('ElementReference');
+                const erCandidates: Array<{ col: string; value: unknown }> = [
+                  { col: 'Id', value: elementRefId },
+                  { col: 'PageId', value: numericPageId },
+                  { col: 'ElementType', value: 0 }, // 0 = button; only nonzero in 1/20608 rows
+                  { col: 'ForegroundColor', value: -14934754 }, // dark text default (99.8% of rows)
+                  { col: 'BackgroundColor', value: -132102 }, // light cell default (85.7% of rows)
+                  { col: 'AudioCueRecordingId', value: 0 }, // 0 = no audio cue (99.99% of rows)
+                ];
+                const erFieldsPresent = erCandidates.filter((f) => erColumns.has(f.col));
+                db.prepare(
+                  `INSERT INTO ElementReference (${erFieldsPresent
+                    .map((f) => f.col)
+                    .join(', ')}) VALUES (${erFieldsPresent.map(() => '?').join(', ')})`
+                ).run(...erFieldsPresent.map((f) => f.value));
+
+                // Button: provide non-NULL defaults for columns TD Snap reads.
+                // ContentType = 6 (normal speak button), CommandFlags = 8 (standard),
+                // LabelOwnership / ImageOwnership = 3 (owned by this page set),
+                // ActiveContentType = 0, BorderThickness = 0, UniqueId = fresh GUID,
+                // image / sound / symbol IDs = 0 (= "no asset").
+                const candidateFields: Array<{ col: string; value: unknown }> = [
+                  { col: 'Id', value: buttonId },
+                  { col: 'Label', value: button.label || '' },
+                  { col: 'Message', value: button.message || button.label || '' },
+                  { col: 'ElementReferenceId', value: elementRefId },
+                  { col: 'ContentType', value: 6 },
+                  { col: 'CommandFlags', value: 8 },
+                  { col: 'LabelOwnership', value: 3 },
+                  { col: 'ImageOwnership', value: 3 },
+                  { col: 'ActiveContentType', value: 0 },
+                  { col: 'BorderThickness', value: 0 },
+                  { col: 'UniqueId', value: uuid() },
+                  { col: 'LibrarySymbolId', value: 0 },
+                  { col: 'PageSetImageId', value: 0 },
+                  { col: 'MessageRecordingId', value: 0 },
+                  // UseMessageRecording: omit. 99.99% of existing rows have NULL,
+                  // and forcing 0 makes Sarah/Mum the only outliers in the DB.
+                  { col: 'SymbolColorDataId', value: 0 },
+                ];
+                const presentFields = candidateFields.filter((f) => buttonCols.has(f.col));
+                const sql = `INSERT INTO Button (${presentFields
+                  .map((f) => f.col)
+                  .join(', ')}) VALUES (${presentFields.map(() => '?').join(', ')})`;
+                db.prepare(sql).run(...presentFields.map((f) => f.value));
+
+                // Insert a default CommandSequence row that explicitly speaks the
+                // button's Label ($type:3 = MessageAction, value 0 = speak Label).
+                // This is the most common pattern in real Snap files (9514 / 19402
+                // buttons in Core First Scanning). Without an explicit action,
+                // dashboard pages (e.g. "Google Home Speaker") crash on render —
+                // empty $values is only used for hidden/help-text buttons.
+                if (hasCommandSequence) {
+                  db.prepare(
+                    'INSERT INTO CommandSequence (Id, SerializedCommands, ButtonId) VALUES (?, ?, ?)'
+                  ).run(
+                    nextCommandSequenceId++,
+                    '{"$type":"1","$values":[{"$type":"3","MessageAction":0}]}',
+                    buttonId
+                  );
+                }
+
+                const layouts = layoutsByPage.get(numericPageId) ?? [];
+                const prefX = button.x ?? 0;
+                const prefY = button.y ?? 0;
+
+                if (layouts.length === 0) {
+                  const placementId = nextPlacementId++;
+                  if (hasPlacementPageLayoutId) {
+                    db.prepare(
+                      'INSERT INTO ElementPlacement (Id, ElementReferenceId, GridPosition, PageLayoutId, Visible) VALUES (?, ?, ?, NULL, 1)'
+                    ).run(placementId, elementRefId, `${prefX},${prefY}`);
+                  } else {
+                    db.prepare(
+                      'INSERT INTO ElementPlacement (Id, ElementReferenceId, GridPosition, Visible) VALUES (?, ?, ?, 1)'
+                    ).run(placementId, elementRefId, `${prefX},${prefY}`);
+                  }
+                } else {
+                  // INVARIANT: every Button must have exactly one ElementPlacement
+                  // per PageLayout on its page. Snap renders buttons × layouts and
+                  // crashes if a (button, layout) pair is missing.
+                  //
+                  // Hidden placements (Visible=0) MUST use a position that doesn't
+                  // collide with an existing visible placement on that layout.
+                  // The existing convention puts hidden placements at out-of-grid
+                  // coordinates (e.g. position (2,4) on a 4×3 layout where row 4
+                  // doesn't exist). We do the same: synthesise (cols, 0) which is
+                  // guaranteed out of bounds since valid X is 0..cols-1.
+                  for (const info of layouts) {
+                    const cell = findFreeCell(info, prefX, prefY);
+                    const visible = cell !== null ? 1 : 0;
+                    const gridPosition = cell ?? `${info.cols},0`;
+                    const placementId = nextPlacementId++;
+                    if (hasPlacementPageLayoutId && hasPlacementVisible) {
+                      db.prepare(
+                        'INSERT INTO ElementPlacement (Id, ElementReferenceId, GridPosition, PageLayoutId, Visible) VALUES (?, ?, ?, ?, ?)'
+                      ).run(placementId, elementRefId, gridPosition, info.id, visible);
+                    } else if (hasPlacementPageLayoutId) {
+                      db.prepare(
+                        'INSERT INTO ElementPlacement (Id, ElementReferenceId, GridPosition, PageLayoutId) VALUES (?, ?, ?, ?)'
+                      ).run(placementId, elementRefId, gridPosition, info.id);
+                    } else if (hasPlacementVisible) {
+                      db.prepare(
+                        'INSERT INTO ElementPlacement (Id, ElementReferenceId, GridPosition, Visible) VALUES (?, ?, ?, ?)'
+                      ).run(placementId, elementRefId, gridPosition, visible);
+                    } else {
+                      db.prepare(
+                        'INSERT INTO ElementPlacement (Id, ElementReferenceId, GridPosition) VALUES (?, ?, ?)'
+                      ).run(placementId, elementRefId, gridPosition);
+                    }
+                  }
+                }
+                break;
+              }
+
+              case 'addWordListItem':
+              case 'removeWordListItem':
+              case 'clearWordList':
+                // Snap has no WordList concept — these are no-ops by capability contract.
+                break;
+            }
+          }
+        }
+      });
+
+      replay();
+    } finally {
+      db.close();
+    }
   }
 
   async saveFromTree(tree: AACTree, outputPath: string): Promise<void> {
