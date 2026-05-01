@@ -1286,11 +1286,11 @@ class SnapProcessor extends BaseProcessor {
                   const placementId = nextPlacementId++;
                   if (hasPlacementPageLayoutId) {
                     db.prepare(
-                      'INSERT INTO ElementPlacement (Id, ElementReferenceId, GridPosition, PageLayoutId, Visible) VALUES (?, ?, ?, NULL, 1)'
+                      "INSERT INTO ElementPlacement (Id, ElementReferenceId, GridPosition, GridSpan, PageLayoutId, Visible) VALUES (?, ?, ?, '1,1', NULL, 1)"
                     ).run(placementId, elementRefId, `${prefX},${prefY}`);
                   } else {
                     db.prepare(
-                      'INSERT INTO ElementPlacement (Id, ElementReferenceId, GridPosition, Visible) VALUES (?, ?, ?, 1)'
+                      "INSERT INTO ElementPlacement (Id, ElementReferenceId, GridPosition, GridSpan, Visible) VALUES (?, ?, ?, '1,1', 1)"
                     ).run(placementId, elementRefId, `${prefX},${prefY}`);
                   }
                 } else {
@@ -1311,19 +1311,19 @@ class SnapProcessor extends BaseProcessor {
                     const placementId = nextPlacementId++;
                     if (hasPlacementPageLayoutId && hasPlacementVisible) {
                       db.prepare(
-                        'INSERT INTO ElementPlacement (Id, ElementReferenceId, GridPosition, PageLayoutId, Visible) VALUES (?, ?, ?, ?, ?)'
+                        "INSERT INTO ElementPlacement (Id, ElementReferenceId, GridPosition, GridSpan, PageLayoutId, Visible) VALUES (?, ?, ?, '1,1', ?, ?)"
                       ).run(placementId, elementRefId, gridPosition, info.id, visible);
                     } else if (hasPlacementPageLayoutId) {
                       db.prepare(
-                        'INSERT INTO ElementPlacement (Id, ElementReferenceId, GridPosition, PageLayoutId) VALUES (?, ?, ?, ?)'
+                        "INSERT INTO ElementPlacement (Id, ElementReferenceId, GridPosition, GridSpan, PageLayoutId) VALUES (?, ?, ?, '1,1', ?)"
                       ).run(placementId, elementRefId, gridPosition, info.id);
                     } else if (hasPlacementVisible) {
                       db.prepare(
-                        'INSERT INTO ElementPlacement (Id, ElementReferenceId, GridPosition, Visible) VALUES (?, ?, ?, ?)'
+                        "INSERT INTO ElementPlacement (Id, ElementReferenceId, GridPosition, GridSpan, Visible) VALUES (?, ?, ?, '1,1', ?)"
                       ).run(placementId, elementRefId, gridPosition, visible);
                     } else {
                       db.prepare(
-                        'INSERT INTO ElementPlacement (Id, ElementReferenceId, GridPosition) VALUES (?, ?, ?)'
+                        "INSERT INTO ElementPlacement (Id, ElementReferenceId, GridPosition, GridSpan) VALUES (?, ?, ?, '1,1')"
                       ).run(placementId, elementRefId, gridPosition);
                     }
                   }
