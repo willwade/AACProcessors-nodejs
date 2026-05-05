@@ -2524,9 +2524,8 @@ class GridsetProcessor extends BaseProcessor {
       return;
     }
 
-    const AdmZip = (await import('adm-zip')).default;
-    const originalZip = new AdmZip(originalPath);
-    const outputZip = new AdmZip();
+    const originalZip = await this.options.zipAdapter(originalPath);
+    const outputZip = await this.options.zipAdapter();
 
     // Check if any page has pending mutations
     const hasPendingMutations = Object.values(tree.pages).some(
@@ -2556,15 +2555,13 @@ class GridsetProcessor extends BaseProcessor {
         (page) => this.createBasicGridXml(page)
       );
 
-      // Copy remaining files
-      for (const entry of originalZip.getEntries()) {
-        if (entry.isDirectory) continue;
-        if (!outputZip.getEntry(entry.entryName)) {
-          outputZip.addFile(entry.entryName, entry.getData());
-        }
+      // Copy files
+      const outputFiles = [];
+      for (const name of originalZip.listFiles()) {
+        const data = await originalZip.readFile(name);
+        outputFiles.push({ name, data });
       }
-
-      const outputBuffer = outputZip.toBuffer();
+      const outputBuffer = await outputZip.writeFiles(outputFiles);
       await writeBinaryToPath(outputPath, outputBuffer);
       return;
     }
@@ -2601,9 +2598,9 @@ class GridsetProcessor extends BaseProcessor {
       modifiedGridFiles.add(gridPath);
 
       // Try to get the original grid.xml file
-      const originalEntry = originalZip.getEntry(gridPath);
+      const originalEntries = originalZip.listFiles();
 
-      if (!originalEntry) {
+      if (!originalEntries.includes(gridPath)) {
         // If original doesn't exist, create a new basic grid
         const basicGrid = this.createBasicGridXml(page);
         newGridFiles.set(gridPath, basicGrid);
@@ -2611,7 +2608,7 @@ class GridsetProcessor extends BaseProcessor {
       }
 
       // Parse the original grid XML
-      const originalContent = originalEntry.getData().toString('utf-8');
+      const originalContent = (await originalZip.readFile(gridPath)).toString();
       const originalGrid = parser.parse(originalContent);
 
       if (!originalGrid.Grid) {
@@ -2816,24 +2813,24 @@ class GridsetProcessor extends BaseProcessor {
     }
 
     // Copy all files from original zip, replacing modified grid files
-    for (const entry of originalZip.getEntries()) {
-      if (entry.isDirectory) continue;
-
+    const outputFiles = [];
+    for (const entry of originalZip.listFiles()) {
       // Skip grid.xml files that we're modifying
-      if (modifiedGridFiles.has(entry.entryName)) {
-        const newContent = newGridFiles.get(entry.entryName);
+      if (modifiedGridFiles.has(entry)) {
+        const newContent = newGridFiles.get(entry);
         if (newContent) {
-          outputZip.addFile(entry.entryName, Buffer.from(newContent, 'utf8'));
+          outputFiles.push({ name: entry, data: Buffer.from(newContent, 'utf8') });
         }
         continue;
       }
 
       // Copy all other files as-is
-      outputZip.addFile(entry.entryName, entry.getData());
+      const data = await originalZip.readFile(entry);
+      outputFiles.push({ name: entry, data });
     }
 
     // Write the output ZIP
-    const outputBuffer = outputZip.toBuffer();
+    const outputBuffer = await outputZip.writeFiles(outputFiles);
     await writeBinaryToPath(outputPath, outputBuffer);
   }
 

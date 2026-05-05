@@ -935,30 +935,21 @@ class ObfProcessor extends BaseProcessor {
       return;
     }
 
-    const AdmZip = (await import('adm-zip')).default;
-    const originalZip = new AdmZip(originalPath);
-    const outputZip = new AdmZip();
-
-    // Track which .obf files we're modifying
-    const modifiedObfFiles = new Set<string>();
-
-    // Generate new .obf files for pages in the tree
-    const newObfFiles = new Map<string, string>();
+    const originalZip = await this.options.zipAdapter(originalPath);
+    const outputZip = await this.options.zipAdapter();
+    const outputFiles = [];
 
     for (const page of Object.values(tree.pages)) {
-      const obfFilename = this.getPageFilename(page.id, tree.metadata);
-      modifiedObfFiles.add(obfFilename);
+      const name = this.getPageFilename(page.id, tree.metadata);
 
       // createObfBoardFromPage will automatically apply mutations if present
       const obfBoard = this.createObfBoardFromPage(page, 'Board', tree.metadata);
-      const obfContent = JSON.stringify(obfBoard, null, 2);
-      newObfFiles.set(obfFilename, obfContent);
+      const data = JSON.stringify(obfBoard, null, 2);
+      outputFiles.push({ name, data });
     }
 
     // Generate updated manifest if we have pages
     if (Object.keys(tree.pages).length > 0) {
-      modifiedObfFiles.add('manifest.json');
-
       const manifest: ObfManifest = {
         format: OBF_FORMAT_VERSION,
         root: tree.metadata.defaultHomePageId,
@@ -973,29 +964,20 @@ class ObfProcessor extends BaseProcessor {
           sounds: {},
         },
       };
-
-      newObfFiles.set('manifest.json', JSON.stringify(manifest));
+      const data = Buffer.from(JSON.stringify(manifest), 'utf8');
+      outputFiles.push({ name: 'manifest.json', data });
     }
 
-    // Copy all files from original zip, replacing modified .obf files
-    for (const entry of originalZip.getEntries()) {
-      if (entry.isDirectory) continue;
-
-      // Skip .obf files that we're modifying
-      if (modifiedObfFiles.has(entry.entryName)) {
-        const newContent = newObfFiles.get(entry.entryName);
-        if (newContent) {
-          outputZip.addFile(entry.entryName, Buffer.from(newContent, 'utf8'));
-        }
-        continue;
+    // Add remaining .obf from original zip
+    for (const entry of originalZip.listFiles()) {
+      if (!outputFiles.find((file) => file.name === entry)) {
+        const data = await originalZip.readFile(entry);
+        outputFiles.push({ name: entry, data });
       }
-
-      // Copy all other files as-is (preserves images, sounds, etc.)
-      outputZip.addFile(entry.entryName, entry.getData());
     }
 
     // Write the output ZIP
-    const outputBuffer = outputZip.toBuffer();
+    const outputBuffer = await outputZip.writeFiles(outputFiles);
     await writeBinaryToPath(outputPath, outputBuffer);
   }
 
