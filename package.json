@@ -131,7 +131,7 @@
   ],
   "author": {
     "name": "Will Wade",
-    "email": "wwade@acecentre.org.uk",
+    "email": "will@aactools.co.uk",
     "url": "https://github.com/willwade"
   },
   "license": "MIT",
@@ -140,12 +140,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/willwade/AACProcessors-nodejs.git"
+    "url": "https://github.com/AACTools/AACProcessors-nodejs.git"
   },
   "bugs": {
-    "url": "https://github.com/willwade/AACProcessors-nodejs/issues"
+    "url": "https://github.com/AACTools/AACProcessors-nodejs/issues"
   },
-  "homepage": "https://github.com/willwade/AACProcessors-nodejs#readme",
+  "homepage": "https://github.com/AACTools/AACProcessors-nodejs#readme",
   "engines": {
     "node": ">=20.0.0",
     "npm": ">=9.0.0"
