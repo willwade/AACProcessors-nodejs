@@ -963,6 +963,57 @@ export interface ExtractedParameters {
   [key: string]: string | number | boolean;
 }
 
+function textOfStructured(val: any): string | undefined {
+  if (!val || typeof val !== 'object') return undefined;
+
+  const parts: string[] = [];
+  const processS = (s: any): void => {
+    if (!s) return;
+    if (s.r !== undefined) {
+      const rElements = Array.isArray(s.r) ? s.r : [s.r];
+      for (const r of rElements) {
+        if (typeof r === 'number') {
+          if (r !== 0) parts.push(String(r));
+          continue;
+        }
+        if (typeof r === 'object' && r !== null) {
+          if ('#text' in r) parts.push(String(r['#text']));
+          else if ('#cdata' in r) parts.push(String(r['#cdata']));
+          else parts.push(String(r));
+        } else {
+          parts.push(String(r));
+        }
+      }
+    }
+  };
+
+  if (val.p) {
+    const sElements = Array.isArray(val.p.s) ? val.p.s : val.p.s ? [val.p.s] : [];
+    sElements.forEach(processS);
+  } else if (val.s) {
+    const sElements = Array.isArray(val.s) ? val.s : [val.s];
+    sElements.forEach(processS);
+  } else if (val.r !== undefined) {
+    processS(val);
+  }
+
+  return parts.length > 0 ? parts.join('').trim() : undefined;
+}
+
+function extractParamValue(param: any): string | number | boolean | undefined {
+  if (typeof param === 'string') return param;
+
+  if (param.p || param.s || (param.r !== undefined && typeof param.r !== 'string')) {
+    const structured = textOfStructured(param);
+    if (structured !== undefined) return structured;
+  }
+
+  const simple = param['#text'] ?? param.text ?? param.value;
+  if (simple !== undefined) return simple as string | number | boolean;
+
+  return textOfStructured(param);
+}
+
 export function extractCommandParameters(command: any): ExtractedParameters {
   const parameters: ExtractedParameters = {};
   const params = command.Parameter || command.parameter;
@@ -973,7 +1024,7 @@ export function extractCommandParameters(command: any): ExtractedParameters {
 
   for (const param of paramArray) {
     const key = param['@_Key'] || param.Key || param.key;
-    let value = param['#text'] ?? param.text ?? param.value;
+    let value = extractParamValue(param);
 
     if (key && value !== undefined) {
       // Try to convert to number if it looks numeric

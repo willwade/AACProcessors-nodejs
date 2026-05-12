@@ -410,6 +410,9 @@ export class AACPage {
   descriptionHtml?: string;
   images?: any[];
   sounds?: any[];
+  // Page-level WordList items (extracted from Grid3 <WordList>; surfaced
+  // regardless of whether AutoContent WordList cells exist in the grid).
+  wordListItems?: import('../types/aac').AACWordListItem[];
   // Metrics support: Track semantic/clone IDs used on this page
   semantic_ids?: string[];
   clone_ids?: string[];

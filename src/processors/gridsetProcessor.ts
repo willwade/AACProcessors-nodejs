@@ -794,6 +794,14 @@ class GridsetProcessor extends BaseProcessor {
             }
           }
 
+          if (pageWordListItems.length > 0) {
+            page.wordListItems = pageWordListItems.map((item) => ({
+              text: item.text,
+              image: item.image,
+              partOfSpeech: item.partOfSpeech,
+            }));
+          }
+
           // Track WordList AutoContent cells and their positions for "more" button placement
           const wordListAutoContentCells: Array<{
             cell: any;
@@ -1190,12 +1198,20 @@ class GridsetProcessor extends BaseProcessor {
                 const getParam = (key: string): string | undefined => {
                   const param = getRawParam(key);
                   if (param === undefined) return undefined;
+                  if (typeof param === 'string') return param;
+                  if (
+                    param.p ||
+                    param.s ||
+                    (param.r !== undefined && typeof param.r !== 'string')
+                  ) {
+                    const structuredValue = this.textOf(param);
+                    if (structuredValue !== undefined) return structuredValue;
+                  }
                   const simpleValue = param['#text'] ?? param.text ?? param.value;
                   if (typeof simpleValue === 'string') return simpleValue;
                   if (typeof simpleValue === 'number') return String(simpleValue);
                   const structuredValue = this.textOf(param);
                   if (structuredValue !== undefined) return structuredValue;
-                  if (typeof param === 'string') return param;
                   return undefined;
                 };
 
