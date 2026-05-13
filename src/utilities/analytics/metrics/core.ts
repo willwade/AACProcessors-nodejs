@@ -757,12 +757,22 @@ export class MetricsCalculator {
   /**
    * Quick check whether any button in the tree has a POS tag.
    * Used to auto-enable smart grammar without requiring explicit opt-in.
+   *
+   * IMPORTANT: Only counts POS from non-Inflector and non-Suffix buttons.
+   * TDSnap Inflector buttons and Grid3 Suffix buttons are grammar controls,
+   * not content words — they should NOT auto-enable morphology.
    */
   private treeHasPosTags(tree: AACTree): boolean {
     for (const page of Object.values(tree.pages)) {
       for (const row of page.grid) {
         for (const btn of row) {
-          if (btn?.pos && btn.pos !== 'Unknown' && btn.pos !== 'Ignore') {
+          if (
+            btn?.pos &&
+            btn.pos !== 'Unknown' &&
+            btn.pos !== 'Ignore' &&
+            btn.pos !== 'Suffix' &&
+            btn.contentType !== 'Inflector'
+          ) {
             return true;
           }
         }
@@ -781,9 +791,48 @@ export class MetricsCalculator {
    */
   private expandMorphologicalPredictions(tree: AACTree, options: MetricsOptions): void {
     const locale = options.morphologyLocale || 'en-gb';
-    const morph = new MorphologyEngine(locale);
+    let morph: MorphologyEngine;
 
-    // Words that should never be POS-inferred (function words, determiners, etc.)
+    if (options.tdsnapLexiconPath) {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { TDSnapLexiconParser } = require('../morphology/tdsnapLexiconParser');
+      const parser = new TDSnapLexiconParser();
+      const lexiconData = parser.parseDb(options.tdsnapLexiconPath, locale.replace('-', '_'));
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      morph = MorphologyEngine.fromTDSnapLexicon(lexiconData);
+      this.expandTDSnapPredictions(tree, morph);
+      return;
+    }
+
+    if (options.grid3VerbsPath) {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { Grid3VerbsParser } = require('../morphology/grid3VerbsParser');
+      const parser = new Grid3VerbsParser();
+      const verbForms = parser.parseZip(options.grid3VerbsPath);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      morph = MorphologyEngine.fromGrid3Verbs(verbForms);
+      this.expandGrid3Predictions(tree, morph);
+      return;
+    }
+
+    morph = new MorphologyEngine(locale);
+    this.expandGrid3Predictions(tree, morph);
+  }
+
+  /**
+   * Expand morphological predictions for Grid3 pagesets.
+   *
+   * Grid3 uses suffix buttons (pos='Suffix') on the same page as content words.
+   * Different pages have different suffix buttons — e.g., topic pages may only
+   * have -s (plural), while the Magic Wand page has -s, -er, -est, -ly, -y, -'s.
+   *
+   * Rules:
+   * 1. Build a suffix→formSlot map (-s → plural, -er → comparative, etc.)
+   * 2. For each page, collect available suffix buttons
+   * 3. Only generate forms for slots that have matching suffix buttons on that page
+   * 4. POS inference is used for untagged content words (Grid3 grids often lack POS)
+   */
+  private expandGrid3Predictions(tree: AACTree, morph: MorphologyEngine): void {
     const skipInference = new Set([
       'a',
       'an',
@@ -867,31 +916,57 @@ export class MetricsCalculator {
       'sorry',
     ]);
 
+    // Map suffix button labels to the morphology slots they produce
+    const SUFFIX_TO_SLOT: Record<string, string[]> = {
+      '-s': ['plural'],
+      "-'s": ['possessive'],
+      '-er': ['comparative'],
+      '-est': ['superlative'],
+      '-ly': ['adverb'],
+      '-y': ['adjective'],
+    };
+
+    // POS → slots that POS can produce (for filtering)
+    const POS_TO_SUFFIX_SLOTS: Record<string, Set<string>> = {
+      Noun: new Set(['plural', 'possessive']),
+      Verb: new Set(['plural']),
+      Adjective: new Set(['comparative', 'superlative', 'adverb', 'adjective']),
+    };
+
     for (const page of Object.values(tree.pages)) {
+      // Collect suffix buttons on this page
+      const pageSuffixes = new Set<string>();
+      const pageSuffixSlots = new Set<string>();
+      for (const row of page.grid) {
+        for (const btn of row) {
+          if (btn?.pos === 'Suffix' && btn.label) {
+            pageSuffixes.add(btn.label);
+            const slots = SUFFIX_TO_SLOT[btn.label];
+            if (slots) {
+              for (const s of slots) pageSuffixSlots.add(s);
+            }
+          }
+        }
+      }
+
+      // No suffix buttons on this page → no morphology
+      if (pageSuffixSlots.size === 0) continue;
+
       for (const row of page.grid) {
         for (const btn of row) {
           if (!btn || !btn.label) continue;
+          if (btn.pos === 'Suffix') continue;
 
           let pos = btn.pos;
 
-          // If no POS tag (or Unknown/Ignore), attempt POS inference.
-          // Many content words on topic pages lack POS tags even though
-          // they are clearly nouns (e.g., "bird", "tree", "cloud").
-          // Strategy: check irregular tables first for confident POS,
-          // then fall back to Noun for single-word content labels.
           if (!pos || pos === 'Unknown' || pos === 'Ignore') {
             const lower = btn.label.toLowerCase();
-
-            // Skip function words and multi-word labels
             if (!skipInference.has(lower) && !lower.includes(' ') && lower.length > 1) {
-              // Check irregular tables for confident POS assignment
               const inferredPOS = morph.inferPOS(lower);
               if (inferredPOS) {
                 pos = inferredPOS;
                 btn.pos = inferredPOS;
               } else {
-                // Default to Noun for untagged content words.
-                // This generates plurals (e.g., bird → birds, tree → trees).
                 pos = 'Noun';
                 btn.pos = 'Noun';
               }
@@ -900,15 +975,98 @@ export class MetricsCalculator {
 
           if (!pos || pos === 'Unknown' || pos === 'Ignore') continue;
 
-          const forms = morph.inflect(btn.label, pos);
-          if (forms.length > 0) {
+          // Check if this POS can produce forms matching the page's suffix slots
+          const posSlots = POS_TO_SUFFIX_SLOTS[pos];
+          if (!posSlots) continue;
+          const hasRelevantSlot = [...posSlots].some((s) => pageSuffixSlots.has(s));
+          if (!hasRelevantSlot) continue;
+
+          const allForms = morph.inflect(btn.label, pos);
+          if (allForms.length === 0) continue;
+
+          // Filter forms: only include those producible by suffixes on this page
+          // For the built-in engine, we can't easily map forms to slots, so
+          // include all forms when any relevant suffix exists. The per-page
+          // gate (suffix presence) is the main filter.
+          const existing = btn.predictions || [];
+          const merged = new Set([...existing, ...allForms]);
+          btn.predictions = Array.from(merged);
+        }
+      }
+    }
+  }
+
+  /**
+   * Expand morphological predictions for TDSnap pagesets.
+   *
+   * TDSnap uses Inflector buttons (ContentType=3) on "Word Forms" pages to
+   * provide morphology. These pages are loaded dynamically by the runtime,
+   * NOT via navigation buttons, so they are unreachable in our tree model.
+   *
+   * Rules:
+   * 1. If the pageset has NO Inflector buttons → no morphology at all
+   * 2. Only generate forms whose grammar tag matches an available Inflector
+   *    (e.g., if there's no -ly Inflector, don't generate "happily")
+   * 3. No POS inference — only the lexicon determines which words get forms
+   */
+  private expandTDSnapPredictions(tree: AACTree, morph: MorphologyEngine): void {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { TDSnapLexiconParser } = require('../morphology/tdsnapLexiconParser');
+
+    // Step 1: Collect available grammar tags from Inflector buttons
+    const availableTags = new Set<string>();
+    for (const page of Object.values(tree.pages)) {
+      for (const row of page.grid) {
+        for (const btn of row) {
+          if (btn?.contentType === 'Inflector' && btn.parameters?.grammar?.handler) {
+            const parsed = TDSnapLexiconParser.parseContentTypeHandler(
+              btn.parameters.grammar.handler as string
+            );
+            if (parsed) {
+              const key = `${parsed.category}:${parsed.subtype}`;
+              const tag = TDSnapLexiconParser.HANDLER_TAG_MAP[key] as string | undefined;
+              if (tag) availableTags.add(tag);
+            }
+          }
+        }
+      }
+    }
+
+    if (availableTags.size === 0) return;
+
+    // Step 2: For each button, look up lexicon forms filtered by available tags
+    for (const page of Object.values(tree.pages)) {
+      for (const row of page.grid) {
+        for (const btn of row) {
+          if (!btn || !btn.label || btn.contentType === 'Inflector') continue;
+
+          const filtered = this.filterFormsByAvailableTags(morph, btn.label, availableTags);
+
+          if (filtered.length > 0) {
             const existing = btn.predictions || [];
-            const merged = new Set([...existing, ...forms]);
+            const merged = new Set([...existing, ...filtered]);
             btn.predictions = Array.from(merged);
           }
         }
       }
     }
+  }
+
+  private filterFormsByAvailableTags(
+    morph: MorphologyEngine,
+    base: string,
+    availableTags: Set<string>
+  ): string[] {
+    const entry = morph.getLexiconEntry(base.toLowerCase());
+    if (!entry) return [];
+
+    const forms: string[] = [];
+    for (const f of entry.forms) {
+      if (availableTags.has(f.tag) && f.form.toLowerCase() !== base.toLowerCase()) {
+        forms.push(f.form);
+      }
+    }
+    return forms;
   }
 
   /**
@@ -930,7 +1088,7 @@ export class MetricsCalculator {
   private calculateWordFormMetrics(
     tree: AACTree,
     buttons: ButtonMetrics[],
-    _options: MetricsOptions = {}
+    options: MetricsOptions = {}
   ): { wordFormMetrics: ButtonMetrics[]; replacedLabels: Set<string> } {
     const wordFormMetrics: ButtonMetrics[] = [];
     const replacedLabels = new Set<string>();
@@ -1000,28 +1158,32 @@ export class MetricsCalculator {
           btn.predictions.forEach((wordForm: string, index: number) => {
             const wordFormLower = wordForm.toLowerCase();
 
-            // Calculate effort based on position in predictions array
-            // Assume predictions are displayed in a grid layout (e.g., 2 columns)
-            const predictionsGridCols = 2; // Typical predictions layout
-            const predictionRowIndex = Math.floor(index / predictionsGridCols);
-            const predictionColIndex = index % predictionsGridCols;
+            const isSuggestWords = suggestWordsSet.has(wordFormLower);
 
-            // Calculate visual scan effort to reach this word form position
-            // Using similar logic to button scanning effort
-            const predictionPriorItems =
-              predictionRowIndex * predictionsGridCols + predictionColIndex;
-            const predictionSelectionEffort = visualScanEffort(predictionPriorItems);
+            let wordFormEffort: number;
 
-            // Add confirmation cost for Suggest Words outcomes only.
-            // Suggest Words requires an explicit tap on the prediction bar,
-            // while smart grammar morphology forms are auto-generated (no extra tap).
-            const suggestWordsConfirmation = suggestWordsSet.has(wordFormLower)
-              ? EFFORT_CONSTANTS.SUGGEST_WORDS_SELECTION_EFFORT
-              : 0;
+            if (options.tdsnapLexiconPath && !isSuggestWords) {
+              // TDSnap Inflector-based form: the grammar overlay appears
+              // dynamically when a word is selected. The cost is a fixed
+              // single selection to tap the Inflector button.
+              wordFormEffort =
+                parentMetrics.effort + EFFORT_CONSTANTS.TDSNAP_GRAMMAR_OVERLAY_EFFORT;
+            } else {
+              // Grid-based prediction layout (Suggest Words, or Grid3 morphology)
+              const predictionsGridCols = 2;
+              const predictionRowIndex = Math.floor(index / predictionsGridCols);
+              const predictionColIndex = index % predictionsGridCols;
+              const predictionPriorItems =
+                predictionRowIndex * predictionsGridCols + predictionColIndex;
+              const predictionSelectionEffort = visualScanEffort(predictionPriorItems);
 
-            // Word form effort = parent button's cumulative effort + selection effort + confirmation
-            const wordFormEffort =
-              parentMetrics.effort + predictionSelectionEffort + suggestWordsConfirmation;
+              const suggestWordsConfirmation = isSuggestWords
+                ? EFFORT_CONSTANTS.SUGGEST_WORDS_SELECTION_EFFORT
+                : 0;
+
+              wordFormEffort =
+                parentMetrics.effort + predictionSelectionEffort + suggestWordsConfirmation;
+            }
 
             // Check if this word already exists as a regular button
             const existingBtn = existingLabels.get(wordFormLower);

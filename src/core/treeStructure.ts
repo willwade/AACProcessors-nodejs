@@ -175,7 +175,7 @@ export class AACButton {
   };
 
   // Extended properties for advanced platforms
-  contentType?: 'Normal' | 'AutoContent' | 'Workspace' | 'LiveCell';
+  contentType?: 'Normal' | 'AutoContent' | 'Workspace' | 'LiveCell' | 'Inflector' | 'Prediction';
   contentSubType?: string;
   image?: string;
   resolvedImageEntry?: string; // normalized zip path to resolved image, if present
@@ -255,7 +255,7 @@ export class AACButton {
       metadata?: string;
     };
     style?: AACStyle;
-    contentType?: 'Normal' | 'AutoContent' | 'Workspace' | 'LiveCell';
+    contentType?: 'Normal' | 'AutoContent' | 'Workspace' | 'LiveCell' | 'Inflector' | 'Prediction';
     contentSubType?: string;
     image?: string;
     resolvedImageEntry?: string;

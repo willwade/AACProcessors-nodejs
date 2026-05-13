@@ -1,10 +1,16 @@
 import { MorphRuleSet, MorphRule } from './types';
 import type { Grid3VerbForms } from './grid3VerbsParser';
+import type { TDSnapLexiconData, TDSnapLexiconEntry } from './tdsnapLexiconParser';
 
 export class MorphologyEngine {
   private ruleSet: MorphRuleSet;
   private grid3Verbs?: Map<string, string[]>;
+  private tdsnapLexicon?: TDSnapLexiconData;
   private cache = new Map<string, string[]>();
+
+  getLexiconEntry(word: string): TDSnapLexiconEntry | undefined {
+    return this.tdsnapLexicon?.words.get(word.toLowerCase());
+  }
 
   constructor(ruleSetOrLocale: string | MorphRuleSet) {
     if (typeof ruleSetOrLocale === 'string') {
@@ -25,6 +31,17 @@ export class MorphologyEngine {
     return engine;
   }
 
+  static fromTDSnapLexicon(lexiconData: TDSnapLexiconData): MorphologyEngine {
+    const engine = new MorphologyEngine({
+      locale: lexiconData.locale,
+      version: 1,
+      irregular: {},
+      regular: {},
+    });
+    engine.tdsnapLexicon = lexiconData;
+    return engine;
+  }
+
   get locale(): string {
     return this.ruleSet.locale;
   }
@@ -34,9 +51,19 @@ export class MorphologyEngine {
     const cached = this.cache.get(key);
     if (cached) return cached;
 
+    if (this.tdsnapLexicon) {
+      const entry = this.tdsnapLexicon.words.get(base.toLowerCase());
+      if (entry) {
+        const forms = entry.forms.map((f) => f.form);
+        this.cache.set(key, forms);
+        return forms;
+      }
+    }
+
     if (this.grid3Verbs) {
-      const forms = this.grid3Verbs.get(base) || this.grid3Verbs.get(base.toLowerCase());
-      if (forms) {
+      const raw = this.grid3Verbs.get(base) || this.grid3Verbs.get(base.toLowerCase());
+      if (raw) {
+        const forms = raw.filter((f) => !f.includes('{'));
         this.cache.set(key, forms);
         return forms;
       }

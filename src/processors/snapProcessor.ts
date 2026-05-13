@@ -422,6 +422,9 @@ class SnapProcessor extends BaseProcessor {
             buttonColumns.has('BackgroundColor') ? 'b.BackgroundColor' : 'NULL AS BackgroundColor',
             buttonColumns.has('NavigatePageId') ? 'b.NavigatePageId' : 'NULL AS NavigatePageId',
             buttonColumns.has('ContentType') ? 'b.ContentType' : 'NULL AS ContentType',
+            buttonColumns.has('SerializedContentTypeHandler')
+              ? 'b.SerializedContentTypeHandler'
+              : 'NULL AS SerializedContentTypeHandler',
           ];
 
           if (this.loadAudio) {
@@ -672,6 +675,28 @@ class SnapProcessor extends BaseProcessor {
             };
           }
 
+          let snapContentType: string | undefined;
+          let snapContentSubType: string | undefined;
+          let snapGrammarPos: string | undefined;
+          let snapGrammarHandler: string | undefined;
+
+          if (btnRow.ContentType === 1) {
+            snapContentType = 'AutoContent';
+            snapContentSubType = 'Prediction';
+          } else if (btnRow.ContentType === 3 && btnRow.SerializedContentTypeHandler) {
+            snapContentType = 'Inflector';
+            snapGrammarHandler = String(btnRow.SerializedContentTypeHandler);
+            const colonIdx = snapGrammarHandler.indexOf(':');
+            if (colonIdx !== -1) {
+              const subtype = snapGrammarHandler.substring(colonIdx + 1).split(',')[0];
+              snapContentSubType = subtype;
+              const {
+                TDSnapLexiconParser,
+              } = require('../utilities/analytics/morphology/tdsnapLexiconParser');
+              snapGrammarPos = TDSnapLexiconParser.tagToPos(subtype);
+            }
+          }
+
           const button = new AACButton({
             id: String(btnRow.Id),
             label: btnRow.Label || (btnRow.ContentType === 1 ? '[Prediction]' : ''),
@@ -679,16 +704,32 @@ class SnapProcessor extends BaseProcessor {
               btnRow.Message || (btnRow.ContentType === 1 ? '[Prediction]' : btnRow.Label || ''),
             targetPageId: targetPageUniqueId,
             semanticAction: semanticAction,
-            contentType: btnRow.ContentType === 1 ? 'AutoContent' : undefined,
-            contentSubType: btnRow.ContentType === 1 ? 'Prediction' : undefined,
+            contentType: snapContentType as AACButton['contentType'],
+            contentSubType: snapContentSubType,
             audioRecording: audioRecording,
             visibility: mapSnapVisibility(btnRow.Visible as number),
             semantic_id: btnRow.LibrarySymbolId
               ? `snap_symbol_${btnRow.LibrarySymbolId}`
-              : undefined, // Extract semantic_id from LibrarySymbolId
+              : undefined,
             image: buttonImage,
             resolvedImageEntry: buttonImage,
-            parameters: Object.keys(buttonParameters).length > 0 ? buttonParameters : undefined,
+            parameters: {
+              ...(Object.keys(buttonParameters).length > 0 ? buttonParameters : {}),
+              ...(snapGrammarHandler
+                ? {
+                    grammar: {
+                      handler: snapGrammarHandler,
+                      category: snapGrammarHandler.substring(
+                        0,
+                        snapGrammarHandler.indexOf(':') !== -1
+                          ? snapGrammarHandler.indexOf(':')
+                          : snapGrammarHandler.length
+                      ),
+                      subtype: snapContentSubType,
+                    },
+                  }
+                : {}),
+            },
             style: {
               backgroundColor: btnRow.BackgroundColor
                 ? `#${btnRow.BackgroundColor.toString(16)}`
@@ -701,6 +742,10 @@ class SnapProcessor extends BaseProcessor {
               fontStyle: btnRow.FontStyle?.toString(),
             },
           });
+
+          if (snapGrammarPos) {
+            button.pos = snapGrammarPos;
+          }
 
           // Add to the intended parent page
           const parentPage = tree.getPage(parentUniqueId);

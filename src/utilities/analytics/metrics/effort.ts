@@ -33,6 +33,7 @@ export const EFFORT_CONSTANTS = {
   DEFAULT_SCAN_ERROR_RATE: 0.1, // 10% chance of missing a selection
   SCAN_RETRY_PENALTY: 1.0, // Cost multiplier for a full loop retry
   SUGGEST_WORDS_SELECTION_EFFORT: 0.5, // Extra tap to confirm a Suggest Words prediction
+  TDSNAP_GRAMMAR_OVERLAY_EFFORT: 0.1, // Fixed cost: select an Inflector button from the dynamic grammar overlay
 } as const;
 
 /**

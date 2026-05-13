@@ -156,6 +156,34 @@ export interface MetricsOptions {
    * Only used when useSmartGrammar is true.
    */
   morphologyLocale?: string;
+
+  /**
+   * Path to a TDSnap Lexicon.db3 for word form lookups
+   *
+   * When provided, the MorphologyEngine will use the TDSnap lexicon database
+   * to look up inflected forms (e.g., "happy" → "happily", "run" → "ran")
+   * instead of (or before falling back to) rule-based morphology.
+   *
+   * The Lexicon.db3 is found in the TDSnap installation at:
+   *   Data/LanguageModels/lang_en_US/Lexicon.db3
+   *
+   * Only used when useSmartGrammar is true.
+   */
+  tdsnapLexiconPath?: string;
+
+  /**
+   * Path to a Grid 3 verbs.zip for verb conjugation lookups
+   *
+   * When provided, the MorphologyEngine will use the Grid 3 verbs database
+   * to look up conjugated forms (e.g., "go" → "goes", "went", "gone", "going")
+   * instead of (or before falling back to) rule-based morphology.
+   *
+   * The verbs.zip is found in the Grid 3 installation at:
+   *   Locale/en-GB/verbs/verbs.zip
+   *
+   * Only used when useSmartGrammar is true.
+   */
+  grid3VerbsPath?: string;
 }
 
 /**

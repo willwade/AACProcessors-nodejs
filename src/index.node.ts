@@ -31,8 +31,9 @@ export * as Validation from './validation';
 // Metrics namespace (pageset analytics)
 export * as Metrics from './metrics';
 
-// Node-only morphology utilities (Grid 3 verbs parser)
+// Node-only morphology utilities (Grid 3 verbs parser, TDSnap lexicon parser)
 export { Grid3VerbsParser } from './utilities/analytics/morphology/grid3VerbsParser';
+export { TDSnapLexiconParser } from './utilities/analytics/morphology/tdsnapLexiconParser';
 export { WordFormGenerator } from './utilities/analytics/morphology/wordFormGenerator';
 
 // Processor namespaces (platform-specific utilities)
