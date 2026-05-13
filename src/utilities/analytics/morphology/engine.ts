@@ -21,23 +21,13 @@ export class MorphologyEngine {
   }
 
   static fromGrid3Verbs(verbForms: Grid3VerbForms): MorphologyEngine {
-    const engine = new MorphologyEngine({
-      locale: verbForms.locale,
-      version: 1,
-      irregular: {},
-      regular: {},
-    });
+    const engine = new MorphologyEngine(verbForms.locale.replace('_', '-'));
     engine.grid3Verbs = verbForms.verbs;
     return engine;
   }
 
   static fromTDSnapLexicon(lexiconData: TDSnapLexiconData): MorphologyEngine {
-    const engine = new MorphologyEngine({
-      locale: lexiconData.locale,
-      version: 1,
-      irregular: {},
-      regular: {},
-    });
+    const engine = new MorphologyEngine(lexiconData.locale.replace('_', '-'));
     engine.tdsnapLexicon = lexiconData;
     return engine;
   }

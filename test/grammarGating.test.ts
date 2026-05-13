@@ -101,28 +101,22 @@ describe('Grammar Gating', () => {
       expect(forms).toContain('having');
     });
 
-    test('returns empty for words not in the verb map when no built-in rules', () => {
+    test('returns built-in forms for words not in the verb map', () => {
       const forms = engine.inflect('walk', 'Verb');
-      expect(forms).toEqual([]);
-    });
-
-    test('returns empty for non-verb words when no built-in rules', () => {
-      const forms = engine.inflect('child', 'Noun');
-      expect(forms).toEqual([]);
-    });
-
-    test('standalone engine with built-in rules inflects walk', () => {
-      const builtin = new MorphologyEngine('en-gb');
-      const forms = builtin.inflect('walk', 'Verb');
       expect(forms).toContain('walks');
       expect(forms).toContain('walked');
       expect(forms).toContain('walking');
     });
 
-    test('standalone engine with built-in rules inflects child', () => {
-      const builtin = new MorphologyEngine('en-gb');
-      const forms = builtin.inflect('child', 'Noun');
+    test('returns built-in forms for non-verb words', () => {
+      const forms = engine.inflect('child', 'Noun');
       expect(forms).toContain('children');
+    });
+
+    test('prefers verb map forms over built-in rules for map verbs', () => {
+      const forms = engine.inflect('drink', 'Verb');
+      expect(forms).toContain('drunk');
+      expect(forms).toContain('drank');
     });
   });
 
