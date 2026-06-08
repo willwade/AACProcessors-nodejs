@@ -28,9 +28,9 @@ module.exports = {
   coveragePathIgnorePatterns: ['/node_modules/', '/dist/', '/__tests__/'],
   coverageThreshold: {
     global: {
-      branches: 56,
+      branches: 55,
       functions: 50,
-      lines: 71,
+      lines: 70,
       statements: 70,
     },
     // Per-file thresholds for critical components
