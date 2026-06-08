@@ -167,6 +167,14 @@ class GridsetProcessor extends BaseProcessor {
     const semanticAction = button.semanticAction;
 
     if (!semanticAction) {
+      // Workspace and LiveCell cells should have no commands
+      if (button.contentType === 'Workspace' || button.contentType === 'LiveCell') {
+        return '';
+      }
+      // AutoContent cells may or may not have commands
+      if (button.contentType === 'AutoContent') {
+        return '';
+      }
       // Default to insert text action with structured XML format
       // Use two <s> elements: one for the word, one for the space (CDATA preserves whitespace)
       let text = button.message || button.label || '';
@@ -324,10 +332,10 @@ class GridsetProcessor extends BaseProcessor {
       }
 
       default: {
-        // Use two <s> elements: one for the word, one for the space (CDATA preserves whitespace)
-        // Fallback to insert text with structured XML format
+        if (semanticAction.platformData?.grid3) {
+          break;
+        }
         let text = semanticAction.text || button.message || button.label || '';
-        // Remove trailing space from message if present (we'll add it as separate segment)
         if (text.endsWith(' ')) {
           text = text.slice(0, -1);
         }
@@ -1584,7 +1592,6 @@ class GridsetProcessor extends BaseProcessor {
                     break;
 
                   case 'AutoContent.Activate':
-                    // action
                     if (!semanticAction) {
                       semanticAction = {
                         category: AACSemanticCategory.CUSTOM,
@@ -1609,8 +1616,866 @@ class GridsetProcessor extends BaseProcessor {
                     }
                     break;
 
+                  // --- Navigation extras ---
+                  case 'Jump.SetBookmark':
+                  case 'Jump.Favorite':
+                    if (!semanticAction) {
+                      const params: Record<string, any> = {};
+                      const fav = getParam('favorite');
+                      if (fav) params.favorite = fav;
+                      const act = getParam('action');
+                      if (act) params.action = act;
+                      const ind = getParam('indicatorenabled');
+                      if (ind) params.indicatorenabled = ind;
+                      semanticAction = {
+                        category: AACSemanticCategory.NAVIGATION,
+                        intent:
+                          commandId === 'Jump.SetBookmark'
+                            ? AACSemanticIntent.TOGGLE_STATE
+                            : AACSemanticIntent.NAVIGATE_TO,
+                        platformData: { grid3: { commandId, parameters: params } },
+                        fallback: {
+                          type: 'ACTION',
+                          message:
+                            commandId === 'Jump.SetBookmark'
+                              ? 'Toggle bookmark'
+                              : 'Jump to favorite',
+                        },
+                      };
+                    }
+                    break;
+
+                  // --- Text input / keyboard ---
+                  case 'Action.Space':
+                    if (!semanticAction) {
+                      semanticAction = {
+                        category: AACSemanticCategory.TEXT_EDITING,
+                        intent: AACSemanticIntent.INSERT_TEXT,
+                        text: ' ',
+                        platformData: { grid3: { commandId, parameters: {} } },
+                        fallback: { type: 'ACTION', message: 'Space' },
+                      };
+                    }
+                    break;
+
+                  case 'Action.Enter':
+                    if (!semanticAction) {
+                      semanticAction = {
+                        category: AACSemanticCategory.TEXT_EDITING,
+                        intent: AACSemanticIntent.INSERT_TEXT,
+                        text: '\n',
+                        platformData: { grid3: { commandId, parameters: {} } },
+                        fallback: { type: 'ACTION', message: 'Enter' },
+                      };
+                    }
+                    break;
+
+                  case 'Action.Number':
+                  case 'Action.Punctuation': {
+                    const ch = getParam('letter');
+                    if (!semanticAction) {
+                      semanticAction = {
+                        category: AACSemanticCategory.TEXT_EDITING,
+                        intent: AACSemanticIntent.INSERT_TEXT,
+                        text: ch,
+                        platformData: { grid3: { commandId, parameters: { letter: ch } } },
+                        fallback: { type: 'ACTION', message: ch },
+                      };
+                    }
+                    break;
+                  }
+
+                  case 'Action.Backspace':
+                    if (!semanticAction) {
+                      semanticAction = {
+                        category: AACSemanticCategory.TEXT_EDITING,
+                        intent: AACSemanticIntent.DELETE_CHARACTER,
+                        platformData: { grid3: { commandId, parameters: {} } },
+                        fallback: { type: 'ACTION', message: 'Backspace' },
+                      };
+                    }
+                    break;
+
+                  case 'Action.Copy':
+                    if (!semanticAction) {
+                      semanticAction = {
+                        category: AACSemanticCategory.TEXT_EDITING,
+                        intent: AACSemanticIntent.COPY_TEXT,
+                        platformData: { grid3: { commandId, parameters: {} } },
+                        fallback: { type: 'ACTION', message: 'Copy' },
+                      };
+                    }
+                    break;
+
+                  case 'Action.Paste':
+                    if (!semanticAction) {
+                      semanticAction = {
+                        category: AACSemanticCategory.TEXT_EDITING,
+                        intent: AACSemanticIntent.PASTE_TEXT,
+                        platformData: { grid3: { commandId, parameters: {} } },
+                        fallback: { type: 'ACTION', message: 'Paste' },
+                      };
+                    }
+                    break;
+
+                  case 'Action.SelectAll':
+                    if (!semanticAction) {
+                      semanticAction = {
+                        category: AACSemanticCategory.TEXT_EDITING,
+                        intent: AACSemanticIntent.SELECT_ALL,
+                        platformData: { grid3: { commandId, parameters: {} } },
+                        fallback: { type: 'ACTION', message: 'Select all' },
+                      };
+                    }
+                    break;
+
+                  case 'Action.NextLetter':
+                  case 'Action.PreviousLetter':
+                  case 'Action.NextWord':
+                  case 'Action.PreviousWord':
+                  case 'Action.DocumentStart':
+                  case 'Action.DocumentEnd': {
+                    const dirMap: Record<string, string> = {
+                      'Action.NextLetter': 'next_letter',
+                      'Action.PreviousLetter': 'previous_letter',
+                      'Action.NextWord': 'next_word',
+                      'Action.PreviousWord': 'previous_word',
+                      'Action.DocumentStart': 'document_start',
+                      'Action.DocumentEnd': 'document_end',
+                    };
+                    if (!semanticAction) {
+                      semanticAction = {
+                        category: AACSemanticCategory.TEXT_EDITING,
+                        intent: AACSemanticIntent.CURSOR_MOVE,
+                        parameters: { direction: dirMap[commandId] },
+                        platformData: { grid3: { commandId, parameters: {} } },
+                        fallback: {
+                          type: 'ACTION',
+                          message: `Cursor ${dirMap[commandId].replace('_', ' ')}`,
+                        },
+                      };
+                    }
+                    break;
+                  }
+
+                  case 'Action.UndoWorkspaceEdit':
+                  case 'Action.UndoClear':
+                    if (!semanticAction) {
+                      semanticAction = {
+                        category: AACSemanticCategory.TEXT_EDITING,
+                        intent: AACSemanticIntent.UNDO,
+                        platformData: { grid3: { commandId, parameters: {} } },
+                        fallback: { type: 'ACTION', message: 'Undo' },
+                      };
+                    }
+                    break;
+
+                  case 'Action.Print':
+                    if (!semanticAction) {
+                      semanticAction = {
+                        category: AACSemanticCategory.TEXT_EDITING,
+                        intent: AACSemanticIntent.PRINT,
+                        platformData: { grid3: { commandId, parameters: {} } },
+                        fallback: { type: 'ACTION', message: 'Print' },
+                      };
+                    }
+                    break;
+
+                  case 'Action.SpeakNothing':
+                    if (!semanticAction) {
+                      semanticAction = {
+                        category: AACSemanticCategory.COMMUNICATION,
+                        intent: AACSemanticIntent.SPEAK_TEXT,
+                        platformData: { grid3: { commandId, parameters: {} } },
+                        fallback: { type: 'SPEAK', message: 'Speak' },
+                      };
+                    }
+                    break;
+
+                  // --- Speech ---
+                  case 'Speech.Stop':
+                    if (!semanticAction) {
+                      semanticAction = {
+                        category: AACSemanticCategory.COMMUNICATION,
+                        intent: AACSemanticIntent.STOP_SPEECH,
+                        platformData: { grid3: { commandId, parameters: {} } },
+                        fallback: { type: 'ACTION', message: 'Stop speech' },
+                      };
+                    }
+                    break;
+
+                  case 'SpeechPlaySound': {
+                    const soundFile = getParam('filedata');
+                    const waitSound = getParam('wait');
+                    if (!semanticAction) {
+                      semanticAction = {
+                        category: AACSemanticCategory.MEDIA,
+                        intent: AACSemanticIntent.PLAY_SOUND,
+                        parameters: { wait: waitSound },
+                        platformData: {
+                          grid3: {
+                            commandId,
+                            parameters: { filedata: soundFile, wait: waitSound },
+                          },
+                        },
+                        fallback: { type: 'ACTION', message: 'Play sound' },
+                      };
+                    }
+                    break;
+                  }
+
+                  case 'Speech.ChangePublicVoice':
+                  case 'Speech.ChangePublicSpeed':
+                  case 'Speech.ChangePublicPitch':
+                  case 'Speech.ChangePublicVolume':
+                    if (!semanticAction) {
+                      const speechParams: Record<string, any> = {};
+                      for (const p of paramArr) {
+                        const k = p['@_Key'] || p.Key || p.key;
+                        if (k) speechParams[k] = p['#text'] ?? p.text;
+                      }
+                      semanticAction = {
+                        category: AACSemanticCategory.ACCESSIBILITY,
+                        intent: AACSemanticIntent.PLATFORM_SPECIFIC,
+                        platformData: { grid3: { commandId, parameters: speechParams } },
+                        fallback: {
+                          type: 'ACTION',
+                          message: `Change ${commandId.split('.').pop()}`,
+                        },
+                      };
+                    }
+                    break;
+
+                  // --- Computer Control ---
+                  case 'ComputerControl.Keyboard': {
+                    const keystring = getParam('keystring');
+                    if (!semanticAction) {
+                      semanticAction = {
+                        category: AACSemanticCategory.SYSTEM_CONTROL,
+                        intent: AACSemanticIntent.SEND_KEYS,
+                        text: keystring,
+                        platformData: { grid3: { commandId, parameters: { keystring } } },
+                        fallback: { type: 'ACTION', message: `Send keys: ${keystring}` },
+                      };
+                    }
+                    break;
+                  }
+
+                  case 'ComputerControl.SendKeys': {
+                    const keys = getParam('keys');
+                    if (!semanticAction) {
+                      semanticAction = {
+                        category: AACSemanticCategory.SYSTEM_CONTROL,
+                        intent: AACSemanticIntent.SEND_KEYS,
+                        text: keys,
+                        platformData: { grid3: { commandId, parameters: { keys } } },
+                        fallback: { type: 'ACTION', message: `Send keys: ${keys}` },
+                      };
+                    }
+                    break;
+                  }
+
+                  case 'ComputerControl.LeftClick':
+                  case 'ComputerControl.RightClick':
+                  case 'ComputerControl.DoubleClick':
+                  case 'Mouse.LeftClick':
+                  case 'Mouse.RightClick':
+                  case 'Mouse.DoubleClick':
+                    if (!semanticAction) {
+                      semanticAction = {
+                        category: AACSemanticCategory.SYSTEM_CONTROL,
+                        intent: AACSemanticIntent.MOUSE_CLICK,
+                        parameters: {
+                          clickType: commandId.includes('Right')
+                            ? 'right'
+                            : commandId.includes('Double')
+                              ? 'double'
+                              : 'left',
+                        },
+                        platformData: { grid3: { commandId, parameters: {} } },
+                        fallback: { type: 'ACTION', message: commandId.split('.').pop() },
+                      };
+                    }
+                    break;
+
+                  case 'ComputerControl.MouseMove':
+                  case 'Mouse.Move': {
+                    const mx = getParam('x');
+                    const my = getParam('y');
+                    if (!semanticAction) {
+                      semanticAction = {
+                        category: AACSemanticCategory.SYSTEM_CONTROL,
+                        intent: AACSemanticIntent.MOUSE_CLICK,
+                        parameters: { action: 'move', x: mx, y: my },
+                        platformData: { grid3: { commandId, parameters: { x: mx, y: my } } },
+                        fallback: { type: 'ACTION', message: 'Move mouse' },
+                      };
+                    }
+                    break;
+                  }
+
+                  case 'ComputerControl.WindowsKey':
+                  case 'ComputerControl.MenuKey':
+                    if (!semanticAction) {
+                      semanticAction = {
+                        category: AACSemanticCategory.SYSTEM_CONTROL,
+                        intent: AACSemanticIntent.SEND_KEYS,
+                        platformData: { grid3: { commandId, parameters: {} } },
+                        fallback: { type: 'ACTION', message: commandId.split('.').pop() },
+                      };
+                    }
+                    break;
+
+                  case 'ComputerControl.Shift':
+                    if (!semanticAction) {
+                      semanticAction = {
+                        category: AACSemanticCategory.SYSTEM_CONTROL,
+                        intent: AACSemanticIntent.TOGGLE_STATE,
+                        parameters: { target: 'shift', action: getParam('action') },
+                        platformData: {
+                          grid3: { commandId, parameters: { action: getParam('action') } },
+                        },
+                        fallback: { type: 'ACTION', message: 'Toggle shift' },
+                      };
+                    }
+                    break;
+
+                  case 'ComputerControl.DeviceMute':
+                    if (!semanticAction) {
+                      semanticAction = {
+                        category: AACSemanticCategory.SYSTEM_CONTROL,
+                        intent: AACSemanticIntent.DEVICE_MUTE,
+                        platformData: {
+                          grid3: {
+                            commandId,
+                            parameters: { indicatorenabled: getParam('indicatorenabled') },
+                          },
+                        },
+                        fallback: { type: 'ACTION', message: 'Mute device' },
+                      };
+                    }
+                    break;
+
+                  // --- Web Browser ---
+                  case 'WebBrowser.Navigate':
+                  case 'WebBrowser.NavigateUrl': {
+                    const url = getParam('url');
+                    if (!semanticAction) {
+                      semanticAction = {
+                        category: AACSemanticCategory.SYSTEM_CONTROL,
+                        intent: AACSemanticIntent.WEB_NAVIGATE,
+                        text: url,
+                        platformData: { grid3: { commandId, parameters: { url } } },
+                        fallback: {
+                          type: 'ACTION',
+                          message: url ? `Navigate to ${url}` : 'Navigate',
+                        },
+                      };
+                    }
+                    break;
+                  }
+
+                  case 'WebBrowser.Back':
+                  case 'WebBrowser.Forward':
+                  case 'WebBrowser.Refresh':
+                  case 'WebBrowser.Reload':
+                  case 'WebBrowser.Stop':
+                  case 'WebBrowser.Home':
+                  case 'WebAddress.Go':
+                    if (!semanticAction) {
+                      const webActionLabels: Record<string, string> = {
+                        'WebBrowser.Back': 'Back',
+                        'WebBrowser.Forward': 'Forward',
+                        'WebBrowser.Refresh': 'Refresh',
+                        'WebBrowser.Reload': 'Reload',
+                        'WebBrowser.Stop': 'Stop loading',
+                        'WebBrowser.Home': 'Home',
+                        'WebAddress.Go': 'Go to address',
+                      };
+                      semanticAction = {
+                        category: AACSemanticCategory.SYSTEM_CONTROL,
+                        intent: AACSemanticIntent.WEB_NAVIGATE,
+                        parameters: { webAction: commandId },
+                        platformData: { grid3: { commandId, parameters: {} } },
+                        fallback: {
+                          type: 'ACTION',
+                          message: webActionLabels[commandId] || commandId,
+                        },
+                      };
+                    }
+                    break;
+
+                  case 'WebBrowser.ScrollUp':
+                  case 'WebBrowser.ScrollDown':
+                  case 'WebBrowser.ScrollLeft':
+                  case 'WebBrowser.ScrollRight': {
+                    const scrollSize = getParam('size');
+                    const scrollDir = commandId.replace('WebBrowser.Scroll', '').toLowerCase();
+                    if (!semanticAction) {
+                      semanticAction = {
+                        category: AACSemanticCategory.SYSTEM_CONTROL,
+                        intent: AACSemanticIntent.WEB_SCROLL,
+                        parameters: { direction: scrollDir, size: scrollSize },
+                        platformData: { grid3: { commandId, parameters: { size: scrollSize } } },
+                        fallback: { type: 'ACTION', message: `Scroll ${scrollDir}` },
+                      };
+                    }
+                    break;
+                  }
+
+                  case 'WebBrowser.ZoomIn':
+                  case 'WebBrowser.ZoomOut':
+                  case 'WebBrowser.SetZoom': {
+                    const zoomOption = getParam('option');
+                    if (!semanticAction) {
+                      semanticAction = {
+                        category: AACSemanticCategory.SYSTEM_CONTROL,
+                        intent: AACSemanticIntent.WEB_SCROLL,
+                        parameters: {
+                          action: 'zoom',
+                          option: zoomOption || commandId.replace('WebBrowser.', ''),
+                        },
+                        platformData: {
+                          grid3: {
+                            commandId,
+                            parameters: zoomOption ? { option: zoomOption } : {},
+                          },
+                        },
+                        fallback: { type: 'ACTION', message: commandId.replace('WebBrowser.', '') },
+                      };
+                    }
+                    break;
+                  }
+
+                  case 'WebBrowser.SpatialNavigateUp':
+                  case 'WebBrowser.SpatialNavigateDown':
+                  case 'WebBrowser.SpatialNavigateLeft':
+                  case 'WebBrowser.SpatialNavigateRight':
+                  case 'WebBrowser.NextElement':
+                  case 'WebBrowser.PreviousElement': {
+                    const focusDir = commandId.includes('Spatial')
+                      ? commandId.replace('WebBrowser.SpatialNavigate', '').toLowerCase()
+                      : commandId === 'WebBrowser.NextElement'
+                        ? 'next'
+                        : 'previous';
+                    if (!semanticAction) {
+                      semanticAction = {
+                        category: AACSemanticCategory.SYSTEM_CONTROL,
+                        intent: AACSemanticIntent.WEB_FOCUS_ELEMENT,
+                        parameters: { direction: focusDir },
+                        platformData: { grid3: { commandId, parameters: {} } },
+                        fallback: { type: 'ACTION', message: `Focus ${focusDir} element` },
+                      };
+                    }
+                    break;
+                  }
+
+                  case 'WebBrowser.ActivateElement':
+                    if (!semanticAction) {
+                      semanticAction = {
+                        category: AACSemanticCategory.SYSTEM_CONTROL,
+                        intent: AACSemanticIntent.WEB_ACTIVATE_ELEMENT,
+                        platformData: { grid3: { commandId, parameters: {} } },
+                        fallback: { type: 'ACTION', message: 'Activate element' },
+                      };
+                    }
+                    break;
+
+                  case 'WebBrowser.ReadingMode':
+                  case 'WebBrowser.InsertMobileSite': {
+                    const toggleAction = getParam('action');
+                    if (!semanticAction) {
+                      semanticAction = {
+                        category: AACSemanticCategory.SYSTEM_CONTROL,
+                        intent: AACSemanticIntent.TOGGLE_STATE,
+                        parameters: {
+                          target: commandId.replace('WebBrowser.', ''),
+                          action: toggleAction,
+                        },
+                        platformData: {
+                          grid3: { commandId, parameters: { action: toggleAction } },
+                        },
+                        fallback: { type: 'ACTION', message: commandId.replace('WebBrowser.', '') },
+                      };
+                    }
+                    break;
+                  }
+
+                  case 'WebBrowser.ExecuteJavaScript': {
+                    const jsCommandId = getParam('commandid');
+                    if (!semanticAction) {
+                      semanticAction = {
+                        category: AACSemanticCategory.SYSTEM_CONTROL,
+                        intent: AACSemanticIntent.WEB_EXECUTE_SCRIPT,
+                        text: jsCommandId,
+                        platformData: {
+                          grid3: { commandId, parameters: { commandid: jsCommandId } },
+                        },
+                        fallback: { type: 'ACTION', message: `Execute: ${jsCommandId}` },
+                      };
+                    }
+                    break;
+                  }
+
+                  case 'WebBrowser.SpeakJavascriptFunction': {
+                    const speakCmdId = getParam('commandid');
+                    if (!semanticAction) {
+                      semanticAction = {
+                        category: AACSemanticCategory.SYSTEM_CONTROL,
+                        intent: AACSemanticIntent.WEB_EXECUTE_SCRIPT,
+                        parameters: { speak: true },
+                        text: speakCmdId,
+                        platformData: {
+                          grid3: { commandId, parameters: { commandid: speakCmdId } },
+                        },
+                        fallback: { type: 'ACTION', message: `Read aloud: ${speakCmdId}` },
+                      };
+                    }
+                    break;
+                  }
+
+                  case 'WebBrowser.FavoriteAdd':
+                  case 'WebBrowser.InsertFavourite':
+                  case 'WebBrowser.DeleteFavourite':
+                  case 'WebBrowser.MoreLinks': {
+                    const favParams: Record<string, any> = {};
+                    for (const p of paramArr) {
+                      const k = p['@_Key'] || p.Key || p.key;
+                      if (k) favParams[k] = p['#text'] ?? p.text;
+                    }
+                    if (!semanticAction) {
+                      semanticAction = {
+                        category: AACSemanticCategory.SYSTEM_CONTROL,
+                        intent: AACSemanticIntent.WEB_NAVIGATE,
+                        parameters: { webAction: commandId },
+                        platformData: { grid3: { commandId, parameters: favParams } },
+                        fallback: { type: 'ACTION', message: commandId.replace('WebBrowser.', '') },
+                      };
+                    }
+                    break;
+                  }
+
+                  // --- Media ---
+                  case 'Media.PlayPause':
+                  case 'Media.Next':
+                  case 'Media.Previous':
+                  case 'Media.VolumeUp':
+                  case 'Media.VolumeDown':
+                    if (!semanticAction) {
+                      semanticAction = {
+                        category: AACSemanticCategory.MEDIA,
+                        intent: AACSemanticIntent.PLAY_VIDEO,
+                        parameters: { mediaAction: commandId.replace('Media.', '') },
+                        platformData: { grid3: { commandId, parameters: {} } },
+                        fallback: { type: 'ACTION', message: commandId.replace('Media.', '') },
+                      };
+                    }
+                    break;
+
+                  case 'Media.Stop':
+                    if (!semanticAction) {
+                      semanticAction = {
+                        category: AACSemanticCategory.MEDIA,
+                        intent: AACSemanticIntent.STOP_MEDIA,
+                        platformData: { grid3: { commandId, parameters: {} } },
+                        fallback: { type: 'ACTION', message: 'Stop' },
+                      };
+                    }
+                    break;
+
+                  // --- MusicVideo ---
+                  case 'MusicVideo.ListVideos':
+                  case 'MusicVideo.MoreMusicVideos':
+                  case 'MusicVideo.SetVideoFolder':
+                  case 'MusicVideo.Stop':
+                  case 'MusicVideo.StoreAsAttachmentCommandId': {
+                    const mvParams: Record<string, any> = {};
+                    for (const p of paramArr) {
+                      const k = p['@_Key'] || p.Key || p.key;
+                      if (k) mvParams[k] = p['#text'] ?? p.text;
+                    }
+                    if (!semanticAction) {
+                      semanticAction = {
+                        category: AACSemanticCategory.MEDIA,
+                        intent:
+                          commandId === 'MusicVideo.Stop'
+                            ? AACSemanticIntent.STOP_MEDIA
+                            : AACSemanticIntent.PLAY_VIDEO,
+                        parameters: mvParams,
+                        platformData: { grid3: { commandId, parameters: mvParams } },
+                        fallback: { type: 'ACTION', message: commandId.replace('MusicVideo.', '') },
+                      };
+                    }
+                    break;
+                  }
+
+                  // --- Photos ---
+                  case 'Photos.Snapshot':
+                    if (!semanticAction) {
+                      semanticAction = {
+                        category: AACSemanticCategory.MEDIA,
+                        intent: AACSemanticIntent.TAKE_PHOTO,
+                        platformData: { grid3: { commandId, parameters: {} } },
+                        fallback: { type: 'ACTION', message: 'Take photo' },
+                      };
+                    }
+                    break;
+
+                  case 'Photos.ChangeCamera':
+                    if (!semanticAction) {
+                      semanticAction = {
+                        category: AACSemanticCategory.MEDIA,
+                        intent: AACSemanticIntent.TOGGLE_STATE,
+                        parameters: { target: 'camera' },
+                        platformData: {
+                          grid3: {
+                            commandId,
+                            parameters: { indicatorenabled: getParam('indicatorenabled') },
+                          },
+                        },
+                        fallback: { type: 'ACTION', message: 'Change camera' },
+                      };
+                    }
+                    break;
+
+                  case 'Photos.MorePhotos':
+                  case 'Photos.MyPictures':
+                  case 'Photos.SnapshotsFolder':
+                  case 'Photos.StoreAsAttachment':
+                    if (!semanticAction) {
+                      semanticAction = {
+                        category: AACSemanticCategory.MEDIA,
+                        intent: AACSemanticIntent.PLATFORM_SPECIFIC,
+                        platformData: { grid3: { commandId, parameters: {} } },
+                        fallback: { type: 'ACTION', message: commandId.replace('Photos.', '') },
+                      };
+                    }
+                    break;
+
+                  // --- Command Execution ---
+                  case 'CommandExecution.Wait': {
+                    const waitTime = getParam('waittime');
+                    const cancellable = getParam('cancellable');
+                    if (!semanticAction) {
+                      semanticAction = {
+                        category: AACSemanticCategory.SYSTEM_CONTROL,
+                        intent: AACSemanticIntent.WAIT,
+                        parameters: { waittime: waitTime, cancellable },
+                        platformData: {
+                          grid3: { commandId, parameters: { waittime: waitTime, cancellable } },
+                        },
+                        fallback: { type: 'ACTION', message: `Wait ${waitTime}` },
+                      };
+                    }
+                    break;
+                  }
+
+                  case 'CommandExecution.AutoRepeat': {
+                    const repeatCount = getParam('repeatcount');
+                    const repeatGap = getParam('repeatgap');
+                    if (!semanticAction) {
+                      semanticAction = {
+                        category: AACSemanticCategory.SYSTEM_CONTROL,
+                        intent: AACSemanticIntent.REPEAT_COMMANDS,
+                        parameters: { repeatcount: repeatCount, repeatgap: repeatGap },
+                        platformData: {
+                          grid3: {
+                            commandId,
+                            parameters: { repeatcount: repeatCount, repeatgap: repeatGap },
+                          },
+                        },
+                        fallback: { type: 'ACTION', message: `Repeat ${repeatCount} times` },
+                      };
+                    }
+                    break;
+                  }
+
+                  // --- Settings ---
+                  case 'Settings.GridExplorer':
+                  case 'Settings.Open':
+                    if (!semanticAction) {
+                      semanticAction = {
+                        category: AACSemanticCategory.SYSTEM_CONTROL,
+                        intent: AACSemanticIntent.PLATFORM_SPECIFIC,
+                        platformData: { grid3: { commandId, parameters: {} } },
+                        fallback: { type: 'ACTION', message: commandId.replace('Settings.', '') },
+                      };
+                    }
+                    break;
+
+                  case 'Settings.RequiredFeature': {
+                    const feature = getParam('feature');
+                    if (!semanticAction) {
+                      semanticAction = {
+                        category: AACSemanticCategory.ACCESSIBILITY,
+                        intent: AACSemanticIntent.PLATFORM_SPECIFIC,
+                        platformData: { grid3: { commandId, parameters: { feature } } },
+                        fallback: { type: 'ACTION', message: `Require ${feature}` },
+                      };
+                    }
+                    break;
+                  }
+
+                  case 'Scanning.Start':
+                  case 'Scanning.Stop':
+                    if (!semanticAction) {
+                      semanticAction = {
+                        category: AACSemanticCategory.ACCESSIBILITY,
+                        intent:
+                          commandId === 'Scanning.Start'
+                            ? AACSemanticIntent.SCAN_NEXT
+                            : AACSemanticIntent.SCAN_SELECT,
+                        platformData: { grid3: { commandId, parameters: {} } },
+                        fallback: { type: 'ACTION', message: commandId.replace('Scanning.', '') },
+                      };
+                    }
+                    break;
+
+                  // --- Auto Content extras ---
+                  case 'Prediction.Clear':
+                    if (!semanticAction) {
+                      semanticAction = {
+                        category: AACSemanticCategory.TEXT_EDITING,
+                        intent: AACSemanticIntent.CLEAR_TEXT,
+                        platformData: { grid3: { commandId, parameters: {} } },
+                        fallback: { type: 'ACTION', message: 'Clear predictions' },
+                      };
+                    }
+                    break;
+
+                  case 'Prediction.AddToWordList':
+                  case 'Prediction.DeleteWord':
+                  case 'Prediction.MoreWords': {
+                    const predParams: Record<string, any> = {};
+                    for (const p of paramArr) {
+                      const k = p['@_Key'] || p.Key || p.key;
+                      if (k) predParams[k] = p['#text'] ?? p.text;
+                    }
+                    if (!semanticAction) {
+                      semanticAction = {
+                        category: AACSemanticCategory.CUSTOM,
+                        intent: AACSemanticIntent.PLATFORM_SPECIFIC,
+                        platformData: { grid3: { commandId, parameters: predParams } },
+                        fallback: { type: 'ACTION', message: commandId.replace('Prediction.', '') },
+                      };
+                    }
+                    break;
+                  }
+
+                  case 'Grammar.Change':
+                    if (!semanticAction) {
+                      semanticAction = {
+                        category: AACSemanticCategory.CUSTOM,
+                        intent: AACSemanticIntent.PLATFORM_SPECIFIC,
+                        platformData: {
+                          grid3: { commandId, parameters: { context: getParam('context') } },
+                        },
+                        fallback: { type: 'ACTION', message: 'Change grammar' },
+                      };
+                    }
+                    break;
+
+                  // --- System ---
+                  case 'System.LogOff':
+                  case 'System.Lock':
+                  case 'System.Sleep':
+                  case 'System.Restart':
+                  case 'System.ShutDown':
+                    if (!semanticAction) {
+                      semanticAction = {
+                        category: AACSemanticCategory.SYSTEM_CONTROL,
+                        intent: AACSemanticIntent.PLATFORM_SPECIFIC,
+                        platformData: { grid3: { commandId, parameters: {} } },
+                        fallback: { type: 'ACTION', message: commandId.replace('System.', '') },
+                      };
+                    }
+                    break;
+
+                  // --- Window ---
+                  case 'Window.Minimize':
+                  case 'Window.Maximize':
+                  case 'Window.Close':
+                  case 'Window.Switch':
+                    if (!semanticAction) {
+                      semanticAction = {
+                        category: AACSemanticCategory.SYSTEM_CONTROL,
+                        intent: AACSemanticIntent.PLATFORM_SPECIFIC,
+                        platformData: { grid3: { commandId, parameters: {} } },
+                        fallback: { type: 'ACTION', message: commandId.replace('Window.', '') },
+                      };
+                    }
+                    break;
+
+                  // --- Email ---
+                  case 'Email.SendTo':
+                  case 'Email.AddRecipient':
+                  case 'Email.SetSubject':
+                  case 'Email.AttachFile': {
+                    const emailParams: Record<string, any> = {};
+                    for (const p of paramArr) {
+                      const k = p['@_Key'] || p.Key || p.key;
+                      if (k) emailParams[k] = p['#text'] ?? p.text;
+                    }
+                    if (!semanticAction) {
+                      semanticAction = {
+                        category: AACSemanticCategory.SYSTEM_CONTROL,
+                        intent: AACSemanticIntent.PLATFORM_SPECIFIC,
+                        platformData: { grid3: { commandId, parameters: emailParams } },
+                        fallback: { type: 'ACTION', message: commandId.replace('Email.', '') },
+                      };
+                    }
+                    break;
+                  }
+
+                  // --- Phone ---
+                  case 'Phone.Call':
+                  case 'Phone.Answer':
+                  case 'Phone.Hangup':
+                    if (!semanticAction) {
+                      semanticAction = {
+                        category: AACSemanticCategory.SYSTEM_CONTROL,
+                        intent: AACSemanticIntent.PLATFORM_SPECIFIC,
+                        platformData: { grid3: { commandId, parameters: {} } },
+                        fallback: { type: 'ACTION', message: commandId.replace('Phone.', '') },
+                      };
+                    }
+                    break;
+
+                  // --- SMS ---
+                  case 'Sms.SendTo':
+                  case 'Sms.AddRecipient': {
+                    const smsParams: Record<string, any> = {};
+                    for (const p of paramArr) {
+                      const k = p['@_Key'] || p.Key || p.key;
+                      if (k) smsParams[k] = p['#text'] ?? p.text;
+                    }
+                    if (!semanticAction) {
+                      semanticAction = {
+                        category: AACSemanticCategory.SYSTEM_CONTROL,
+                        intent: AACSemanticIntent.PLATFORM_SPECIFIC,
+                        platformData: { grid3: { commandId, parameters: smsParams } },
+                        fallback: { type: 'ACTION', message: commandId.replace('Sms.', '') },
+                      };
+                    }
+                    break;
+                  }
+
+                  // --- Environment Control ---
+                  case 'EnvControl.Send':
+                  case 'EnvControl.Learn':
+                    if (!semanticAction) {
+                      semanticAction = {
+                        category: AACSemanticCategory.SYSTEM_CONTROL,
+                        intent: AACSemanticIntent.PLATFORM_SPECIFIC,
+                        platformData: {
+                          grid3: { commandId, parameters: { code: getParam('code') } },
+                        },
+                        fallback: { type: 'ACTION', message: commandId.replace('EnvControl.', '') },
+                      };
+                    }
+                    break;
+
                   default:
-                    // Unknown command - preserve as generic action
                     if (commandId && !semanticAction) {
                       const allParams = Object.fromEntries(
                         paramArr.map((p) => [p.Key || p.key, p['#text']])
@@ -1626,10 +2491,9 @@ class GridsetProcessor extends BaseProcessor {
                         },
                         fallback: {
                           type: 'ACTION',
-                          message: 'Unknown command',
+                          message: commandId,
                         },
                       };
-                      // legacy action not needed for unknown commands
                     }
                     break;
                 }
@@ -2231,6 +3095,31 @@ class GridsetProcessor extends BaseProcessor {
     });
 
     // Create Settings0/Styles/style.xml if there are styles
+    // Ensure Workspace and Default styles exist when workspace cells are present
+    const hasAnyWorkspace = Object.values(tree.pages).some((p) =>
+      p.buttons.some((b) => b.contentType === 'Workspace' || b.contentType === 'LiveCell')
+    );
+    if (hasAnyWorkspace) {
+      if (!uniqueStyles.has('workspace-style')) {
+        uniqueStyles.set('workspace-style', {
+          id: 'Workspace',
+          style: { backgroundColor: '#FFFFFF00', borderColor: '#FFFFFF00', fontColor: '#000000FF' },
+        });
+      }
+      if (!uniqueStyles.has('default-style')) {
+        uniqueStyles.set('default-style', {
+          id: 'Default',
+          style: {
+            backgroundColor: '#D5DBDBFF',
+            borderColor: '#FFFFFFFF',
+            fontColor: '#000000FF',
+            fontFamily: 'Arial',
+            fontSize: 16,
+          },
+        });
+      }
+    }
+
     if (uniqueStyles.size > 0) {
       const stylesArray = Array.from(uniqueStyles.values()).map(({ id, style }) => {
         const styleObj = {
@@ -2277,9 +3166,13 @@ class GridsetProcessor extends BaseProcessor {
 
     // Create a grid for each page
     Object.values(tree.pages).forEach((page) => {
+      const hasComputerControl = page.buttons.some(
+        (b) => b.contentType === 'Workspace' && b.contentSubType === 'ComputerControl'
+      );
       const gridData = {
         Grid: {
           '@_xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
+          ...(hasComputerControl ? { ComputerControl: '1' } : {}),
           GridGuid: page.id,
           // Calculate grid dimensions based on actual layout
           ColumnDefinitions: this.calculateColumnDefinitions(page),
@@ -2293,7 +3186,15 @@ class GridsetProcessor extends BaseProcessor {
                     ...this.filterPageButtons(page.buttons).map((button, btnIndex) => {
                       const buttonStyleId = button.style ? addStyle(button.style) : '';
 
-                      // Find button position in grid layout
+                      // Force Workspace/LiveCell/AutoContent cells to use their standard style names
+                      const effectiveStyleId =
+                        button.contentType === 'Workspace'
+                          ? 'Workspace'
+                          : button.contentType === 'LiveCell'
+                            ? 'Default'
+                            : button.contentType === 'AutoContent'
+                              ? 'Default'
+                              : buttonStyleId; // Find button position in grid layout
                       const position = this.findButtonPosition(page, button, btnIndex);
 
                       // Use position directly from tree
@@ -2368,28 +3269,39 @@ class GridsetProcessor extends BaseProcessor {
                         }
                       }
 
+                      const isPluginCell =
+                        button.contentType === 'Workspace' ||
+                        button.contentType === 'LiveCell' ||
+                        button.contentType === 'AutoContent';
+                      const cellContent: Record<string, unknown> = {
+                        ContentType:
+                          button.contentType === 'Normal' ? undefined : button.contentType,
+                        ContentSubType: button.contentSubType,
+                      };
+                      const commands = this.generateCommandsFromSemanticAction(button, tree);
+                      if (commands) {
+                        cellContent.Commands = commands;
+                      }
+                      if (!isPluginCell) {
+                        cellContent.CaptionAndImage = captionAndImage;
+                      }
+
                       const cellData: Record<string, unknown> = {
                         '@_X': position.x + 1, // Grid3 uses 1-based X coordinates
                         '@_Y': position.y + yOffset + 1, // Grid3 uses 1-based Y coordinates with workspace offset
                         '@_ColumnSpan': position.columnSpan,
                         '@_RowSpan': position.rowSpan,
-                        Content: {
-                          ContentType:
-                            button.contentType === 'Normal' ? undefined : button.contentType,
-                          ContentSubType: button.contentSubType,
-                          Commands: this.generateCommandsFromSemanticAction(button, tree),
-                          CaptionAndImage: captionAndImage,
-                        },
+                        Content: cellContent,
                       };
 
                       // Add style reference and inline color overrides if available
                       // Some Grid3 versions need inline colors in addition to style references
-                      if (buttonStyleId || button.style) {
+                      if (effectiveStyleId || button.style) {
                         const styleObj: any = {};
 
                         // Add style reference if we have one
-                        if (buttonStyleId) {
-                          styleObj.BasedOnStyle = buttonStyleId;
+                        if (effectiveStyleId) {
+                          styleObj.BasedOnStyle = effectiveStyleId;
                         }
 
                         // Add inline color overrides for better Grid3 compatibility

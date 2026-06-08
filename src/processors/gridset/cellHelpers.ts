@@ -77,13 +77,25 @@ export function findButtonPosition(
     }
   }
 
-  // Fallback positioning
+  // Fallback positioning using button's own x/y/span properties
+  const bx = button.x;
+  const by = button.y;
   const gridCols = page.grid?.[0]?.length || Math.ceil(Math.sqrt(page.buttons.length));
+
+  if (bx !== undefined && by !== undefined) {
+    return {
+      x: bx,
+      y: by,
+      columnSpan: button.columnSpan || 1,
+      rowSpan: button.rowSpan || 1,
+    };
+  }
+
   return {
     x: fallbackIndex % gridCols,
     y: Math.floor(fallbackIndex / gridCols),
-    columnSpan: 1,
-    rowSpan: 1,
+    columnSpan: button.columnSpan || 1,
+    rowSpan: button.rowSpan || 1,
   };
 }
 

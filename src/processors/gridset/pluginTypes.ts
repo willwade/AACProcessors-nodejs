@@ -67,6 +67,8 @@ export const LIVECELL_TYPES = {
   BATTERY: 'Battery',
   WIFI_STRENGTH: 'WifiStrength',
   BLUETOOTH_STATUS: 'BluetoothStatus',
+  WEB_BROWSER_PAGE_TITLE: 'WebBrowser.PageTitle',
+  CAMERA: 'Camera',
 } as const;
 
 /**
@@ -81,10 +83,15 @@ export const AUTOCONTENT_TYPES = {
   SMS_CONTACTS: 'SmsContacts',
   WEB_FAVORITES: 'WebFavorites',
   WEB_HISTORY: 'WebHistory',
+  WEB_BROWSER_LINKS: 'WebBrowser.Links',
+  WEB_BROWSER_FAVOURITES: 'WebBrowser.Favourites',
   PREDICTION: 'Prediction',
   GRAMMAR: 'Grammar',
   CONTEXTUAL: 'Contextual',
   WORDLIST: 'WordList',
+  PHOTOS: 'Photos',
+  MUSIC_VIDEO: 'MusicVideo',
+  WEB_ADDRESS_ADDRESS_BAR: 'WebAddress.AddressBar',
 } as const;
 
 /**
@@ -229,6 +236,9 @@ function inferLiveCellPlugin(liveCellType?: string): string | undefined {
   if (normalized.includes('battery')) return 'Grid3.Battery';
   if (normalized.includes('wifi')) return 'Grid3.Wifi';
   if (normalized.includes('bluetooth')) return 'Grid3.Bluetooth';
+  if (normalized.includes('pagetitle') || normalized.includes('page title'))
+    return 'Grid3.WebBrowser';
+  if (normalized.includes('camera')) return 'Grid3.Photos';
 
   return `Grid3.${liveCellType}`;
 }
@@ -248,13 +258,18 @@ function inferAutoContentPlugin(autoContentType?: string): string | undefined {
   if (
     normalized.includes('web') ||
     normalized.includes('favorite') ||
-    normalized.includes('history')
+    normalized.includes('favourite') ||
+    normalized.includes('history') ||
+    normalized.includes('links') ||
+    normalized.includes('address')
   ) {
     return 'Grid3.WebBrowser';
   }
   if (normalized.includes('prediction')) return 'Grid3.Prediction';
   if (normalized.includes('grammar')) return 'Grid3.Grammar';
   if (normalized.includes('context')) return 'Grid3.AutoContent';
+  if (normalized.includes('photo') || normalized.includes('image')) return 'Grid3.Photos';
+  if (normalized.includes('music') || normalized.includes('video')) return 'Grid3.MusicVideo';
 
   return undefined;
 }
