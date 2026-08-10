@@ -164,6 +164,11 @@ export interface AACSemanticAction {
       actionType: string;
       parameters: { [key: string]: any };
     };
+    gotalkNow?: {
+      buttonType: string;
+      jumpTo?: number;
+      audioLocation?: string;
+    };
   };
 
   // Fallback for unknown platforms

@@ -17,3 +17,4 @@ export { SnapProcessor } from './snapProcessor';
 export { TouchChatProcessor } from './touchchatProcessor';
 export { AstericsGridProcessor } from './astericsGridProcessor';
 export { ObfsetProcessor } from './obfsetProcessor';
+export { GotalkNowProcessor } from './gotalkNowProcessor';

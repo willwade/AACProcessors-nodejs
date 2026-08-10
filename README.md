@@ -65,6 +65,7 @@ const tree = await processor.loadIntoTree(gridsetUint8Array);
 - DOT (Graphviz)
 - Apple Panels (macOS plist)
 - Asterics Grid
+- GoTalk NOW (.gtbz)
 - Excel export
 
 ## Wrangle strings workflow

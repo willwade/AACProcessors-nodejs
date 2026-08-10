@@ -874,7 +874,9 @@ class ObfProcessor extends BaseProcessor {
       });
       const manifest: ObfManifest = {
         format: OBF_FORMAT_VERSION,
-        root: tree.metadata.defaultHomePageId,
+        root: tree.metadata.defaultHomePageId
+          ? this.getPageFilename(tree.metadata.defaultHomePageId, tree.metadata)
+          : undefined,
         paths: {
           boards: Object.fromEntries(
             Object.entries(tree.pages).map(([id, page]) => [
@@ -952,7 +954,9 @@ class ObfProcessor extends BaseProcessor {
     if (Object.keys(tree.pages).length > 0) {
       const manifest: ObfManifest = {
         format: OBF_FORMAT_VERSION,
-        root: tree.metadata.defaultHomePageId,
+        root: tree.metadata.defaultHomePageId
+          ? this.getPageFilename(tree.metadata.defaultHomePageId, tree.metadata)
+          : undefined,
         paths: {
           boards: Object.fromEntries(
             Object.entries(tree.pages).map(([id, page]) => [
