@@ -151,31 +151,32 @@ describe('Validation System', () => {
   });
 
   describe('GridsetValidator', () => {
-    it('should validate basic Gridset XML structure', async () => {
-      const validGridset = `<?xml version="1.0" encoding="utf-8"?>
-      <gridset id="test" name="Test Gridset">
-        <pages>
-          <page id="page1" name="Page 1">
-            <cells>
-              <cell id="cell1" label="Hello"/>
-            </cells>
-          </page>
-        </pages>
-        <fixedCellSize width="100" height="100"/>
-      </gridset>`;
+    it('should validate a basic Grid 3 grid.xml structure', async () => {
+      const validGrid = `<?xml version="1.0" encoding="utf-8"?>
+      <Grid xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+        <GridGuid>test-grid</GridGuid>
+        <ColumnDefinitions><ColumnDefinition/></ColumnDefinitions>
+        <RowDefinitions><RowDefinition/></RowDefinitions>
+        <Cells>
+          <Cell X="1" Y="1">
+            <Content>
+              <CaptionAndImage><Caption>Hello</Caption></CaptionAndImage>
+            </Content>
+          </Cell>
+        </Cells>
+      </Grid>`;
 
-      const content = Buffer.from(validGridset);
+      const content = Buffer.from(validGrid);
       const result = await new GridsetValidator().validate(content, 'test.gridset', content.length);
 
       expect(result).toBeDefined();
       expect(result.format).toBe('gridset');
-      // May have warnings but should parse successfully
     });
 
     it('should detect invalid XML', async () => {
       const invalidXml = `<?xml version="1.0"?>
-      <gridset id="test" name="Test">
-        <pages>
+      <Grid xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+        <Cells>
       `; // Unclosed tags
 
       const content = Buffer.from(invalidXml);
@@ -202,29 +203,20 @@ describe('Validation System', () => {
       expect(hasEncryptionWarning).toBe(true);
     });
 
-    it('should not require wordlists element', async () => {
-      const gridsetWithoutWordlists = `<?xml version="1.0" encoding="utf-8"?>
-      <gridset id="test" name="Test Gridset">
-        <pages>
-          <page id="page1" name="Page 1">
-            <cells>
-              <cell id="cell1" label="Hello"/>
-            </cells>
-          </page>
-        </pages>
-        <fixedCellSize width="100" height="100"/>
-      </gridset>`;
+    it('should validate a minimal Grid without optional elements', async () => {
+      const minimalGrid = `<?xml version="1.0" encoding="utf-8"?>
+      <Grid xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+        <GridGuid>minimal</GridGuid>
+        <Cells>
+          <Cell X="1" Y="1"/>
+        </Cells>
+      </Grid>`;
 
-      const content = Buffer.from(gridsetWithoutWordlists);
+      const content = Buffer.from(minimalGrid);
       const result = await new GridsetValidator().validate(content, 'test.gridset', content.length);
 
       expect(result).toBeDefined();
       expect(result.format).toBe('gridset');
-      // Should NOT have warning about missing wordlists
-      const hasWordlistsWarning = result.results.some(
-        (r) => r.type === 'wordlists' && r.warnings && r.warnings.length > 0
-      );
-      expect(hasWordlistsWarning).toBe(false);
     });
   });
 

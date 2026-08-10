@@ -32,6 +32,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   instead of the board **file path** (e.g. `"1.obf"`). This produced OBZ
   archives that failed the `ObfValidator` (`manifest_root` check) and were
   rejected by external OBF viewers with "Failed to parse OBZ file".
+- **Gridset validator required a fictional `gridset.xml`.** Real Grid 3
+  `.gridset` archives do not contain a top-level `gridset.xml` — they use
+  `Settings0/settings.xml` + `FileMap.xml` + `Grids/<name>/grid.xml`. The
+  validator now checks for the real required files instead of an invented
+  schema, so `saveFromTree` output and real Grid 3 archives validate
+  correctly (previously every programmatic gridset export failed validation).
 
 ## v0.2.x
 
