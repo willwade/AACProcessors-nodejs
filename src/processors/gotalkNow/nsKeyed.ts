@@ -47,18 +47,25 @@ export function decodeNsColor(buffer: Uint8Array | Buffer | undefined): string |
   if (!buffer) return undefined;
   const s = bufferToLatinString(buffer);
 
-  // Require decimal points to avoid matching bplist header bytes (e.g. "00").
-  // Accept 3 or 4 components (RGB or RGBA).
-  const rgbMatch = s.match(/(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)(?:\s+(\d+\.\d+))?/);
-  if (rgbMatch) {
-    const [, r, g, b] = rgbMatch;
-    return rgbToHex(parseFloat(r), parseFloat(g), parseFloat(b));
+  // Match RGB[A] component strings like "1 0.949 0.561" or "0.5 0.5 0.5 1".
+  // Allow integer components (e.g. "1") but require at least one decimal to
+  // avoid matching bplist header bytes (e.g. "00 00 00").
+  const candidates = s.match(/\d+(?:\.\d+)?\s+\d+(?:\.\d+)?\s+\d+(?:\.\d+)?(?:\s+\d+(?:\.\d+)?)?/g);
+  if (candidates) {
+    // Find the first candidate that looks like RGB (has at least one decimal point).
+    const rgbStr = candidates.find((c) => c.includes('.'));
+    if (rgbStr) {
+      const parts = rgbStr.split(/\s+/).map(Number);
+      return rgbToHex(parts[0], parts[1], parts[2]);
+    }
   }
 
   return undefined;
 }
 
 const FONT_KEYWORDS = new Set([
+  'bplist',
+  'bplist00',
   'UIFont',
   'UIFontName',
   'UIFontPointSize',
