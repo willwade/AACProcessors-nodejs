@@ -68,6 +68,14 @@ interface GoTalkButtonImage {
 interface GoTalkActionData {
   TTSText?: string;
   JumpTo?: number;
+  JumpBook?: string;
+  URL?: string;
+  OpenInternally?: boolean;
+  TrimStart?: number;
+  TrimEnd?: number;
+  GoVisual?: string;
+  GoVisualLink?: unknown;
+  MediaPlayerCommandIndex?: number;
   [key: string]: unknown;
 }
 
@@ -83,6 +91,12 @@ interface GoTalkRawButton {
   TextCenter?: string;
   TextShadow?: boolean;
   Enabled?: boolean;
+  Disabled?: boolean;
+  CueType?: string;
+  CueData?: GoTalkActionData;
+  AfterAction?: number;
+  AfterActionData?: GoTalkActionData;
+  SceneRect?: PlistData;
   [key: string]: unknown;
 }
 
@@ -116,6 +130,7 @@ function buildSemanticAction(
   const actionData = rawButton.ActionData || {};
   const label = rawButton.ButtonText ?? '';
   const ttsText = actionData.TTSText;
+  const spoken = ttsText && ttsText.length > 0 ? ttsText : label;
 
   switch (buttonType) {
     case 'Jump': {
@@ -127,7 +142,7 @@ function buildSemanticAction(
           intent: AACSemanticIntent.NAVIGATE_TO,
           targetId: target,
           platformData: {
-            gotalkNow: { buttonType: 'Jump', jumpTo },
+            gotalkNow: { buttonType: 'Jump', jumpTo, jumpBook: actionData.JumpBook },
           },
           fallback: { type: 'NAVIGATE', targetPageId: target },
         },
@@ -135,25 +150,78 @@ function buildSemanticAction(
         targetPageId: target,
       };
     }
-    case 'Audio': {
-      // Audio buttons play a recorded .caf file named <pageId>-<buttonIndex>.caf
+    case 'Audio':
+    case 'Recorded': {
+      // Recorded audio: plays a .caf file named <pageId>-<buttonIndex>.caf.
+      // Recorded buttons may also have TrimStart/TrimEnd for audio trimming.
       const audioLocation = `${pageId}-${buttonIndex}.caf`;
       return {
         semanticAction: {
           category: AACSemanticCategory.MEDIA,
           intent: AACSemanticIntent.PLAY_SOUND,
           platformData: {
-            gotalkNow: { buttonType: 'Audio', audioLocation },
+            gotalkNow: {
+              buttonType,
+              audioLocation,
+              trimStart: actionData.TrimStart,
+              trimEnd: actionData.TrimEnd,
+            },
           },
           fallback: { type: 'ACTION' },
         },
-        message: label,
+        message: spoken,
+      };
+    }
+    case 'URL': {
+      return {
+        semanticAction: {
+          category: AACSemanticCategory.SYSTEM_CONTROL,
+          intent: AACSemanticIntent.WEB_NAVIGATE,
+          text: actionData.URL,
+          platformData: {
+            gotalkNow: {
+              buttonType: 'URL',
+              url: actionData.URL,
+              openInternally: actionData.OpenInternally,
+            },
+          },
+          fallback: { type: 'ACTION' },
+        },
+        message: spoken,
+      };
+    }
+    case 'GoVisual': {
+      return {
+        semanticAction: {
+          category: AACSemanticCategory.SYSTEM_CONTROL,
+          intent: AACSemanticIntent.PLATFORM_SPECIFIC,
+          platformData: {
+            gotalkNow: {
+              buttonType: 'GoVisual',
+              goVisual: actionData.GoVisual,
+              goVisualLink: actionData.GoVisualLink,
+            },
+          },
+          fallback: { type: 'ACTION' },
+        },
+        message: spoken,
+      };
+    }
+    case 'Video': {
+      return {
+        semanticAction: {
+          category: AACSemanticCategory.MEDIA,
+          intent: AACSemanticIntent.PLAY_VIDEO,
+          platformData: {
+            gotalkNow: { buttonType: 'Video' },
+          },
+          fallback: { type: 'ACTION' },
+        },
+        message: spoken,
       };
     }
     case 'Express':
-    case 'Bookmark':
-    case 'URL':
-    case 'Video': {
+    case 'Bookmark': {
       return {
         semanticAction: {
           category: AACSemanticCategory.SYSTEM_CONTROL,
@@ -163,20 +231,19 @@ function buildSemanticAction(
           },
           fallback: { type: 'ACTION' },
         },
-        message: ttsText && ttsText.length > 0 ? ttsText : label,
+        message: spoken,
       };
     }
     case 'TTS':
     default: {
-      // When TTSText is empty the visible ButtonText is spoken.
-      const spoken = ttsText && ttsText.length > 0 ? ttsText : label;
+      // Empty/placeholder cells (no ButtonType or no label) get a SPEAK with empty text.
       return {
         semanticAction: {
           category: AACSemanticCategory.COMMUNICATION,
           intent: AACSemanticIntent.SPEAK_TEXT,
           text: spoken,
           platformData: {
-            gotalkNow: { buttonType: 'TTS' },
+            gotalkNow: { buttonType: buttonType === 'TTS' ? 'TTS' : 'Empty' },
           },
           fallback: { type: 'SPEAK', message: spoken },
         },
@@ -431,18 +498,44 @@ class GotalkNowProcessor extends BaseProcessor {
           if (first?.SourceImageName) button.symbolPath = first.SourceImageName;
         }
 
-        // Visibility: GoTalk buttons can be disabled.
-        if (rawButton.Enabled === false) {
+        // Visibility: GoTalk buttons can be disabled via either field.
+        if (rawButton.Enabled === false || rawButton.Disabled === true) {
           button.visibility = 'Disabled';
         }
 
-        // Preserve raw style data opaquely for round-trip styling.
+        // Auditory cue (played when scanning/highlighting).
+        if (rawButton.CueType && rawButton.CueType !== 'None') {
+          const cueText = rawButton.CueData?.TTSText;
+          if (cueText && cueText.length > 0) {
+            button.audioDescription = cueText;
+          }
+        }
+
+        // Recorded audio reference.
+        const btnType = rawButton.ButtonType;
+        if (btnType === 'Audio' || btnType === 'Recorded') {
+          button.audioRecording = {
+            identifier: `${pageId}-${btnIndex}.caf`,
+          };
+        }
+
+        // AfterAction: motor-planning "speak and return" behaviour.
+        // AfterAction is an enum (0=stay, 2=..., 50=jump-back) and
+        // AfterActionData has the same shape as ActionData (e.g. {JumpTo: 0}).
+        const afterActionJumpTo = rawButton.AfterActionData?.JumpTo;
+
+        // Preserve raw style + extended data opaquely for round-trip styling.
         button.parameters = {
           ...(button.parameters || {}),
           __gotalkNow: {
             buttonType: rawButton.ButtonType,
             textShadow: rawButton.TextShadow,
             textCenter: rawButton.TextCenter,
+            cueType: rawButton.CueType,
+            afterAction: rawButton.AfterAction,
+            afterActionJumpTo:
+              afterActionJumpTo !== undefined ? String(afterActionJumpTo) : undefined,
+            jumpBook: rawButton.ActionData?.JumpBook,
           },
         };
 

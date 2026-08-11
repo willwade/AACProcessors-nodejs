@@ -167,7 +167,14 @@ export interface AACSemanticAction {
     gotalkNow?: {
       buttonType: string;
       jumpTo?: number;
+      jumpBook?: string;
       audioLocation?: string;
+      trimStart?: number;
+      trimEnd?: number;
+      url?: string;
+      openInternally?: boolean;
+      goVisual?: string;
+      goVisualLink?: unknown;
     };
   };
 
