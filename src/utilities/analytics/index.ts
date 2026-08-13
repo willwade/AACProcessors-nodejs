@@ -33,6 +33,9 @@ export { SentenceAnalyzer } from './metrics/sentence';
 export { ComparisonAnalyzer } from './metrics/comparison';
 export { ReferenceLoader } from './reference';
 
+// Export linguistic-competence measures (privacy-preserving spoken-output analysis)
+export * from './competence';
+
 /**
  * Get the default reference data path
  */

@@ -6,3 +6,4 @@
  */
 
 export * from './utilities/analytics/history';
+export * from './utilities/analytics/competence';

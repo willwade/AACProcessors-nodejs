@@ -13,6 +13,7 @@ import {
   SnapUserInfo,
 } from '../../processors/snap/helpers';
 import { AACSemanticCategory, AACSemanticIntent } from '../../core/treeStructure';
+import type { CompetenceUtterance } from './competence';
 
 export type HistorySource = 'Grid' | 'Snap' | 'OBL' | string;
 
@@ -54,6 +55,29 @@ export interface HistoryEntry {
 }
 
 export { dotNetTicksToDate };
+
+/**
+ * Adapt any `HistoryEntry[]` (Grid 3, Snap, OBF/OBFL logs, ...) into the generic
+ * utterance stream consumed by the linguistic-competence engine
+ * (`analyzeTimeline`). Each occurrence of each phrase becomes one utterance,
+ * timestamped by its occurrence time. This keeps the competence metrics fully
+ * source-agnostic: anything the library can read as history can be analysed.
+ */
+export function historyEntriesToCompetenceUtterances(
+  entries: HistoryEntry[]
+): CompetenceUtterance[] {
+  const out: CompetenceUtterance[] = [];
+  for (const e of entries) {
+    const text = e.content;
+    if (!text || text.trim().length === 0) continue;
+    const occs = e.occurrences ?? [];
+    for (const occ of occs) {
+      if (!occ.timestamp) continue;
+      out.push({ text, timestampMs: occ.timestamp.getTime() });
+    }
+  }
+  return out;
+}
 
 export interface BatonExportMetadata {
   timestamp: string;
