@@ -1,8 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 import {
   analyzeTimeline,
-  classifyInflection,
-  getClosedClassSet,
   lexicalDiversity,
   morphologicalDiversity,
   movingAverageTTR,
@@ -11,7 +9,48 @@ import {
   syntacticDiversity,
   tokenize,
   type CompetenceUtterance,
+  type InflectionCategory,
 } from '../src/utilities/analytics/competence';
+import {
+  historyEntriesToCompetenceUtterances,
+  type HistoryEntry,
+} from '../src/utilities/analytics/history';
+
+/* ------------------------------------------------------------------ *
+ * Inline language fixtures.
+ *
+ * The library core ships NO word lists, so tests inject a tiny closed-class
+ * set + inflection classifier. Real callers pass curated language resources.
+ * ------------------------------------------------------------------ */
+
+const FIXTURE_CC = new Set([
+  'and',
+  'but',
+  'or',
+  'because',
+  'if',
+  'so',
+  'although',
+  'to',
+  'for',
+  'with',
+  'in',
+  'on',
+  'at',
+  'of',
+  'from',
+  'by',
+  'under',
+  'over',
+]);
+
+function fixtureClassify(w: string): InflectionCategory {
+  if (w.endsWith('ing')) return 'progressive';
+  if (w.endsWith('ed')) return 'past';
+  if (w.endsWith("'s")) return 'possessive';
+  if (w.endsWith('s')) return 'plural';
+  return 'base';
+}
 
 describe('competence / tokenize', () => {
   it('lowercases and keeps apostrophes inside words', () => {
@@ -43,7 +82,6 @@ describe('competence / movingAverageTTR (MATTR)', () => {
 
   it('treats a short sample as a single window TTR', () => {
     const r = movingAverageTTR(['a', 'b', 'c'], 30);
-    // 3 unique / 3 = 1.0
     expect(r.median).toBeCloseTo(1.0);
     expect(r.nWindows).toBe(1);
   });
@@ -54,32 +92,28 @@ describe('competence / movingAverageTTR (MATTR)', () => {
       'sun moon star tree leaf rock river hill cloud rain wind'
     ).split(/\s+/);
     const repetitive = Array.from({ length: 40 }, () => 'yes');
-    expect(lexicalDiversity(varied, 30).median!).toBeGreaterThan(
-      lexicalDiversity(repetitive, 30).median!
-    );
+    const v = lexicalDiversity(varied, 30).median;
+    const r = lexicalDiversity(repetitive, 30).median;
+    expect(v).not.toBeNull();
+    expect(r).not.toBeNull();
+    if (v !== null && r !== null) expect(v).toBeGreaterThan(r);
     // Repetitive single-word stream has TTR ~ 1/30 within windows.
-    expect(lexicalDiversity(repetitive, 30).median).toBeCloseTo(1 / 30, 5);
+    expect(r).toBeCloseTo(1 / 30, 5);
   });
 
-  it('MATTR is sample-length insensitive (more repetition does not inflate it)', () => {
+  it('MATTR is sample-length insensitive', () => {
     const base = 'a b c d e f g h i j k l m n o'.split(/\s+/); // 15 unique
     const doubled = [...base, ...base]; // same words repeated
-    // With window 15, repeated unique set still yields TTR 1.0 per window.
     expect(movingAverageTTR(base, 15).median).toBeCloseTo(1.0);
     expect(movingAverageTTR(doubled, 15).median).toBeCloseTo(1.0);
   });
 });
 
-describe('competence / syntacticDiversity (MA-UPC-TWR-30)', () => {
-  it('returns null median for a language with no closed-class set', () => {
-    const r = syntacticDiversity(['and', 'but'], { lang: 'xx', windowSize: 30 });
+describe('competence / syntacticDiversity (closed-class, injected)', () => {
+  it('is unavailable with no closed-class data (no silent degradation)', () => {
+    const r = syntacticDiversity(['and', 'but'], { windowSize: 30 });
     expect(r.median).toBeNull();
-  });
-
-  it('detects prepositions and conjunctions in English', () => {
-    expect(getClosedClassSet('en-GB')!.has('because')).toBe(true);
-    expect(getClosedClassSet('en')!.has('under')).toBe(true);
-    expect(getClosedClassSet('en')!.has('banana')).toBe(false);
+    expect(r.unavailable).toBeDefined();
   });
 
   it('scores a window rich in varied connectors higher than one using only "and"', () => {
@@ -88,50 +122,44 @@ describe('competence / syntacticDiversity (MA-UPC-TWR-30)', () => {
         /\s+/
       );
     const onlyAnd = Array.from({ length: 40 }, (_, i) => (i % 2 === 0 ? 'and' : 'cat'));
-    const r1 = syntacticDiversity(rich, { lang: 'en', windowSize: 15 });
-    const r2 = syntacticDiversity(onlyAnd, { lang: 'en', windowSize: 15 });
-    expect(r1.median!).toBeGreaterThan(r2.median!);
-    // Only "and" repeated ~8x per window -> distinct/total = 1/8.
-    expect(r2.median!).toBeLessThan(0.2);
+    const r1 = syntacticDiversity(rich, { windowSize: 15, closedClassWords: FIXTURE_CC });
+    const r2 = syntacticDiversity(onlyAnd, { windowSize: 15, closedClassWords: FIXTURE_CC });
+    expect(r1.median).not.toBeNull();
+    expect(r2.median).not.toBeNull();
+    if (r1.median !== null && r2.median !== null) {
+      expect(r1.median).toBeGreaterThan(r2.median);
+      // Only "and" repeated ~8x per window -> distinct/total = 1/8.
+      expect(r2.median).toBeLessThan(0.2);
+    }
   });
 
-  it('supports Dutch closed-class set', () => {
-    expect(getClosedClassSet('nl-BE')!.has('omdat')).toBe(true);
-    expect(getClosedClassSet('nl')!.has('onder')).toBe(true);
+  it('works for any language because the set is injected (Dutch example)', () => {
+    const nl = new Set(['en', 'of', 'maar', 'want', 'omdat', 'aan', 'in', 'op']);
+    const r = syntacticDiversity('ik wil graag naar buiten omdat het mooi weer is'.split(/\s+/), {
+      windowSize: 8,
+      closedClassWords: nl,
+    });
+    expect(r.median).not.toBeNull();
   });
 });
 
-describe('competence / morphologicalDiversity (proxy)', () => {
-  it('returns null for non-English (documented limitation)', () => {
-    const r = morphologicalDiversity(['lopen', 'gelopen'], { lang: 'nl', windowSize: 5 });
+describe('competence / morphologicalDiversity (classifier injected)', () => {
+  it('is unavailable without a classifier', () => {
+    const r = morphologicalDiversity(['cats'], { windowSize: 5 });
     expect(r.median).toBeNull();
+    expect(r.unavailable).toBeDefined();
   });
 
-  it('classifies obvious inflections', () => {
-    expect(classifyInflection('running')).toBe('progressive');
-    expect(classifyInflection('jumped')).toBe('past');
-    expect(classifyInflection('biggest')).toBe('superlative');
-    expect(classifyInflection('happily')).toBe('adverb');
-    expect(classifyInflection('cats')).toBe('plural');
-    expect(classifyInflection("dad's")).toBe('possessive');
-  });
-
-  it('keeps guarded base words as base', () => {
-    expect(classifyInflection('is')).toBe('base');
-    expect(classifyInflection('ring')).toBe('base');
-    expect(classifyInflection('best')).toBe('base');
-  });
-
-  it('scores a stream with varied morphology above a base-only stream', () => {
-    const morphed = 'cats running jumped faster biggest quickly dogs walked eating smaller'.split(
-      /\s+/
-    );
-    const base = 'cat run jump fast big quick dog walk eat small'.split(/\s+/);
-    const r1 = morphologicalDiversity(morphed, { lang: 'en', windowSize: 10 });
-    // base-only stream has no inflected words -> null
-    const r2 = morphologicalDiversity(base, { lang: 'en', windowSize: 10 });
+  it('scores inflected words above a base-only stream', () => {
+    const morphed = 'cats running jumped'.split(/\s+/);
+    const base = 'cat run jump'.split(/\s+/);
+    const r1 = morphologicalDiversity(morphed, {
+      windowSize: 3,
+      classifyInflection: fixtureClassify,
+    });
+    const r2 = morphologicalDiversity(base, { windowSize: 3, classifyInflection: fixtureClassify });
     expect(r1.median).not.toBeNull();
-    expect(r2.median).toBeNull();
+    expect(r2.median).toBeNull(); // no inflected words -> unavailable
   });
 });
 
@@ -148,7 +176,7 @@ describe('competence / spellingValidity', () => {
 
   it('ignores non-alphabetic tokens', () => {
     const dict = new Set(['hello']);
-    expect(spellingValidity(['hello', '12', 'a'], dict)).toBeCloseTo(1.0, 5); // only "hello" checked
+    expect(spellingValidity(['hello', '12', 'a'], dict)).toBeCloseTo(1.0, 5);
   });
 });
 
@@ -157,12 +185,12 @@ describe('competence / summarizeActivity', () => {
     const DAY = 86_400_000;
     const utts: CompetenceUtterance[] = [
       { text: 'hello world', timestampMs: 0 },
-      { text: 'good morning', timestampMs: DAY }, // next day
-      { text: 'bye', timestampMs: DAY + 1000 }, // same day
+      { text: 'good morning', timestampMs: DAY },
+      { text: 'bye', timestampMs: DAY + 1000 },
     ];
     const a = summarizeActivity(utts);
     expect(a.utterances).toBe(3);
-    expect(a.words).toBe(5); // hello world good morning bye
+    expect(a.words).toBe(5);
     expect(a.activeDays).toBe(2);
     expect(a.wordsPerUtterance.median).toBe(2);
     expect(a.wordsPerUtterance.n).toBe(3);
@@ -175,12 +203,10 @@ describe('competence / analyzeTimeline', () => {
   function buildCorpus(): CompetenceUtterance[] {
     const now = Date.now();
     const utts: CompetenceUtterance[] = [];
-    // Two months ago: simple, repetitive vocabulary.
     const simpleMonth = now - 60 * DAY;
     for (let i = 0; i < 30; i++) {
       utts.push({ text: 'I want it yes', timestampMs: simpleMonth + i * 1000 });
     }
-    // This month: richer, more syntactically complex vocabulary.
     for (let i = 0; i < 30; i++) {
       utts.push({
         text: 'I think that we should go to the park because the weather is lovely although it might rain',
@@ -196,6 +222,7 @@ describe('competence / analyzeTimeline', () => {
       windowSize: 15,
       minWordsPerMonth: 1,
       lang: 'en',
+      resources: { closedClassWords: FIXTURE_CC, classifyInflection: fixtureClassify },
     });
     expect(report.schema).toBe('aac-competence-report/v1');
     expect(report.timeline.length).toBeGreaterThanOrEqual(1);
@@ -203,6 +230,21 @@ describe('competence / analyzeTimeline', () => {
       expect(bin.suppressed).toBe(false);
       expect(bin.lexicalDiversity.median).not.toBeNull();
     }
+  });
+
+  it('reports support + warnings when language resources are missing', () => {
+    const report = analyzeTimeline(buildCorpus(), {
+      months: 3,
+      windowSize: 15,
+      minWordsPerMonth: 1,
+      lang: 'fr', // no resources provided -> syntactic/morphological unavailable
+    });
+    expect(report.support.syntactic.available).toBe(false);
+    expect(report.support.morphological.available).toBe(false);
+    expect(report.support.semantic.available).toBe(true);
+    expect(report.warnings.some((w) => w.includes("'fr'"))).toBe(true);
+    // The measure itself reports unavailable in each bin.
+    expect(report.timeline[0].syntacticDiversity.unavailable).toBeDefined();
   });
 
   it('flags sparse months as suppressed and omits their diversity figures', () => {
@@ -224,6 +266,7 @@ describe('competence / analyzeTimeline', () => {
       windowSize: 15,
       minWordsPerMonth: 1,
       lang: 'en',
+      resources: { closedClassWords: FIXTURE_CC },
     });
     const json = JSON.stringify(report);
     expect(json).not.toContain('hello');
@@ -239,10 +282,12 @@ describe('competence / analyzeTimeline', () => {
       windowSize: 15,
       minWordsPerMonth: 1,
       lang: 'en',
+      resources: { closedClassWords: FIXTURE_CC },
     });
     expect(report.trend.metric).toBe('lexicalDiversity.median');
     expect(report.trend.direction).toBe('up');
-    expect(report.trend.delta!).toBeGreaterThan(0);
+    expect(report.trend.delta).not.toBeNull();
+    if (report.trend.delta !== null) expect(report.trend.delta).toBeGreaterThan(0);
   });
 
   it('respects the trailing-months window (drops old utterances)', () => {
@@ -253,5 +298,45 @@ describe('competence / analyzeTimeline', () => {
     );
     expect(report.timeline.length).toBe(0);
     expect(report.overall.totalUtterances).toBe(0);
+  });
+});
+
+describe('competence / source-agnostic (OBF/OBFL via adapter)', () => {
+  it('analyses any HistoryEntry source, e.g. OBF/OBFL logs, identically to native utterances', () => {
+    const now = Date.now();
+    // OBF/OBFL-style history: phrases with occurrences, source-tagged 'OBL'.
+    const obfEntries: HistoryEntry[] = [
+      {
+        id: 'obf-1',
+        source: 'OBL',
+        content: 'I want a drink of water please',
+        occurrences: [
+          { timestamp: new Date(now - 50 * 86_400_000) },
+          { timestamp: new Date(now - 49 * 86_400_000) },
+        ],
+      },
+      {
+        id: 'obf-2',
+        source: 'OBL',
+        content: 'the cat sat on the mat because it was tired',
+        occurrences: [{ timestamp: new Date(now - 1000) }],
+      },
+    ];
+
+    const utts = historyEntriesToCompetenceUtterances(obfEntries);
+    // Two occurrences of phrase 1 + one of phrase 2 = 3 utterances.
+    expect(utts.length).toBe(3);
+
+    const report = analyzeTimeline(utts, {
+      months: 3,
+      windowSize: 10,
+      minWordsPerMonth: 1,
+      lang: 'en',
+      resources: { closedClassWords: FIXTURE_CC },
+    });
+    expect(report.source.platform).toBe('Grid3'); // default label; data came from OBF
+    expect(report.overall.totalUtterances).toBe(3);
+    // No raw phrase text leaks into the output.
+    expect(JSON.stringify(report)).not.toContain('drink of water');
   });
 });

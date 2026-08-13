@@ -7,24 +7,32 @@
  *   - Frisch, Wade et al. (2026), "It's Complicated: On the Design and Evaluation
  *     of AI-Powered AAC Interfaces", arXiv:2606.24854.
  *
- * All functions here are pure and platform-agnostic (no I/O, no Bun/Node APIs).
- * They compute only aggregate statistics and never return the raw text they are
- * given. This makes them safe to run on-device and trivially unit-testable.
+ * DESIGN (read me):
+ *   - **Source-agnostic.** The only input is `{ text, timestampMs }[]`. It does
+ *     not know or care whether the speech history came from Grid 3, Snap,
+ *     TouchChat, OBF/OBFL logs, or anything else. See `historyEntriesToCompetence*
+ *     Utterances` (in history.ts) to adapt any `HistoryEntry[]` source.
+ *   - **Language-agnostic core.** This module contains NO word lists. Language-
+ *     specific resources (a closed-class word set, an inflection classifier) are
+ *     INJECTED via `LanguageResources`. When a resource is missing for a
+ *     language, the affected measure is reported as `unavailable` with a reason
+ *     and a warning is raised — never silently wrong.
+ *   - **Pure / no I/O.** No filesystem, no platform APIs. Runs anywhere (browser
+ *     included) and emits only aggregate statistics (never the raw text).
  *
  * The four dimensions of linguistic competence (Light, 1989) and the measures we
  * use for each, following the AssistiveWare findings:
  *
- *   Semantic      -> MATTR-30  (lexical diversity, the strongest overall measure)
- *   Syntactic     -> MA-UPC-TWR-30  (preposition + conjunction diversity)
- *   Morphological -> MA-UMORPH-TLWR-30 (proxy; documented below)
- *   Phonological  -> proportion of unique words correctly spelled (optional, weak)
+ *   Semantic      -> MATTR-30 lexical diversity             (always available)
+ *   Syntactic     -> preposition/conjunction diversity        (needs closedClassWords)
+ *   Morphological -> inflected-form diversity                 (needs classifyInflection)
+ *   Phonological  -> proportion of unique words in a dictionary (needs a dictionary)
  *
- * Key design choices, straight from the AssistiveWare paper:
- *   - Diversity beats density (density plateaus); we use diversity measures.
- *   - Moving-average windows of 30 words (Covington & McFall, 2010) make the
- *     measures insensitive to sample length and usable for tiny language samples.
- *   - MLU is reported only as a *distribution* and never as a headline, because
- *     it conflates linguistic, operational, strategic and social competence.
+ * All diversity measures use 30-word moving-average windows (Covington & McFall,
+ * 2010), making them sample-length independent and usable for the tiny, highly
+ * variable samples typical of AAC. MLU is intentionally NOT a headline (it
+ * conflates linguistic/operational/strategic/social competence in AAC); it is
+ * reported only as a distribution.
  */
 
 /** A single spoken utterance with a production timestamp (epoch ms). */
@@ -36,12 +44,36 @@ export interface CompetenceUtterance {
 /** A tokenised word stream produced in chronological order. */
 export type WordStream = string[];
 
-/** Options shared by the dimension measures. */
+/** Coarse inflection category used by the (injected) morphology classifier. */
+export type InflectionCategory =
+  | 'base'
+  | 'plural'
+  | 'possessive'
+  | 'past'
+  | 'progressive'
+  | 'comparative'
+  | 'superlative'
+  | 'adverb';
+
+/**
+ * Language-specific resources, injected by the caller. Providing none leaves the
+ * language-specific measures unavailable (with explicit warnings) — the semantic
+ * measure still works for any language.
+ */
+export interface LanguageResources {
+  /** Closed-class words (prepositions, conjunctions, ...) for syntactic diversity. */
+  closedClassWords?: Set<string>;
+  /** Maps a lowercased word to an inflection category for morphological diversity. */
+  classifyInflection?: (word: string) => InflectionCategory;
+}
+
 export interface DiversityOptions {
   /** Moving-average window size in words. The papers use 30. */
   windowSize?: number;
-  /** BCP-47-ish language code, e.g. "en-GB", "nl-BE". Only the primary subtag matters. */
-  lang?: string;
+  /** Closed-class word set (for the syntactic measure). */
+  closedClassWords?: Set<string>;
+  /** Inflection classifier (for the morphological measure). */
+  classifyInflection?: (word: string) => InflectionCategory;
 }
 
 export interface DiversityResult {
@@ -52,6 +84,8 @@ export interface DiversityResult {
   nWindows: number;
   /** The window size used. */
   windowSize: number;
+  /** Present when the measure could not be computed (e.g. missing language data). */
+  unavailable?: string;
 }
 
 /* ------------------------------------------------------------------ *
@@ -100,26 +134,18 @@ export function tokenize(text: string): WordStream {
   const out: string[] = [];
   let m: RegExpExecArray | null;
   TOKEN_RE.lastIndex = 0;
-  while ((m = TOKENReexec()) !== null) {
+  while ((m = TOKEN_RE.exec(text)) !== null) {
     let tok = m[0].toLowerCase();
-    // Strip stray leading/trailing apostrophes introduced by quotes.
     tok = tok.replace(/^['’]+|['’]+$/g, '');
     if (tok.length > 0) out.push(tok);
   }
   return out;
-
-  function TOKENReexec(): RegExpExecArray | null {
-    return TOKEN_RE.exec(text);
-  }
 }
 
 /* ------------------------------------------------------------------ *
- * Semantic competence: lexical diversity (MATTR-30)
+ * Semantic competence: lexical diversity (MATTR-30)  — always available
  * ------------------------------------------------------------------ */
 
-/**
- * Compute a type-token ratio for one segment of words.
- */
 function segmentTTR(segment: WordStream): number {
   if (segment.length === 0) return 0;
   return new Set(segment).size / segment.length;
@@ -131,15 +157,12 @@ function segmentTTR(segment: WordStream): number {
  * Slides a fixed-size window across the word stream and computes the TTR for
  * each window. The median across windows is sample-length independent, which is
  * exactly why it is preferred over plain TTR for highly variable AAC samples.
- *
- * Returns the headline `median` plus mean and window count.
  */
 export function movingAverageTTR(words: WordStream, windowSize = 30): DiversityResult {
   const n = words.length;
   const w = Math.max(1, Math.floor(windowSize));
   if (n === 0) return { median: null, mean: null, nWindows: 0, windowSize: w };
 
-  // Fewer words than one window: compute TTR over the whole sample.
   if (n < w) {
     const v = segmentTTR(words);
     return { median: v, mean: v, nWindows: 1, windowSize: w };
@@ -163,202 +186,31 @@ export function lexicalDiversity(words: WordStream, windowSize = 30): DiversityR
 }
 
 /* ------------------------------------------------------------------ *
- * Syntactic competence: preposition + conjunction diversity (MA-UPC-TWR-30)
+ * Syntactic competence: closed-class diversity (MA-UPC-TWR-30)
  * ------------------------------------------------------------------ */
 
-/** English prepositions (closed set, indicator of relational syntax). */
-const EN_PREPOSITIONS = new Set([
-  'about',
-  'above',
-  'across',
-  'after',
-  'against',
-  'along',
-  'alongside',
-  'amid',
-  'among',
-  'amongst',
-  'around',
-  'as',
-  'at',
-  'atop',
-  'before',
-  'behind',
-  'below',
-  'beneath',
-  'beside',
-  'besides',
-  'between',
-  'beyond',
-  'by',
-  'despite',
-  'down',
-  'during',
-  'except',
-  'for',
-  'from',
-  'in',
-  'inside',
-  'into',
-  'near',
-  'of',
-  'off',
-  'on',
-  'onto',
-  'opposite',
-  'out',
-  'outside',
-  'over',
-  'past',
-  'per',
-  'plus',
-  'round',
-  'since',
-  'than',
-  'through',
-  'throughout',
-  'till',
-  'to',
-  'toward',
-  'towards',
-  'under',
-  'underneath',
-  'unlike',
-  'until',
-  'up',
-  'upon',
-  'versus',
-  'via',
-  'with',
-  'within',
-  'without',
-]);
-
-/** English conjunctions (closed set, indicator of clausal complexity). */
-const EN_CONJUNCTIONS = new Set([
-  'and',
-  'but',
-  'or',
-  'nor',
-  'yet',
-  'so',
-  'although',
-  'because',
-  'considering',
-  'if',
-  'lest',
-  'once',
-  'provided',
-  'since',
-  'than',
-  'that',
-  'though',
-  'unless',
-  'until',
-  'when',
-  'whenever',
-  'where',
-  'whereas',
-  'wherever',
-  'whether',
-  'while',
-  'whilst',
-  'why',
-  'neither',
-  'either',
-  'both',
-]);
-
-/** Dutch prepositions. */
-const NL_PREPOSITIONS = new Set([
-  'aan',
-  'achter',
-  'bij',
-  'door',
-  'tijdens',
-  'in',
-  'boven',
-  'langs',
-  'met',
-  'na',
-  'naar',
-  'om',
-  'onder',
-  'op',
-  'over',
-  'rond',
-  'per',
-  'sinds',
-  'tegen',
-  'uit',
-  'van',
-  'voor',
-  'tot',
-  'tussen',
-  'binnen',
-  'buiten',
-  'behalve',
-  'wegens',
-  'krachtens',
-  'volgens',
-]);
-
-/** Dutch conjunctions. */
-const NL_CONJUNCTIONS = new Set([
-  'en',
-  'of',
-  'maar',
-  'want',
-  'dus',
-  'omdat',
-  'toen',
-  'voordat',
-  'nadat',
-  'terwijl',
-  'indien',
-  'mits',
-  'tenzij',
-  'hoewel',
-  'ofschoon',
-  'zodra',
-  'zolang',
-  'als',
-  'dat',
-  'noch',
-]);
-
 /**
- * Get the closed-set (prepositions ∪ conjunctions) for a language, or null if
- * unsupported. Callers should skip the syntactic measure when this is null.
- */
-export function getClosedClassSet(lang?: string): Set<string> | null {
-  const primary = (lang || 'en').split(/[-_]/)[0].toLowerCase();
-  switch (primary) {
-    case 'en':
-      return new Set<string>([...EN_PREPOSITIONS, ...EN_CONJUNCTIONS]);
-    case 'nl':
-      return new Set<string>([...NL_PREPOSITIONS, ...NL_CONJUNCTIONS]);
-    default:
-      return null;
-  }
-}
-
-/**
- * Syntactic diversity: MA-UPC-TWR-30.
+ * Closed-class diversity (generalises AssistiveWare's MA-UPC-TWR-30).
  *
- * For each 30-word window, compute the type-token ratio restricted to the
- * closed-class words that indicate syntactic complexity (prepositions and
- * conjunctions). Windows containing none of these are skipped (no syntactic
- * signal). The median across contributing windows is reported.
+ * For each window, compute the type-token ratio restricted to the supplied
+ * closed-class words (prepositions + conjunctions in the original paper). Windows
+ * containing none are skipped. The caller supplies the set via
+ * `closedClassWords`, so this works for any language without hardcoding here.
  */
 export function syntacticDiversity(
   words: WordStream,
   options: DiversityOptions = {}
 ): DiversityResult {
   const w = Math.max(1, Math.floor(options.windowSize ?? 30));
-  const closed = getClosedClassSet(options.lang);
-  if (!closed) {
-    return { median: null, mean: null, nWindows: 0, windowSize: w };
+  const closed = options.closedClassWords;
+  if (!closed || closed.size === 0) {
+    return {
+      median: null,
+      mean: null,
+      nWindows: 0,
+      windowSize: w,
+      unavailable: 'no closed-class word data provided for this language',
+    };
   }
 
   const n = words.length;
@@ -366,9 +218,9 @@ export function syntacticDiversity(
 
   const values: number[] = [];
   const scan = (segment: WordStream): void => {
-    const upc = segment.filter((tok) => closed.has(tok));
-    if (upc.length > 0) {
-      values.push(new Set(upc).size / upc.length);
+    const cc = segment.filter((tok) => closed.has(tok));
+    if (cc.length > 0) {
+      values.push(new Set(cc).size / cc.length);
     }
   };
 
@@ -381,171 +233,52 @@ export function syntacticDiversity(
   }
 
   if (values.length === 0) {
-    return { median: null, mean: null, nWindows: 0, windowSize: w };
+    return {
+      median: null,
+      mean: null,
+      nWindows: 0,
+      windowSize: w,
+      unavailable: 'no closed-class words found in the sample',
+    };
   }
-  return { median: median(values), mean: mean(values), nWindows: values.length, windowSize: w };
+  return {
+    median: median(values),
+    mean: mean(values),
+    nWindows: values.length,
+    windowSize: w,
+  };
 }
 
 /* ------------------------------------------------------------------ *
- * Morphological competence: MA-UMORPH-TLWR-30 (documented proxy)
+ * Morphological competence: inflected-form diversity (MA-UMORPH-TLWR-30 proxy)
  * ------------------------------------------------------------------ */
-
-export type InflectionCategory =
-  | 'base'
-  | 'plural'
-  | 'possessive'
-  | 'past'
-  | 'progressive'
-  | 'comparative'
-  | 'superlative'
-  | 'adverb';
-
-const BASE_GUARD = new Set([
-  // Words that look inflected but are base forms; avoids the worst false hits.
-  'is',
-  'as',
-  'was',
-  'has',
-  'his',
-  'its',
-  'us',
-  'bus',
-  'gas',
-  'yes',
-  'this',
-  'miss',
-  'loss',
-  'boss',
-  'less',
-  'dress',
-  'guess',
-  'press',
-  'cross',
-  'class',
-  'glass',
-  'pass',
-  'mass',
-  'ass',
-  'bed',
-  'red',
-  'fed',
-  'led',
-  'wed',
-  'shed',
-  'ted',
-  'bred',
-  'her',
-  'per',
-  'der',
-  'fer',
-  'ring',
-  'sing',
-  'king',
-  'thing',
-  'bring',
-  'long',
-  'wing',
-  'spring',
-  'string',
-  'sting',
-  'cling',
-  'swing',
-  'fling',
-  'slang',
-  'best',
-  'rest',
-  'test',
-  'west',
-  'nest',
-  'chest',
-  'pest',
-  'vest',
-  'quest',
-  'fest',
-  'lest',
-  'beast',
-  'feast',
-  'breast',
-  'fly',
-  'ply',
-  'sly',
-  'ally',
-  'rally',
-  'supply',
-  'reply',
-  'apply',
-  'comply',
-  'rely',
-  'family',
-  'only',
-  'lonely',
-  'likely',
-  'lovely',
-  'silly',
-  'holy',
-  'uly',
-  'fully',
-]);
-
-/**
- * Crude, dependency-free inflection classifier for English.
- *
- * This is intentionally a *heuristic proxy*: it identifies the morphological
- * operation encoded by a word's suffix so we can measure how diverse the user's
- * morphological production is. It is NOT a lemmatiser. False positives/negatives
- * are expected and documented; the measure is used comparatively across time
- * bins, not as an absolute clinical score.
- */
-export function classifyInflection(word: string): InflectionCategory {
-  const w = word.toLowerCase();
-  if (w.length < 3) return 'base';
-
-  // Possessive first (apostrophe forms): "dad's", "dogs'".
-  if (w.endsWith("'s") || w.endsWith("s'")) return 'possessive';
-
-  if (BASE_GUARD.has(w)) return 'base';
-
-  if (w.endsWith('ing') && w.length > 4) return 'progressive';
-  if (w.endsWith('est') && w.length > 4) return 'superlative';
-  if (w.endsWith('ies') && w.length > 3) return 'plural'; // berries, stories
-  if (w.endsWith('ied') && w.length > 3) return 'past'; // carried
-  if (w.endsWith('ed') && w.length > 3 && !w.endsWith('eed')) return 'past';
-  if (w.endsWith('er') && w.length > 3) return 'comparative';
-  if (w.endsWith('ly') && w.length > 3) return 'adverb';
-  if (w.endsWith('es') && w.length > 3) return 'plural';
-  if (
-    w.endsWith('s') &&
-    !w.endsWith('ss') &&
-    !w.endsWith('us') &&
-    !w.endsWith('is') &&
-    w.length > 2
-  ) {
-    return 'plural';
-  }
-  return 'base';
-}
 
 /**
  * Morphological diversity (proxy for MA-UMORPH-TLWR-30).
  *
- * Within each 30-word window, look at the words carrying a morphological
- * operation (any category other than "base") and compute the type-token ratio
- * over their *surface forms*. A higher value means the user is producing a
- * broader, less-repetitive range of inflected forms locally. Windows with no
- * inflected words are skipped.
+ * Within each window, words the supplied classifier marks as inflected (any
+ * category other than "base") contribute their surface forms to a type-token
+ * ratio. Windows with no inflected words are skipped. The classifier is injected
+ * (`classifyInflection`) so the heuristic lives with the caller, per language.
  *
  * Caveat (per AssistiveWare): for symbol-supported AAC, pre-stored morphology
- * buttons (e.g. "finished", "all done", "is") heavily affect this measure, so
- * interpret trends rather than absolutes.
+ * buttons ("finished", "is", ...) heavily affect this measure — interpret trends
+ * rather than absolutes.
  */
 export function morphologicalDiversity(
   words: WordStream,
   options: DiversityOptions = {}
 ): DiversityResult {
   const w = Math.max(1, Math.floor(options.windowSize ?? 30));
-  const lang = (options.lang || 'en').split(/[-_]/)[0].toLowerCase();
-  if (lang !== 'en') {
-    return { median: null, mean: null, nWindows: 0, windowSize: w };
+  const classify = options.classifyInflection;
+  if (!classify) {
+    return {
+      median: null,
+      mean: null,
+      nWindows: 0,
+      windowSize: w,
+      unavailable: 'no inflection classifier provided for this language',
+    };
   }
 
   const n = words.length;
@@ -553,7 +286,7 @@ export function morphologicalDiversity(
 
   const values: number[] = [];
   const scan = (segment: WordStream): void => {
-    const inflected = segment.filter((tok) => classifyInflection(tok) !== 'base');
+    const inflected = segment.filter((tok) => classify(tok) !== 'base');
     if (inflected.length > 0) {
       values.push(new Set(inflected).size / inflected.length);
     }
@@ -568,9 +301,20 @@ export function morphologicalDiversity(
   }
 
   if (values.length === 0) {
-    return { median: null, mean: null, nWindows: 0, windowSize: w };
+    return {
+      median: null,
+      mean: null,
+      nWindows: 0,
+      windowSize: w,
+      unavailable: 'no inflected word forms found in the sample',
+    };
   }
-  return { median: median(values), mean: mean(values), nWindows: values.length, windowSize: w };
+  return {
+    median: median(values),
+    mean: mean(values),
+    nWindows: values.length,
+    windowSize: w,
+  };
 }
 
 /* ------------------------------------------------------------------ *
@@ -579,10 +323,8 @@ export function morphologicalDiversity(
 
 /**
  * Proportion of unique alphabetic words present in the supplied dictionary.
- *
- * Focuses on *unique* words so it is not skewed by repetition or repeated
- * misspellings. Pass a dictionary Set (e.g. loaded from a hunspell/aspell
- * wordlist). Returns null if no dictionary is provided.
+ * Unique words only, so it is not skewed by repetition or repeated misspellings.
+ * Returns null (unavailable) if no dictionary is provided.
  */
 export function spellingValidity(words: WordStream, dictionary?: Set<string>): number | null {
   if (!dictionary || dictionary.size === 0) return null;
@@ -590,7 +332,6 @@ export function spellingValidity(words: WordStream, dictionary?: Set<string>): n
   let checked = 0;
   let correct = 0;
   for (const tok of unique) {
-    // Only consider alphabetic tokens of reasonable length.
     if (!/^\p{L}{2,}$/u.test(tok)) continue;
     checked++;
     if (dictionary.has(tok)) correct++;
@@ -599,7 +340,7 @@ export function spellingValidity(words: WordStream, dictionary?: Set<string>): n
 }
 
 /* ------------------------------------------------------------------ *
- * Activity / engagement statistics (multidimensional, distributional)
+ * Activity / engagement statistics
  * ------------------------------------------------------------------ */
 
 export interface DistributionStats {
@@ -644,7 +385,7 @@ export function summarizeActivity(utterances: CompetenceUtterance[]): ActivitySt
   return {
     utterances: utterances.length,
     words: totalWords,
-    uniqueWords: 0, // filled by caller from the ordered stream for accuracy
+    uniqueWords: 0,
     activeDays: days.size,
     wordsPerUtterance: distribution(wpu),
   };
@@ -664,9 +405,9 @@ export interface MonthBin {
   wordsPerUtterance: DistributionStats;
   /** Semantic — the headline measure. */
   lexicalDiversity: DiversityResult;
-  /** Syntactic. null if language unsupported. */
+  /** Syntactic. null/unavailable when no closed-class data for the language. */
   syntacticDiversity: DiversityResult;
-  /** Morphological (proxy). null if language unsupported. */
+  /** Morphological (proxy). null/unavailable when no classifier for the language. */
   morphologicalDiversity: DiversityResult;
   /** Phonological — only when a dictionary is supplied. */
   spellingValidity: number | null;
@@ -686,16 +427,12 @@ export interface TrendResult {
   direction: 'up' | 'down' | 'flat' | 'unknown';
 }
 
-/**
- * Structural / effort summary of the user's AAC pageset (gridset).
- *
- * Computed from the existing MetricsCalculator so competence numbers can be read
- * alongside the vocabulary design that shapes them (grid size, vocabulary size,
- * effort, prediction) — the AssistiveWare paper stresses that setup affects both
- * competence and its measurement. Contains NO word labels (privacy).
- */
+export interface DimensionSupport {
+  available: boolean;
+  reason?: string;
+}
+
 export interface PagesetSummary {
-  /** Hashed label unless the caller opts in to revealing the file name. */
   label: string;
   gridsetIncluded: boolean;
   analysisVersion?: string;
@@ -703,30 +440,16 @@ export interface PagesetSummary {
   totalButtons: number;
   totalWords: number;
   grid: { rows: number; columns: number };
-  /** Effort distribution across all scored buttons (lower = easier). */
   effort: DistributionStats;
   hasDynamicPrediction: boolean;
   spellingEffort: { base: number | null; perLetter: number | null };
-  /** Present if the gridset could not be loaded/analysed. */
   error?: string;
 }
 
-/**
- * Privacy-safe system-configuration context for the user (Grid 3 UserSettings).
- *
- * These are NOT chat content — they describe how the system is set up, which is
- * essential for interpreting the competence numbers. Notably `onlineAiToolsOptIn`
- * records whether the user has enabled the vendor's online AI tools, letting
- * competence trends be read against whether AI assistance was even active.
- */
 export interface UserSettingsSummary {
-  /** Vocabulary/gridset name configured as the startup set (a product name). */
   startupGridSet: string | null;
-  /** Whether the user opted in to the vendor's online AI tools. */
   onlineAiToolsOptIn: boolean | null;
-  /** Enabled access method names (e.g. Touch, Pointer, EyeGaze, Switch). */
   accessMethods: string[];
-  /** Counts of user-created personalisation entries (aggregate across languages). */
   personalisation: {
     pronunciations: number;
     capitalisations: number;
@@ -768,6 +491,16 @@ export interface CompetenceReport {
   };
   timeline: MonthBin[];
   trend: TrendResult;
+  /** Per-dimension availability for the detected language (no silent degradation). */
+  support: {
+    lang: string;
+    semantic: DimensionSupport;
+    syntactic: DimensionSupport;
+    morphological: DimensionSupport;
+    phonological: DimensionSupport;
+  };
+  /** Human-readable notes about anything skipped or approximate. */
+  warnings: string[];
   /** Structural metrics for the user's default gridset (null if unavailable). */
   pageset?: PagesetSummary | null;
   /** System-configuration context (access method, AI opt-in, startup gridset). */
@@ -779,12 +512,14 @@ export interface TimelineOptions {
   months?: number;
   /** Moving-average window. Default 30. */
   windowSize?: number;
-  /** Language code. Default "en". */
+  /** Language code. Default "en". Used for reporting only. */
   lang?: string;
   /** Months with fewer than this many words are flagged suppressed. Default 150. */
   minWordsPerMonth?: number;
   /** Optional dictionary Set for the spelling measure. */
   dictionary?: Set<string>;
+  /** Language-specific resources (closed-class words, inflection classifier). */
+  resources?: LanguageResources;
   /** Epoch ms for "now". Defaults to Date.now(). Mainly for tests. */
   now?: number;
   /** Platform label for the report. Default "Grid3". */
@@ -794,9 +529,6 @@ export interface TimelineOptions {
   dbPathIncluded?: boolean;
 }
 
-/**
- * Build a YYYY-MM key from epoch ms in local time.
- */
 function monthKey(timestampMs: number): string {
   const d = new Date(timestampMs);
   const y = d.getFullYear();
@@ -804,10 +536,6 @@ function monthKey(timestampMs: number): string {
   return `${y}-${m}`;
 }
 
-/**
- * Weighted linear-regression slope. Weights account for uneven sample sizes so
- * that a noisy low-volume month cannot dominate the trend.
- */
 function weightedSlope(points: Array<{ x: number; y: number; w: number }>): number | null {
   const usable = points.filter((p) => p.y !== null && isFinite(p.y));
   if (usable.length < 2) return null;
@@ -834,7 +562,8 @@ function weightedSlope(points: Array<{ x: number; y: number; w: number }>): numb
  *
  * Utterances are filtered to the trailing `months` window, binned by calendar
  * month, and each bin is scored on the four competence dimensions plus activity.
- * The headline lexical-diversity trend across months is summarised.
+ * Language-specific measures require matching `resources`; missing resources are
+ * reported under `support` and `warnings` rather than silently dropped.
  *
  * No raw text, word list, or fringe-vocabulary frequency is included in the
  * returned report — only aggregate statistics.
@@ -848,6 +577,7 @@ export function analyzeTimeline(
   const lang = options.lang ?? 'en';
   const minWordsPerMonth = Math.max(0, Math.floor(options.minWordsPerMonth ?? 150));
   const dictionary = options.dictionary;
+  const resources = options.resources ?? {};
   const now = options.now ?? Date.now();
 
   // ---- Filter to the trailing N months ----------------------------------
@@ -871,12 +601,8 @@ export function analyzeTimeline(
   const timeline: MonthBin[] = [];
 
   for (const key of sortedKeys) {
-    const monthUtts = bins
-      .get(key)!
-      .slice()
-      .sort((a, b) => a.timestampMs - b.timestampMs);
+    const monthUtts = (bins.get(key) ?? []).slice().sort((a, b) => a.timestampMs - b.timestampMs);
 
-    // Ordered word stream for the sliding-window measures.
     const stream: WordStream = [];
     for (const u of monthUtts) stream.push(...tokenize(u.text));
 
@@ -893,10 +619,13 @@ export function analyzeTimeline(
       : lexicalDiversity(stream, windowSize);
     const syn = suppressed
       ? { median: null, mean: null, nWindows: 0, windowSize }
-      : syntacticDiversity(stream, { windowSize, lang });
+      : syntacticDiversity(stream, { windowSize, closedClassWords: resources.closedClassWords });
     const mor = suppressed
       ? { median: null, mean: null, nWindows: 0, windowSize }
-      : morphologicalDiversity(stream, { windowSize, lang });
+      : morphologicalDiversity(stream, {
+          windowSize,
+          classifyInflection: resources.classifyInflection,
+        });
     const spell = suppressed ? null : spellingValidity(stream, dictionary);
 
     timeline.push({
@@ -913,6 +642,32 @@ export function analyzeTimeline(
       suppressed,
       suppressReason,
     });
+  }
+
+  // ---- Support + warnings (no silent language degradation) --------------
+  const warnings: string[] = [];
+  const hasCC = !!resources.closedClassWords && resources.closedClassWords.size > 0;
+  const hasMorph = !!resources.classifyInflection;
+  if (!hasCC) {
+    warnings.push(
+      `Syntactic diversity unavailable: no closed-class word data for language '${lang}'. ` +
+        `Provide resources.closedClassWords to enable it.`
+    );
+  }
+  if (!hasMorph) {
+    warnings.push(
+      `Morphological diversity unavailable: no inflection classifier for language '${lang}'. ` +
+        `Provide resources.classifyInflection to enable it.`
+    );
+  }
+  if (!dictionary) {
+    warnings.push('Spelling validity unavailable: no dictionary provided.');
+  }
+  const suppCount = timeline.filter((b) => b.suppressed).length;
+  if (suppCount > 0) {
+    warnings.push(
+      `${suppCount} month(s) suppressed for having fewer than ${minWordsPerMonth} words.`
+    );
   }
 
   // ---- Trend on the headline lexical-diversity median -------------------
@@ -949,6 +704,9 @@ export function analyzeTimeline(
   const totalUtts = timeline.reduce((s, b) => s + b.utterances, 0);
   const totalWords = timeline.reduce((s, b) => s + b.words, 0);
 
+  const dim = (available: boolean, reason?: string): DimensionSupport =>
+    available ? { available: true } : { available: false, reason };
+
   return {
     schema: 'aac-competence-report/v1',
     generatedAt: new Date(now).toISOString(),
@@ -982,7 +740,7 @@ export function analyzeTimeline(
       totalUtterances: totalUtts,
       totalWords: totalWords,
       monthsCovered: timeline.length,
-      monthsSuppressed: timeline.filter((b) => b.suppressed).length,
+      monthsSuppressed: suppCount,
     },
     timeline,
     trend: {
@@ -993,5 +751,16 @@ export function analyzeTimeline(
       delta,
       direction,
     },
+    support: {
+      lang,
+      semantic: dim(true),
+      syntactic: dim(hasCC, hasCC ? undefined : 'no closed-class data for this language'),
+      morphological: dim(
+        hasMorph,
+        hasMorph ? undefined : 'no inflection classifier for this language'
+      ),
+      phonological: dim(!!dictionary, dictionary ? undefined : 'no dictionary provided'),
+    },
+    warnings,
   };
 }
