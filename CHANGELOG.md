@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Added
+
+- **Counts-only vocabulary dump** (`dumpVocabulary()`): inventories the vocabulary available in a pageset — labelled buttons, Grid 3 page WordLists, prediction dictionaries (`Prediction.PredictThis`) and smart-grammar word forms — returning counts per source with a part-of-speech breakdown. Emits counts only (never word lists), so it is safe for privacy-preserving reports. Exported from the `Analytics` and `Metrics` namespaces.
+- `PagesetSummary.vocabulary`: optional `VocabularySummary` field so competence reports can carry the vocabulary inventory.
+- CLI command `aac-processors vocabulary <file>`: prints the vocabulary dump as JSON (`--out`, `--no-smart-grammar`, plus the usual filtering options).
+- `AACPage.wordListItems` is now declared on the interface (it was only set at runtime by the Grid 3 processor).
+
 ## v0.2.x
 
 ### 🔄 BREAKING CHANGE - Async API Migration

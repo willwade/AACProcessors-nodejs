@@ -11,6 +11,13 @@ export * from './utilities/analytics/metrics/obl-types';
 export { OblUtil, OblAnonymizer } from './utilities/analytics/metrics/obl';
 export { MetricsCalculator } from './utilities/analytics/metrics/core';
 export { VocabularyAnalyzer } from './utilities/analytics/metrics/vocabulary';
+export { dumpVocabulary } from './utilities/analytics/metrics/vocabularyDump';
+export type {
+  VocabularyDump,
+  VocabularyDumpOptions,
+  VocabularySourceCounts,
+  VocabularySummary,
+} from './utilities/analytics/metrics/vocabularyDump';
 export { SentenceAnalyzer } from './utilities/analytics/metrics/sentence';
 export { ComparisonAnalyzer } from './utilities/analytics/metrics/comparison';
 export { MorphologyEngine } from './utilities/analytics/morphology';

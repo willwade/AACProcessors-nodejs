@@ -8,7 +8,8 @@ import {
   readGrid3History,
   readSnapUsage,
 } from '../utilities/analytics/history';
-import { ComparisonAnalyzer, MetricsCalculator } from '../utilities/analytics';
+import { ComparisonAnalyzer, MetricsCalculator, dumpVocabulary } from '../utilities/analytics';
+import type { VocabularyDump } from '../utilities/analytics';
 import { CellScanningOrder, ScanningSelectionMethod } from '../types/aac';
 import { defaultFileAdapter, extname } from '../utils/io';
 import { readFileSync } from 'node:fs';
@@ -586,6 +587,87 @@ program
       } catch (error) {
         console.error(
           'Error calculating metrics:',
+          error instanceof Error ? error.message : String(error)
+        );
+        process.exit(1);
+      }
+    }
+  );
+
+program
+  .command('vocabulary <file>')
+  .description(
+    'Counts-only vocabulary inventory: buttons, wordlists, prediction dictionaries and word forms (no word lists are emitted)'
+  )
+  .option('--format <format>', 'Format type (auto-detected if not specified)')
+  .option('--out <path>', 'Write output to a file instead of stdout')
+  .option('--preserve-all-buttons', 'Preserve all buttons including navigation/system buttons')
+  .option('--no-exclude-navigation', "Don't exclude navigation buttons (Home, Back)")
+  .option('--no-exclude-system', "Don't exclude system buttons (Delete, Clear, etc.)")
+  .option('--exclude-buttons <list>', 'Comma-separated list of button labels/terms to exclude')
+  .option('--gridset-password <password>', 'Password for encrypted Grid3 archives (.gridsetx)')
+  .option('--no-smart-grammar', 'Skip smart-grammar word-form counts')
+  .action(
+    async (
+      file: string,
+      options: {
+        format?: string;
+        out?: string;
+        preserveAllButtons?: boolean;
+        excludeNavigation?: boolean;
+        excludeSystem?: boolean;
+        excludeButtons?: string;
+        gridsetPassword?: string;
+        smartGrammar?: boolean;
+      }
+    ) => {
+      try {
+        const filteringOptions = parseFilteringOptions(options);
+        const format = options.format || (await detectFormat(file));
+        const processor = getProcessor(format, filteringOptions);
+
+        // The gridset loader logs debug chatter to stdout; silence it so the
+        // command's stdout is exactly one JSON document.
+        const silenced = Object.entries(console).reduce(
+          (acc, [k, fn]) => {
+            acc[k] = fn;
+            return acc;
+          },
+          {} as Record<string, unknown>
+        );
+        for (const k of ['log', 'info', 'debug', 'warn']) {
+          (console as unknown as Record<string, unknown>)[k] = () => {};
+        }
+        let dump: VocabularyDump | undefined;
+        try {
+          const tree = await processor.loadIntoTree(file);
+          // analyze() first: it expands morphological predictions on the tree,
+          // which dumpVocabulary() needs for the word-form counts.
+          const metrics = new MetricsCalculator().analyze(tree, {
+            useSmartGrammar: options.smartGrammar,
+          });
+          dump = dumpVocabulary(tree, { metrics });
+        } finally {
+          for (const [k, fn] of Object.entries(silenced)) {
+            (console as unknown as Record<string, unknown>)[k] = fn as (...a: unknown[]) => void;
+          }
+        }
+
+        const result = {
+          format,
+          filtering: filteringOptions,
+          vocabulary: dump,
+        };
+
+        const output = JSON.stringify(result, null, 2);
+        if (options.out) {
+          await writeTextToPath(options.out, output);
+        } else {
+          console.log(output);
+        }
+      } catch (error) {
+        console.error(
+          'Error dumping vocabulary:',
           error instanceof Error ? error.message : String(error)
         );
         process.exit(1);
