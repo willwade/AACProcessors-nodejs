@@ -35,6 +35,8 @@
  * reported only as a distribution.
  */
 
+import type { VocabularySummary } from './metrics/vocabularyDump';
+
 /** A single spoken utterance with a production timestamp (epoch ms). */
 export interface CompetenceUtterance {
   text: string;
@@ -443,6 +445,12 @@ export interface PagesetSummary {
   effort: DistributionStats;
   hasDynamicPrediction: boolean;
   spellingEffort: { base: number | null; perLetter: number | null };
+  /**
+   * Counts-only vocabulary inventory (buttons, wordlists, prediction
+   * dictionaries, smart-grammar word forms) — see dumpVocabulary().
+   * Null/undefined when the caller did not compute it. Contains counts only.
+   */
+  vocabulary?: VocabularySummary | null;
   error?: string;
 }
 

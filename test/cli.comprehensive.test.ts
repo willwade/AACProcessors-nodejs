@@ -351,6 +351,29 @@ describe('CLI Comprehensive Tests', () => {
       expect(result2).toContain('Home');
       expect(result2).toContain('Food');
     });
+    it('should dump vocabulary counts for a gridset (counts only, no words)', async () => {
+      const exampleGridset = path.join(__dirname, '../test/assets/gridset/example.gridset');
+
+      if (fs.existsSync(exampleGridset)) {
+        const result = execSync(`node ${cliPath} vocabulary ${exampleGridset}`, {
+          encoding: 'utf8',
+          cwd: tempDir,
+        });
+
+        const parsed = JSON.parse(result);
+        expect(parsed.format).toBe('gridset');
+        expect(parsed.vocabulary.schema).toBe('aac-vocabulary-dump/v1');
+        const summary = parsed.vocabulary.summary;
+        expect(summary.totalBoards).toBeGreaterThan(10);
+        expect(summary.wordLists.lists).toBeGreaterThanOrEqual(15);
+        expect(summary.combined.uniqueEntries).toBeGreaterThan(15);
+        expect(summary.wordForms).not.toBeNull();
+        // Counts only: no word arrays anywhere in the output.
+        expect(result).not.toContain('"missing_words"');
+      } else {
+        console.log('Skipping test - example.gridset not found');
+      }
+    });
   });
 
   describe('Error Handling Tests', () => {

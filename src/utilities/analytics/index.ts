@@ -29,6 +29,13 @@ export { MetricsCalculator } from './metrics/core';
 
 // Export vocabulary and comparison analyzers
 export { VocabularyAnalyzer } from './metrics/vocabulary';
+export { dumpVocabulary } from './metrics/vocabularyDump';
+export type {
+  VocabularyDump,
+  VocabularyDumpOptions,
+  VocabularySourceCounts,
+  VocabularySummary,
+} from './metrics/vocabularyDump';
 export { SentenceAnalyzer } from './metrics/sentence';
 export { ComparisonAnalyzer } from './metrics/comparison';
 export { ReferenceLoader } from './reference';
