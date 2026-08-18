@@ -34,6 +34,9 @@ async function detectFormat(filePath: string): Promise<string> {
   if (filePath.endsWith('.gridset')) {
     return 'gridset';
   }
+  if (filePath.endsWith('.gtbz')) {
+    return 'gotalknow';
+  }
 
   // Otherwise use file extension
   return extname(filePath).slice(1);

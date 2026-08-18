@@ -519,82 +519,86 @@ describe('Validation Coverage Tests', () => {
   });
 
   describe('GridsetValidator - Extended Coverage', () => {
-    it('should validate gridset with all required elements', async () => {
-      const fullGridset = `<?xml version="1.0" encoding="utf-8"?>
-      <gridset id="test" name="Test Gridset">
-        <pages>
-          <page id="page1" name="Page 1">
-            <rows>3</rows>
-            <columns>3</columns>
-            <cells>
-              <cell id="cell1" label="Hello" row="0" column="0"/>
-              <cell id="cell2" label="World" row="0" column="1"/>
-            </cells>
-          </page>
-        </pages>
-        <fixedCellSize width="100" height="100"/>
-      </gridset>`;
+    it('should validate a full Grid 3 grid.xml', async () => {
+      const fullGrid = `<?xml version="1.0" encoding="utf-8"?>
+      <Grid xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+        <GridGuid>test-grid</GridGuid>
+        <ColumnDefinitions>
+          <ColumnDefinition/><ColumnDefinition/><ColumnDefinition/>
+        </ColumnDefinitions>
+        <RowDefinitions>
+          <RowDefinition/><RowDefinition/><RowDefinition/>
+        </RowDefinitions>
+        <Cells>
+          <Cell X="1" Y="1">
+            <Content>
+              <CaptionAndImage><Caption>Hello</Caption></CaptionAndImage>
+            </Content>
+          </Cell>
+          <Cell X="2" Y="1">
+            <Content>
+              <CaptionAndImage><Caption>World</Caption></CaptionAndImage>
+            </Content>
+          </Cell>
+        </Cells>
+      </Grid>`;
 
-      const content = Buffer.from(fullGridset);
+      const content = Buffer.from(fullGrid);
       const result = await new GridsetValidator().validate(content, 'test.gridset', content.length);
 
       expect(result).toBeDefined();
       expect(result.format).toBe('gridset');
     });
 
-    it('should handle gridset with wordlists', async () => {
-      const gridsetWithWordlists = `<?xml version="1.0" encoding="utf-8"?>
-      <gridset id="test" name="Test Gridset">
-        <pages>
-          <page id="page1" name="Page 1">
-            <cells>
-              <cell id="cell1" label="Hello"/>
-            </cells>
-          </page>
-        </pages>
-        <wordlists>
-          <wordlist id="wl1" name="Common Words"/>
-        </wordlists>
-        <fixedCellSize width="100" height="100"/>
-      </gridset>`;
+    it('should warn about missing GridGuid', async () => {
+      const gridNoGuid = `<?xml version="1.0" encoding="utf-8"?>
+      <Grid xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+        <Cells>
+          <Cell X="1" Y="1"/>
+        </Cells>
+      </Grid>`;
 
-      const content = Buffer.from(gridsetWithWordlists);
+      const content = Buffer.from(gridNoGuid);
       const result = await new GridsetValidator().validate(content, 'test.gridset', content.length);
 
       expect(result).toBeDefined();
-      expect(result.format).toBe('gridset');
+      const hasGuidWarning = result.results.some(
+        (r) => r.warnings && r.warnings.some((w) => w.includes('GridGuid'))
+      );
+      expect(hasGuidWarning).toBe(true);
     });
 
-    it('should detect missing pages element', async () => {
-      const gridsetWithoutPages = `<?xml version="1.0" encoding="utf-8"?>
-      <gridset id="test" name="Test Gridset">
-        <fixedCellSize width="100" height="100"/>
-      </gridset>`;
+    it('should warn about missing Cells element', async () => {
+      const gridNoCells = `<?xml version="1.0" encoding="utf-8"?>
+      <Grid xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+        <GridGuid>empty</GridGuid>
+      </Grid>`;
 
-      const content = Buffer.from(gridsetWithoutPages);
+      const content = Buffer.from(gridNoCells);
       const result = await new GridsetValidator().validate(content, 'test.gridset', content.length);
 
       expect(result).toBeDefined();
-      // Should have warnings about missing pages
+      const hasCellsWarning = result.results.some(
+        (r) => r.warnings && r.warnings.some((w) => w.includes('Cells'))
+      );
+      expect(hasCellsWarning).toBe(true);
     });
 
-    it('should detect missing fixedCellSize', async () => {
-      const gridsetWithoutCellSize = `<?xml version="1.0" encoding="utf-8"?>
-      <gridset id="test" name="Test Gridset">
-        <pages>
-          <page id="page1" name="Page 1">
-            <cells>
-              <cell id="cell1" label="Hello"/>
-            </cells>
-          </page>
-        </pages>
-      </gridset>`;
+    it('should warn about empty Cells', async () => {
+      const gridEmptyCells = `<?xml version="1.0" encoding="utf-8"?>
+      <Grid xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+        <GridGuid>empty-cells</GridGuid>
+        <Cells></Cells>
+      </Grid>`;
 
-      const content = Buffer.from(gridsetWithoutCellSize);
+      const content = Buffer.from(gridEmptyCells);
       const result = await new GridsetValidator().validate(content, 'test.gridset', content.length);
 
       expect(result).toBeDefined();
-      // Should have warnings about missing cell size
+      const hasEmptyWarning = result.results.some(
+        (r) => r.warnings && r.warnings.some((w) => w.includes('at least one'))
+      );
+      expect(hasEmptyWarning).toBe(true);
     });
   });
 

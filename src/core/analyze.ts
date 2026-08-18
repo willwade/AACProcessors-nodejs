@@ -7,6 +7,7 @@ import { SnapProcessor } from '../processors/snapProcessor';
 import { DotProcessor } from '../processors/dotProcessor';
 import { ExcelProcessor } from '../processors/excelProcessor';
 import { ApplePanelsProcessor } from '../processors/applePanelsProcessor';
+import { GotalkNowProcessor } from '../processors/gotalkNowProcessor';
 import { AACTree } from './treeStructure';
 import { BaseProcessor, ProcessorOptions } from './baseProcessor';
 
@@ -45,6 +46,10 @@ export function getProcessor(format: string, options?: ProcessorOptions): BasePr
     case 'panels': // Apple Panels file extension
     case 'ascconfig': // Apple Panels folder format
       return new ApplePanelsProcessor(options);
+    case 'gotalknow':
+    case 'gotalk':
+    case 'gtbz': // GoTalk NOW file extension
+      return new GotalkNowProcessor(options);
     default:
       throw new Error('Unknown format: ' + format);
   }

@@ -30,6 +30,7 @@ export { SnapProcessor } from './processors/snapProcessor';
 export { TouchChatProcessor } from './processors/touchchatProcessor';
 export { ApplePanelsProcessor } from './processors/applePanelsProcessor';
 export { AstericsGridProcessor } from './processors/astericsGridProcessor';
+export { GotalkNowProcessor } from './processors/gotalkNowProcessor';
 
 // ===================================================================
 // UTILITY FUNCTIONS
@@ -47,6 +48,7 @@ import { SnapProcessor } from './processors/snapProcessor';
 import { TouchChatProcessor } from './processors/touchchatProcessor';
 import { ApplePanelsProcessor } from './processors/applePanelsProcessor';
 import { AstericsGridProcessor } from './processors/astericsGridProcessor';
+import { GotalkNowProcessor } from './processors/gotalkNowProcessor';
 export { configureSqlJs } from './utils/sqlite';
 
 /**
@@ -82,6 +84,8 @@ export function getProcessor(
       return new ApplePanelsProcessor(options);
     case '.grd':
       return new AstericsGridProcessor(options);
+    case '.gtbz':
+      return new GotalkNowProcessor(options);
     default:
       throw new Error(`Unsupported file extension: ${extension}`);
   }
@@ -92,7 +96,19 @@ export function getProcessor(
  * @returns Array of supported file extensions
  */
 export function getSupportedExtensions(): string[] {
-  return ['.dot', '.opml', '.obf', '.obz', '.gridset', '.spb', '.sps', '.ce', '.plist', '.grd'];
+  return [
+    '.dot',
+    '.opml',
+    '.obf',
+    '.obz',
+    '.gridset',
+    '.spb',
+    '.sps',
+    '.ce',
+    '.plist',
+    '.grd',
+    '.gtbz',
+  ];
 }
 
 /**

@@ -47,6 +47,7 @@ export * as Excel from './excel';
 export * as Opml from './opml';
 export * as ApplePanels from './applePanels';
 export * as AstericsGrid from './astericsGrid';
+export * as GotalkNow from './gotalkNow';
 export * as Translation from './translation';
 
 // ===================================================================
@@ -64,6 +65,7 @@ import { TouchChatProcessor } from './processors/touchchatProcessor';
 import { ApplePanelsProcessor } from './processors/applePanelsProcessor';
 import { AstericsGridProcessor } from './processors/astericsGridProcessor';
 import { ObfsetProcessor } from './processors/obfsetProcessor';
+import { GotalkNowProcessor } from './processors/gotalkNowProcessor';
 
 /**
  * Factory function to get the appropriate processor for a file extension
@@ -108,6 +110,8 @@ export function getProcessor(
       return new ApplePanelsProcessor(options);
     case '.grd':
       return new AstericsGridProcessor(options);
+    case '.gtbz':
+      return new GotalkNowProcessor(options);
     default:
       throw new Error(`Unsupported file extension: ${extension}`);
   }
@@ -132,6 +136,7 @@ export function getSupportedExtensions(): string[] {
     '.ce',
     '.plist',
     '.grd',
+    '.gtbz',
   ];
 }
 

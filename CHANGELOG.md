@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## [Unreleased]
 
 ### Added
 
@@ -13,6 +13,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `PagesetSummary.vocabulary`: optional `VocabularySummary` field so competence reports can carry the vocabulary inventory.
 - CLI command `aac-processors vocabulary <file>`: prints the vocabulary dump as JSON (`--out`, `--no-smart-grammar`, plus the usual filtering options).
 - `AACPage.wordListItems` is now declared on the interface (it was only set at runtime by the Grid 3 processor).
+- **GoTalk NOW (`.gtbz`) support.** New `GotalkNowProcessor` reads Attainment
+  Company's GoTalk NOW communication-board archives (ZIP of Apple plists +
+  media). Implements `loadIntoTree`, `extractTexts`, `processTexts`
+  (asset-preserving round-trip — only text fields are touched, all images /
+  audio / settings kept verbatim), `saveFromTree`, and platform-compat aliases.
+  - Decodes NSKeyedArchiver-encoded `UIColor` (NSRGB → hex) and `UIFont`
+    (family name) blobs; NSWhite/binary-float colours are left unset rather
+    than guessed.
+  - Maps `TTS`/`Jump`/`Audio`/`Express`/`Bookmark`/`URL`/`Video` button types
+    to semantic actions; captures page titles, page/button colours, fonts,
+    `Enabled` state, and bundled images (e.g. Metacom symbols).
+  - Registered in `getProcessor`/`getSupportedExtensions` (Node + browser),
+    `core/analyze`, CLI `detectFormat`, `package.json` exports, and a new
+    `GotalkNow` namespace.
+  - Conversion utility: `scripts/conversion/convert-gtbz-to-obz.js`.
+
+### Fixed
+
+- **OBF/OBZ manifest `root` bug.** `ObfProcessor.saveFromTree` and
+  `saveModifiedTree` set `manifest.root` to the board **ID** (e.g. `"1"`)
+  instead of the board **file path** (e.g. `"1.obf"`). This produced OBZ
+  archives that failed the `ObfValidator` (`manifest_root` check) and were
+  rejected by external OBF viewers with "Failed to parse OBZ file".
+- **Gridset validator required a fictional `gridset.xml`.** Real Grid 3
+  `.gridset` archives do not contain a top-level `gridset.xml` — they use
+  `Settings0/settings.xml` + `FileMap.xml` + `Grids/<name>/grid.xml`. The
+  validator now checks for the real required files instead of an invented
+  schema, so `saveFromTree` output and real Grid 3 archives validate
+  correctly (previously every programmatic gridset export failed validation).
 
 ## v0.2.x
 

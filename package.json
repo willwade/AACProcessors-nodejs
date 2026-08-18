@@ -60,6 +60,10 @@
       "types": "./dist/astericsGrid.d.ts",
       "default": "./dist/astericsGrid.js"
     },
+    "./gotalkNow": {
+      "types": "./dist/gotalkNow.d.ts",
+      "default": "./dist/gotalkNow.js"
+    },
     "./translation": {
       "types": "./dist/translation.d.ts",
       "default": "./dist/translation.js"

@@ -54,11 +54,12 @@ Audio enhancement and integration scripts.
 Format conversion utilities.
 
 - **txt-to-gridset.ts** - Convert TSV (tab-separated) files to Gridset format
+- **convert-gtbz-to-obz.js** - Convert a GoTalk NOW `.gtbz` board to an OBF `.obz` archive (embeds bundled images as data URLs, preserves colours/text/navigation)
 
 Example:
 ```bash
 npm run build
-npx ts-node scripts/conversion/txt-to-gridset.ts input.tsv output.gridset
+node scripts/conversion/convert-gtbz-to-obz.js input.gtbz output.obz
 ```
 
 ### 🌐 translation/

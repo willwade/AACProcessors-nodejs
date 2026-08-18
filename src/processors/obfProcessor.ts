@@ -251,14 +251,22 @@ class ObfProcessor extends BaseProcessor {
 
     const buttons: AACButton[] = await Promise.all(
       sourceButtons.map(async (btn: ObfButton): Promise<AACButton> => {
+        // Resolve load_board.path to a board ID (strip .obf suffix if present).
+        // The OBF spec says load_board.path is a file path, but internally we
+        // store the board ID as targetPageId.
+        const rawPath = btn.load_board?.path;
+        const boardRef = rawPath
+          ? rawPath.replace(/\.obf$/i, '').replace(/\.obz$/i, '')
+          : undefined;
+
         const semanticAction: AACSemanticAction = btn.load_board
           ? {
               category: AACSemanticCategory.NAVIGATION,
               intent: AACSemanticIntent.NAVIGATE_TO,
-              targetId: btn.load_board.path,
+              targetId: boardRef,
               fallback: {
                 type: 'NAVIGATE',
-                targetPageId: btn.load_board.path,
+                targetPageId: boardRef,
               },
             }
           : {
@@ -314,7 +322,7 @@ class ObfProcessor extends BaseProcessor {
           resolvedImageEntry: resolvedImage,
           parameters: Object.keys(buttonParameters).length > 0 ? buttonParameters : undefined,
           semanticAction,
-          targetPageId: btn.load_board?.path,
+          targetPageId: boardRef,
           semantic_id: btn.semantic_id, // Extract semantic_id if present
         });
       })
@@ -789,7 +797,7 @@ class ObfProcessor extends BaseProcessor {
           load_board:
             button.semanticAction?.intent === AACSemanticIntent.NAVIGATE_TO && button.targetPageId
               ? {
-                  path: button.targetPageId,
+                  path: this.getPageFilename(button.targetPageId, metadata),
                 }
               : undefined,
           background_color: button.style?.backgroundColor,
@@ -874,7 +882,9 @@ class ObfProcessor extends BaseProcessor {
       });
       const manifest: ObfManifest = {
         format: OBF_FORMAT_VERSION,
-        root: tree.metadata.defaultHomePageId,
+        root: tree.metadata.defaultHomePageId
+          ? this.getPageFilename(tree.metadata.defaultHomePageId, tree.metadata)
+          : undefined,
         paths: {
           boards: Object.fromEntries(
             Object.entries(tree.pages).map(([id, page]) => [
@@ -952,7 +962,9 @@ class ObfProcessor extends BaseProcessor {
     if (Object.keys(tree.pages).length > 0) {
       const manifest: ObfManifest = {
         format: OBF_FORMAT_VERSION,
-        root: tree.metadata.defaultHomePageId,
+        root: tree.metadata.defaultHomePageId
+          ? this.getPageFilename(tree.metadata.defaultHomePageId, tree.metadata)
+          : undefined,
         paths: {
           boards: Object.fromEntries(
             Object.entries(tree.pages).map(([id, page]) => [
