@@ -28,6 +28,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     `core/analyze`, CLI `detectFormat`, `package.json` exports, and a new
     `GotalkNow` namespace.
   - Conversion utility: `scripts/conversion/convert-gtbz-to-obz.js`.
+- **GoTalk NOW `.gotalk-book` share exports.** Real-world books shared from the
+  app arrive as ZIPs with everything nested under a `<BookName>.gotalk-book/`
+  folder (often `.zip`-suffixed, sometimes with macOS `__MACOSX/` resource-fork
+  entries). The processor now locates the plists in either layout and
+  `processTexts` round-trips the nested structure in place.
+- **GoTalk NOW format routing.** `MyBook.gotalk-book.zip` / `.gotalk-book`
+  names route to the GoTalk processor in `getProcessor` (Node + browser;
+  `.gotalk-book` added to supported extensions), and the CLI sniffs bare
+  `.zip` archives for GoTalk plists.
+- **GoTalk NOW image resolution.** Bundled button images are matched by
+  basename (case-insensitive, with extension guessing) against the archive —
+  `Location`/`QuickRecoveryPath` are iOS container paths that never match entry
+  names. Entries sourced from the app's "GoTalk Image Library" clip-art are
+  skipped in favour of the user's own image, and a pre-rendered
+  `<page>-<button>-<buttonCount>.png` snapshot is the final fallback. Symbol
+  libraries are detected generically (`metacom`/`pcs`/`symbolstix`/`widgit`).
+- **GoTalk NOW semantics.** `JumpTo` sentinels (`0`, `-1`, empty) no longer
+  produce phantom navigation targets; sparse pages without `ButtonCount` are
+  sized by highest button index + 1; non-square counts derive a near-square
+  rectangle (cols = ⌈√n⌉, rows = ⌈n/cols⌉) instead of a forced square.
 
 ### Fixed
 

@@ -374,6 +374,45 @@ describe('CLI Comprehensive Tests', () => {
         console.log('Skipping test - example.gridset not found');
       }
     });
+
+    it('should route GoTalk NOW share exports (.gotalk-book.zip and bare .zip)', async () => {
+      // Minimal nested share export: plists under <BookName>.gotalk-book/.
+      const AdmZip = require('adm-zip');
+      const plist = require('plist');
+      const zip = new AdmZip();
+      const DIR = 'Demo Book.gotalk-book';
+      const pageData = {
+        1: {
+          ButtonCount: 1,
+          PageTitle: 'Wunsch',
+          Buttons: {
+            '0': { ActionData: { TTSText: '' }, ButtonText: 'Hallo', ButtonType: 'TTS' },
+          },
+        },
+      };
+      zip.addFile(
+        `${DIR}/BookInfo.plist`,
+        Buffer.from(plist.build({ GoTalkBookFormatVersion: 1 }))
+      );
+      zip.addFile(`${DIR}/PageData.plist`, Buffer.from(plist.build(pageData)));
+      zip.addFile(`${DIR}/PageOrder.plist`, Buffer.from(plist.build([1])));
+
+      const bookPath = path.join(tempDir, 'Demo.gotalk-book.zip');
+      const plainZipPath = path.join(tempDir, 'Demo-plain.zip');
+      zip.writeZip(bookPath);
+      fs.copyFileSync(bookPath, plainZipPath);
+
+      // Book-suffix routing and bare-.zip content sniffing both land on the
+      // GoTalk processor and extract the page title + button label.
+      for (const target of [bookPath, plainZipPath]) {
+        const result = execSync(`node ${cliPath} extract ${target}`, {
+          encoding: 'utf8',
+          cwd: tempDir,
+        });
+        expect(result).toContain('Wunsch');
+        expect(result).toContain('Hallo');
+      }
+    });
   });
 
   describe('Error Handling Tests', () => {

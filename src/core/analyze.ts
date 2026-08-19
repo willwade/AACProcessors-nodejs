@@ -49,6 +49,7 @@ export function getProcessor(format: string, options?: ProcessorOptions): BasePr
     case 'gotalknow':
     case 'gotalk':
     case 'gtbz': // GoTalk NOW file extension
+    case 'gotalk-book': // GoTalk NOW share export (e.g. "MyBook.gotalk-book.zip")
       return new GotalkNowProcessor(options);
     default:
       throw new Error('Unknown format: ' + format);
