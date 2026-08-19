@@ -2,6 +2,7 @@ import { describe, expect, it } from '@jest/globals';
 import {
   analyzeTimeline,
   lexicalDiversity,
+  lexicalRichness,
   morphologicalDiversity,
   movingAverageTTR,
   spellingValidity,
@@ -197,6 +198,38 @@ describe('competence / summarizeActivity', () => {
   });
 });
 
+describe('competence / lexicalRichness (Brunet W, Honoré R)', () => {
+  it('computes W, R and hapax counts for a mixed stream', () => {
+    // N=6, V=5 ("the" twice + cat/dog/bird/fish once each) -> V1=4
+    const r = lexicalRichness(['the', 'cat', 'the', 'dog', 'bird', 'fish']);
+    expect(r.tokens).toBe(6);
+    expect(r.types).toBe(5);
+    expect(r.hapax).toBe(4);
+    expect(r.brunetsW).toBeCloseTo(6 * Math.pow(5, -0.165), 10);
+    expect(r.honoresR).toBeCloseTo((100 * Math.log(6)) / (1 - 4 / 5), 10);
+  });
+
+  it('returns the closed-form Honoré R for a standard example', () => {
+    // N=5, V=4, V1=3: "a a b c d"
+    const r = lexicalRichness(['a', 'a', 'b', 'c', 'd']);
+    expect(r.hapax).toBe(3);
+    expect(r.honoresR).toBeCloseTo((100 * Math.log(5)) / (1 - 3 / 4), 10);
+  });
+
+  it('R is null when every type is a hapax or N<=1', () => {
+    expect(lexicalRichness(['a', 'b', 'c']).honoresR).toBeNull();
+    expect(lexicalRichness(['a']).honoresR).toBeNull();
+    expect(lexicalRichness([]).brunetsW).toBeNull();
+    expect(lexicalRichness([]).honoresR).toBeNull();
+  });
+
+  it('W decreases (richer) as vocabulary diversifies at fixed N', () => {
+    const narrow = lexicalRichness(['go', 'go', 'go', 'go', 'go', 'go']);
+    const wide = lexicalRichness(['go', 'went', 'going', 'goes', 'gone', 'go']);
+    expect(wide.brunetsW!).toBeLessThan(narrow.brunetsW!);
+  });
+});
+
 describe('competence / analyzeTimeline', () => {
   const DAY = 86_400_000;
 
@@ -229,6 +262,10 @@ describe('competence / analyzeTimeline', () => {
     for (const bin of report.timeline) {
       expect(bin.suppressed).toBe(false);
       expect(bin.lexicalDiversity.median).not.toBeNull();
+      // Lexical richness is resource-free — always present on unsuppressed bins.
+      expect(bin.lexicalRichness.brunetsW).not.toBeNull();
+      expect(bin.lexicalRichness.tokens).toBe(bin.words);
+      expect(bin.lexicalRichness.types).toBe(bin.uniqueWords);
     }
   });
 
