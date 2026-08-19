@@ -10,6 +10,7 @@ import {
 } from '../utilities/analytics/history';
 import { ComparisonAnalyzer, MetricsCalculator, dumpVocabulary } from '../utilities/analytics';
 import type { VocabularyDump } from '../utilities/analytics';
+import { getZipAdapter } from '../utils/zip';
 import { CellScanningOrder, ScanningSelectionMethod } from '../types/aac';
 import { defaultFileAdapter, extname } from '../utils/io';
 import { readFileSync } from 'node:fs';
@@ -36,6 +37,28 @@ async function detectFormat(filePath: string): Promise<string> {
   }
   if (filePath.endsWith('.gtbz')) {
     return 'gotalknow';
+  }
+  // GoTalk NOW share exports keep their book suffix before the archive
+  // extension ("MyBook.gotalk-book.zip") — route on the book suffix.
+  if (/\.gotalk-book(\.|$)/i.test(filePath)) {
+    return 'gotalknow';
+  }
+
+  // Bare .zip: sniff the archive for GoTalk NOW plists (root or nested
+  // <BookName>.gotalk-book/ folder). Other zip-based formats (.obz, .spb,
+  // .gridset) always arrive with their own extension.
+  if (filePath.toLowerCase().endsWith('.zip')) {
+    try {
+      const zip = await getZipAdapter(filePath, defaultFileAdapter);
+      const files = zip.listFiles();
+      const hasGoTalkPlists = files.some(
+        (f: string) =>
+          !f.startsWith('__MACOSX/') && /(^|\/)PageData\.plist$/.test(f.replace(/\\/g, '/'))
+      );
+      if (hasGoTalkPlists) return 'gotalknow';
+    } catch {
+      /* not a readable zip — fall through to extension-based detection */
+    }
   }
 
   // Otherwise use file extension

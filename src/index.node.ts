@@ -86,6 +86,13 @@ export function getProcessor(
     ? filePathOrExtension.substring(filePathOrExtension.lastIndexOf('.'))
     : filePathOrExtension;
 
+  // GoTalk NOW share exports keep their book suffix before the archive
+  // extension (e.g. "MyBook.gotalk-book.zip"), so match on the name, not the
+  // final extension.
+  if (/\.gotalk-book(\.|$)/i.test(filePathOrExtension)) {
+    return new GotalkNowProcessor(options);
+  }
+
   switch (extension.toLowerCase()) {
     case '.dot':
       return new DotProcessor(options);
@@ -137,6 +144,7 @@ export function getSupportedExtensions(): string[] {
     '.plist',
     '.grd',
     '.gtbz',
+    '.gotalk-book',
   ];
 }
 

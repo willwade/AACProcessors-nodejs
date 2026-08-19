@@ -17,6 +17,13 @@
  *   - Backup-<n>.zip        – rolling backups
  *   - REQUIRESREGEN         – marker file
  *
+ * Two on-disk variants exist and both are accepted:
+ *   - `.gtbz` app backups: plists at the ZIP root.
+ *   - `.gotalk-book` share exports (often `.zip`-suffixed): everything nested
+ *     under a `<BookName>.gotalk-book/` folder, possibly alongside `__MACOSX/`
+ *     resource-fork entries (ignored). Button images are pre-rendered
+ *     snapshots named `<page>-<button>-<buttonCount>.png`.
+ *
  * Colours and fonts in PageData are NSKeyedArchiver-encoded binary plists
  * carried inside `<data>` tags. They are treated as opaque blobs and preserved
  * verbatim so that only text fields are touched during translation.
@@ -135,7 +142,8 @@ function buildSemanticAction(
   switch (buttonType) {
     case 'Jump': {
       const jumpTo = actionData.JumpTo;
-      const target = jumpTo !== undefined ? String(jumpTo) : undefined;
+      // GoTalk treats 0 / -1 / "" as "no jump configured".
+      const target = !isNoJumpTarget(jumpTo) ? String(jumpTo) : undefined;
       return {
         semanticAction: {
           category: AACSemanticCategory.NAVIGATION,
@@ -144,7 +152,7 @@ function buildSemanticAction(
           platformData: {
             gotalkNow: { buttonType: 'Jump', jumpTo, jumpBook: actionData.JumpBook },
           },
-          fallback: { type: 'NAVIGATE', targetPageId: target },
+          fallback: target ? { type: 'NAVIGATE', targetPageId: target } : { type: 'ACTION' },
         },
         message: '',
         targetPageId: target,
@@ -254,12 +262,67 @@ function buildSemanticAction(
 }
 
 /**
- * Derive a square-ish grid layout from the declared button count.
- * GoTalk NOW uses fixed layouts (1, 4, 9, 16, 25, 36 …).
+ * Derive a GoTalk NOW layout from the declared button count.
+ * GoTalk NOW uses fixed square layouts (1, 4, 9, 16, 25, 36 …); when the
+ * count is not a perfect square (alternate/custom layouts), fall back to a
+ * near-square rectangle: cols = ceil(sqrt(n)), rows = ceil(n / cols).
  */
 function gridDimensionsFromButtonCount(count: number): { rows: number; cols: number } {
-  const side = Math.max(1, Math.ceil(Math.sqrt(Math.max(count, 1))));
-  return { rows: side, cols: side };
+  const n = Math.max(count, 1);
+  const side = Math.ceil(Math.sqrt(n));
+  return { rows: Math.ceil(n / side), cols: side };
+}
+
+/** GoTalk treats JumpTo 0 / -1 / "" as "no jump". */
+function isNoJumpTarget(value: unknown): boolean {
+  return (
+    value === undefined ||
+    value === null ||
+    value === 0 ||
+    value === -1 ||
+    value === '' ||
+    value === '0' ||
+    value === '-1'
+  );
+}
+
+/** Normalise a zip or iOS-container path to a lowercase basename. */
+function basenameLower(p: string | undefined): string | null {
+  if (!p) return null;
+  const base = p.replace(/\\/g, '/').split('/').pop() || '';
+  const trimmed = base.trim().toLowerCase();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+/**
+ * Resolve a bundled image for a button against the archive's file list.
+ *
+ * `Location`/`QuickRecoveryPath` values are iOS app-container paths that never
+ * match archive entry names verbatim, so candidates are matched by basename
+ * (case-insensitive), with extension guessing when the name has none.
+ */
+function findZipImageEntry(
+  zipBasenames: Map<string, string>,
+  candidates: Array<string | undefined>
+): { entry: string; ext: string } | null {
+  const tried = new Set<string>();
+  for (const candidate of candidates) {
+    const base = basenameLower(candidate);
+    if (!base || tried.has(base)) continue;
+    tried.add(base);
+    // 1. Exact basename match.
+    const direct = zipBasenames.get(base);
+    if (direct) {
+      const ext = base.includes('.') ? base.slice(base.lastIndexOf('.')) : '.png';
+      return { entry: direct, ext };
+    }
+    // 2. Try common image extensions.
+    for (const ext of ['.png', '.jpg', '.jpeg', '.bmp']) {
+      const hit = zipBasenames.get(base + ext);
+      if (hit) return { entry: hit, ext };
+    }
+  }
+  return null;
 }
 
 // ---------------------------------------------------------------------------
@@ -286,17 +349,33 @@ class GotalkNowProcessor extends BaseProcessor {
     return zip;
   }
 
+  /**
+   * Resolve a plist entry name inside the archive, tolerating both layout
+   * variants: `.gtbz` (plists at ZIP root) and `.gotalk-book` share exports
+   * (plists nested under a `<BookName>.gotalk-book/` folder). `__MACOSX`
+   * resource-fork entries are ignored. Returns the full entry name, or null.
+   */
+  private resolveEntryName(files: string[], basename: string, prefix: string): string | null {
+    const rooted = `${prefix}${basename}`;
+    if (files.includes(rooted)) return rooted;
+    // Nested variant: find the (non-__MACOSX) entry ending in /<basename>.
+    const matches = files.filter(
+      (f) => f !== `__MACOSX` && !f.startsWith('__MACOSX/') && f.endsWith(`/${basename}`)
+    );
+    return matches.length > 0 ? matches[0] : null;
+  }
+
   private async readPlistFromZip(
     zip: Awaited<ReturnType<typeof this.options.zipAdapter>>,
     name: string,
+    resolvedName: string | null,
     fallback?: () => PlistValue
   ): Promise<PlistValue> {
-    const files = zip.listFiles();
-    if (!files.includes(name)) {
+    if (!resolvedName) {
       if (fallback) return fallback();
       throw new Error(`GoTalk NOW archive is missing ${name}`);
     }
-    const bytes = await zip.readFile(name);
+    const bytes = await zip.readFile(resolvedName);
     const text =
       typeof Buffer !== 'undefined' && Buffer.isBuffer(bytes)
         ? bytes.toString('utf8')
@@ -336,13 +415,23 @@ class GotalkNowProcessor extends BaseProcessor {
 
     try {
       zip = await this.openZip(filePathOrBuffer);
-      pageDataValue = await this.readPlistFromZip(zip, 'PageData.plist');
+      // Resolve plist locations once; shared by load/processTexts round-trip.
+      const files = zip.listFiles();
+      const pdEntry = this.resolveEntryName(files, 'PageData.plist', '');
+      const prefix = pdEntry ? pdEntry.slice(0, -'PageData.plist'.length) : '';
+      pageDataValue = await this.readPlistFromZip(zip, 'PageData.plist', pdEntry);
       pageOrderValue = await this.readPlistFromZip(
         zip,
         'PageOrder.plist',
+        this.resolveEntryName(files, 'PageOrder.plist', prefix),
         () => [] as unknown as PlistValue
       );
-      bookInfoValue = await this.readPlistFromZip(zip, 'BookInfo.plist', () => ({}) as PlistValue);
+      bookInfoValue = await this.readPlistFromZip(
+        zip,
+        'BookInfo.plist',
+        this.resolveEntryName(files, 'BookInfo.plist', prefix),
+        () => ({}) as PlistValue
+      );
     } catch (err: any) {
       if (err instanceof ValidationFailureError) throw err;
       const validation = buildValidationResultFromMessage({
@@ -386,6 +475,14 @@ class GotalkNowProcessor extends BaseProcessor {
 
     // Track available image files so we can resolve ButtonImages locations.
     const zipFiles = new Set(zip.listFiles());
+    // Basename (lowercase, non-__MACOSX) -> full entry name, for tolerant
+    // matching of bundled images in .gotalk-book share exports.
+    const zipBasenames = new Map<string, string>();
+    for (const f of zipFiles) {
+      if (f.startsWith('__MACOSX/') || f.endsWith('/')) continue;
+      const base = basenameLower(f);
+      if (base && !zipBasenames.has(base)) zipBasenames.set(base, f);
+    }
 
     // Build pages. Use the union of PageData keys and PageOrder ids.
     const allPageIds = new Set<string>([...Object.keys(pageData), ...orderedPageIds]);
@@ -442,7 +539,11 @@ class GotalkNowProcessor extends BaseProcessor {
       const buttonsById = rawPage.Buttons || {};
       // Numeric sort of button indices ("0","1",…,"10",…)
       const buttonIndices = Object.keys(buttonsById).sort((a, b) => Number(a) - Number(b));
-      const buttonCount = rawPage.ButtonCount ?? buttonIndices.length;
+      // Sparse button maps: the grid size is max(index)+1, not the number of
+      // keys (GoTalk snapshots and layouts are sized by the highest slot).
+      const buttonCount =
+        rawPage.ButtonCount ??
+        (buttonIndices.length > 0 ? Math.max(...buttonIndices.map(Number)) + 1 : 0);
 
       const { rows, cols } = gridDimensionsFromButtonCount(buttonCount);
       const gridLayout: (AACButton | null)[][] = Array.from({ length: rows }, () =>
@@ -485,17 +586,47 @@ class GotalkNowProcessor extends BaseProcessor {
         }
 
         // Resolve image metadata.
-        const images = rawButton.ButtonImages;
-        if (Array.isArray(images) && images.length > 0) {
-          const first = images[0];
-          if (first?.Location) {
-            button.image = first.Location;
-            if (zipFiles.has(first.Location)) {
-              button.resolvedImageEntry = first.Location;
+        // Heuristics (from real .gotalk-book share exports):
+        //   - entries sourced from the app's bundled "GoTalk Image Library"
+        //     are clip-art, not user content — skip them;
+        //   - prefer the entry carrying QuickRecoveryPath; with multiple
+        //     entries the second one is the user's image;
+        //   - bundled files are matched by basename (Location/QRP are iOS
+        //     container paths, never archive entry names);
+        //   - last resort: the pre-rendered snapshot <page>-<btn>-<count>.png.
+        const imagesAll = rawButton.ButtonImages;
+        const images = Array.isArray(imagesAll)
+          ? imagesAll.filter((im) => (im?.SourceLibrary || '') !== 'GoTalk Image Library')
+          : [];
+        if (images.length > 0) {
+          const selected =
+            images.find((im) => im.QuickRecoveryPath !== undefined) ??
+            (images.length >= 2 ? images[1] : images[0]);
+          if (selected) {
+            const sourceLibrary = (selected.SourceLibrary || '').toLowerCase();
+            const sourceImageName = selected.SourceImageName || '';
+            const isLibrarySymbol =
+              /metacom|pcs|symbolstix|widgit/.test(sourceLibrary) && sourceImageName.length > 0;
+
+            if (selected.Location) button.image = selected.Location;
+            if (selected.SourceLibrary) button.symbolLibrary = selected.SourceLibrary;
+            if (sourceImageName) button.symbolPath = sourceImageName;
+
+            if (!isLibrarySymbol) {
+              const bundled = findZipImageEntry(zipBasenames, [
+                selected.QuickRecoveryPath,
+                selected.Location,
+                selected.SourceImageName,
+                `${pageId}-${btnIndex}-${buttonCount}.png`,
+              ]);
+              if (bundled) {
+                button.image = bundled.entry;
+                button.resolvedImageEntry = bundled.entry;
+              }
+            } else if (zipFiles.has(selected.Location || '')) {
+              button.resolvedImageEntry = selected.Location;
             }
           }
-          if (first?.SourceLibrary) button.symbolLibrary = first.SourceLibrary;
-          if (first?.SourceImageName) button.symbolPath = first.SourceImageName;
         }
 
         // Visibility: GoTalk buttons can be disabled via either field.
@@ -567,8 +698,12 @@ class GotalkNowProcessor extends BaseProcessor {
 
     const originalZip = await this.openZip(filePathOrBuffer);
 
-    // Parse PageData and apply translations in place.
-    const pageDataBytes = await originalZip.readFile('PageData.plist');
+    // Parse PageData and apply translations in place. Locate the plist the
+    // same tolerant way loadIntoTree does (root or nested .gotalk-book folder)
+    // and write it back under its original entry name so the layout survives.
+    const files = originalZip.listFiles();
+    const pdEntry = this.resolveEntryName(files, 'PageData.plist', '') ?? 'PageData.plist';
+    const pageDataBytes = await originalZip.readFile(pdEntry);
     const pageDataText =
       typeof Buffer !== 'undefined' && Buffer.isBuffer(pageDataBytes)
         ? pageDataBytes.toString('utf8')
@@ -600,14 +735,14 @@ class GotalkNowProcessor extends BaseProcessor {
 
     // Repack: copy every original entry verbatim, replacing only PageData.plist.
     const outputZip = await this.options.zipAdapter(undefined, this.options.fileAdapter);
-    const files: { name: string; data: string | Uint8Array }[] = [];
+    const filesOut: { name: string; data: string | Uint8Array }[] = [];
     for (const name of originalZip.listFiles()) {
-      if (name === 'PageData.plist') continue;
-      files.push({ name, data: await originalZip.readFile(name) });
+      if (name === pdEntry) continue;
+      filesOut.push({ name, data: await originalZip.readFile(name) });
     }
-    files.push({ name: 'PageData.plist', data: rebuiltPageData });
+    filesOut.push({ name: pdEntry, data: rebuiltPageData });
 
-    const outputBuffer = await outputZip.writeFiles(files);
+    const outputBuffer = await outputZip.writeFiles(filesOut);
     await writeBinaryToPath(outputPath, outputBuffer);
 
     return outputBuffer;

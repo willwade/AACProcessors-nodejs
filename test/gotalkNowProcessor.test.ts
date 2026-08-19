@@ -136,8 +136,8 @@ describe('GotalkNowProcessor', () => {
       const processor = new GotalkNowProcessor();
       const tree = await processor.loadIntoTree(fixturePath);
       const page1 = tree.pages['1'];
-      // ButtonCount 2 → sqrt ceil = 2 → 2x2 grid.
-      expect(page1.grid.length).toBe(2);
+      // ButtonCount 2 → near-square rectangle: 2 cols × 1 row.
+      expect(page1.grid.length).toBe(1);
       expect(page1.grid[0].length).toBe(2);
     });
 
@@ -272,6 +272,192 @@ describe('GotalkNowProcessor', () => {
     it('returns no family when only keywords are present', () => {
       const blob = Buffer.from('UIFont NSDictionary NSObject', 'latin1');
       expect(decodeNsFont(blob).fontFamily).toBeUndefined();
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // .gotalk-book share-export variant: everything nested under
+  // <BookName>.gotalk-book/, __MACOSX cruft, snapshot images, library symbols.
+  // Synthetic fixture modelled on real share exports (no real-user data).
+  // -------------------------------------------------------------------------
+  describe('gotalk-book share export variant', () => {
+    const nestedFixturePath = path.join(__dirname, 'temp_gotalkbook_fixture.gotalk-book.zip');
+    const nestedTranslateOut = path.join(__dirname, 'temp_gotalkbook_translated.zip');
+    const DIR = 'Demo Book.gotalk-book';
+
+    function buildNestedFixture(outPath: string): void {
+      const zip = new AdmZip();
+      const bookInfo = { GoTalkBookFormatVersion: 1 };
+      const pageData = {
+        1: {
+          ButtonCount: 9,
+          PageTitle: 'Wunsch',
+          Buttons: {
+            // Library symbol (Metacom): no bundled file should be resolved.
+            '0': {
+              ActionData: { TTSText: '' },
+              ButtonText: 'trinken',
+              ButtonType: 'TTS',
+              ButtonImages: [
+                {
+                  SourceLibrary: 'Metacom',
+                  SourceImageName: 'symbols/trinken.png',
+                  QuickRecoveryPath: 'var/mobile/Containers/…/trinken.png',
+                },
+              ],
+            },
+            // Bundled user image: QuickRecoveryPath is an iOS container path;
+            // resolution must happen by basename against the archive.
+            '1': {
+              ActionData: { TTSText: '' },
+              ButtonText: 'Hund',
+              ButtonType: 'TTS',
+              ButtonImages: [
+                {
+                  SourceLibrary: '',
+                  QuickRecoveryPath: 'var/mobile/Containers/…/Documents/my-dog.JPG',
+                },
+              ],
+            },
+            // Two entries where the first is app clip-art ("GoTalk Image
+            // Library"): the second entry is the user's snapshot image.
+            '2': {
+              ActionData: { TTSText: '' },
+              ButtonText: 'Pause',
+              ButtonType: 'TTS',
+              ButtonImages: [
+                { SourceLibrary: 'GoTalk Image Library', SourceImageName: 'clipart/break' },
+                { SourceLibrary: '', Location: 'somewhere/1-2-9.png' },
+              ],
+            },
+            // No usable image entry at all -> snapshot fallback <page>-<btn>-<count>.
+            '3': {
+              ActionData: { TTSText: '' },
+              ButtonText: 'fertig',
+              ButtonType: 'TTS',
+              ButtonImages: [{ SourceLibrary: '', Location: 'gone/missing.png' }],
+            },
+            // Jump with the sentinel value 0 -> no navigation target.
+            '4': {
+              ActionData: { JumpTo: 0, TTSText: '' },
+              ButtonText: 'zurück',
+              ButtonType: 'Jump',
+            },
+            // Jump with a real target.
+            '5': {
+              ActionData: { JumpTo: 2, TTSText: '' },
+              ButtonText: 'weiter',
+              ButtonType: 'Jump',
+            },
+          },
+        },
+        // Sparse buttons, no ButtonCount: grid size = max(index)+1 = 3.
+        2: {
+          PageTitle: 'Gefühle',
+          Buttons: {
+            '0': { ActionData: { TTSText: '' }, ButtonText: 'ja', ButtonType: 'TTS' },
+            '2': { ActionData: { TTSText: '' }, ButtonText: 'nein', ButtonType: 'TTS' },
+          },
+        },
+      };
+      const pageOrder = [1, 2];
+
+      const p = (name: string): string => `${DIR}/${name}`;
+      zip.addFile(p('BookInfo.plist'), Buffer.from(plist.build(bookInfo)));
+      zip.addFile(
+        p('PageData.plist'),
+        Buffer.from(plist.build(pageData as unknown as plist.PlistValue))
+      );
+      zip.addFile(p('PageOrder.plist'), Buffer.from(plist.build(pageOrder)));
+      zip.addFile(p('PageHistory.plist'), Buffer.from(plist.build([])));
+      // Bundled images: extension guessing + case-insensitive basename.
+      zip.addFile(p('my-dog.jpg'), Buffer.from('dog-bytes'));
+      // Snapshot render (exact name page-btn-count.png).
+      zip.addFile(p('1-2-9.png'), Buffer.from('snap-1-2'));
+      zip.addFile(p('1-3-9.png'), Buffer.from('snap-1-3'));
+      // macOS resource-fork cruft that must be ignored.
+      zip.addFile(`__MACOSX/${DIR}/._PageData.plist`, Buffer.from('resource fork junk'));
+
+      zip.writeZip(outPath);
+    }
+
+    beforeAll(() => {
+      buildNestedFixture(nestedFixturePath);
+    });
+
+    afterAll(() => {
+      for (const p of [nestedFixturePath, nestedTranslateOut]) {
+        if (fs.existsSync(p)) fs.unlinkSync(p);
+      }
+    });
+
+    it('loads a nested .gotalk-book export (prefix + __MACOSX tolerance)', async () => {
+      const processor = new GotalkNowProcessor();
+      const tree = await processor.loadIntoTree(nestedFixturePath);
+      expect(Object.keys(tree.pages).sort()).toEqual(['1', '2']);
+      expect(tree.metadata.defaultHomePageId).toBe('1');
+      expect(tree.pages['1'].name).toBe('Wunsch');
+    });
+
+    it('resolves bundled images by basename with extension guessing', async () => {
+      const processor = new GotalkNowProcessor();
+      const tree = await processor.loadIntoTree(nestedFixturePath);
+      const btn = tree.pages['1'].buttons.find((b) => b.label === 'Hund');
+      expect(btn!.resolvedImageEntry).toBe(`${DIR}/my-dog.jpg`);
+    });
+
+    it('marks library symbols without resolving a bundled file', async () => {
+      const processor = new GotalkNowProcessor();
+      const tree = await processor.loadIntoTree(nestedFixturePath);
+      const btn = tree.pages['1'].buttons.find((b) => b.label === 'trinken');
+      expect(btn!.symbolLibrary).toBe('Metacom');
+      expect(btn!.symbolPath).toBe('symbols/trinken.png');
+      expect(btn!.resolvedImageEntry).toBeUndefined();
+    });
+
+    it('skips GoTalk Image Library clip-art and picks the user image entry', async () => {
+      const processor = new GotalkNowProcessor();
+      const tree = await processor.loadIntoTree(nestedFixturePath);
+      const btn = tree.pages['1'].buttons.find((b) => b.label === 'Pause');
+      expect(btn!.symbolLibrary).not.toBe('GoTalk Image Library');
+      expect(btn!.resolvedImageEntry).toBe(`${DIR}/1-2-9.png`);
+    });
+
+    it('falls back to the rendered snapshot <page>-<btn>-<count>.png', async () => {
+      const processor = new GotalkNowProcessor();
+      const tree = await processor.loadIntoTree(nestedFixturePath);
+      const btn = tree.pages['1'].buttons.find((b) => b.label === 'fertig');
+      expect(btn!.resolvedImageEntry).toBe(`${DIR}/1-3-9.png`);
+    });
+
+    it('treats JumpTo 0 as no jump but keeps real Jump targets', async () => {
+      const processor = new GotalkNowProcessor();
+      const tree = await processor.loadIntoTree(nestedFixturePath);
+      const back = tree.pages['1'].buttons.find((b) => b.label === 'zurück');
+      const fwd = tree.pages['1'].buttons.find((b) => b.label === 'weiter');
+      expect(back!.targetPageId).toBeUndefined();
+      expect(fwd!.targetPageId).toBe('2');
+    });
+
+    it('sizes sparse pages by max button index + 1', async () => {
+      const processor = new GotalkNowProcessor();
+      const tree = await processor.loadIntoTree(nestedFixturePath);
+      const page2 = tree.pages['2'];
+      // max index 2 -> count 3 -> cols 2, rows 2 (near-square).
+      expect(page2.grid.length).toBe(2);
+      expect(page2.grid[0].length).toBe(2);
+    });
+
+    it('processTexts round-trips a nested export without flattening it', async () => {
+      const processor = new GotalkNowProcessor();
+      const translations = new Map([['ja', 'yes']]);
+      await processor.processTexts(nestedFixturePath, translations, nestedTranslateOut);
+      const out = new AdmZip(nestedTranslateOut);
+      const names = out.getEntries().map((e) => e.entryName);
+      expect(names).toContain(`${DIR}/PageData.plist`);
+      expect(names).toContain(`${DIR}/my-dog.jpg`);
+      expect(names).toContain(`__MACOSX/${DIR}/._PageData.plist`); // cruft preserved
+      expect(names).not.toContain('PageData.plist'); // not hoisted to root
     });
   });
 });
