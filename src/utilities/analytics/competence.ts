@@ -342,6 +342,44 @@ export function spellingValidity(words: WordStream, dictionary?: Set<string>): n
 }
 
 /* ------------------------------------------------------------------ *
+ * Lexical richness indices (Brunet's W, Honoré's R)
+ *
+ * Total-sample type-token measures that complement MATTR: they do not depend
+ * on a moving window, so they behave differently on small/variable AAC
+ * samples. Both are pure functions of the token-frequency distribution —
+ * language-agnostic, no word lists needed. Used in DEPAC's lexical-complexity
+ * feature set (Tasnim et al., 2022); lower W / higher R = richer vocabulary.
+ * ------------------------------------------------------------------ */
+
+export interface LexicalRichness {
+  /** Brunet's index W = N · V^(-0.165). Range ~10–30; LOWER = richer. */
+  brunetsW: number | null;
+  /** Honoré's statistic R = 100·ln N / (1 − V1/V). HIGHER = richer. */
+  honoresR: number | null;
+  /** Hapax legomena (words used exactly once) — count only. */
+  hapax: number;
+  /** Number of distinct words (V). */
+  types: number;
+  /** Number of tokens (N). */
+  tokens: number;
+}
+
+export function lexicalRichness(words: WordStream): LexicalRichness {
+  const n = words.length;
+  const freq = new Map<string, number>();
+  for (const w of words) freq.set(w, (freq.get(w) ?? 0) + 1);
+  const v = freq.size;
+  let v1 = 0;
+  for (const c of freq.values()) if (c === 1) v1++;
+
+  const brunetsW = n > 0 && v > 0 ? n * Math.pow(v, -0.165) : null;
+  // Honoré's R is undefined when every word is a hapax (V1 = V) or N <= 1.
+  const honoresR = n > 1 && v > 0 && v1 < v ? (100 * Math.log(n)) / (1 - v1 / v) : null;
+
+  return { brunetsW, honoresR, hapax: v1, types: v, tokens: n };
+}
+
+/* ------------------------------------------------------------------ *
  * Activity / engagement statistics
  * ------------------------------------------------------------------ */
 
@@ -413,6 +451,8 @@ export interface MonthBin {
   morphologicalDiversity: DiversityResult;
   /** Phonological — only when a dictionary is supplied. */
   spellingValidity: number | null;
+  /** Lexical richness indices (Brunet's W, Honoré's R) — always available. */
+  lexicalRichness: LexicalRichness;
   /** True when the month has too little data to trust the diversity figures. */
   suppressed: boolean;
   suppressReason: string | null;
@@ -635,6 +675,9 @@ export function analyzeTimeline(
           classifyInflection: resources.classifyInflection,
         });
     const spell = suppressed ? null : spellingValidity(stream, dictionary);
+    const rich: LexicalRichness = suppressed
+      ? { brunetsW: null, honoresR: null, hapax: 0, types: 0, tokens: 0 }
+      : lexicalRichness(stream);
 
     timeline.push({
       month: key,
@@ -647,6 +690,7 @@ export function analyzeTimeline(
       syntacticDiversity: syn,
       morphologicalDiversity: mor,
       spellingValidity: spell,
+      lexicalRichness: rich,
       suppressed,
       suppressReason,
     });

@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Lexical richness indices** (`lexicalRichness()`): Brunet's W (`N·V^-0.165`, lower = richer) and Honoré's R (`100·ln N/(1−V₁/V)`, higher = richer) plus hapax-legomena count — total-sample type-token measures that complement MATTR without window-size sensitivity (used in DEPAC's lexical-complexity feature set). Language-agnostic, no resources needed; attached to each `MonthBin.lexicalRichness` in competence reports.
 - **Counts-only vocabulary dump** (`dumpVocabulary()`): inventories the vocabulary available in a pageset — labelled buttons, Grid 3 page WordLists, prediction dictionaries (`Prediction.PredictThis`) and smart-grammar word forms — returning counts per source with a part-of-speech breakdown. Emits counts only (never word lists), so it is safe for privacy-preserving reports. Exported from the `Analytics` and `Metrics` namespaces.
 - `PagesetSummary.vocabulary`: optional `VocabularySummary` field so competence reports can carry the vocabulary inventory.
 - CLI command `aac-processors vocabulary <file>`: prints the vocabulary dump as JSON (`--out`, `--no-smart-grammar`, plus the usual filtering options).
